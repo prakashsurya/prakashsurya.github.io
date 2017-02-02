@@ -1,0 +1,1194 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>prakashsurya.github.io</title>
+    <link>https://prakashsurya.github.io/index.xml</link>
+    <description>Recent content on prakashsurya.github.io</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 07 Dec 2015 00:00:00 -0800</lastBuildDate>
+    <atom:link href="https://prakashsurya.github.io/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>OpenZFS: Artificial Disk Latency Using zinject</title>
+      <link>https://prakashsurya.github.io/post/2015-12-07-openzfs-artificial-disk-latency-using-zinject/</link>
+      <pubDate>Mon, 07 Dec 2015 00:00:00 -0800</pubDate>
+      
+      <guid>https://prakashsurya.github.io/post/2015-12-07-openzfs-artificial-disk-latency-using-zinject/</guid>
+      <description>
+
+&lt;p&gt;About a year ago I had the opportunity to work on a small extension to
+the &lt;a href=&#34;http://www.open-zfs.org&#34;&gt;OpenZFS&lt;/a&gt; &lt;code&gt;zinject&lt;/code&gt; command with colleagues Matt Ahrens and
+Frank Salzmann, during one of our &lt;a href=&#34;http://www.delphix.com&#34;&gt;Delphix&lt;/a&gt; engineering wide
+hackathon events. Now that it&amp;rsquo;s in the &lt;a href=&#34;https://github.com/openzfs/openzfs/pull/39&#34;&gt;process of landing&lt;/a&gt; in the
+upstream &lt;a href=&#34;https://github.com/openzfs/openzfs&#34;&gt;OpenZFS repository&lt;/a&gt;, I wanted to take a minute to show
+it off.&lt;/p&gt;
+
+&lt;p&gt;To describe the new functionality, I&amp;rsquo;ll defer to the help message:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ zinject -h
+... &amp;lt;snip&amp;gt; ...
+
+zinject -d device -D latency:lanes pool
+
+        Add an artificial delay to IO requests on a particular
+        device, such that the requests take a minimum of &#39;latency&#39;
+        milliseconds to complete. Each delay has an associated
+        number of &#39;lanes&#39; which defines the number of concurrent
+        IO requests that can be processed.
+
+        For example, with a single lane delay of 10 ms (-D 10:1),
+        the device will only be able to service a single IO request
+        at a time with each request taking 10 ms to complete. So,
+        if only a single request is submitted every 10 ms, the
+        average latency will be 10 ms; but if more than one request
+        is submitted every 10 ms, the average latency will be more
+        than 10 ms.
+
+        Similarly, if a delay of 10 ms is specified to have two
+        lanes (-D 10:2), then the device will be able to service
+        two requests at a time, each with a minimum latency of
+        10 ms. So, if two requests are submitted every 10 ms, then
+        the average latency will be 10 ms; but if more than two
+        requests are submitted every 10 ms, the average latency
+        will be more than 10 ms.
+
+        Also note, these delays are additive. So two invocations
+        of &#39;-D 10:1&#39;, is roughly equivalent to a single invocation
+        of &#39;-D 10:2&#39;. This also means, one can specify multiple
+        lanes with differing target latencies. For example, an
+        invocation of &#39;-D 10:1&#39; followed by &#39;-D 25:2&#39; will
+        create 3 lanes on the device; one lane with a latency
+        of 10 ms and two lanes with a 25 ms latency.
+
+... &amp;lt;snip&amp;gt; ...
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Given that explanation, lets dive in and give this a test drive with a
+few examples.&lt;/p&gt;
+
+&lt;h2 id=&#34;setup-and-baseline&#34;&gt;Setup and Baseline&lt;/h2&gt;
+
+&lt;p&gt;First, lets start with a basic example using a pool with a single disk:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# zpool create tank c1t1d0
+# zfs create tank/foo
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now let&amp;rsquo;s do some IO to the pool and use &lt;code&gt;dtrace&lt;/code&gt; to examine the latency
+of the requests to get a baseline expectation for the IO latency of
+writes to this pool.&lt;/p&gt;
+
+&lt;p&gt;Running in one terminal I have a simple, single threaded write workload
+running in an infinite loop. This will continually copy some random data
+to a file in the pool, remove that file, and repeat.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# dd if=/dev/urandom of=/tmp/urandom-cache bs=1M count=1024 &amp;amp;&amp;gt;/dev/null
+# while true; do
+&amp;gt; cp /tmp/urandom-cache /tank/foo/urandom-cache
+&amp;gt; sync
+&amp;gt; rm /tank/foo/urandom-cache
+&amp;gt; sync
+done
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now, lets look at the latency of the write requests issued to disk by
+the filesystem, using &lt;code&gt;dtrace&lt;/code&gt; (see &lt;a href=&#34;#zio-latency&#34;&gt;here&lt;/a&gt; for the source
+of this &lt;code&gt;dtrace&lt;/code&gt; script):&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# dtrace -qs zio-rw-latency.d -c &#39;sleep 60&#39; tank write
+
+histogram of latencies (us):
+
+           value  ------------- Distribution ------------- count
+             128 |                                         0
+             256 |                                         248
+             512 |@@@@@                                    6204
+            1024 |@@@@@@@@@@@@@@@@@@@@@@                   26218
+            2048 |@@@@@@@@@@@                              13070
+            4096 |@@                                       2474
+            8192 |                                         416
+           16384 |                                         56
+           32768 |                                         7
+           65536 |                                         0
+
+avg latency (us)   stddev (us)   iops   throughput (KB/s)
+2025               1609          811    99623
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This is showing us a histogram of the latency of all writes that were
+submitted and completed to our pool during that specific interval.
+Additionally, it&amp;rsquo;s showing us an average and standard deviation of the
+latency over all the requests, number of request issued and completed
+per second, and the throughput achieved by these writes.&lt;/p&gt;
+
+&lt;p&gt;This sets the baseline performance that we expect to get out of this
+storage configuration; most requests take less than 8 ms to be serviced,
+with the average being about 2ms with a standard deviation of roughly
+1.5ms.&lt;/p&gt;
+
+&lt;h2 id=&#34;first-experiment-single-disk-single-lane&#34;&gt;First Experiment: Single Disk, Single Lane&lt;/h2&gt;
+
+&lt;p&gt;Now that we have some baseline numbers to compare against, lets use the
+new &lt;code&gt;zinject&lt;/code&gt; functionality to slow down the requests. Let&amp;rsquo;s say we want
+to delay all requests such that they take a minimum of 10ms to complete.&lt;/p&gt;
+
+&lt;p&gt;Remembering that we created this pool in the previous section using a
+single disk named &lt;code&gt;c1t1d0&lt;/code&gt;, we can set the minimum latency of this disk
+to be our desired 10ms:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# zinject -d c1t1d0 -D 10:1 tank
+Added handler 1 with the following properties:
+  pool: tank
+  vdev: c138fa4fbf3d8f2
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And to double check that this is the only delay registered on our pool,
+we can run &lt;code&gt;zinject&lt;/code&gt; without any parameters to dump a list of all
+registered delays:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# zinject
+ ID  POOL             DELAY (ms)       LANES            GUID
+---  ---------------  ---------------  ---------------  ----------------
+  1  tank             10               1                c138fa4fbf3d8f2
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The &amp;ldquo;lanes&amp;rdquo; column describes the number of requests that can be serviced
+simultaneous by each registered delay; thus this delay specifies that
+only a single request can be serviced at a time, and each request will
+take a minimum of 10ms to complete.&lt;/p&gt;
+
+&lt;p&gt;Now, with that delay in place, and the same write workload from the
+previous section still running, we can again use &lt;code&gt;dtrace&lt;/code&gt; to inspect the
+write request latencies, IOPs, and throughput values. Given this delay,
+we should expect to see no request complete sooner than 10ms, and as a
+result, the IOPs and throughput should take a significant hit:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# dtrace -qs zio-rw-latency.d -c &#39;sleep 60&#39; tank write
+
+histogram of latencies (us):
+
+           value  ------------- Distribution ------------- count
+            4096 |                                         0
+            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@             4177
+           16384 |@@@@@@                                   894
+           32768 |@@@@@                                    807
+           65536 |                                         1
+          131072 |                                         0
+
+avg latency (us)   stddev (us)   iops   throughput (KB/s)
+17080              12448         97     12518
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Great! This matches our expectation.&lt;/p&gt;
+
+&lt;p&gt;Since we&amp;rsquo;re using a logarithmic histogram, we can&amp;rsquo;t actually
+differentiate between requests in the 8-16ms range, but judging by the
+fact that there aren&amp;rsquo;t any request in the 0-8ms range, it&amp;rsquo;s safe to
+assume all the request that landed in the 8-16ms range, actually took
+10-16ms to complete (as they should have).&lt;/p&gt;
+
+&lt;h2 id=&#34;wait-what-about-the-average-latency&#34;&gt;Wait, What About the Average Latency?&lt;/h2&gt;
+
+&lt;p&gt;At this point, you might be looking at the average latency output from
+the previous experiment, and be wondering why it&amp;rsquo;s so much larger than
+our target latency of 10ms. Without the delay, most requests would
+complete in under 8ms, so why isn&amp;rsquo;t the average latency with the delay
+closer to the desired 10ms?&lt;/p&gt;
+
+&lt;p&gt;Remember that when we created the delay we specified it to have a single
+&amp;ldquo;lane&amp;rdquo;. What this means is only a single request can be serviced at a
+time. If more than a single write is submitted every 10ms to the
+underlying disk, then each new write request will get backed up by any
+existing requests.&lt;/p&gt;
+
+&lt;p&gt;In other words, each lane represents a &lt;a href=&#34;https://en.wikipedia.org/wiki/FIFO_(computing_and_electronics)&#34;&gt;FIFO&lt;/a&gt; queue. When a new
+IO request is submitted, the FIFO queue with the shortest wait time will
+be selected (e.g. if there are multiple lanes available to choose from),
+and then the request is placed in the queue and waits its turn until
+it can be processed and eventually completed. Thus, in our example
+above, if a request is submitted while another request is currently
+being processed and still has 7ms to finish, this new request&amp;rsquo;s latency
+will be a minimum of 17ms; 7ms spent waiting for the prior request to be
+processed, and 10ms spent being processed itself. Due to the way OpenZFS
+issues writes, multiple requests will certainly be submitted
+simultaneously, so it&amp;rsquo;s common for this situation to occur and explains
+the average latency in the previous experiment.&lt;/p&gt;
+
+&lt;h2 id=&#34;second-experiment-single-disk-multiple-lanes&#34;&gt;Second Experiment: Single Disk, Multiple Lanes&lt;/h2&gt;
+
+&lt;p&gt;If the previously described behavior isn&amp;rsquo;t actually what is desired, we
+can simulate an implementation where requests pay no attention to prior
+requests by adding a delay with enough lanes such that there will always
+be an open lane to accept new requests. As an example, let&amp;rsquo;s create a
+delay with the same 10ms minimum latency as before, but instead of 1
+lane, we&amp;rsquo;ll create 16 lanes:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# zinject -c all
+removed all registered handlers
+
+# zinject -d c1t1d0 -D 10:16 tank
+Added handler 2 with the following properties:
+  pool: tank
+  vdev: c138fa4fbf3d8f2
+
+# zinject
+ ID  POOL             DELAY (ms)       LANES            GUID
+---  ---------------  ---------------  ---------------  ----------------
+  2  tank             10               16               c138fa4fbf3d8f2
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Assuming the magic number of 16 is sufficient to prevent new requests
+from piling up behind older, in-progress requests, we should now see the
+average latency trend much closer to the specified 10ms:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# dtrace -qs zio-rw-latency.d -c &#39;sleep 60&#39; tank write
+
+histogram of latencies (us):
+
+           value  ------------- Distribution ------------- count
+            4096 |                                         0
+            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 8836
+           16384 |                                         39
+           32768 |                                         11
+           65536 |                                         1
+          131072 |                                         1
+          262144 |                                         0
+
+avg latency (us)   stddev (us)   iops   throughput (KB/s)
+10261              3022          148    18463
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Perfect! As expected, the average latency is now much closer to our
+desired 10ms. Unfortunately though, there were 52 requests that actually
+took longer than 16ms to be completed by the underlying storage (2 of
+which took longer than 64ms!), which pulls the average slightly above
+the specified target of 10ms.&lt;/p&gt;
+
+&lt;h2 id=&#34;third-experiment-setup-and-baseline&#34;&gt;Third Experiment: Setup and Baseline&lt;/h2&gt;
+
+&lt;p&gt;Another interesting example to demonstrate is simulating a pool with
+disks of different latency characteristics. This can happen for a
+variety of reasons, none of which I&amp;rsquo;ll touch on in this article. To
+simulate this case, we&amp;rsquo;ll need a pool with two disks:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# zpool create tank c1t1d0 c1t2d0
+# zfs create tank/foo
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;We&amp;rsquo;ll use a slightly modified version of the write workload used in
+previous sections; instead of a single thread, we&amp;rsquo;ll use 8 threads to
+increase the amount of data being written and increase the amount of
+simultaneous write requests occurring:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# while true; do
+&amp;gt; PIDS=&amp;quot;&amp;quot;
+&amp;gt; for i in $(seq 1 8); do
+&amp;gt;     cp /tmp/urandom-cache /tank/foo/urandom-cache-$i &amp;amp;&amp;gt;/dev/null &amp;amp;
+&amp;gt;     PIDS=&amp;quot;$PIDS $!&amp;quot;
+&amp;gt; done
+&amp;gt; sync
+&amp;gt; for pid in $PIDS; do
+&amp;gt;     wait $pid
+&amp;gt; done
+&amp;gt;
+&amp;gt; PIDS=&amp;quot;&amp;quot;
+&amp;gt; for i in $(seq 1 8); do
+&amp;gt;     rm /tank/foo/urandom-cache-$i &amp;amp;&amp;gt;/dev/null &amp;amp;
+&amp;gt;     PIDS=&amp;quot;$PIDS $!&amp;quot;
+&amp;gt; done
+&amp;gt; sync
+&amp;gt; for pid in $PIDS; do
+&amp;gt;     wait $pid
+&amp;gt; done
+done
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And with a slight variation to the previous &lt;code&gt;dtrace&lt;/code&gt; script, we can show
+the same statistics as the prior sections, but individually for each
+vdev in the pool (see &lt;a href=&#34;#vdev-latency&#34;&gt;here&lt;/a&gt; for the source of this
+&lt;code&gt;dtrace&lt;/code&gt; script):&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# dtrace -qs vdev-rw-latency.d -c &#39;sleep 60&#39; tank write
+
+histogram of latencies (us):
+
+f1d32d9b9514d7a3
+           value  ------------- Distribution ------------- count
+             128 |                                         0
+             256 |                                         43
+             512 |                                         665
+            1024 |@@                                       3231
+            2048 |@                                        1848
+            4096 |@@@@@@@@@@@@@                            17886
+            8192 |@@@@@@@@@@@@@@@@@@@@                     26511
+           16384 |@@@                                      3493
+           32768 |                                         310
+           65536 |                                         4
+          131072 |                                         2
+          262144 |                                         0
+
+f4eb4119d7170682
+           value  ------------- Distribution ------------- count
+             128 |                                         0
+             256 |                                         41
+             512 |                                         627
+            1024 |@@                                       3207
+            2048 |@                                        1865
+            4096 |@@@@@@@@@@@@@                            17809
+            8192 |@@@@@@@@@@@@@@@@@@@@                     26416
+           16384 |@@@                                      3570
+           32768 |                                         312
+           65536 |                                         9
+          131072 |                                         1
+          262144 |                                         0
+
+GUID               avg latency (us)   stddev (us)   iops   throughput (KB/s)
+f1d32d9b9514d7a3   9475               5292          899    111305
+f4eb4119d7170682   9496               5298          897    111116
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;As expected, without any delays injected with &lt;code&gt;zinject&lt;/code&gt; each vdev
+performs nearly identically.&lt;/p&gt;
+
+&lt;h2 id=&#34;third-experiment-multiple-disks-different-latencies&#34;&gt;Third Experiment: Multiple Disks, Different Latencies&lt;/h2&gt;
+
+&lt;p&gt;Now that we&amp;rsquo;ve verified the vdevs to be performing similarly in the
+absence of any artificial delays, we can simulate a case where one disk
+performs half as slow as the other by specifying two different &lt;code&gt;zinject&lt;/code&gt;
+delays for the different disks:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# zinject -d c1t1d0 -D 16:16 tank
+Added handler 3 with the following properties:
+  pool: tank
+  vdev: f4eb4119d7170682
+
+# zinject -d c1t2d0 -D 32:16 tank
+Added handler 4 with the following properties:
+  pool: tank
+  vdev: f1d32d9b9514d7a3
+
+# zinject
+ ID  POOL             DELAY (ms)       LANES            GUID
+---  ---------------  ---------------  ---------------  ----------------
+  3  tank             16               16               f4eb4119d7170682
+  4  tank             32               16               f1d32d9b9514d7a3
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;In this scenario we&amp;rsquo;d expect the total throughput to take a significant
+hit, resulting from the large delays, but we&amp;rsquo;d also expect the faster
+disk to service twice the number of write requests in any given
+interval. Thus, we should see the faster disk demonstrate roughly twice
+the throughput when inspected with &lt;code&gt;dtrace&lt;/code&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# dtrace -qs vdev-rw-latency.d -c &#39;sleep 60&#39; tank write
+
+histogram of latencies (us):
+
+f4eb4119d7170682
+           value  ------------- Distribution ------------- count
+            4096 |                                         0
+            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  29964
+           16384 |@                                        1012
+           32768 |                                         117
+           65536 |                                         4
+          131072 |                                         0
+
+f1d32d9b9514d7a3
+           value  ------------- Distribution ------------- count
+            4096 |                                         0
+            8192 |                                         26
+           16384 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 16104
+           32768 |                                         162
+           65536 |                                         5
+          131072 |                                         0
+
+GUID               avg latency (us)   stddev (us)   iops   throughput (KB/s)
+f4eb4119d7170682   16391              2128          518    64651
+f1d32d9b9514d7a3   32310              1680          271    33630
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Which is exactly what I&amp;rsquo;ve measure above! Disk &lt;code&gt;f4eb4119d7170682&lt;/code&gt; was
+given the 16ms delay and was measured as having nearly double the IOPs
+and nearly double the throughput during the measured interval, success!&lt;/p&gt;
+
+&lt;h2 id=&#34;dtrace-scripts&#34;&gt;DTrace Scripts&lt;/h2&gt;
+
+&lt;p&gt;In the spirit of full disclosure, here&amp;rsquo;s the source for the &lt;code&gt;dtrace&lt;/code&gt;
+scripts that I used in the previous sections.&lt;/p&gt;
+
+&lt;h3 id=&#34;zio-latency&#34;&gt;ZIO Latency&lt;/h3&gt;
+
+&lt;p&gt;Here&amp;rsquo;s the script used in the first two experiments which does not break
+down the statistics based on vdev:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# cat zio-rw-latency.d
+BEGIN
+{
+        start = timestamp;
+}
+
+fbt:zfs:vdev_disk_io_start:entry
+/this-&amp;gt;zio = args[0],
+ this-&amp;gt;zio-&amp;gt;io_type == ($$2 == &amp;quot;read&amp;quot; ? 1 : 2) &amp;amp;&amp;amp;
+ stringof(this-&amp;gt;zio-&amp;gt;io_spa-&amp;gt;spa_name) == $$1/
+{
+        ts[this-&amp;gt;zio] = timestamp;
+}
+
+fbt:zfs:zio_interrupt:entry
+/this-&amp;gt;zio = args[0], ts[this-&amp;gt;zio]/
+{
+        delta = (timestamp - ts[this-&amp;gt;zio])/1000;
+
+        @i = count();
+        @a = avg(delta);
+        @s = stddev(delta);
+        @l = quantize(delta);
+        @t = sum(this-&amp;gt;zio-&amp;gt;io_size);
+
+        ts[this-&amp;gt;zio] = 0;
+}
+
+END
+{
+        printf(&amp;quot;\nhistogram of latencies (us):&amp;quot;);
+        printa(@l);
+
+        normalize(@i, (timestamp - start) / 1000000000);
+        normalize(@t, (timestamp - start) / 1000000000 * 1024);
+
+        printf(&amp;quot;%-16s   %-11s   %-4s   %-17s\n&amp;quot;,
+            &amp;quot;avg latency (us)&amp;quot;, &amp;quot;stddev (us)&amp;quot;, &amp;quot;iops&amp;quot;, &amp;quot;throughput (KB/s)&amp;quot;);
+        printa(&amp;quot;%@-16u   %@-11u   %@-4u   %@-17u\n&amp;quot;, @a, @s, @i, @t);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This script is intended to take two parameters: &lt;code&gt;$$1&lt;/code&gt; is the pool name,
+i.e. &lt;code&gt;tank&lt;/code&gt; in our examples, and &lt;code&gt;$$2&lt;/code&gt; is either &lt;code&gt;&amp;quot;read&amp;quot;&lt;/code&gt; or &lt;code&gt;&amp;quot;write&amp;quot;&lt;/code&gt;,
+we only used &lt;code&gt;&amp;quot;write&amp;quot;&lt;/code&gt; in the examples in this article.&lt;/p&gt;
+
+&lt;h3 id=&#34;vdev-latency&#34;&gt;VDEV Latency&lt;/h3&gt;
+
+&lt;p&gt;Here&amp;rsquo;s the script used in the last experiment, which differentiates the
+statistics based on the individual vdevs in the pool:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# cat vdev-rw-latency.d
+BEGIN
+{
+        start = timestamp;
+}
+
+fbt:zfs:vdev_disk_io_start:entry
+/this-&amp;gt;zio = args[0],
+ this-&amp;gt;zio-&amp;gt;io_type == ($$2 == &amp;quot;read&amp;quot; ? 1 : 2) &amp;amp;&amp;amp;
+ stringof(this-&amp;gt;zio-&amp;gt;io_spa-&amp;gt;spa_name) == $$1/
+{
+        ts[this-&amp;gt;zio] = timestamp;
+}
+
+fbt:zfs:zio_interrupt:entry
+/this-&amp;gt;zio = args[0], ts[this-&amp;gt;zio]/
+{
+        delta = (timestamp - ts[this-&amp;gt;zio])/1000;
+
+        @i[this-&amp;gt;zio-&amp;gt;io_vd-&amp;gt;vdev_guid] = count();
+        @a[this-&amp;gt;zio-&amp;gt;io_vd-&amp;gt;vdev_guid] = avg(delta);
+        @s[this-&amp;gt;zio-&amp;gt;io_vd-&amp;gt;vdev_guid] = stddev(delta);
+        @l[this-&amp;gt;zio-&amp;gt;io_vd-&amp;gt;vdev_guid] = quantize(delta);
+        @t[this-&amp;gt;zio-&amp;gt;io_vd-&amp;gt;vdev_guid] = sum(this-&amp;gt;zio-&amp;gt;io_size);
+
+        ts[this-&amp;gt;zio] = 0;
+}
+
+END
+{
+        printf(&amp;quot;\nhistogram of latencies (us):\n\n&amp;quot;);
+        printa(&amp;quot;%x %@u\n&amp;quot;, @l);
+
+        normalize(@i, (timestamp - start) / 1000000000);
+        normalize(@t, (timestamp - start) / 1000000000 * 1024);
+
+        printf(&amp;quot;%-16s   %-16s   %-11s   %-4s   %-17s\n&amp;quot;, &amp;quot;GUID&amp;quot;,
+            &amp;quot;avg latency (us)&amp;quot;, &amp;quot;stddev (us)&amp;quot;, &amp;quot;iops&amp;quot;, &amp;quot;throughput (KB/s)&amp;quot;);
+        printa(&amp;quot;%-16x   %@-16u   %@-11u   %@-4u   %@-17u\n&amp;quot;, @a, @s, @i, @t);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This script takes the same &lt;code&gt;$$1&lt;/code&gt; and &lt;code&gt;$$2&lt;/code&gt; parameters as the previous
+&lt;code&gt;zio-rw-latency.d&lt;/code&gt; script described above.&lt;/p&gt;
+
+&lt;h3 id=&#34;why-not-use-dtrace-s-io-provider&#34;&gt;Why Not Use DTrace&amp;rsquo;s &amp;ldquo;io&amp;rdquo; Provider?&lt;/h3&gt;
+
+&lt;p&gt;Inevitably there will be at least one curious reader that looks at the
+above &lt;code&gt;dtrace&lt;/code&gt; scripts and wonders why I didn&amp;rsquo;t use the &lt;a href=&#34;http://dtrace.org/guide/chp-io.html&#34;&gt;stable &lt;code&gt;io&lt;/code&gt;
+provider&lt;/a&gt; (i.e. &lt;code&gt;io:::start&lt;/code&gt; and &lt;code&gt;io:::done&lt;/code&gt;). This is intentional
+because the delays injected using &lt;code&gt;zinject&lt;/code&gt; occur above the level of
+the &lt;code&gt;io&lt;/code&gt; provider.&lt;/p&gt;
+
+&lt;p&gt;Essentially, what&amp;rsquo;s happening is the underlying storage will complete
+the request as fast as it can, and the &lt;code&gt;io&lt;/code&gt; provider will report on this
+latency. After the storage has completed the request, it will return the
+result back up to OpenZFS, and it is at this point that the request may
+be delayed further if using this new &lt;code&gt;zinject&lt;/code&gt; feature. Once the result
+is passed back to OpenZFS, the latency has already been recorded when
+using the &lt;code&gt;io&lt;/code&gt; provider, so any additional latency introduced by
+&lt;code&gt;zinject&lt;/code&gt; will go unnoticed.&lt;/p&gt;
+
+&lt;p&gt;I can easily demonstrate this with the following example:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# zpool create tank c1t1d0
+# zfs create tank/foo
+
+# while true; do
+&amp;gt; cp /tmp/urandom-cache /tank/foo/urandom-cache
+&amp;gt; sync
+&amp;gt; rm /tank/foo/urandom-cache
+&amp;gt; sync
+&amp;gt; done &amp;amp;
+[1] 9388
+
+# zinject -d c1t1d0 -D 10:1 tank
+Added handler 5 with the following properties:
+  pool: tank
+  vdev: e2503467ad6a2e62
+
+# zinject
+ ID  POOL             DELAY (ms)       LANES            GUID
+---  ---------------  ---------------  ---------------  ----------------
+  5  tank             10               1                e2503467ad6a2e62
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;So, we have a pool with a single disk and a delay of 10ms with a single
+lane. Lets look at the write request latency on the system as reported
+by the &lt;code&gt;io&lt;/code&gt; provider:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# dtrace -qs io-rw-latency.d -c &#39;sleep 60&#39; write
+
+
+           value  ------------- Distribution ------------- count
+             128 |                                         0
+             256 |                                         26
+             512 |@@                                       266
+            1024 |@@@@@@@@@@@@@@@@@@@@                     2208
+            2048 |@@@@@@@@@@                               1079
+            4096 |@@@@                                     461
+            8192 |@@                                       206
+           16384 |@                                        54
+           32768 |                                         10
+           65536 |                                         1
+          131072 |                                         0
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;It&amp;rsquo;s clear that the latency reported here does not match the 10ms
+minimum latency requested by the &lt;code&gt;zinject&lt;/code&gt; command; and to verify that
+the delay is actually working correctly, let&amp;rsquo;s use the &lt;code&gt;dtrace&lt;/code&gt; script
+from the prior sections (&lt;a href=&#34;#zio-latency&#34;&gt;this one&lt;/a&gt;):&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# dtrace -qs zio-rw-latency.d -c &#39;sleep 60&#39; tank write
+
+histogram of latencies (us):
+
+           value  ------------- Distribution ------------- count
+            4096 |                                         0
+            8192 |@@@@@@@@@@@@@@@@@@                       2606
+           16384 |@@@@@@                                   898
+           32768 |@@@@@@@@@                                1308
+           65536 |@@@@@@@                                  1095
+          131072 |                                         0
+
+avg latency (us)   stddev (us)   iops   throughput (KB/s)
+33768              26629         98     12573
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Clearly, the delay is in place, it&amp;rsquo;s just that the &lt;code&gt;io&lt;/code&gt; provider doesn&amp;rsquo;t
+detect the additional latency introduced by &lt;code&gt;zinject&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;And finally, here&amp;rsquo;s the source for the &lt;code&gt;dtrace&lt;/code&gt; script used above, which
+uses the &lt;code&gt;io&lt;/code&gt; provider:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# cat io-rw-latency.d
+io:::start
+/args[0]-&amp;gt;b_flags &amp;amp; ($$1 == &amp;quot;read&amp;quot; ? B_READ : B_WRITE)/
+{
+        ts[args[0]-&amp;gt;b_edev, args[0]-&amp;gt;b_lblkno] = timestamp;
+}
+
+io:::done
+/ts[args[0]-&amp;gt;b_edev, args[0]-&amp;gt;b_lblkno]/
+{
+        @ = quantize((timestamp -
+            ts[args[0]-&amp;gt;b_edev, args[0]-&amp;gt;b_lblkno]) / 1000);
+        ts[args[0]-&amp;gt;b_edev, args[0]-&amp;gt;b_lblkno] = 0;
+}
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>OpenZFS: Reducing ARC Lock Contention</title>
+      <link>https://prakashsurya.github.io/post/2015-03-23-openzfs-reducing-arc-lock-contention/</link>
+      <pubDate>Mon, 23 Mar 2015 00:00:00 -0800</pubDate>
+      
+      <guid>https://prakashsurya.github.io/post/2015-03-23-openzfs-reducing-arc-lock-contention/</guid>
+      <description>
+
+&lt;p&gt;&lt;strong&gt;tl;dr;&lt;/strong&gt; Cached random read performance of 8K blocks was improved by
+225% by reducing internal lock contention within the OpenZFS ARC on
+illumos.&lt;/p&gt;
+
+&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
+
+&lt;p&gt;Locks are a pain. Even worse, is a single lock serializing all of the
+page cache accesses for a filesystem. While that&amp;rsquo;s not &lt;em&gt;quite&lt;/em&gt; the
+situation the OpenZFS ARC was in earlier this year, it was pretty close.&lt;/p&gt;
+
+&lt;p&gt;For those unfamiliar, the OpenZFS file system is built atop its very own
+page cache based on the paper by Nimrod Megiddo and Dharmendra S. Modha,
+&amp;ldquo;ARC: A Self-Tuning, Low Overhead Replacement Cache&amp;rdquo;. While the paper
+provides a very good basis from which actual code can be written to
+implement its concepts, there&amp;rsquo;s a number of real world problems it fails
+to address. For this article, we&amp;rsquo;ll be looking at one of these problems:
+concurrency.&lt;/p&gt;
+
+&lt;h2 id=&#34;real-world-problems-with-the-arc&#34;&gt;Real World Problems with the ARC&lt;/h2&gt;
+
+&lt;p&gt;The paper describes a global data structure from which all page accesses
+are performed; the problem is, it doesn&amp;rsquo;t describe a mechanism to do
+this safely in a highly concurrent environment. Since any modern file
+system obviously needs to support multi-threaded concurrent operations,
+locks had to be added to protect the global data used to manage and
+implement the ARC. How might one do this?&lt;/p&gt;
+
+&lt;p&gt;One way is to is to wrap all operations modifying the global structures
+with a single mutually exclusive lock. This satisfies the requirement
+that all accesses are safe to perform concurrently from many threads,
+while also be fairly simple to understand and implement. To my surprise,
+this is how the OpenZFS ARC was structured for nearly the past decade&lt;/p&gt;
+
+&lt;h2 id=&#34;performance-before&#34;&gt;Performance: Before&lt;/h2&gt;
+
+&lt;p&gt;As one might expect, the main drawback with this simplistic approach is
+performance. While safe, on systems with many CPUs, this approach
+causes terrible lock contention for multi-threaded cached workloads. To
+highlight this performance issue, I used FIO to perform a cached random
+read workload using 32 threads. Each thread would use its own unique
+file, reading 8K blocks at random 8K aligned offsets from its file
+[&lt;a href=&#34;#appendix-1&#34;&gt;Appendix 1&lt;/a&gt;]. The aggregate bandwidth was measured while
+varying the number of virtual CPUs allocated to the virtual machine,
+and the results are as follows:&lt;/p&gt;
+
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;# of CPUS&lt;/th&gt;
+&lt;th&gt;Bandwidth&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;1&lt;/td&gt;
+&lt;td&gt;840893 KB/s&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;1559.5 MB/s&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;4&lt;/td&gt;
+&lt;td&gt;3022.1 MB/s&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;8&lt;/td&gt;
+&lt;td&gt;5104.9 MB/s&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;16&lt;/td&gt;
+&lt;td&gt;3854.3 MB/s&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;32&lt;/td&gt;
+&lt;td&gt;3036.2 MB/s&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;See [&lt;a href=&#34;#appendix-2&#34;&gt;Appendix 2&lt;/a&gt;] for more detailed performance metrics.&lt;/p&gt;
+
+&lt;p&gt;As one can see, the performance scales terribly when increasing the
+number of CPUs in the system. Not only does performance fail to increase
+with more CPUs, it actually gets much worse with more CPUs! Clearly this
+is a bad situation to be in; especially so, with large CPU count systems
+becoming increasingly more common.&lt;/p&gt;
+
+&lt;p&gt;Looking at a snippet of lockstat profiling data, it&amp;rsquo;s clear which locks
+are to blame (the following was taken from a run on a system with 32
+CPUs):&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Count indv cuml rcnt     nsec Lock                   Caller
+-------------------------------------------------------------------------------
+4191777  47%  47% 0.00    67709 ARC_mfu+0x58           remove_reference+0x63
+4103160  46%  92% 0.00    75366 ARC_mfu+0x58           add_reference+0x8d
+   1877   0%  92% 0.00   436330 buf_hash_table+0x750   arc_buf_add_ref+0x6a
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The two locks causing the bottleneck are used to protect the ARC&amp;rsquo;s
+internal lists. These lists contain all ARC buffers residing in the
+cache that aren&amp;rsquo;t actively used by consumers of the ARC (i.e. buffers
+with a reference count of zero). Every time a buffer is added or removed
+from one of these lists, the list&amp;rsquo;s lock must be held. This means the
+lists&amp;rsquo; lock must be acquired for all of the following operations: a read
+from disk, an ARC cache hit, when evicting a buffer, when dirtying a
+buffer, when all references to a buffer are released by consumers, etc.&lt;/p&gt;
+
+&lt;h2 id=&#34;remove-the-lists&#34;&gt;Remove the Lists?&lt;/h2&gt;
+
+&lt;p&gt;Before I dive into the solution that was taken, I should make it clear
+why the lists are needed in the first place. These lists allow for
+iterating over the buffers from the least recently accessed buffer to
+the most recently accessed buffer, or vice versa. The ability to do this
+iteration is critical to implementing the ARC as described by the paper.
+It allows for the least recently accessed buffer to be selected in
+constant-time during the eviction process [&lt;a href=&#34;#appendix-3&#34;&gt;Appendix 3&lt;/a&gt;].&lt;/p&gt;
+
+&lt;h2 id=&#34;solution-use-more-locks&#34;&gt;Solution: Use More Locks!&lt;/h2&gt;
+
+&lt;p&gt;To alleviate the issue, we really needed a way to perform this iteration
+without causing so much locking overhead to the performance critical
+code paths (e.g. during a ARC cache hit). The solution we decided on is
+to split each of the ARC&amp;rsquo;s internal lists into a variable number of
+sublists, each sublist having its own lock and maintaining a time
+ordering within itself (i.e. the buffers in each sublist are ordered
+based on access time, but there&amp;rsquo;s no ordering of buffers between the
+different sublists). Thus, a new data structure was created to
+encapsulate these semantics, a &amp;ldquo;multilist&amp;rdquo; [&lt;a href=&#34;#appendix-4&#34;&gt;Appendix 4&lt;/a&gt;].&lt;/p&gt;
+
+&lt;p&gt;On the surface this seems like a pretty trivial change, but there&amp;rsquo;s a
+key aspect that make it more complex to implement than one might expect.
+Due to the sublists not maintaining a strict ordering between each
+other, selecting the least (or most) recently accessed buffer is no
+longer a constant-time operation. In general, it becomes a linear-time
+operation as each sublist must be iterated, comparing the elements in
+each sublists with each other.&lt;/p&gt;
+
+&lt;p&gt;A linear-time lookup of the least recently accessed buffer is
+insufficient, so a clever domain-specific workaround was used to allow
+for this lookup to maintain its constant-time complexity. Rather than
+selecting the absolute least recently accessed buffer during eviction,
+a buffer that is &amp;ldquo;old enough&amp;rdquo; is selected instead; this selection
+happening in constant-time.&lt;/p&gt;
+
+&lt;p&gt;We do this by evenly inserting buffers into each sublist, and then
+during eviction, a randomly selected sublist is chosen. This sublist&amp;rsquo;s
+least recently accessed buffer is selected and evicted. This process
+will select a buffer that&amp;rsquo;s &amp;ldquo;old enough&amp;rdquo; based on the fact that buffers
+are evenly inserted into each of the sublists, so each sublist&amp;rsquo;s least
+recently accessed buffer will have an access time proportional to all
+other sublists&amp;rsquo; least recently accessed buffer [&lt;a href=&#34;#appendix-5&#34;&gt;Appendix
+5&lt;/a&gt;].&lt;/p&gt;
+
+&lt;h2 id=&#34;performance-after&#34;&gt;Performance: After&lt;/h2&gt;
+
+&lt;p&gt;As with any performance related change, empirical results are necessary
+to give the change any sort of credibility. So, the workload that was
+previously used to exemplify the problem [&lt;a href=&#34;#appendix-1&#34;&gt;Appendix 1&lt;/a&gt;],
+was used again to ensure the expected performance gains were achieved.
+The following table contains aggregate bandwidth numbers with the fix in
+place (&amp;ldquo;Bandwidth After&amp;rdquo; column), as well as the aggregate bandwidth
+numbers without the fix (&amp;ldquo;Bandwidth Before&amp;rdquo; column, the same results
+previously shown):&lt;/p&gt;
+
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;# of CPUS&lt;/th&gt;
+&lt;th&gt;Bandwidth After&lt;/th&gt;
+&lt;th&gt;Bandwidth Before&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;1&lt;/td&gt;
+&lt;td&gt;833163 KB/s&lt;/td&gt;
+&lt;td&gt;840893 KB/s&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;1520.2 MB/s&lt;/td&gt;
+&lt;td&gt;1559.5 MB/s&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;4&lt;/td&gt;
+&lt;td&gt;2985.3 MB/s&lt;/td&gt;
+&lt;td&gt;3022.1 MB/s&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;8&lt;/td&gt;
+&lt;td&gt;5913.2 MB/s&lt;/td&gt;
+&lt;td&gt;5104.9 MB/s&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;16&lt;/td&gt;
+&lt;td&gt;8938.9 MB/s&lt;/td&gt;
+&lt;td&gt;3854.3 MB/s&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;32&lt;/td&gt;
+&lt;td&gt;9896.6 MB/s&lt;/td&gt;
+&lt;td&gt;3036.2 MB/s&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;As expected, performance scales much better as more CPUs are added to
+the system, and the overall performance saw a 225% improvement when
+using 32 CPUs (the largest CPU count I had available to test). Also,
+the performance difference when using a small number of CPUs was
+negligible.&lt;/p&gt;
+
+&lt;p&gt;Lockstat was used again, and contention is clearly much less than before
+(as before, this snippet was taken from a run on a system with 32 CPUs):&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Count indv cuml rcnt     nsec Lock                   Caller
+------------------------------------------------------------------------------
+142396   3%   3% 0.00     2785 0xffffff09168112b0     rrw_exit+0x23
+136499   3%   6% 0.00     3012 0xffffff09168112b0     rrw_enter_read+0x2
+ 82009   2%   8% 0.00     3359 0xffffff09168110d0     rrw_enter_read+0x27
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Success!&lt;/p&gt;
+
+&lt;h2 id=&#34;commit-details&#34;&gt;Commit Details&lt;/h2&gt;
+
+&lt;p&gt;For those interested, this fix was committed to illumos on January 12th,
+2015 via this commit:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;commit 244781f10dcd82684fd8163c016540667842f203
+Author:     Prakash Surya
+AuthorDate: Mon Jan 12 19:52:19 2015 -0800
+Commit:     Christopher Siden
+CommitDate: Mon Jan 12 19:52:19 2015 -0800
+
+    5497 lock contention on arcs_mtx
+    Reviewed by: George Wilson
+    Reviewed by: Matthew Ahrens
+    Reviewed by: Richard Elling
+    Approved by: Dan McDonald
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;It&amp;rsquo;s also in the process of being ported and merged into FreeBSD and
+OpenZFS on Linux (at least, it was at the time of this writing).&lt;/p&gt;
+
+&lt;h2 id=&#34;appendix&#34;&gt;Appendix&lt;/h2&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;&lt;a name=&#34;appendix-1&#34;&gt;&lt;/a&gt;The FIO script used to run the performance
+benchmarks is below. Keep in mind, this script was run a number of
+times prior to gathering the performance data, as I was specifically
+targeting a fully cached workload and needed to ensure the files
+were cached in the ARC.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[global]
+group_reporting=1
+fallocate=none
+ioengine=psync
+numjobs=32
+iodepth=1
+bs=8k
+filesize=512m
+size=512m
+randrepeat=0
+use_os_rand=1
+
+[32threads]
+rw=randread
+time_based
+runtime=1m
+directory=/tank/fish
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;a name=&#34;appendix-2&#34;&gt;&lt;/a&gt;In addition to the run used to gather the
+aggregate bandwidth numbers, the FIO script was run a couple more
+times to gather more useful debugging and performance metrics.
+Specifically, it was run with lockstat profiling enabled, which was
+used to pinpoint the lock(s) causing the poor scaling. As well as
+another iteration with flame graph profiling enabled to pinpoint the
+specific functions of interest (additionally to provide
+corroborating evidence to back up the lockstat data). Unfortunately,
+it looks like I can&amp;rsquo;t upload SVG or TAR files; so if anybody is
+interested in the full lockstat output or the flamegraphs, drop me
+an email and we can work something out (probably just email the TAR
+archive directly as it&amp;rsquo;s only 227K compressed).&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;a name=&#34;appendix-3&#34;&gt;&lt;/a&gt;The lists can also be iterated starting
+from the most recently accessed buffer to the least recently
+accessed buffer too. This iteration direction is used when
+populating the L2ARC device prior to the cache being &amp;ldquo;warmed up&amp;rdquo;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;a name=&#34;appendix-4&#34;&gt;&lt;/a&gt;This concept is not original to me, as
+FreeBSD has included a similar fix to the ARC in their platform for
+some time. FreeBSD&amp;rsquo;s usage of this concept actually gave me
+confidence that it would work out in practice, prior to actually
+having a working solution.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;a id=&#34;appendix-5&#34;&gt;&lt;/a&gt;I realize &amp;ldquo;old enough&amp;rdquo; is vague, but
+essentially what we&amp;rsquo;re doing here is using a heuristic to determine
+what buffer would be the best candidate to be evicted from the
+cache. So, we&amp;rsquo;re modifying the previous heuristic from always
+selecting the absolutely oldest buffer, to being a randomly selected
+buffer out of a group of &amp;ldquo;old&amp;rdquo; buffers. The group of old buffers
+being composed of the tails of all the sublists.&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>OpenZFS Developer Summit 2014: OpenZFS on illumos</title>
+      <link>https://prakashsurya.github.io/post/2015-01-06-openzfs-developer-summit-2014-openzfs-on-illumos/</link>
+      <pubDate>Tue, 06 Jan 2015 00:00:00 -0800</pubDate>
+      
+      <guid>https://prakashsurya.github.io/post/2015-01-06-openzfs-developer-summit-2014-openzfs-on-illumos/</guid>
+      <description>
+
+&lt;p&gt;The &lt;a href=&#34;http://open-zfs.org/&#34;&gt;OpenZFS&lt;/a&gt; project is growing! The &lt;a href=&#34;http://www.open-zfs.org/wiki/OpenZFS_Developer_Summit_2014&#34;&gt;second annual OpenZFS developer
+summit&lt;/a&gt; concluded just under two months ago, and overall I thought it
+went very well. There was roughly 70 attendees, twice as many as the
+previous year, and the talks given were very engaging and interesting.&lt;/p&gt;
+
+&lt;p&gt;I gave a short talk about ZFS on the &lt;a href=&#34;http://www.illumos.org/&#34;&gt;illumos&lt;/a&gt; platform, and also
+touched briefly on some of my subjective opinions coming from a
+&lt;a href=&#34;http://zfsonlinux.org/&#34;&gt;ZFS on Linux&lt;/a&gt; background. While a video recording of &lt;a href=&#34;http://youtu.be/UtlGt3ag0o0&#34;&gt;my talk&lt;/a&gt; is
+available, I thought it&amp;rsquo;d be good to also present some of that in written
+format, which might be a more approachable format for those who weren&amp;rsquo;t
+able to attend the conference. So here goes&amp;hellip;&lt;/p&gt;
+
+&lt;h2 id=&#34;openzfs-history&#34;&gt;OpenZFS History&lt;/h2&gt;
+
+&lt;p&gt;As most readers will already know, ZFS was originally designed and
+developed at Sun Microsystems starting around 2001. It was later
+released as open source in 2005 via OpenSolaris. In 2010 illumos was
+born as a fork of OpenSolaris, and in 2013 the OpenZFS was created.&lt;/p&gt;
+
+&lt;p&gt;As a result of this lineage, OpenZFS really feels &amp;ldquo;at home&amp;rdquo; within the
+illumos project; and what I mean by that, is it has a very polished
+integration with the illumos operating system and the code base as a
+whole. Just to state a couple explicit examples of this:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;It&amp;rsquo;s very easy to boot and run ZFS as the root filesystem (even in
+the face of on-disk feature changes) as it and the boot loader both
+live and change within the same repository.&lt;/li&gt;
+&lt;li&gt;The debugging tools on illumos (e.g. mdb) have knowledge of
+ZFS-specific structures and have ZFS-specific features to allow
+efficient debugging and development.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;But, as OpenZFS is growing, its integration on other operating systems
+is continually getting better.&lt;/p&gt;
+
+&lt;h2 id=&#34;openzfs-on-illumos-development-process&#34;&gt;OpenZFS on illumos Development Process&lt;/h2&gt;
+
+&lt;p&gt;The development model for OpenZFS on illumos follows the same
+conventions as all other illumos development. Access to commit to the
+repository is granted to &amp;ldquo;advocates&amp;rdquo;, and these advocates rely on the
+community (possibly themselves as well) to review any proposed changes,
+and ensure the changes are correct and are of high quality. In practice,
+each proposed change must reviewed and approved by a subject matter
+expert (e.g. for OpenZFS, this is typically Matt Ahrens or George
+Wilson) prior to an advocate committing the change.&lt;/p&gt;
+
+&lt;p&gt;Since the illumos project doesn&amp;rsquo;t have any specific releases, this
+implies that each commit to the repository must be of high quality as
+each commit is effectively a &amp;ldquo;release&amp;rdquo;. There isn&amp;rsquo;t the option of
+merging code known to be defective, with the intention of fixing the
+defect in a follow up commit prior to the &amp;ldquo;next release&amp;rdquo;.&lt;/p&gt;
+
+&lt;h2 id=&#34;openzfs-on-illumos-collaboration&#34;&gt;OpenZFS on illumos Collaboration&lt;/h2&gt;
+
+&lt;p&gt;Since OpenZFS on illumos is the &amp;ldquo;upstream&amp;rdquo; platform for OpenZFS, it&amp;rsquo;s
+important that there is open communication and collaboration between
+the illumos developers and developers of the other platforms. As
+changes from one platform are merged into illumos, all other platforms
+will (ideally) pull these changes into their own version of OpenZFS
+which is mutually beneficial for a number of reasons:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Less time spent on merge conflicts when pulling changes in between
+OpenZFS platforms. If each platform is active in pushing to illumos
+and pulling from illumos, then we&amp;rsquo;ll all be using as close to the
+same source code as possible.&lt;/li&gt;
+&lt;li&gt;Less duplication of effort. There&amp;rsquo;s been a number of times where
+I&amp;rsquo;ve personally spent effort investigating or solving a specific
+problem, only to find out that it&amp;rsquo;s already been solved on another
+OpenZFS platform. If each platform was more actively kept in sync
+with each other, this situation would be far less likely.&lt;/li&gt;
+&lt;li&gt;More varied testing. If all platforms are running the same code,
+then we all benefit from the variety of workloads each platform
+brings to the table; and as a result, we all test each others&amp;rsquo; code.&lt;/li&gt;
+&lt;li&gt;Proliferation of new OpenZFS features. Currently, most new ZFS
+features are first developed on, and committed to illumos. Thus, if
+other platforms are active in pushing changes into illumos, these
+new features are inherently developed around and incorporate the
+most recent changes in each platform. This makes it much easier to
+pull the new features into the downstream platforms, allowing all
+OpenZFS consumers to benefit from the new features as soon as
+possible.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;In order to achieve this goal, the process of building and testing
+changes to the OpenZFS on illumos code base needs to be simplified and
+streamlined. Work is on-going on this front, and my hope is that the
+necessary improvements will happen over the next year, and we&amp;rsquo;ll be
+able to sing a different tune for next year&amp;rsquo;s developer summit.&lt;/p&gt;
+
+&lt;h2 id=&#34;developer-debugging-tools-on-illumos&#34;&gt;Developer/Debugging Tools on illumos&lt;/h2&gt;
+
+&lt;p&gt;One of the nice things about OpenZFS development on illumos is that I
+get to make use of the outstanding developer tools available on the
+platform. Having spent much of the last few years working within the
+Linux kernel, I&amp;rsquo;ve been implicitly trained to rely almost entirely on
+the source code and stack traces for debugging most production and
+development problems. Now that I&amp;rsquo;ve jumped to illumos, I can see
+first hand what I&amp;rsquo;ve been missing with tools like dtrace, kmdb,
+and &lt;strong&gt;especially&lt;/strong&gt; mdb.&lt;/p&gt;
+
+&lt;p&gt;In my short time working on the illumos platform, I&amp;rsquo;ve found mdb to be
+easily one of the best parts about the jump from ZFS on Linux. Certain
+tasks that would taken hours, or have been prohibitively difficult, on
+Linux can be done with ease using mdb&amp;rsquo;s dcmds and pipelines.&lt;/p&gt;
+
+&lt;p&gt;For example, while working on the ZFS on Linux port I would often be
+puzzled by what I found when looking at the ARC kstats. To try and make
+some sense of it, I wanted to know exactly what was contained in the ARC
+and what was contained in the dbuf cache; this eventually led to the
+implementation of the &amp;ldquo;dbufs&amp;rdquo; proc handler on the Linux port. On
+illumos, there&amp;rsquo;s already a mdb dcmd to do exactly that:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# Lines ending with &#39;...&#39; have been truncated to fit in 80 columns.
+$ sudo mdb -k
+&amp;gt; ::dbufs | ::dbuf ! head
+        addr object lvl blkid holds os
+ffffff160e924b10     114f 0        19  0 rpool/versions/2014.12.2014.1 ...
+ffffff160e924c30     1c50 0        35  0 rpool/versions/2014.12.2014.1 ...
+ffffff160e924d50     1c4d 0        33  0 rpool/versions/2014.12.2014.1 ...
+ffffff160e9092f8     164b 0        24  0 rpool/versions/2014.12.2014.1 ...
+ffffff160e8cc050       a0 0         3  0 mos
+ffffff160e8c04e0     177b 0        3a  0 rpool/versions/2014.12.2014.1 ...
+ffffff160e8bcde8     1c4d 0        1a  0 rpool/versions/2014.12.2014.1 ...
+ffffff160e8b2bb8       74 0         0  0 mos
+ffffff160e8b2cd8     1c4c 0         f  0 rpool/versions/2014.12.2014.1 ...
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And better yet, I can print the full contents for each buffer if that
+level of detail is needed:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo mdb -k
+&amp;gt; ::dbufs | ::print dmu_buf_impl_t ! head
+{
+    db = {
+        db_object = 0x114f
+        db_offset = 0x320000
+        db_size = 0x20000
+        db_data = 0xffffff012e283000
+    }
+    db_objset = 0xffffff096dd82500
+    db_dnode_handle = 0xffffff160e858d20
+    db_parent = 0xffffff160e63cb70
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Or filter out the specific dbufs of interest:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# Lines ending with &#39;...&#39; have been truncated to fit in 80 columns.
+$ sudo mdb -k
+&amp;gt; ::dbufs -o 0x90 | ::dbuf ! head
+        addr object lvl blkid holds os
+ffffff1609deb210       90 0         1  0 mos
+ffffff0980966790       90 0         2  0 mos
+ffffff0982633030       90 0         0  0 mos
+ffffff096e53c9a8       90 1         0  3 mos
+ffffff15edcd7bf0       90 0     bonus  1 tank/fish
+ffffff097340dab8       90 0     bonus  1 rpool/versions/2014.12.2014.1 ...
+ffffff096e118450       90 0         0  0 rpool/versions/2014.12.2014.1 ...
+ffffff09179a79e8       90 0     bonus  1 mos
+ffffff09157b6cc0       90 0     bonus  0 rpool/versions/2014.12.2014.1 ...
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;But what if one wants to filter on something that isn&amp;rsquo;t supported by the
+&lt;code&gt;::dbufs&lt;/code&gt; command? Well, here&amp;rsquo;s a more general approach, filtering out
+only the buffers with a reference count of 3, using &lt;code&gt;::grep&lt;/code&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# Lines ending with &#39;...&#39; have been truncated to fit in 80 columns.
+# Also, mdb doesn&#39;t actually support continuation of input lines
+# using the &amp;quot;\&amp;quot; character; but it helps me format the command within
+# 80 columns for this post, and resembles a bash line continuation.
+
+$ sudo mdb -k
+&amp;gt; ::dbufs | ::print dmu_buf_impl_t db_holds.rc_count | \
+  ::grep &#39;.==0x3&#39; | ::eval &amp;amp;lt;dbuf=K | ::dbuf ! head
+        addr object lvl blkid holds os
+ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
+ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
+ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
+ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
+ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
+ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
+ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
+ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
+ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Additionally, the ability to get stack traces detailing where objects
+were allocated using &lt;code&gt;kmem_flags=0x1&lt;/code&gt; is hugely beneficial. Using it,
+things like the &lt;code&gt;::refcount&lt;/code&gt; dcmd can not only provide information about
+the current number of holds, but it can also provide the full kernel
+stack trace of the thread that took the hold when the hold was taken.&lt;/p&gt;
+
+&lt;p&gt;Likewise, the &lt;code&gt;::whatis&lt;/code&gt; dcmd also makes use of this information and
+displays it to the user. Imagine a case where you have a &amp;ldquo;random&amp;rdquo;
+pointer to an object (e.g. a pointer to an &lt;code&gt;arc_buf_t&lt;/code&gt;), and wanted to
+know where this object came from. If using &lt;code&gt;kmem_flags=0x1&lt;/code&gt; on illumos,
+this is as simple as the following:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo mdb -k
+&amp;gt; ::walk dmu_buf_impl_t ! head -n 1
+0xffffff0ab4001048
+&amp;gt; 0xffffff0ab4001048::whatis
+ffffff0ab4001048 is allocated from dmu_buf_impl_t:
+            ADDR          BUFADDR        TIMESTAMP           THREAD
+                            CACHE          LASTLOG         CONTENTS
+ffffff0ab4059128 ffffff0ab4001048      157ca42dbaf ffffff09e088e440
+                 ffffff0958a5a008 ffffff090b0ebbc0 ffffff0932c80430
+                 kmem_cache_alloc_debug+0x2e0
+                 kmem_cache_alloc+0xdd
+                 dbuf_create+0x79
+                 dbuf_hold_impl+0x192
+                 dbuf_hold+0x27
+                 dmu_buf_hold_array_by_dnode+0x129
+                 dmu_read_uio_dnode+0x5a
+                 dmu_read_uio_dbuf+0x51
+                 zfs_read+0x1a3
+                 fop_read+0x5b
+                 pread64+0x25d
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I could go on and on about the cool things mdb allows, but this post is
+already long enough, so I&amp;rsquo;ll cut myself off here. It would be great to
+see an mdb port to Linux! (or even a more feature rich version of
+&lt;a href=&#34;http://people.redhat.com/anderson/crash_whitepaper/&#34;&gt;crash&lt;/a&gt; with OpenZFS support)&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

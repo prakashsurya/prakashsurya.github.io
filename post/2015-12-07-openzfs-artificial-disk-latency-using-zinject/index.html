@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.18.1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://prakashsurya.github.io/post/2015-12-07-openzfs-artificial-disk-latency-using-zinject/">
+<link rel="stylesheet" type="text/css" href="/css/hack.css">
+<link rel="stylesheet" type="text/css" href="/css/custom.css">
+
+    <title>
+  OpenZFS: Artificial Disk Latency Using zinject &raquo; prakashsurya.github.io
+</title>
+  </head>
+  <body class="hack container">
+    <header>
+      <nav>
+  
+    <a class="active" href="/">Home</a>
+  
+    <a class="active" href="/post/">Posts</a>
+  
+</nav>
+
+    </header>
+    <main>
+  <h1>OpenZFS: Artificial Disk Latency Using zinject</h1>
+  
+
+<p>About a year ago I had the opportunity to work on a small extension to
+the <a href="http://www.open-zfs.org">OpenZFS</a> <code>zinject</code> command with colleagues Matt Ahrens and
+Frank Salzmann, during one of our <a href="http://www.delphix.com">Delphix</a> engineering wide
+hackathon events. Now that it&rsquo;s in the <a href="https://github.com/openzfs/openzfs/pull/39">process of landing</a> in the
+upstream <a href="https://github.com/openzfs/openzfs">OpenZFS repository</a>, I wanted to take a minute to show
+it off.</p>
+
+<p>To describe the new functionality, I&rsquo;ll defer to the help message:</p>
+
+<pre><code>$ zinject -h
+... &lt;snip&gt; ...
+
+zinject -d device -D latency:lanes pool
+
+        Add an artificial delay to IO requests on a particular
+        device, such that the requests take a minimum of 'latency'
+        milliseconds to complete. Each delay has an associated
+        number of 'lanes' which defines the number of concurrent
+        IO requests that can be processed.
+
+        For example, with a single lane delay of 10 ms (-D 10:1),
+        the device will only be able to service a single IO request
+        at a time with each request taking 10 ms to complete. So,
+        if only a single request is submitted every 10 ms, the
+        average latency will be 10 ms; but if more than one request
+        is submitted every 10 ms, the average latency will be more
+        than 10 ms.
+
+        Similarly, if a delay of 10 ms is specified to have two
+        lanes (-D 10:2), then the device will be able to service
+        two requests at a time, each with a minimum latency of
+        10 ms. So, if two requests are submitted every 10 ms, then
+        the average latency will be 10 ms; but if more than two
+        requests are submitted every 10 ms, the average latency
+        will be more than 10 ms.
+
+        Also note, these delays are additive. So two invocations
+        of '-D 10:1', is roughly equivalent to a single invocation
+        of '-D 10:2'. This also means, one can specify multiple
+        lanes with differing target latencies. For example, an
+        invocation of '-D 10:1' followed by '-D 25:2' will
+        create 3 lanes on the device; one lane with a latency
+        of 10 ms and two lanes with a 25 ms latency.
+
+... &lt;snip&gt; ...
+</code></pre>
+
+<p>Given that explanation, lets dive in and give this a test drive with a
+few examples.</p>
+
+<h2 id="setup-and-baseline">Setup and Baseline</h2>
+
+<p>First, lets start with a basic example using a pool with a single disk:</p>
+
+<pre><code># zpool create tank c1t1d0
+# zfs create tank/foo
+</code></pre>
+
+<p>Now let&rsquo;s do some IO to the pool and use <code>dtrace</code> to examine the latency
+of the requests to get a baseline expectation for the IO latency of
+writes to this pool.</p>
+
+<p>Running in one terminal I have a simple, single threaded write workload
+running in an infinite loop. This will continually copy some random data
+to a file in the pool, remove that file, and repeat.</p>
+
+<pre><code># dd if=/dev/urandom of=/tmp/urandom-cache bs=1M count=1024 &amp;&gt;/dev/null
+# while true; do
+&gt; cp /tmp/urandom-cache /tank/foo/urandom-cache
+&gt; sync
+&gt; rm /tank/foo/urandom-cache
+&gt; sync
+done
+</code></pre>
+
+<p>Now, lets look at the latency of the write requests issued to disk by
+the filesystem, using <code>dtrace</code> (see <a href="#zio-latency">here</a> for the source
+of this <code>dtrace</code> script):</p>
+
+<pre><code># dtrace -qs zio-rw-latency.d -c 'sleep 60' tank write
+
+histogram of latencies (us):
+
+           value  ------------- Distribution ------------- count
+             128 |                                         0
+             256 |                                         248
+             512 |@@@@@                                    6204
+            1024 |@@@@@@@@@@@@@@@@@@@@@@                   26218
+            2048 |@@@@@@@@@@@                              13070
+            4096 |@@                                       2474
+            8192 |                                         416
+           16384 |                                         56
+           32768 |                                         7
+           65536 |                                         0
+
+avg latency (us)   stddev (us)   iops   throughput (KB/s)
+2025               1609          811    99623
+</code></pre>
+
+<p>This is showing us a histogram of the latency of all writes that were
+submitted and completed to our pool during that specific interval.
+Additionally, it&rsquo;s showing us an average and standard deviation of the
+latency over all the requests, number of request issued and completed
+per second, and the throughput achieved by these writes.</p>
+
+<p>This sets the baseline performance that we expect to get out of this
+storage configuration; most requests take less than 8 ms to be serviced,
+with the average being about 2ms with a standard deviation of roughly
+1.5ms.</p>
+
+<h2 id="first-experiment-single-disk-single-lane">First Experiment: Single Disk, Single Lane</h2>
+
+<p>Now that we have some baseline numbers to compare against, lets use the
+new <code>zinject</code> functionality to slow down the requests. Let&rsquo;s say we want
+to delay all requests such that they take a minimum of 10ms to complete.</p>
+
+<p>Remembering that we created this pool in the previous section using a
+single disk named <code>c1t1d0</code>, we can set the minimum latency of this disk
+to be our desired 10ms:</p>
+
+<pre><code># zinject -d c1t1d0 -D 10:1 tank
+Added handler 1 with the following properties:
+  pool: tank
+  vdev: c138fa4fbf3d8f2
+</code></pre>
+
+<p>And to double check that this is the only delay registered on our pool,
+we can run <code>zinject</code> without any parameters to dump a list of all
+registered delays:</p>
+
+<pre><code># zinject
+ ID  POOL             DELAY (ms)       LANES            GUID
+---  ---------------  ---------------  ---------------  ----------------
+  1  tank             10               1                c138fa4fbf3d8f2
+</code></pre>
+
+<p>The &ldquo;lanes&rdquo; column describes the number of requests that can be serviced
+simultaneous by each registered delay; thus this delay specifies that
+only a single request can be serviced at a time, and each request will
+take a minimum of 10ms to complete.</p>
+
+<p>Now, with that delay in place, and the same write workload from the
+previous section still running, we can again use <code>dtrace</code> to inspect the
+write request latencies, IOPs, and throughput values. Given this delay,
+we should expect to see no request complete sooner than 10ms, and as a
+result, the IOPs and throughput should take a significant hit:</p>
+
+<pre><code># dtrace -qs zio-rw-latency.d -c 'sleep 60' tank write
+
+histogram of latencies (us):
+
+           value  ------------- Distribution ------------- count
+            4096 |                                         0
+            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@             4177
+           16384 |@@@@@@                                   894
+           32768 |@@@@@                                    807
+           65536 |                                         1
+          131072 |                                         0
+
+avg latency (us)   stddev (us)   iops   throughput (KB/s)
+17080              12448         97     12518
+</code></pre>
+
+<p>Great! This matches our expectation.</p>
+
+<p>Since we&rsquo;re using a logarithmic histogram, we can&rsquo;t actually
+differentiate between requests in the 8-16ms range, but judging by the
+fact that there aren&rsquo;t any request in the 0-8ms range, it&rsquo;s safe to
+assume all the request that landed in the 8-16ms range, actually took
+10-16ms to complete (as they should have).</p>
+
+<h2 id="wait-what-about-the-average-latency">Wait, What About the Average Latency?</h2>
+
+<p>At this point, you might be looking at the average latency output from
+the previous experiment, and be wondering why it&rsquo;s so much larger than
+our target latency of 10ms. Without the delay, most requests would
+complete in under 8ms, so why isn&rsquo;t the average latency with the delay
+closer to the desired 10ms?</p>
+
+<p>Remember that when we created the delay we specified it to have a single
+&ldquo;lane&rdquo;. What this means is only a single request can be serviced at a
+time. If more than a single write is submitted every 10ms to the
+underlying disk, then each new write request will get backed up by any
+existing requests.</p>
+
+<p>In other words, each lane represents a <a href="https://en.wikipedia.org/wiki/FIFO_(computing_and_electronics)">FIFO</a> queue. When a new
+IO request is submitted, the FIFO queue with the shortest wait time will
+be selected (e.g. if there are multiple lanes available to choose from),
+and then the request is placed in the queue and waits its turn until
+it can be processed and eventually completed. Thus, in our example
+above, if a request is submitted while another request is currently
+being processed and still has 7ms to finish, this new request&rsquo;s latency
+will be a minimum of 17ms; 7ms spent waiting for the prior request to be
+processed, and 10ms spent being processed itself. Due to the way OpenZFS
+issues writes, multiple requests will certainly be submitted
+simultaneously, so it&rsquo;s common for this situation to occur and explains
+the average latency in the previous experiment.</p>
+
+<h2 id="second-experiment-single-disk-multiple-lanes">Second Experiment: Single Disk, Multiple Lanes</h2>
+
+<p>If the previously described behavior isn&rsquo;t actually what is desired, we
+can simulate an implementation where requests pay no attention to prior
+requests by adding a delay with enough lanes such that there will always
+be an open lane to accept new requests. As an example, let&rsquo;s create a
+delay with the same 10ms minimum latency as before, but instead of 1
+lane, we&rsquo;ll create 16 lanes:</p>
+
+<pre><code># zinject -c all
+removed all registered handlers
+
+# zinject -d c1t1d0 -D 10:16 tank
+Added handler 2 with the following properties:
+  pool: tank
+  vdev: c138fa4fbf3d8f2
+
+# zinject
+ ID  POOL             DELAY (ms)       LANES            GUID
+---  ---------------  ---------------  ---------------  ----------------
+  2  tank             10               16               c138fa4fbf3d8f2
+</code></pre>
+
+<p>Assuming the magic number of 16 is sufficient to prevent new requests
+from piling up behind older, in-progress requests, we should now see the
+average latency trend much closer to the specified 10ms:</p>
+
+<pre><code># dtrace -qs zio-rw-latency.d -c 'sleep 60' tank write
+
+histogram of latencies (us):
+
+           value  ------------- Distribution ------------- count
+            4096 |                                         0
+            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 8836
+           16384 |                                         39
+           32768 |                                         11
+           65536 |                                         1
+          131072 |                                         1
+          262144 |                                         0
+
+avg latency (us)   stddev (us)   iops   throughput (KB/s)
+10261              3022          148    18463
+</code></pre>
+
+<p>Perfect! As expected, the average latency is now much closer to our
+desired 10ms. Unfortunately though, there were 52 requests that actually
+took longer than 16ms to be completed by the underlying storage (2 of
+which took longer than 64ms!), which pulls the average slightly above
+the specified target of 10ms.</p>
+
+<h2 id="third-experiment-setup-and-baseline">Third Experiment: Setup and Baseline</h2>
+
+<p>Another interesting example to demonstrate is simulating a pool with
+disks of different latency characteristics. This can happen for a
+variety of reasons, none of which I&rsquo;ll touch on in this article. To
+simulate this case, we&rsquo;ll need a pool with two disks:</p>
+
+<pre><code># zpool create tank c1t1d0 c1t2d0
+# zfs create tank/foo
+</code></pre>
+
+<p>We&rsquo;ll use a slightly modified version of the write workload used in
+previous sections; instead of a single thread, we&rsquo;ll use 8 threads to
+increase the amount of data being written and increase the amount of
+simultaneous write requests occurring:</p>
+
+<pre><code># while true; do
+&gt; PIDS=&quot;&quot;
+&gt; for i in $(seq 1 8); do
+&gt;     cp /tmp/urandom-cache /tank/foo/urandom-cache-$i &amp;&gt;/dev/null &amp;
+&gt;     PIDS=&quot;$PIDS $!&quot;
+&gt; done
+&gt; sync
+&gt; for pid in $PIDS; do
+&gt;     wait $pid
+&gt; done
+&gt;
+&gt; PIDS=&quot;&quot;
+&gt; for i in $(seq 1 8); do
+&gt;     rm /tank/foo/urandom-cache-$i &amp;&gt;/dev/null &amp;
+&gt;     PIDS=&quot;$PIDS $!&quot;
+&gt; done
+&gt; sync
+&gt; for pid in $PIDS; do
+&gt;     wait $pid
+&gt; done
+done
+</code></pre>
+
+<p>And with a slight variation to the previous <code>dtrace</code> script, we can show
+the same statistics as the prior sections, but individually for each
+vdev in the pool (see <a href="#vdev-latency">here</a> for the source of this
+<code>dtrace</code> script):</p>
+
+<pre><code># dtrace -qs vdev-rw-latency.d -c 'sleep 60' tank write
+
+histogram of latencies (us):
+
+f1d32d9b9514d7a3
+           value  ------------- Distribution ------------- count
+             128 |                                         0
+             256 |                                         43
+             512 |                                         665
+            1024 |@@                                       3231
+            2048 |@                                        1848
+            4096 |@@@@@@@@@@@@@                            17886
+            8192 |@@@@@@@@@@@@@@@@@@@@                     26511
+           16384 |@@@                                      3493
+           32768 |                                         310
+           65536 |                                         4
+          131072 |                                         2
+          262144 |                                         0
+
+f4eb4119d7170682
+           value  ------------- Distribution ------------- count
+             128 |                                         0
+             256 |                                         41
+             512 |                                         627
+            1024 |@@                                       3207
+            2048 |@                                        1865
+            4096 |@@@@@@@@@@@@@                            17809
+            8192 |@@@@@@@@@@@@@@@@@@@@                     26416
+           16384 |@@@                                      3570
+           32768 |                                         312
+           65536 |                                         9
+          131072 |                                         1
+          262144 |                                         0
+
+GUID               avg latency (us)   stddev (us)   iops   throughput (KB/s)
+f1d32d9b9514d7a3   9475               5292          899    111305
+f4eb4119d7170682   9496               5298          897    111116
+</code></pre>
+
+<p>As expected, without any delays injected with <code>zinject</code> each vdev
+performs nearly identically.</p>
+
+<h2 id="third-experiment-multiple-disks-different-latencies">Third Experiment: Multiple Disks, Different Latencies</h2>
+
+<p>Now that we&rsquo;ve verified the vdevs to be performing similarly in the
+absence of any artificial delays, we can simulate a case where one disk
+performs half as slow as the other by specifying two different <code>zinject</code>
+delays for the different disks:</p>
+
+<pre><code># zinject -d c1t1d0 -D 16:16 tank
+Added handler 3 with the following properties:
+  pool: tank
+  vdev: f4eb4119d7170682
+
+# zinject -d c1t2d0 -D 32:16 tank
+Added handler 4 with the following properties:
+  pool: tank
+  vdev: f1d32d9b9514d7a3
+
+# zinject
+ ID  POOL             DELAY (ms)       LANES            GUID
+---  ---------------  ---------------  ---------------  ----------------
+  3  tank             16               16               f4eb4119d7170682
+  4  tank             32               16               f1d32d9b9514d7a3
+</code></pre>
+
+<p>In this scenario we&rsquo;d expect the total throughput to take a significant
+hit, resulting from the large delays, but we&rsquo;d also expect the faster
+disk to service twice the number of write requests in any given
+interval. Thus, we should see the faster disk demonstrate roughly twice
+the throughput when inspected with <code>dtrace</code>:</p>
+
+<pre><code># dtrace -qs vdev-rw-latency.d -c 'sleep 60' tank write
+
+histogram of latencies (us):
+
+f4eb4119d7170682
+           value  ------------- Distribution ------------- count
+            4096 |                                         0
+            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  29964
+           16384 |@                                        1012
+           32768 |                                         117
+           65536 |                                         4
+          131072 |                                         0
+
+f1d32d9b9514d7a3
+           value  ------------- Distribution ------------- count
+            4096 |                                         0
+            8192 |                                         26
+           16384 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 16104
+           32768 |                                         162
+           65536 |                                         5
+          131072 |                                         0
+
+GUID               avg latency (us)   stddev (us)   iops   throughput (KB/s)
+f4eb4119d7170682   16391              2128          518    64651
+f1d32d9b9514d7a3   32310              1680          271    33630
+</code></pre>
+
+<p>Which is exactly what I&rsquo;ve measure above! Disk <code>f4eb4119d7170682</code> was
+given the 16ms delay and was measured as having nearly double the IOPs
+and nearly double the throughput during the measured interval, success!</p>
+
+<h2 id="dtrace-scripts">DTrace Scripts</h2>
+
+<p>In the spirit of full disclosure, here&rsquo;s the source for the <code>dtrace</code>
+scripts that I used in the previous sections.</p>
+
+<h3 id="zio-latency">ZIO Latency</h3>
+
+<p>Here&rsquo;s the script used in the first two experiments which does not break
+down the statistics based on vdev:</p>
+
+<pre><code># cat zio-rw-latency.d
+BEGIN
+{
+        start = timestamp;
+}
+
+fbt:zfs:vdev_disk_io_start:entry
+/this-&gt;zio = args[0],
+ this-&gt;zio-&gt;io_type == ($$2 == &quot;read&quot; ? 1 : 2) &amp;&amp;
+ stringof(this-&gt;zio-&gt;io_spa-&gt;spa_name) == $$1/
+{
+        ts[this-&gt;zio] = timestamp;
+}
+
+fbt:zfs:zio_interrupt:entry
+/this-&gt;zio = args[0], ts[this-&gt;zio]/
+{
+        delta = (timestamp - ts[this-&gt;zio])/1000;
+
+        @i = count();
+        @a = avg(delta);
+        @s = stddev(delta);
+        @l = quantize(delta);
+        @t = sum(this-&gt;zio-&gt;io_size);
+
+        ts[this-&gt;zio] = 0;
+}
+
+END
+{
+        printf(&quot;\nhistogram of latencies (us):&quot;);
+        printa(@l);
+
+        normalize(@i, (timestamp - start) / 1000000000);
+        normalize(@t, (timestamp - start) / 1000000000 * 1024);
+
+        printf(&quot;%-16s   %-11s   %-4s   %-17s\n&quot;,
+            &quot;avg latency (us)&quot;, &quot;stddev (us)&quot;, &quot;iops&quot;, &quot;throughput (KB/s)&quot;);
+        printa(&quot;%@-16u   %@-11u   %@-4u   %@-17u\n&quot;, @a, @s, @i, @t);
+}
+</code></pre>
+
+<p>This script is intended to take two parameters: <code>$$1</code> is the pool name,
+i.e. <code>tank</code> in our examples, and <code>$$2</code> is either <code>&quot;read&quot;</code> or <code>&quot;write&quot;</code>,
+we only used <code>&quot;write&quot;</code> in the examples in this article.</p>
+
+<h3 id="vdev-latency">VDEV Latency</h3>
+
+<p>Here&rsquo;s the script used in the last experiment, which differentiates the
+statistics based on the individual vdevs in the pool:</p>
+
+<pre><code># cat vdev-rw-latency.d
+BEGIN
+{
+        start = timestamp;
+}
+
+fbt:zfs:vdev_disk_io_start:entry
+/this-&gt;zio = args[0],
+ this-&gt;zio-&gt;io_type == ($$2 == &quot;read&quot; ? 1 : 2) &amp;&amp;
+ stringof(this-&gt;zio-&gt;io_spa-&gt;spa_name) == $$1/
+{
+        ts[this-&gt;zio] = timestamp;
+}
+
+fbt:zfs:zio_interrupt:entry
+/this-&gt;zio = args[0], ts[this-&gt;zio]/
+{
+        delta = (timestamp - ts[this-&gt;zio])/1000;
+
+        @i[this-&gt;zio-&gt;io_vd-&gt;vdev_guid] = count();
+        @a[this-&gt;zio-&gt;io_vd-&gt;vdev_guid] = avg(delta);
+        @s[this-&gt;zio-&gt;io_vd-&gt;vdev_guid] = stddev(delta);
+        @l[this-&gt;zio-&gt;io_vd-&gt;vdev_guid] = quantize(delta);
+        @t[this-&gt;zio-&gt;io_vd-&gt;vdev_guid] = sum(this-&gt;zio-&gt;io_size);
+
+        ts[this-&gt;zio] = 0;
+}
+
+END
+{
+        printf(&quot;\nhistogram of latencies (us):\n\n&quot;);
+        printa(&quot;%x %@u\n&quot;, @l);
+
+        normalize(@i, (timestamp - start) / 1000000000);
+        normalize(@t, (timestamp - start) / 1000000000 * 1024);
+
+        printf(&quot;%-16s   %-16s   %-11s   %-4s   %-17s\n&quot;, &quot;GUID&quot;,
+            &quot;avg latency (us)&quot;, &quot;stddev (us)&quot;, &quot;iops&quot;, &quot;throughput (KB/s)&quot;);
+        printa(&quot;%-16x   %@-16u   %@-11u   %@-4u   %@-17u\n&quot;, @a, @s, @i, @t);
+}
+</code></pre>
+
+<p>This script takes the same <code>$$1</code> and <code>$$2</code> parameters as the previous
+<code>zio-rw-latency.d</code> script described above.</p>
+
+<h3 id="why-not-use-dtrace-s-io-provider">Why Not Use DTrace&rsquo;s &ldquo;io&rdquo; Provider?</h3>
+
+<p>Inevitably there will be at least one curious reader that looks at the
+above <code>dtrace</code> scripts and wonders why I didn&rsquo;t use the <a href="http://dtrace.org/guide/chp-io.html">stable <code>io</code>
+provider</a> (i.e. <code>io:::start</code> and <code>io:::done</code>). This is intentional
+because the delays injected using <code>zinject</code> occur above the level of
+the <code>io</code> provider.</p>
+
+<p>Essentially, what&rsquo;s happening is the underlying storage will complete
+the request as fast as it can, and the <code>io</code> provider will report on this
+latency. After the storage has completed the request, it will return the
+result back up to OpenZFS, and it is at this point that the request may
+be delayed further if using this new <code>zinject</code> feature. Once the result
+is passed back to OpenZFS, the latency has already been recorded when
+using the <code>io</code> provider, so any additional latency introduced by
+<code>zinject</code> will go unnoticed.</p>
+
+<p>I can easily demonstrate this with the following example:</p>
+
+<pre><code># zpool create tank c1t1d0
+# zfs create tank/foo
+
+# while true; do
+&gt; cp /tmp/urandom-cache /tank/foo/urandom-cache
+&gt; sync
+&gt; rm /tank/foo/urandom-cache
+&gt; sync
+&gt; done &amp;
+[1] 9388
+
+# zinject -d c1t1d0 -D 10:1 tank
+Added handler 5 with the following properties:
+  pool: tank
+  vdev: e2503467ad6a2e62
+
+# zinject
+ ID  POOL             DELAY (ms)       LANES            GUID
+---  ---------------  ---------------  ---------------  ----------------
+  5  tank             10               1                e2503467ad6a2e62
+</code></pre>
+
+<p>So, we have a pool with a single disk and a delay of 10ms with a single
+lane. Lets look at the write request latency on the system as reported
+by the <code>io</code> provider:</p>
+
+<pre><code># dtrace -qs io-rw-latency.d -c 'sleep 60' write
+
+
+           value  ------------- Distribution ------------- count
+             128 |                                         0
+             256 |                                         26
+             512 |@@                                       266
+            1024 |@@@@@@@@@@@@@@@@@@@@                     2208
+            2048 |@@@@@@@@@@                               1079
+            4096 |@@@@                                     461
+            8192 |@@                                       206
+           16384 |@                                        54
+           32768 |                                         10
+           65536 |                                         1
+          131072 |                                         0
+</code></pre>
+
+<p>It&rsquo;s clear that the latency reported here does not match the 10ms
+minimum latency requested by the <code>zinject</code> command; and to verify that
+the delay is actually working correctly, let&rsquo;s use the <code>dtrace</code> script
+from the prior sections (<a href="#zio-latency">this one</a>):</p>
+
+<pre><code># dtrace -qs zio-rw-latency.d -c 'sleep 60' tank write
+
+histogram of latencies (us):
+
+           value  ------------- Distribution ------------- count
+            4096 |                                         0
+            8192 |@@@@@@@@@@@@@@@@@@                       2606
+           16384 |@@@@@@                                   898
+           32768 |@@@@@@@@@                                1308
+           65536 |@@@@@@@                                  1095
+          131072 |                                         0
+
+avg latency (us)   stddev (us)   iops   throughput (KB/s)
+33768              26629         98     12573
+</code></pre>
+
+<p>Clearly, the delay is in place, it&rsquo;s just that the <code>io</code> provider doesn&rsquo;t
+detect the additional latency introduced by <code>zinject</code>.</p>
+
+<p>And finally, here&rsquo;s the source for the <code>dtrace</code> script used above, which
+uses the <code>io</code> provider:</p>
+
+<pre><code># cat io-rw-latency.d
+io:::start
+/args[0]-&gt;b_flags &amp; ($$1 == &quot;read&quot; ? B_READ : B_WRITE)/
+{
+        ts[args[0]-&gt;b_edev, args[0]-&gt;b_lblkno] = timestamp;
+}
+
+io:::done
+/ts[args[0]-&gt;b_edev, args[0]-&gt;b_lblkno]/
+{
+        @ = quantize((timestamp -
+            ts[args[0]-&gt;b_edev, args[0]-&gt;b_lblkno]) / 1000);
+        ts[args[0]-&gt;b_edev, args[0]-&gt;b_lblkno] = 0;
+}
+</code></pre>
+
+</main>
+    <footer>
+      <hr />
+
+<div class="footer">
+  <div id="contact">
+    <a href="mailto:me@prakashsurya.com">me@prakashsurya.com</a>
+  </div>
+
+  <div id="location">
+    Las Vegas, NV
+  </div>
+
+  <div id="powered-by">
+    Powered by <a href="https://gohugo.io/">Hugo</a> and <a href="http://hackcss.com/">hack.css</a>
+  </div>
+</div>
+
+    </footer>
+  </body>
+</html>
