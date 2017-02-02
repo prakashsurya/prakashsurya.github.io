@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.18.1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://www.prakashsurya.com/post/2017-02-01-creating-custom-istallation-media-for-oi-hipster/">
+<link rel="stylesheet" type="text/css" href="/css/hack.css">
+<link rel="stylesheet" type="text/css" href="/css/custom.css">
+
+    <title>
+  Creating Custom Installation Media for OI Hipster &raquo; www.prakashsurya.com
+</title>
+  </head>
+  <body class="hack container">
+    <header>
+      <nav>
+  
+    <a class="active" href="/">Home</a>
+  
+    <a class="active" href="/post/">Posts</a>
+  
+</nav>
+
+    </header>
+    <main>
+  <h1>Creating Custom Installation Media for OI Hipster</h1>
+  <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#preface">Preface</a></li>
+<li><a href="#step-1-fetch-illumos">Step 1: Fetch illumos</a></li>
+<li><a href="#step-2-prep-for-building-illumos">Step 2: Prep for Building illumos</a>
+<ul>
+<li><a href="#step-2-1-download-and-unpack-closed-binaries">Step 2.1: Download and Unpack Closed Binaries</a></li>
+<li><a href="#step-2-2-configure-environment-file-illumos-sh">Step 2.2: Configure Environment File &ndash; illumos.sh</a></li>
+</ul></li>
+<li><a href="#step-3-build-illumos">Step 3: Build illumos</a></li>
+<li><a href="#step-4-prep-for-building-the-installation-media">Step 4: Prep for Building the Installation Media</a>
+<ul>
+<li><a href="#step-4-1-copy-distro-const-manifest-template">Step 4.1: Copy distro_const Manifest Template</a></li>
+<li><a href="#step-4-1-replace-dev-ips-repository-with-hipster">Step 4.1: Replace &ldquo;dev&rdquo; IPS Repository with &ldquo;hipster&rdquo;</a></li>
+<li><a href="#step-4-2-point-to-ips-repository-from-custom-illumos-build">Step 4.2: Point to IPS Repository from Custom illumos Build</a></li>
+<li><a href="#step-4-3-use-oi-repository-for-ssh-and-ftp-packages">Step 4.3: Use OI Repository for &ldquo;ssh&rdquo; and &ldquo;ftp&rdquo; Packages</a></li>
+<li><a href="#step-4-4-remove-certain-packages-from-illumos-build-repository">Step 4.4: Remove Certain Packages from illumos Build Repository</a></li>
+</ul></li>
+<li><a href="#step-5-building-the-installation-media">Step 5: Building the Installation Media</a></li>
+</ul></li>
+</ul>
+</nav>
+  
+
+<h2 id="preface">Preface</h2>
+
+<p>This post is a write up of my notes for creating custom installation
+media for <a href="https://www.openindiana.org/overview/the-hipster-branch/">OpenIndiana Hipster</a>, using a custom/patched
+version of <a href="https://illumos.org">illumos</a>. It assumes that OI Hipster has already
+been installed on a machine (e.g. installed on a VM using their
+<a href="https://www.openindiana.org/download/">provided</a> installation media); and this server will be
+used to build our custom version of illumos, as well as the custom OI
+installation media. The goal of this exercise is to create a &ldquo;Live DVD&rdquo;
+that can be used to install our custom version of illumos.</p>
+
+<h2 id="step-1-fetch-illumos">Step 1: Fetch illumos</h2>
+
+<p>The illumos repository <a href="https://github.com/illumos/illumos-gate">is on GitHub</a>, so we&rsquo;ll use this to
+obtain our copy. First, we must install <code>git</code> on the server:</p>
+
+<pre><code>$ sudo pkg install git
+</code></pre>
+
+<p>and then we can use <code>git clone</code> to fetch the code:</p>
+
+<pre><code>$ git clone https://github.com/illumos/illumos-gate.git
+</code></pre>
+
+<h2 id="step-2-prep-for-building-illumos">Step 2: Prep for Building illumos</h2>
+
+<p>Now we can move on to compiling the illumos codebase; we&rsquo;ll use the
+<a href="https://wiki.illumos.org/display/illumos/How+To+Build+illumos">documented process</a> as a guide. We need to
+download and install all the required build tools (e.g. compilers, etc),
+which can can be easily done using the <code>build-essentials</code> meta-package:</p>
+
+<pre><code>$ sudo pkg install build-essential
+</code></pre>
+
+<h3 id="step-2-1-download-and-unpack-closed-binaries">Step 2.1: Download and Unpack Closed Binaries</h3>
+
+<p>After that completes, we have to download and unpack the &ldquo;closed
+binaries&rdquo;; these are closed source components from Sun/Oracle that are
+required to build illumos (and have not yet been replaced):</p>
+
+<pre><code>$ cd illumos-gate/
+$ wget -c \
+    https://download.joyent.com/pub/build/illumos/on-closed-bins.i386.tar.bz2 \
+    https://download.joyent.com/pub/build/illumos/on-closed-bins-nd.i386.tar.bz2
+$ tar xjvpf on-closed-bins.i386.tar.bz2
+$ tar xjvpf on-closed-bins-nd.i386.tar.bz2
+</code></pre>
+
+<h3 id="step-2-2-configure-environment-file-illumos-sh">Step 2.2: Configure Environment File &ndash; illumos.sh</h3>
+
+<p>The illumos build system is configured using an &ldquo;environment&rdquo; file. This
+file contains various environment variables that the build uses to
+determine what actions it will take; for example:</p>
+
+<ul>
+<li>Should it run lint checks?</li>
+<li>Should it perform a &ldquo;debug&rdquo; or &ldquo;non-debug&rdquo; build? Or both?</li>
+<li>etc&hellip;</li>
+</ul>
+
+<p>For our purposes, we&rsquo;ll leave all of the default values, and only make
+the necessary modifications as specified in the previously referenced,
+<a href="https://wiki.illumos.org/display/illumos/How+To+Build+illumos">&ldquo;How To Build&rdquo; document</a>:</p>
+
+<pre><code>$ cp usr/src/tools/env/illumos.sh .
+$ echo 'export PKGVERS_BRANCH=2099.0.0.0' &gt;&gt; illumos.sh
+$ echo 'export PERL_VERSION=&quot;5.22&quot;' &gt;&gt; illumos.sh
+$ echo 'export PERL_PKGVERS=&quot;-522&quot;' &gt;&gt; illumos.sh
+</code></pre>
+
+<h2 id="step-3-build-illumos">Step 3: Build illumos</h2>
+
+<p>Now we&rsquo;re ready to start the build. This is expected to take a couple
+hours to complete, so I&rsquo;d recommend using a program such as <code>screen</code> or
+<code>tmux</code>. That way, if the connection with the server performing the build
+were to fail, the build process will remain running. For this guide I&rsquo;ll
+use <code>screen</code>, since it&rsquo;s already installed:</p>
+
+<pre><code>$ screen -S illumos-build
+$ cp usr/src/tools/scripts/nightly.sh .
+$ chmod +x nightly.sh
+$ time ./nightly.sh illumos.sh
+
+real    123m31.031s
+user    178m14.443s
+sys     42m54.293s
+</code></pre>
+
+<h2 id="step-4-prep-for-building-the-installation-media">Step 4: Prep for Building the Installation Media</h2>
+
+<p>In order to build the installation media, we need to use the
+<code>distro_const</code> command, which is provided by the
+<code>distribution-constructor</code> package:</p>
+
+<pre><code>$ sudo pkg install distribution-constructor
+</code></pre>
+
+<p>To use <code>distro_const</code>, we must pass it a &ldquo;manifest&rdquo; file, which is
+nothing more than a specially formatted XML file. We&rsquo;ll start with a
+manifest template provided by the package, and then tweak the template
+to suite our needs.</p>
+
+<h3 id="step-4-1-copy-distro-const-manifest-template">Step 4.1: Copy distro_const Manifest Template</h3>
+
+<p>First, we need to copy the template so we can make modifications to it:</p>
+
+<pre><code>$ cd ~
+$ cp /usr/share/distro_const/text_install/text_mode_x86.xml .
+</code></pre>
+
+<h3 id="step-4-1-replace-dev-ips-repository-with-hipster">Step 4.1: Replace &ldquo;dev&rdquo; IPS Repository with &ldquo;hipster&rdquo;</h3>
+
+<p>The first modification we need to make, is to point to the &ldquo;hipster&rdquo;
+<a href="https://en.wikipedia.org/wiki/Image_Packaging_System">IPS</a> repository as opposed to the default &ldquo;dev&rdquo; repository. To do
+this, we need to locate the <code>pkg_repo_default_authority</code> and
+<code>post_install_repo_default_authority</code> sections, and replace
+<code>http://pkg.openindiana.org/dev</code> with
+<code>http://pkg.openindiana.org/hipster</code>. Here&rsquo;s <code>diff</code> of this change:</p>
+
+<pre><code>$ diff -u text_mode_x86.xml text_mode_x86.xml.orig
+--- text_mode_x86.xml.orig      Thu Feb  2 02:09:32 2017
++++ text_mode_x86.xml           Thu Feb  2 02:10:33 2017
+@@ -192,7 +192,7 @@
+                --&gt;
+                &lt;pkg_repo_default_authority&gt;
+                        &lt;main
+-                               url=&quot;http://pkg.openindiana.org/dev&quot;
++                               url=&quot;http://pkg.openindiana.org/hipster&quot;
+                                authname=&quot;openindiana.org&quot;/&gt;
+                        &lt;!--
+                             If you want to use one or more  mirrors that are
+@@ -229,7 +229,7 @@
+                --&gt;
+                &lt;post_install_repo_default_authority&gt;
+                        &lt;main
+-                               url=&quot;http://pkg.openindiana.org/dev&quot;
++                               url=&quot;http://pkg.openindiana.org/hipster&quot;
+                                authname=&quot;openindiana.org&quot;/&gt;
+                        &lt;!--
+                             Uncomment before using.
+</code></pre>
+
+<h3 id="step-4-2-point-to-ips-repository-from-custom-illumos-build">Step 4.2: Point to IPS Repository from Custom illumos Build</h3>
+
+<p>As part of illumos build in <a href="#step-3-build-illumos">step 3</a>, an IPS
+repository was generated under the <code>packages/i386/nightly/repo.redist</code>
+directory. Since my illumos codebase is stored in the directory,
+<code>/export/home/ps/illumos-gate</code>, the full path to this IPS repository is
+<code>/export/home/ps/illumos-gate/packages/i386/nightly/repo.redist</code>.</p>
+
+<p>In order for the installation media to use my custom built version of
+illumos, the manifest needs to be modified to point to this IPS
+repository, <strong>in addition to</strong> the default OI &ldquo;hipster&rdquo; repository. It&rsquo;s
+important to note, that we&rsquo;re not replacing the &ldquo;hipster&rdquo; repository
+with the custom illumos build&rsquo;s repository; rather, we want to use the
+build&rsquo;s repository as the &ldquo;main&rdquo; repository, and the &ldquo;hipster&rdquo;
+repository as an &ldquo;additional&rdquo; repository.</p>
+
+<p>To do this, we&rsquo;ll modify the <code>url</code> specified in the
+<code>pkg_repo_default_authority</code> section to point to the illumos build&rsquo;s
+repository, using a <code>file://</code> based URL, and we&rsquo;ll modify the <code>url</code> of
+the <code>pkg_repo_addl_authority</code> section to point to the original &ldquo;hipster&rdquo;
+IPS repository. Here&rsquo;s a diff of these changes:</p>
+
+<pre><code>$ diff -u text_mode_x86.xml.orig text_mode_x86.xml
+--- text_mode_x86.xml.orig      Thu Feb  2 02:18:19 2017
++++ text_mode_x86.xml           Thu Feb  2 02:19:45 2017
+@@ -192,8 +192,8 @@
+                --&gt;
+                &lt;pkg_repo_default_authority&gt;
+                        &lt;main
+-                               url=&quot;http://pkg.openindiana.org/hipster&quot;
+-                               authname=&quot;openindiana.org&quot;/&gt;
++                               url=&quot;file:///export/home/ps/illumos-gate/packages/i386/nightly/repo.redist&quot;
++                               authname=&quot;on-nightly&quot;/&gt;
+                        &lt;!--
+                             If you want to use one or more  mirrors that are
+                             setup for the authority, specify the urls here.
+@@ -210,15 +210,12 @@
+                     If you want to use one or more  mirrors that are
+                     setup for the authority, specify the urls here.
+                --&gt;
+-               &lt;!--
+-                    Uncomment before using.
+                &lt;pkg_repo_addl_authority&gt;
+                        &lt;main
+-                               url=&quot;&quot;
+-                               authname=&quot;&quot;/&gt;
++                               url=&quot;http://pkg.openindiana.org/hipster&quot;
++                               authname=&quot;openindiana.org&quot;/&gt;
+                        &lt;mirror url=&quot;&quot; /&gt;
+                &lt;/pkg_repo_addl_authority&gt;
+-               --&gt;
+                &lt;!--
+                     The default preferred authority to be used by the system
+                     after it has been installed.
+</code></pre>
+
+<h3 id="step-4-3-use-oi-repository-for-ssh-and-ftp-packages">Step 4.3: Use OI Repository for &ldquo;ssh&rdquo; and &ldquo;ftp&rdquo; Packages</h3>
+
+<p>I don&rsquo;t fully understand why this step is necessary, but we need to
+modify the manifest to force the use of the OpenIndiana&rsquo;s IPS repository
+when fetching the following packages:</p>
+
+<ul>
+<li><code>pkg:/network/ssh</code></li>
+<li><code>pkg:/service/network/ftp</code></li>
+<li><code>pkg:/service/network/ssh</code></li>
+</ul>
+
+<p>This is done by adding the package URL for these packages to the
+<code>packages</code> section of the manifest; the following <code>diff</code> does this:</p>
+
+<pre><code>$ diff -u text_mode_x86.xml.orig text_mode_x86.xml
+--- text_mode_x86.xml.orig      Thu Feb  2 03:38:37 2017
++++ text_mode_x86.xml           Thu Feb  2 03:56:46 2017
+@@ -266,6 +266,9 @@
+                        &lt;pkg name=&quot;pkg:/server_install&quot;/&gt;
+                        &lt;pkg name=&quot;pkg:/system/install/text-install&quot;/&gt;
+                        &lt;pkg name=&quot;pkg:/system/install/media/internal&quot;/&gt;
++                       &lt;pkg name=&quot;pkg://openindiana.org/network/ssh&quot;/&gt;
++                       &lt;pkg name=&quot;pkg://openindiana.org/service/network/ftp&quot;/&gt;
++                       &lt;pkg name=&quot;pkg://openindiana.org/service/network/ssh&quot;/&gt;
+                &lt;/packages&gt;
+ &lt;!--
+      Items below this line are rarely configured
+</code></pre>
+
+<h3 id="step-4-4-remove-certain-packages-from-illumos-build-repository">Step 4.4: Remove Certain Packages from illumos Build Repository</h3>
+
+<p>I understand even less about why this step is necessary, but we need to
+remove certain packages from the IPS repository generated by the
+previous illumos build (the build from <a href="#step-3-build-illumos">step 3</a>),
+otherwise the <a href="#step-5-building-the-installation-media">next step</a> will
+fail to build the installation media. The packages we need to remove
+are:</p>
+
+<ul>
+<li><code>pkg:/network/ssh</code></li>
+<li><code>pkg:/service/network/ssh</code></li>
+<li><code>pkg:/service/network/ftp</code></li>
+<li><code>pkg:/service/network/ssh-common</code></li>
+<li><code>pkg:/service/network/smtp/sendmail</code></li>
+</ul>
+
+<p>We can use <code>pkgrepo</code> to remove them like so:</p>
+
+<pre><code>$ REPO=&quot;/export/home/ps/illumos-gate/packages/i386/nightly/repo.redist&quot;
+$ for pkg in &quot;pkg:/network/ssh&quot; \
+&gt;            &quot;pkg:/service/network/ssh&quot; \
+&gt;            &quot;pkg:/service/network/ftp&quot; \
+&gt;            &quot;pkg:/service/network/ssh-common&quot; \
+&gt;            &quot;pkg:/service/network/smtp/sendmail&quot;; do
+&gt;     pkgrepo -s &quot;$REPO&quot; remove &quot;$pkg&quot;
+&gt; done
+</code></pre>
+
+<h2 id="step-5-building-the-installation-media">Step 5: Building the Installation Media</h2>
+
+<p>Now, with all of the above steps completed, we&rsquo;re ready to use
+<code>distro_const</code> to build the installation media files; this part is
+simple:</p>
+
+<pre><code>$ sudo distro_const build text_mode_x86.xml
+... &lt;snip&gt; ...
+Build completed Thu Feb  2 05:26:06 2017
+Build is successful.
+</code></pre>
+
+<p>After that completes, the installation media should be found in
+<code>/rpool/dc/media</code>:</p>
+
+<pre><code>$ ls -lh /rpool/dc/media/
+total 2793956
+-rw-r--r--   1 root     root        657M Feb  2 05:25 OpenIndiana_Text_X86.iso
+-r--r--r--   1 root     root        793M Feb  2 05:25 OpenIndiana_Text_X86.usb
+</code></pre>
+
+<p>Success!</p>
+
+<p>Those files can now be used to install our custom OpenIndiana Hipster
+distribution onto any machine of our choosing (e.g. a VM, bare metal,
+etc), and the installed operating system will be our custom version of
+illumos, plus all additional packages packages that constitute OI
+Hipster.</p>
+
+</main>
+    <footer>
+      <hr />
+
+<div class="footer">
+  <div id="contact">
+    <a href="mailto:me@prakashsurya.com">me@prakashsurya.com</a>
+  </div>
+
+  <div id="location">
+    Las Vegas, NV
+  </div>
+
+  <div id="powered-by">
+    Powered by <a href="https://gohugo.io/">Hugo</a> and <a href="http://hackcss.com/">hack.css</a>
+  </div>
+</div>
+
+    </footer>
+  </body>
+</html>
