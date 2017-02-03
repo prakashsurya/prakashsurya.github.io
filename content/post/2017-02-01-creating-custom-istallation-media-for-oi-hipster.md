@@ -1,6 +1,6 @@
 +++
 date = "2017-02-01T00:00:00-08:00"
-lastmod = "2017-02-01T00:00:00-08:00"
+lastmod = "2017-02-06T00:00:00-08:00"
 title = "Creating Custom Installation Media for OI Hipster"
 draft = false
 +++
@@ -15,6 +15,13 @@ been installed on a machine (e.g. installed on a VM using their
 used to build our custom version of illumos, as well as the custom OI
 installation media. The goal of this exercise is to create a "Live DVD"
 that can be used to install our custom version of illumos.
+
+## Shoutouts
+
+Before I get started, I want to thank `alp` and `tsoome` from the
+`#oi-dev` IRC channel on freenode for answering my various questions as
+I was learning how to do this; their help definitely saved me hours of
+frustration. Thanks again :)
 
 ## Step 1: Fetch illumos
 
@@ -61,13 +68,15 @@ determine what actions it will take; for example:
   - etc...
 
 For our purposes, we'll leave all of the default values, and only make
-the necessary modifications as specified in the previously referenced,
-["How To Build" document][illumos-how-to-build]:
+the minimal modifications necessary:
 
     $ cp usr/src/tools/env/illumos.sh .
-    $ echo 'export PKGVERS_BRANCH=2099.0.0.0' >> illumos.sh
-    $ echo 'export PERL_VERSION="5.22"' >> illumos.sh
-    $ echo 'export PERL_PKGVERS="-522"' >> illumos.sh
+    $ PKGVERS_BRANCH=$(pkg info  -r pkg://openindiana.org/SUNWcs | \
+    >                  awk '$1 == "Branch:" {print $2}')
+    $ echo "export PKGVERS_BRANCH='$PKGVERS_BRANCH'" >> illumos.sh
+    $ echo "export ONNV_BUILDNUM='$PKGVERS_BRANCH'" >> illumos.sh
+    $ echo "export PERL_VERSION='5.22'" >> illumos.sh
+    $ echo "export PERL_PKGVERS='-522'" >> illumos.sh
 
 ## Step 3: Build illumos
 
