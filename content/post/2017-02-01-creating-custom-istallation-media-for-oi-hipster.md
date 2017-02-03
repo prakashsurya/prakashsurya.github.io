@@ -1,5 +1,6 @@
 +++
 date = "2017-02-01T00:00:00-08:00"
+lastmod = "2017-02-01T00:00:00-08:00"
 title = "Creating Custom Installation Media for OI Hipster"
 draft = false
 +++
