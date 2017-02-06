@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.18.1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://www.prakashsurya.com/post/2017-02-06-creating-a-custom-amazon-ec2-ami-from-iso/">
+<link rel="stylesheet" type="text/css" href="/css/hack.css">
+<link rel="stylesheet" type="text/css" href="/css/custom.css">
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-91378771-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <title>
+  Creating a Custom Amazon EC2 AMI from ISO (using OI Hipster) &raquo; www.prakashsurya.com
+</title>
+  </head>
+  <body class="hack container">
+    <header>
+      <nav>
+  
+    <a class="active" href="/">Home</a>
+  
+    <a class="active" href="/post/">Posts</a>
+  
+</nav>
+
+    </header>
+    <main>
+  <h1>Creating a Custom Amazon EC2 AMI from ISO (using OI Hipster)</h1>
+  <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#preface">Preface</a></li>
+<li><a href="#step-0-create-template-for-root-volume-of-ami">Step 0: Create Template for Root Volume of AMI</a></li>
+<li><a href="#step-1-convert-raw-disk-image-into-stream-optimized-vmdk-format">Step 1: Convert Raw Disk Image into Stream Optimized VMDK Format</a></li>
+<li><a href="#step-2-download-ec2-tools-and-initialize-environment">Step 2: Download EC2 Tools and Initialize Environment</a>
+<ul>
+<li><a href="#step-2-1-download-ec2-api-tools">Step 2.1: Download EC2 API Tools</a></li>
+<li><a href="#step-2-2-initialize-necessary-environment-variables">Step 2.2: Initialize Necessary Environment Variables</a></li>
+</ul></li>
+<li><a href="#step-3-import-the-stream-optimized-vmdk-to-amazon-s3">Step 3: Import the Stream Optimized VMDK to Amazon S3</a></li>
+<li><a href="#step-4-create-a-snapshot-of-imported-volume">Step 4: Create a Snapshot of Imported Volume</a></li>
+<li><a href="#step-5-register-ami-using-previously-created-volume-snapshot">Step 5: Register AMI Using Previously Created Volume Snapshot</a></li>
+</ul></li>
+</ul>
+</nav>
+  
+
+<h2 id="preface">Preface</h2>
+
+<p>In this post, I&rsquo;ll pick up from where I left off
+<a href="/post/2017-02-01-creating-custom-istallation-media-for-oi-hipster/">last time</a>, and demonstrate one potential way to convert
+the installation ISO media generated in that post, into an <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html">AMI</a>
+that can be used to create new VMs in the <a href="https://aws.amazon.com/documentation/ec2/">Amazon EC2</a> environment.
+It&rsquo;s important to note a couple things before we start:</p>
+
+<ol>
+<li><p>While I&rsquo;ll be generating an AMI based on <a href="https://wiki.openindiana.org/oi/Hipster">OI Hipster</a>,
+ this process should be applicable to any Linux or FreeBSD based
+ operating system as well (and quite possibly Windows too, but I
+ don&rsquo;t know much about that platform).</p></li>
+
+<li><p>I make no gaurantees about whether the process that&rsquo;ll be
+ demonstrated is correct, efficient, or complete. I have little
+ to no expertise in this area, and this is simply a write up of the
+ notes that I took as I was teaching myself how to do this. Just
+ because the process below worked for me, does not necessarily mean
+ it will work for anybody else. Thus, if you&rsquo;re using this as a
+ guide to create your own custom AMI(s), be aware, YMMV.</p></li>
+</ol>
+
+<p>With that out of the way, lets get started.</p>
+
+<h2 id="step-0-create-template-for-root-volume-of-ami">Step 0: Create Template for Root Volume of AMI</h2>
+
+<p>The first step that we need to perform, is to create a disk image
+that&rsquo;ll be used as the template for the root volume of the AMI that
+we&rsquo;ll be creating. If you already have a <code>raw</code> VM disk image that you
+intend to use as the AMI root volume template, than this step can be
+skipped. For the sake of completeness, I&rsquo;m including one possible way to
+generate this <code>raw</code> disk image, that&rsquo;ll then be used in later steps.</p>
+
+<p>In order to generate this <code>raw</code> disk image, we&rsquo;ll create a VM that&rsquo;ll be
+used to execute the ISO installer, which will install our operating
+system (OI Hipster, in my case) onto a &ldquo;disk&rdquo;, that we can then upload
+to Amazon and use as our AMI&rsquo;s root volume template.</p>
+
+<p>For this guide, I&rsquo;ll be using a <a href="https://www.debian.org/">Debian</a> server that&rsquo;s
+configured as a <a href="https://wiki.debian.org/Xen">Xen host</a> to create the VM and disk image.
+First, lets create a sparse file that&rsquo;ll be attached as the VM&rsquo;s only
+virtual disk; after the ISO installation completes, this file will be
+our <code>raw</code> disk image that&rsquo;ll be converted into the AMI&rsquo;s root volume.</p>
+
+<pre><code>$ truncate -s 64G ami-template.img
+</code></pre>
+
+<p>Now, to create the VM, I need to specify the hardware configuration to
+use. I do this using the following Xen VM configuration:</p>
+
+<pre><code>$ cat &lt;&lt;EOF &gt; ami-template.cfg
+&gt; builder='hvm'
+&gt; name='ami-template'
+&gt; vcpus=4
+&gt; memory=4096
+&gt; vif=['bridge=xenbr0, type=ioemu']
+&gt; disk=[  'file:/root/OpenIndiana_Text_X86.iso,hdb:cdrom,r',
+&gt;         'file:/root/ami-template.img,xvda,w' ]
+&gt; boot='d'
+&gt; vnc=1
+&gt; vnclisten='0.0.0.0'
+&gt; vncconsole=1
+&gt; on_crash='preserve'
+&gt; xen_platform_pci=1
+&gt; serial='pty'
+&gt; on_reboot='destroy'
+&gt; EOF
+</code></pre>
+
+<p>For those unfamilar with Xen&rsquo;s configuration files, this states that the
+VM will be given:</p>
+
+<ul>
+<li>4 CPUs</li>
+<li>4G of RAM</li>
+<li>The installation ISO will be attached as a CDROM</li>
+<li>The sparse file generated above will be used as the VM&rsquo;s only disk</li>
+<li>The console will be displayed over <a href="https://en.wikipedia.org/wiki/Virtual_Network_Computing">VNC</a></li>
+<li>etc&hellip;</li>
+</ul>
+
+<p>With that configuration file generated, we can go ahead and create/start
+the VM with the following command:</p>
+
+<pre><code>$ xm create ami-template.cfg
+</code></pre>
+
+<p>With the VM running and it&rsquo;s console being displayed over VNC, I can
+then connect to the console and manually walk through the installer&rsquo;s
+instructions. After the installer completes, we&rsquo;ll have a disk image
+(the <code>ami-template.img</code> file) that&rsquo;ll be uploaded to Amazon and used to
+generate the AMI in later steps.</p>
+
+<h2 id="step-1-convert-raw-disk-image-into-stream-optimized-vmdk-format">Step 1: Convert Raw Disk Image into Stream Optimized VMDK Format</h2>
+
+<p>Now that we&rsquo;ve run the OI Hipster installer to completion, we should
+have a <code>ami-template.img</code> file that contains a complete installation of
+our operating system. While we <em>could</em> upload directly to Amazon as-is,
+we won&rsquo;t do this as it&rsquo;d be an inefficient use of space (and time).</p>
+
+<p>Remember that when we generated the file that we attached to the VM in
+the <a href="#step-0-create-template-for-root-volume-of-ami">previous step</a>, we used a sparse file; we can use <code>ls</code> to
+see how much space was saved by doing so (as opposed to a non-sparse
+file):</p>
+
+<pre><code>$ ls -lsh ami-template.img
+3.6G -rw-r--r-- 1 root root 64G Feb  5 22:10 ami-template.img
+</code></pre>
+
+<p>From this output, we can see that while the file is 64G in size, it&rsquo;s
+only taking up 3.6G of space. Thus, it&rsquo;d be great if we could upload
+only 3.6G (or less) worth of data to Amazon, rather than the full 64G
+(most of which would be zeros).</p>
+
+<p>That&rsquo;s what this step is about; rather than uploading the
+<code>ami-template.img</code> file as-is, which would result in 64G of data being
+transferred over the network, we&rsquo;ll convert the file into a &ldquo;stream
+optimized&rdquo; VMDK and upload this converted file. As a result, we&rsquo;ll only
+have to send a small fraction (of the original file&rsquo;s size) of data over
+the network, when compared to if we hadn&rsquo;t done this conversion; which
+is a huge benefit in terms of the latency required to perform the
+upload.</p>
+
+<p>We&rsquo;ll use the <code>VMDKStream.py</code> utility to do the conversion, so first we
+need to download this tool:</p>
+
+<pre><code>$ wget -O VMDK-stream-converter-0.2.tar.gz \
+    https://github.com/imcleod/VMDK-stream-converter/archive/0.2.tar.gz
+
+$ tar -xf VMDK-stream-converter-0.2.tar.gz
+
+$ ls VMDK-stream-converter-0.2
+COPYING  README  setup.py  VMDKstream.py
+root@kvmserver1:~/psurya# ls -l VMDK-stream-converter-0.2
+total 40
+-rw-rw-r-- 1 root root 18092 Jun 29  2011 COPYING
+-rw-rw-r-- 1 root root   576 Jun 29  2011 README
+-rw-rw-r-- 1 root root   120 Jun 29  2011 setup.py
+-rwxrwxr-x 1 root root 11454 Jun 29  2011 VMDKstream.py
+</code></pre>
+
+<p>And now we can use it to read the original <code>raw</code> disk image, and convert
+it into the stream optimized <code>vmdk</code> that we want:</p>
+
+<pre><code>$ ./VMDK-stream-converter-0.2/VMDKstream.py ami-template.img ami-template.vmdk
+</code></pre>
+
+<p>After this completes, we can use <code>ls</code> again to see just how much less
+data will be needed to transfer the disk image using this new format:</p>
+
+<pre><code>$ ls -lsh ami-template.img ami-template.vmdk
+ 3.6G -rw-r--r-- 1 root root   64G Feb  5 22:10 ami-template.img
+1022M -rw-r--r-- 1 root root 1022M Feb  5 22:35 ami-template.vmdk
+</code></pre>
+
+<p>As one can see, the converted file is <strong>much</strong> smaller than even the
+sparse file that we started with; rather than sending 64G over the
+network, we&rsquo;ll only have to send about 1G.</p>
+
+<p>Now with our stream optimized VMDK file generated, we can move on to
+actually performing the upload of this file to Amazon.</p>
+
+<h2 id="step-2-download-ec2-tools-and-initialize-environment">Step 2: Download EC2 Tools and Initialize Environment</h2>
+
+<p>To perform the upload of the VMDK file that we had just generated, as
+well as the various other steps involved in creating the AMI, we&rsquo;ll use
+the EC2 API Tools provided by Amazon. Thus, the first thing we need to
+do, is to download these tools (assuming they aren&rsquo;t already installed).</p>
+
+<h3 id="step-2-1-download-ec2-api-tools">Step 2.1: Download EC2 API Tools</h3>
+
+<p>This is simple, using <code>wget</code> and <code>unzip</code>:</p>
+
+<pre><code>$ wget http://s3.amazonaws.com/ec2-downloads/ec2-api-tools.zip
+$ unzip ec2-api-tools.zip
+</code></pre>
+
+<p>The tools will be extracted into a directory named <code>ec2-api-tools</code>, and
+postfixed with the version of the tools downloaded. In this example,
+version <code>1.7.5.1</code> was downloaded, so the directory containing the tools
+will be <code>ec2-api-tools-1.7.5.1</code>, and we can verify this using <code>ls</code>:</p>
+
+<pre><code>$ ls -l ec2-api-tools-1.7.5.1/
+total 100
+drwxr-xr-x 2 root root 36864 Sep  7  2015 bin
+drwxr-xr-x 2 root root  4096 Sep  7  2015 lib
+-rw-r--r-- 1 root root  4852 Sep  7  2015 license.txt
+-rw-r--r-- 1 root root   539 Sep  7  2015 notice.txt
+-rw-r--r-- 1 root root 46468 Sep  7  2015 THIRDPARTYLICENSE.TXT
+</code></pre>
+
+<h3 id="step-2-2-initialize-necessary-environment-variables">Step 2.2: Initialize Necessary Environment Variables</h3>
+
+<p>In conjunction with the EC2 API Tools, we&rsquo;ll also make use of the
+following environment variables to configure the invocation of the
+tools. The following is a list of the environment variables that we&rsquo;ll
+use in the following sections, as well as a brief description of each:</p>
+
+<ul>
+<li><p><code>AWS_ACCESS_KEY</code>: This is required so the tools can authenticate as
+&ldquo;you&rdquo; when making API request to Amazon. This needs to be set based
+on each individual&rsquo;s specific key. For more information, see
+<a href="https://aws.amazon.com/developers/access-keys/">here</a>.</p></li>
+
+<li><p><code>AWS_SECRET_KEY</code>: In addition to the &ldquo;access key&rdquo; described above,
+authenticating with the Amazon APIs also requires a &ldquo;secret key&rdquo;.
+Exactly like the &ldquo;access key&rdquo;, this must be set based on the
+individual&rsquo;s specific key. See <a href="https://aws.amazon.com/developers/access-keys/">here</a> for more
+information.</p></li>
+
+<li><p><code>AWS_ZONE</code>: This will specify the AWS availability zone that will be
+used when generating the AMI. For more information about AWS
+availability zones, see <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html">here</a>.</p></li>
+
+<li><p><code>AWS_S3_BUCKET</code>: This will specify the AWS S3 bucket used when
+uploading the disk image. The disk image will be uploaded to this
+bucket, and then a snapshot of the generated volume will be taken,
+and this snapshot used to create the root volume of the AMI. For
+more information about Amazon S3, see <a href="https://aws.amazon.com/documentation/s3/">here</a>.</p></li>
+
+<li><p><code>AWS_AMI_NAME</code>: This will specify the name given to the AMI.</p></li>
+
+<li><p><code>AWS_AMI_DESC</code>: This will specify the description given to the AMI.</p></li>
+</ul>
+
+<p>The following is intended to serve as an example of the values that
+could be used for these various environment variables:</p>
+
+<pre><code>$ export AWS_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
+$ export AWS_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+$ export AWS_ZONE=us-west-1a
+$ export AWS_S3_BUCKET=ivol-openindiana-hipster
+$ export AWS_AMI_NAME=&quot;OpenIndiana Hipster Testing 2017.02.06 (HVM)&quot;
+$ export AWS_AMI_DESC=&quot;Hipster is a codename for rapidly moving \
+&gt; development branch of OpenIndiana and the development branch from \
+&gt; which major releases are made.&quot;
+</code></pre>
+
+<h2 id="step-3-import-the-stream-optimized-vmdk-to-amazon-s3">Step 3: Import the Stream Optimized VMDK to Amazon S3</h2>
+
+<p>Now that we have the EC2 API Tools installed, and the necessary
+environment variables initialized, we can start the process of uploading
+our disk image to Amazon, and converting that into an AMI.</p>
+
+<p>The first step of this proces is to upload our stream optimized VMDK
+(generated in <a href="#step-1-convert-raw-disk-image-into-stream-optimized-vmdk-format">step 1</a>) to our Amazon S3 bucket; to do this,
+we&rsquo;ll use the <code>ec2ivol</code> utility:</p>
+
+<pre><code>$ ./ec2-api-tools-1.7.5.1/bin/ec2ivol -o $AWS_ACCESS_KEY \
+&gt; -w $AWS_SECRET_KEY -b $AWS_S3_BUCKET -z $AWS_ZONE \
+&gt; -d &quot;$AWS_AMI_DESCRIPTION&quot; -f vmdk ami-template.vmdk
+Requesting volume size: 64 GB
+TaskType        IMPORTVOLUME    TaskId  import-vol-fghpxu3l     ExpirationTime  2017-02-13T20:39:29Z    Status  active  StatusMessage   Pending
+DISKIMAGE       DiskImageFormat VMDK    DiskImageSize   1070948352      VolumeSize      64      AvailabilityZone        us-west-1a      ApproximateBytesConverted       0
+Creating new manifest at ivol-openindiana-hipster/0af50aa3-ee80-492d-96a5-bab6ab63bda4/ami-template.vmdkmanifest.xml
+Uploading the manifest file
+Uploading 1070948352 bytes across 103 parts
+----------------------------------------------------------------------------------------------------
+   Upload progress              Estimated time      Estimated speed
+ / 100% [====================&gt;]                     56.056 MBps
+********************* All 1070948352 Bytes uploaded in 19s  *********************
+Done uploading.
+Average speed was 56.053 MBps
+The disk image for import-vol-fghpxu3l has been uploaded to Amazon S3
+where it is being converted into an EBS volume.  You may monitor the
+progress of this task by running ec2-describe-conversion-tasks.  When
+the task is completed, you may use ec2-delete-disk-image to remove the
+image from S3.
+</code></pre>
+
+<p>We can then use the <code>TaskId</code> value provided by the output of <code>ec2ivol</code>
+(i.e. <code>import-vol-fghpxu3l</code> in this instance), and feed that into
+<code>ec2dct</code> to retreive the status for the upload&rsquo;s conversion.</p>
+
+<pre><code>$ ./ec2-api-tools-1.7.5.1/bin/ec2dct import-vol-fghpxu3l
+TaskType        IMPORTVOLUME    TaskId  import-vol-fghpxu3l     ExpirationTime  2017-02-13T20:39:29Z    Status  completed
+DISKIMAGE       DiskImageFormat VMDK    DiskImageSize   1070948352      VolumeId        vol-041fd3aa8c9435e7d   VolumeSize      64      AvailabilityZone        us-west-1a      ApproximateBytesConverted       1070945104
+</code></pre>
+
+<p>As can be seen from the <code>Status</code> section, this conversion has <code>completed</code>,
+so we can move on to the next step. If the conversion hadn&rsquo;t <code>completed</code>
+yet, e.g. it was still <code>active</code>, then we would need to wait (and poll
+using <code>ec2dct</code>) until it <code>completed</code>.</p>
+
+<h2 id="step-4-create-a-snapshot-of-imported-volume">Step 4: Create a Snapshot of Imported Volume</h2>
+
+<p>The next step that we need to perform, is to create a snapshot from the
+volume that we just created. Looking at the prior output from <code>ec2dct</code>,
+we can see from the <code>VolumeId</code> field, that a volume was generated and
+it&rsquo;s ID is <code>vol-041fd3aa8c9435e7d</code>. We will use the <code>ec2addsnap</code> utility
+to create a snapshot of that volume:</p>
+
+<pre><code>$ ./ec2-api-tools-1.7.5.1/bin/ec2addsnap vol-041fd3aa8c9435e7d
+SNAPSHOT        snap-01b80a642ef5f1f51  vol-041fd3aa8c9435e7d   pending 2017-02-06T20:49:11+0000                239688353806    64              Not Encrypted
+</code></pre>
+
+<p>Just like when importing the volume, we can check the status of the
+snapshot generation process using <code>ec2dsnap</code> (the parameter passed to it
+comes from the the output of <code>ec2addsnap</code> above):</p>
+
+<pre><code>$ while true; do
+&gt; ./ec2-api-tools-1.7.5.1/bin/ec2dsnap snap-01b80a642ef5f1f51
+&gt; sleep 60
+&gt; done
+SNAPSHOT        snap-01b80a642ef5f1f51  vol-041fd3aa8c9435e7d   pending 2017-02-06T20:49:11+0000        0%      239688353806    64              Not Encrypted
+SNAPSHOT        snap-01b80a642ef5f1f51  vol-041fd3aa8c9435e7d   pending 2017-02-06T20:49:11+0000        0%      239688353806    64              Not Encrypted
+SNAPSHOT        snap-01b80a642ef5f1f51  vol-041fd3aa8c9435e7d   completed       2017-02-06T20:49:11+0000        100%    239688353806    64              Not Encrypted
+^C
+</code></pre>
+
+<h2 id="step-5-register-ami-using-previously-created-volume-snapshot">Step 5: Register AMI Using Previously Created Volume Snapshot</h2>
+
+<p>Finally, now that we have the volume snapshot generated, we can use this
+to register our new custom AMI using <code>ec2reg</code>:</p>
+
+<pre><code>$ ./ec2-api-tools-1.7.5.1/bin/ec2reg -s snap-01b80a642ef5f1f51 \
+&gt; -d &quot;$AWS_AMI_DESC&quot; -n &quot;$AWS_AMI_NAME&quot; -a x86_64 \
+&gt; --root-device-name /dev/xvda --virtualization-type hvm
+IMAGE   ami-5b065a3b
+</code></pre>
+
+<p>Success! The new custom built AMI is <code>ami-5b065a3b</code>.</p>
+
+<p>It should now be possible to use this AMI to create new Amazon EC2
+instances.</p>
+
+</main>
+    <footer>
+  <hr />
+
+<div class="footer">
+  <div id="footer-left">
+    <a href="mailto:me@prakashsurya.com">me@prakashsurya.com</a>
+  </div>
+
+  <div id="footer-center">
+    Published: 06 Feb 2017
+  </div>
+
+  <div id="footer-right">
+    Last Modified: 06 Feb 2017
+  </div>
+</div>
+
+</footer>
+  </body>
+</html>
