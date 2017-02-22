@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.18.1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://www.prakashsurya.com/post/2017-02-22-openzfs-refresher-on-zpool-reguid-using-examples/">
+<link rel="stylesheet" type="text/css" href="/css/hack.css">
+<link rel="stylesheet" type="text/css" href="/css/custom.css">
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-91378771-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <title>
+  OpenZFS: Refresher on `zpool reguid` Using Examples &raquo; www.prakashsurya.com
+</title>
+  </head>
+  <body class="hack container">
+    <header>
+      <nav>
+  
+    <a class="active" href="/">Home</a>
+  
+    <a class="active" href="/post/">Posts</a>
+  
+</nav>
+
+    </header>
+    <main>
+  <h1>OpenZFS: Refresher on `zpool reguid` Using Examples</h1>
+  <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#example-using-file-vdevs">Example using File VDEVs</a></li>
+<li><a href="#examples-using-damaged-zpools">Examples Using Damaged ZPOOLs</a>
+<ul>
+<li><a href="#example-using-a-damaged-vdev-in-an-empty-zpool">Example Using a Damaged VDEV in an Empty ZPOOL</a></li>
+<li><a href="#example-using-a-damaged-vdev-in-a-non-empty-zpool">Example Using a Damaged VDEV in a Non-Empty ZPOOL</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+  
+
+<h2 id="introduction">Introduction</h2>
+
+<p>The <code>zpool reguid</code> command can be used to regenerate the <a href="https://utcc.utoronto.ca/~cks/space/blog/solaris/ZFSGuids">GUID</a>
+for an <a href="http://www.open-zfs.org">OpenZFS</a> pool, which is useful when using device level
+copies to generate multiple pools all with the same contents.</p>
+
+<h2 id="example-using-file-vdevs">Example using File VDEVs</h2>
+
+<p>As a contrived example, lets create a zpool backed by a single file
+vdev:</p>
+
+<pre><code># mkdir /tmp/tank1
+# mkfile -n 256m /tmp/tank1/vdev
+# zpool create tank1 /tmp/tank1/vdev
+# zpool list tank1
+NAME    SIZE  ALLOC   FREE  EXPANDSZ   FRAG    CAP  DEDUP  HEALTH  ALTROOT
+tank1   240M    78K   240M         -     1%     0%  1.00x  ONLINE  -
+</code></pre>
+
+<p>Now we can export this zpool, copy the file, and attempt to import two
+identical zpools; one backed by the original file we created above, and
+another zpool backed by the copy of the original file.</p>
+
+<pre><code># zpool export tank1
+# mkdir /tmp/tank2
+# cp /tmp/tank1/vdev /tmp/tank2/vdev
+# zpool import -d /tmp/tank1 tank1
+# zpool import -d /tmp/tank2 tank1 tank2
+cannot import 'tank1': a pool with that name is already created/imported,
+and no additional pools with that name were found
+</code></pre>
+
+<p>While the intention was to have two pools imported, <code>tank1</code> and <code>tank2</code>,
+as one can see, the second <code>zpool import</code> failed. The failure was due
+to the two pools sharing the same GUID; we can verify the two pools
+share the same GUID using <code>zdb</code>:</p>
+
+<pre><code># zpool export tank1
+# zdb -e -p /tmp/tank1 -C tank1 | grep pool_guid
+        pool_guid: 750003400893681264
+# zdb -e -p /tmp/tank2 -C tank1 | grep pool_guid
+        pool_guid: 750003400893681264
+</code></pre>
+
+<p>This is where <code>zpool reguid</code> becomes useful; after importing <code>tank1</code> we
+can use <code>zpool reguid</code> to change that zpool&rsquo;s GUID such that we can then
+import <code>tank2</code>:</p>
+
+<pre><code># zpool import -d /tmp/tank1 tank1
+# zpool reguid tank1
+# zpool import -d /tmp/tank2 tank1 tank2
+# zpool list tank1 tank2
+NAME    SIZE  ALLOC   FREE  EXPANDSZ   FRAG    CAP  DEDUP  HEALTH  ALTROOT
+tank1   240M   110K   240M         -     3%     0%  1.00x  ONLINE  -
+tank2   240M   114K   240M         -     2%     0%  1.00x  ONLINE  -
+</code></pre>
+
+<p>Additionally, we can use <code>zdb</code> again to verify the GUID for the two
+pools is different:</p>
+
+<pre><code># zdb -C tank1 | grep pool_guid
+        pool_guid: 12195257967456241841
+# zdb -C tank2 | grep pool_guid
+        pool_guid: 750003400893681264
+</code></pre>
+
+<p>note: we don&rsquo;t need the <code>-e</code> and <code>-p</code> options like before, because these
+two pools are imported.</p>
+
+<h2 id="examples-using-damaged-zpools">Examples Using Damaged ZPOOLs</h2>
+
+<p>The manpage for the <code>zpool reguid</code> command states this can only be used
+on zpools that are &ldquo;online and healthy&rdquo;:</p>
+
+<pre><code>     zpool reguid pool
+             Generates a new unique identifier for the pool. You must ensure
+             that all devices in this pool are online and healthy before
+             performing this action.
+</code></pre>
+
+<p>So, what happens when a device is damaged and this command is attempted
+to be used? Let&rsquo;s try some examples and find out.</p>
+
+<h3 id="example-using-a-damaged-vdev-in-an-empty-zpool">Example Using a Damaged VDEV in an Empty ZPOOL</h3>
+
+<p>For this example, we&rsquo;ll create another zpool using file based VDEVs, but
+this time the zpool will be striped across 3 files:</p>
+
+<pre><code># mkdir /tmp/tank
+# mkfile -n 256m /tmp/tank/vdev1
+# mkfile -n 256m /tmp/tank/vdev2
+# mkfile -n 256m /tmp/tank/vdev3
+# zpool create tank /tmp/tank/vdev{1,2,3}
+# zpool list -v tank
+NAME                SIZE  ALLOC   FREE  EXPANDSZ   FRAG    CAP  DEDUP  HEALTH  ALTROOT
+tank                720M    78K   720M         -     0%     0%  1.00x  ONLINE  -
+  /tmp/tank/vdev1   240M    30K   240M         -     0%     0%
+  /tmp/tank/vdev2   240M    18K   240M         -     0%     0%
+  /tmp/tank/vdev3   240M    30K   240M         -     0%     0%
+</code></pre>
+
+<p>Now lets damage the pool by writing random data over the most of one of
+the VDEVs. We explicitly avoid writing to the first and last 1MB of the
+file to leave the VDEV&rsquo;s labels intact.</p>
+
+<pre><code>root@oi-hipster:~# dd if=/dev/urandom of=/tmp/tank/vdev3 bs=1M seek=1 count=254
+254+0 records in
+254+0 records out
+266338304 bytes transferred in 4.534832 secs (58731677 bytes/sec)
+</code></pre>
+
+<p>To verify the damage, we use <code>zpool scrub</code> and <code>zpool status</code>:</p>
+
+<pre><code># zpool scrub
+# zpool status -v tank
+  pool: tank
+ state: DEGRADED
+status: One or more devices has experienced an unrecoverable error.  An
+        attempt was made to correct the error.  Applications are unaffected.
+action: Determine if the device needs to be replaced, and clear the errors
+        using 'zpool clear' or replace the device with 'zpool replace'.
+   see: http://illumos.org/msg/ZFS-8000-9P
+  scan: scrub repaired 28.5K in 0h0m with 0 errors on Wed Feb 22 22:34:18 2017
+config:
+
+        NAME               STATE     READ WRITE CKSUM
+        tank               DEGRADED     0     0     0
+          /tmp/tank/vdev1  ONLINE       0     0     0
+          /tmp/tank/vdev2  ONLINE       0     0     0
+          /tmp/tank/vdev3  DEGRADED     0     0    24  too many errors
+
+errors: No known data errors
+</code></pre>
+
+<p>Now, when we attempt to run <code>zpool reguid</code>, the command fails due to the
+zpool being in an unhealthy state:</p>
+
+<pre><code># zpool reguid tank
+cannot reguid 'tank': one or more devices is currently unavailable
+</code></pre>
+
+<p>but if we use <code>zpool clear</code> to bring the pool back into a healthy state,
+we can issue the <code>zpool reguid</code> command without issues:</p>
+
+<pre><code># zpool clear tank
+# zpool reguid tank
+</code></pre>
+
+<p>note: remember that <code>zpool scrub</code> will have corrected the damage
+previously done by <code>dd</code>.</p>
+
+<h3 id="example-using-a-damaged-vdev-in-a-non-empty-zpool">Example Using a Damaged VDEV in a Non-Empty ZPOOL</h3>
+
+<p>Exanding on the previous example, we&rsquo;ll perform an almost identical
+test, except we&rsquo;ll now fill the zpool with a 256MB file instead of using
+an empty zpool. So, again, we start by creating the zpool and our 256MB
+file:</p>
+
+<pre><code># zpool export tank
+# rm /tmp/tank/*
+# mkfile -n 256m /tmp/tank/vdev1
+# mkfile -n 256m /tmp/tank/vdev2
+# mkfile -n 256m /tmp/tank/vdev3
+# zpool create tank /tmp/tank/vdev{1,2,3}
+# dd if=/dev/urandom of=/tank/file bs=1M count=256
+256+0 records in
+256+0 records out
+268435456 bytes transferred in 4.641438 secs (57834542 bytes/sec)
+# zpool list -v tank
+NAME                SIZE  ALLOC   FREE  EXPANDSZ   FRAG    CAP  DEDUP  HEALTH  ALTROOT
+tank                720M   256M   464M         -    10%    35%  1.00x  ONLINE  -
+  /tmp/tank/vdev1   240M  85.3M   155M         -    11%    35%
+  /tmp/tank/vdev2   240M  85.3M   155M         -    10%    35%
+  /tmp/tank/vdev3   240M  85.8M   154M         -    10%    35%
+</code></pre>
+
+<p>And now damaging the VDEV, and running <code>zpool scrub</code>:</p>
+
+<pre><code># dd if=/dev/urandom of=/tmp/tank/vdev3 bs=1M seek=1 count=254
+254+0 records in
+254+0 records out
+266338304 bytes transferred in 4.225401 secs (63032676 bytes/sec)
+# zpool scrub tank
+# zpool status -v tank
+  pool: tank
+ state: DEGRADED
+status: One or more devices has experienced an error resulting in data
+        corruption.  Applications may be affected.
+action: Restore the file in question if possible.  Otherwise restore the
+        entire pool from backup.
+   see: http://illumos.org/msg/ZFS-8000-8A
+  scan: scrub repaired 87.5K in 0h0m with 686 errors on Wed Feb 22 22:58:40 2017
+config:
+
+        NAME               STATE     READ WRITE CKSUM
+        tank               DEGRADED     0     0   686
+          /tmp/tank/vdev1  ONLINE       0     0     0
+          /tmp/tank/vdev2  ONLINE       0     0     0
+          /tmp/tank/vdev3  DEGRADED     0     0 1.37K  too many errors
+
+errors: Permanent errors have been detected in the following files:
+
+        /tank/file
+</code></pre>
+
+<p>As expected, there&rsquo;s &ldquo;Permanent errors&rdquo; detected to the file that we
+created, but the pool itself should still be intact and reparied by the
+<code>zpool scrub</code>. Thus, we&rsquo;ll use <code>zpool clear</code> to clear the errors like we
+did in the previous example:</p>
+
+<pre><code># zpool clear tank
+# zpool status -v tank
+  pool: tank
+ state: ONLINE
+status: One or more devices has experienced an error resulting in data
+        corruption.  Applications may be affected.
+action: Restore the file in question if possible.  Otherwise restore the
+        entire pool from backup.
+   see: http://illumos.org/msg/ZFS-8000-8A
+  scan: scrub repaired 87.5K in 0h0m with 686 errors on Wed Feb 22 22:58:40 2017
+config:
+
+        NAME               STATE     READ WRITE CKSUM
+        tank               ONLINE       0     0     0
+          /tmp/tank/vdev1  ONLINE       0     0     0
+          /tmp/tank/vdev2  ONLINE       0     0     0
+          /tmp/tank/vdev3  ONLINE       0     0     0
+
+errors: Permanent errors have been detected in the following files:
+
+        /tank/file
+</code></pre>
+
+<p>At this point, I would expect that we could now use <code>zpool reguid</code>
+on this zpool; even though there&rsquo;s &ldquo;Permanent errors&rdquo; in the user data
+file, the pool is online an healthy.</p>
+
+<pre><code># zdb -C tank | grep pool_guid
+        pool_guid: 6847294342266961459
+# zpool reguid tank
+# zdb -C tank | grep pool_guid
+        pool_guid: 13248255241205296188
+</code></pre>
+
+<p>and this is exactly the behavior seen.</p>
+
+</main>
+    <footer>
+  <hr />
+
+<div class="footer">
+  <div id="footer-left">
+    <a href="mailto:me@prakashsurya.com">me@prakashsurya.com</a>
+  </div>
+
+  <div id="footer-center">
+    Published: 22 Feb 2017
+  </div>
+
+  <div id="footer-right">
+    Last Modified: 22 Feb 2017
+  </div>
+</div>
+
+</footer>
+  </body>
+</html>
