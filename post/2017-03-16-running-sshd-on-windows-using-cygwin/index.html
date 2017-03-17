@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.18.1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://www.prakashsurya.com/post/2017-03-16-running-sshd-on-windows-using-cygwin/">
+<link rel="stylesheet" type="text/css" href="/css/hack.css">
+<link rel="stylesheet" type="text/css" href="/css/custom.css">
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-91378771-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <title>
+  Running `sshd` on Windows using Cygwin &raquo; www.prakashsurya.com
+</title>
+  </head>
+  <body class="hack container">
+    <header>
+      <nav>
+  
+    <a class="active" href="/">Home</a>
+  
+    <a class="active" href="/post/">Posts</a>
+  
+</nav>
+
+    </header>
+    <main>
+  <h1>Running `sshd` on Windows using Cygwin</h1>
+  <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#running-sshd-on-windows-using-cygwin">Running <code>sshd</code> on Windows using Cygwin</a></li>
+</ul></li>
+</ul>
+</nav>
+  
+
+<h2 id="introduction">Introduction</h2>
+
+<p>As part of our effort to support <a href="https://www.delphix.com/">Delphix</a> in the <a href="https://en.wikipedia.org/wiki/Microsoft_Azure">Azure</a> cloud
+environment, we&rsquo;re writing some automation to convert our <code>.iso</code> install
+media into a <a href="https://en.wikipedia.org/wiki/VHD_(file_format)">VHD</a> image, leveraging <a href="https://en.wikipedia.org/wiki/Jenkins_(software)">Jenkins</a> and <a href="https://en.wikipedia.org/wiki/Packer_(software)">Packer</a> in
+the process.</p>
+
+<p>Essentially, we want to use a <a href="https://en.wikipedia.org/wiki/Microsoft_Windows">Windows</a> server as a Jenkins &ldquo;slave&rdquo;,
+and run Packer from within a Jenkins job that will run on that Windows
+system.</p>
+
+<p>In order to do that, the Jenkins &ldquo;master&rdquo; needs to connect with the
+Windows system, such that it can configure the system to act as a
+Jenkins slave. Additionally, due to some of our existing Jenkins
+infrastructure, this requires the Jenkins &ldquo;master&rdquo; using <code>ssh</code> to
+connect to the Windows box. Thus, <code>sshd</code> is needed on the Windows
+system.</p>
+
+<h2 id="running-sshd-on-windows-using-cygwin">Running <code>sshd</code> on Windows using Cygwin</h2>
+
+<p>The following is a quick run-down of the steps I needed to perform, to
+install and configure <code>sshd</code> on our Windows server, enabling <code>ssh</code>
+clients (and our Jenkins master) to connect to it:</p>
+
+<ol>
+<li>Install Cygwin on the Windows server:
+
+<ul>
+<li>I used RDP to connect to the server as the <code>Administrator</code> user</li>
+<li>Used a web browser to access the <a href="https://cygwin.com/install.html">installation instructions</a></li>
+<li>Downloaded the <code>setup-x86_64.exe</code> file</li>
+<li>Executed <code>setup-x86_64.exe</code>, and followed the setup instructions</li>
+<li>When reaching the package selection screen of the setup wizard, I
+explicitly selected the following packages:
+
+<ul>
+<li><code>cygrunsrv</code> from the <code>Admin</code> group</li>
+<li><code>openssh</code> from the <code>Net</code> group</li>
+</ul></li>
+</ul></li>
+<li>After the Cygwin setup finished, I used the instructions found
+ <a href="http://www.noah.org/ssh/cygwin-sshd.html">here</a> to configure and start the <code>sshd</code> service. This involved
+ running the following commands in a Cygwin shell:
+
+<ul>
+<li><code>ssh-host-config -y</code></li>
+<li><code>cygrunsrv -S sshd</code></li>
+</ul></li>
+<li>At this point, the <code>sshd</code> service was running, but the Windows
+ server&rsquo;s firewall was blocking incoming connections to port 22. So,
+ I had to edit the server&rsquo;s firewall rules to allow incomming
+ connections on port 22 (the port <code>sshd</code> was running on). For this,
+ I followed the instructions that I found <a href="https://techtorials.me/cygwin/configure-windows-firewall/">here</a>.</li>
+</ol>
+
+</main>
+    <footer>
+  <hr />
+
+<div class="footer">
+  <div id="footer-left">
+    <a href="mailto:me@prakashsurya.com">me@prakashsurya.com</a>
+  </div>
+
+  <div id="footer-center">
+    Published: 16 Mar 2017
+  </div>
+
+  <div id="footer-right">
+    Last Modified: 16 Mar 2017
+  </div>
+</div>
+
+</footer>
+  </body>
+</html>
