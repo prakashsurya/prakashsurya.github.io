@@ -1,6 +1,6 @@
 +++
 date = "2017-03-16T00:00:00-08:00"
-lastmod = "2017-03-16T00:00:00-08:00"
+lastmod = "2017-03-27T00:00:00-08:00"
 title = "Running `sshd` on Windows using Cygwin"
 draft = false
 +++
@@ -49,6 +49,27 @@ clients (and our Jenkins master) to connect to it:
      connections on port 22 (the port `sshd` was running on). For this,
      I followed the instructions that I found [here][9].
 
+## Installing Additional Software
+
+In addition to installing Cygwin and running `sshd`, we also needed to
+perform a little more configuration to the Windows system, as our
+Jenkins job had these additional dependencies:
+
+  - To allow ssh access to other systems in our environment from the
+    Jenkins job, the necessary `ssh` keys had to be installed in the
+    `Administrator` user's home directory.
+  - `git` was installed using the Cygwin installer.
+  - `packer` was downloaded from the project's [download page][10] and
+    installed simply by placing the binary at the correct location.
+  - `pv` was manually compiled and installed following the directions on
+    the [project's website][11]; i.e. using these commands:
+    - `wget http://www.ivarch.com/programs/sources/pv-1.3.4.tar.bz2`
+    - `tar -xf pv-1.3.4.tar.bz2`
+    - `cd pv-1.3.4`
+    - `./configure --prefix=`
+    - `make`
+    - `make install`
+
 [1]: https://www.delphix.com/
 [2]: https://en.wikipedia.org/wiki/Microsoft_Azure
 [3]: https://en.wikipedia.org/wiki/VHD_(file_format)
@@ -58,3 +79,5 @@ clients (and our Jenkins master) to connect to it:
 [7]: https://cygwin.com/install.html
 [8]: http://www.noah.org/ssh/cygwin-sshd.html
 [9]: https://techtorials.me/cygwin/configure-windows-firewall/
+[10]: https://www.packer.io/downloads.html
+[11]: https://sourceforge.net/projects/pvforcygwin/
