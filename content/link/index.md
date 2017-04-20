@@ -28,6 +28,8 @@ draft = false
 
 ## Miscellaneous
 
+  - 19 Apr 2017 &raquo; Keegan Lowenstein &raquo;
+    [Tmux and Vim - even better together](https://blog.bugsnag.com/tmux-and-vim/)
   - 17 Dec 2015 &raquo; Bryan Cantrill &raquo;
     [Debugging Microservices in Production](http://www.infoq.com/presentations/debugging-microservices-production)
   - 02 Dec 2015 &raquo; Rob Pike &raquo;
