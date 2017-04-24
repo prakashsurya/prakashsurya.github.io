@@ -1,6 +1,6 @@
 +++
 date = "2017-04-19T00:00:00-08:00"
-lastmod = "2017-04-23T00:00:00-08:00"
+lastmod = "2017-04-24T00:00:00-08:00"
 title = "Links"
 draft = false
 +++
@@ -44,6 +44,8 @@ draft = false
     [The Making of the Boxtrolls](https://www.youtube.com/watch?v=PAK10UAAHIY)
   - 14 Nov 2014 &raquo; Brendan Gregg &raquo;
     [Performance Tuning Amazon EC2 Instances](https://www.youtube.com/watch?v=7Cyd22kOqWc)
+  - 28 Mar 2011 &raquo; Brandur Leach &raquo;
+    [Practical Tmux](https://mutelight.org/practical-tmux)
   - 11 Dec 2009 &raquo; Bryan Cantrill &raquo;
     [Visualizing DTrace: Sun Storage 7000 Analytics](https://www.youtube.com/watch?v=xaLfFhEZdqM)
   - 17 Nov 2008 &raquo; Tom Preston-Werner &raquo;
