@@ -1,12 +1,14 @@
 +++
 date = "2017-04-19T00:00:00-08:00"
-lastmod = "2017-04-24T00:00:00-08:00"
+lastmod = "2017-05-05T00:00:00-08:00"
 title = "Links"
 draft = false
 +++
 
 ## OpenZFS Related
 
+  - 21 Apr 2017 &raquo; Serapheim Dimitropoulos &raquo;
+    [ZFS Storage Pool Checkpoint](https://sdimitro.github.io/post/zpool-checkpoint/)
   - 12 Apr 2015 &raquo; Ryan Zezeski &raquo;
     [More Efficient TLB Shootdowns](http://zinascii.com/2015/illumos-5498.html)
   - 06 Jun 2014 &raquo; Matt Ahrens &raquo;
