@@ -1,6 +1,6 @@
 +++
 date = "2017-04-19T00:00:00-08:00"
-lastmod = "2017-05-05T00:00:00-08:00"
+lastmod = "2017-05-13T00:00:00-08:00"
 title = "Links"
 draft = false
 +++
@@ -57,21 +57,16 @@ draft = false
 
 ## Automotive Mechanics
 
-  - 01 Apr 2016 &raquo; Shane Conley &raquo;
-  ["How to" CV Carburetor - Part 8](https://www.youtube.com/watch?v=cufBK75uYdg)
-  - 26 Mar 2016 &raquo; Shane Conley &raquo;
-  ["How to" CV Carburetor - Part 7](https://www.youtube.com/watch?v=wAAxPAvRw6o)
-  - 25 Mar 2016 &raquo; Shane Conley &raquo;
-  ["How to" CV Carburetor - Part 6](https://www.youtube.com/watch?v=I9Knm9ML62k)
-  - 17 Mar 2016 &raquo; Shane Conley &raquo;
-  ["How to" CV Carburetor - Part 5](https://www.youtube.com/watch?v=0xn6juRiryc)
-  - 16 Mar 2016 &raquo; Shane Conley &raquo;
-  ["How to" CV Carburetor - Part 4](https://www.youtube.com/watch?v=g6y32Gw5HK4)
-  - 15 Mar 2016 &raquo; Shane Conley &raquo;
-  ["How to" CV Carburetor - Part 3](https://www.youtube.com/watch?v=VHY9LB7CUfo)
-  - 15 Mar 2016 &raquo; Shane Conley &raquo;
-  ["How to" CV Carburetor - Part 2](https://www.youtube.com/watch?v=2XQjEpmJh7g)
-  - 14 Mar 2016 &raquo; Shane Conley &raquo;
-  ["How to" CV Carburetor - Part 1](https://www.youtube.com/watch?v=3FmfO-mWv3Q)
+  - 01 Apr 2016 &raquo; Shane Conley &raquo; "How to" CV Carburetor &raquo;
+    [1](https://www.youtube.com/watch?v=3FmfO-mWv3Q)
+    [2](https://www.youtube.com/watch?v=2XQjEpmJh7g)
+    [3](https://www.youtube.com/watch?v=VHY9LB7CUfo)
+    [4](https://www.youtube.com/watch?v=g6y32Gw5HK4)
+    [5](https://www.youtube.com/watch?v=0xn6juRiryc)
+    [6](https://www.youtube.com/watch?v=I9Knm9ML62k)
+    [7](https://www.youtube.com/watch?v=wAAxPAvRw6o)
+    [8](https://www.youtube.com/watch?v=cufBK75uYdg)
   - 14 Apr 2015 &raquo; Bruce Aunkst &raquo;
-  [Diaphragm Replacement CV Carb](https://www.youtube.com/watch?v=H0GOExal_VA)
+    [Diaphragm Replacement CV Carb](https://www.youtube.com/watch?v=H0GOExal_VA)
+  - ?? ??? ???? &raquo; jegs.com &raquo;
+    [Small Block Shevy V8 - Engine Specifications](http://www.jegs.com/tech-articles/sbc-engine-specs.html)
