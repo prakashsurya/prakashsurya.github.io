@@ -1,6 +1,6 @@
 +++
 date = "2017-04-19T00:00:00-08:00"
-lastmod = "2017-05-20T00:00:00-08:00"
+lastmod = "2017-05-24T00:00:00-08:00"
 title = "Links"
 draft = false
 +++
@@ -32,6 +32,8 @@ draft = false
 
   - 19 Apr 2017 &raquo; Keegan Lowenstein &raquo;
     [Tmux and Vim - even better together](https://blog.bugsnag.com/tmux-and-vim/)
+  - 01 Aug 2016 &raquo; Deviant Ollam &raquo;
+    [The Search for the Perfect Door](https://www.youtube.com/watch?v=4YYvBLAF4T8)
   - 17 Dec 2015 &raquo; Bryan Cantrill &raquo;
     [Debugging Microservices in Production](http://www.infoq.com/presentations/debugging-microservices-production)
   - 02 Dec 2015 &raquo; Rob Pike &raquo;
