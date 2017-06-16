@@ -1,6 +1,6 @@
 +++
 date = "2017-04-19T00:00:00-08:00"
-lastmod = "2017-05-24T00:00:00-08:00"
+lastmod = "2017-06-15T00:00:00-08:00"
 title = "Links"
 draft = false
 +++
@@ -86,5 +86,11 @@ draft = false
     [15](https://www.youtube.com/watch?v=QVVI6QWIA4E)
   - 14 Apr 2015 &raquo; Bruce Aunkst &raquo;
     [Diaphragm Replacement CV Carb](https://www.youtube.com/watch?v=H0GOExal_VA)
+  - 29 Jun 2012 &raquo; Motorz &raquo; Small Block Chevy Rebuild &raquo;
+    [1](https://www.youtube.com/watch?v=LZO1fWVxN4c)
+    [2](https://www.youtube.com/watch?v=e3r3wRBoXkk)
+    [3](https://www.youtube.com/watch?v=gfrYWKi78zc)
+    [4](https://www.youtube.com/watch?v=g46s-Vr4Br0)
+    [5](https://www.youtube.com/watch?v=mvJNMN-oP68)
   - ?? ??? ???? &raquo; jegs.com &raquo;
     [Small Block Shevy V8 - Engine Specifications](http://www.jegs.com/tech-articles/sbc-engine-specs.html)
