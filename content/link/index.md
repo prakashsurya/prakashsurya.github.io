@@ -1,6 +1,6 @@
 +++
 date = "2017-04-19T00:00:00-08:00"
-lastmod = "2017-06-15T00:00:00-08:00"
+lastmod = "2017-06-28T00:00:00-08:00"
 title = "Links"
 draft = false
 +++
@@ -44,6 +44,8 @@ draft = false
     [Running Aground: Debugging Docker in Production](https://www.youtube.com/watch?v=sYQ8j02wbCY)
   - 23 Jun 2015 &raquo; Brendan Gregg &raquo;
     [Netflix Instance Analysis Requirements](http://www.brendangregg.com/blog/2015-06-23/netflix-instance-analysis-requirements.html)
+  - ?? May 2015 &raquo; Dan Luu &raquo;
+    [Advantages of monolithic version control](https://danluu.com/monorepo/)
   - 04 Feb 2015 &raquo; Anthony Stacchi & Graham Annable &raquo;
     [The Making of the Boxtrolls](https://www.youtube.com/watch?v=PAK10UAAHIY)
   - 14 Nov 2014 &raquo; Brendan Gregg &raquo;
