@@ -1,6 +1,6 @@
 +++
 date = "2017-04-19T00:00:00-08:00"
-lastmod = "2017-06-28T00:00:00-08:00"
+lastmod = "2017-06-29T00:00:00-08:00"
 title = "Links"
 draft = false
 +++
@@ -58,6 +58,8 @@ draft = false
     [Blogging Like a Hacker](http://tom.preston-werner.com/2008/11/17/blogging-like-a-hacker.html)
   - 12 Dec 2006 &raquo; Adam Leventhal &raquo;
     [It's tested or it's broken](https://blogs.oracle.com/ahl/entry/on_testing)
+  - ?? ??? 2005 &raquo; David Drysdale &raquo;
+    [Beginner's Guide to Linkers](http://www.lurklurk.org/linkers/linkers.html)
 
 ## Automotive Mechanics
 
