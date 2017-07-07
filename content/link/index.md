@@ -30,6 +30,8 @@ draft = false
 
 ## Miscellaneous
 
+  - 06 Jul 2017 &raquo; Benjamin Pollack &raquo;
+    [Why I Hate Slack and You Should Too](https://bitquabit.com/post/i-hate-slack-and-you-should-too/)
   - 19 Apr 2017 &raquo; Keegan Lowenstein &raquo;
     [Tmux and Vim - even better together](https://blog.bugsnag.com/tmux-and-vim/)
   - 01 Aug 2016 &raquo; Deviant Ollam &raquo;
