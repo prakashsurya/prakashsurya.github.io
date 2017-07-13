@@ -54,6 +54,8 @@ draft = false
     [The Making of the Boxtrolls](https://www.youtube.com/watch?v=PAK10UAAHIY)
   - 14 Nov 2014 &raquo; Brendan Gregg &raquo;
     [Performance Tuning Amazon EC2 Instances](https://www.youtube.com/watch?v=7Cyd22kOqWc)
+  - 04 Aug 2012 &raquo; Dave Pacheco &raquo;
+    [illumos tools for observing processes](http://dtrace.org/blogs/dap/2012/08/04/illumos-tools-for-observing-processes/)
   - 28 Mar 2011 &raquo; Brandur Leach &raquo;
     [Practical Tmux](https://mutelight.org/practical-tmux)
   - 11 Dec 2009 &raquo; Bryan Cantrill &raquo;
