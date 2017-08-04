@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.18.1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://www.prakashsurya.com/post/2017-08-04-openzfs-isolating-zil-disk-activity/">
+<link rel="stylesheet" type="text/css" href="/css/hack.css">
+<link rel="stylesheet" type="text/css" href="/css/custom.css">
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-91378771-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <title>
+  OpenZFS: Isolating ZIL Disk Activity &raquo; www.prakashsurya.com
+</title>
+  </head>
+  <body class="hack container">
+    <header>
+      <nav>
+  
+    <a class="active" href="/">Home</a>
+  
+    <a class="active" href="/post/">Posts</a>
+  
+    <a class="active" href="/link/">Links</a>
+  
+</nav>
+
+    </header>
+    <main>
+  <h1>OpenZFS: Isolating ZIL Disk Activity</h1>
+  
+  <p>I recently completed a project to improve the performance of the OpenZFS
+ZIL (see <a href="https://github.com/openzfs/openzfs/pull/421">here</a> for more
+details); i.e. improving the performance of synchronous activity on
+OpenZFS, such as writes using the <code>O_SYNC</code> flag.  As part of that work,
+I had to run some performance testing and benchmarking of my code
+changes (and the system as a whole), to ensure the system was behaving
+as I expected.</p>
+
+<p>Early on in my benchmarking exercises, I became confused by the data
+that I was gathering. I was expecting only a certain number of writes to
+be active on the underlying storage devices at any given time, based on
+the known workload that I was applying to the zpool, and based on my
+understanding of the ZIL&rsquo;s mechanics. When running these known workloads
+and inspecting the <code>actv</code> column from <code>iostat</code> though, I was
+consistently seeing more write activity on the devices than I expected.</p>
+
+<p>At this point, I was starting to question my understanding of the code
+that I had written, and my understanding of the ZIL&rsquo;s mechanics as a
+whole. Since I knew exactly the IO workload that was being applied to
+the system, why wasn&rsquo;t it behaving as I had predicted?</p>
+
+<p>After scratching my head and consulting the code numerous times, I asked
+Matt Ahrens if he had any clues as to what might be going on. Matt was
+quick to remind me that I was failing to incorporate the IO that would
+occur as part of <code>spa_sync()</code> into my mental model. Additionally, he
+suggested that since it would be difficult to know exactly how many IOs
+to expect from <code>spa_sync()</code>, which then makes it difficult to verify the
+<code>actv</code> column from <code>iostat</code> w.r.t. my code changes, I should configure
+the system to effectively disable <code>spa_sync()</code> altogether. This way, all
+of the IOs that would be active on the disk would be a result of a ZIL
+write, which is exactly what I was previously expecting.</p>
+
+<p>To acheive this configuration, Matt pointed me at the following kernel
+perameters: <code>zfs_dirty_data_max</code>, <code>zfs_dirty_data_sync</code>, and
+<code>zfs_txg_timeout</code>. Basically, I had to set all of these values such that
+the dirty limit would never be reached, and thus, a TXG sync would never
+trigger as a result of the amount of dirty data my workload generated.
+Since my test system had 128 GB of RAM, I used the following
+commands/values to achieve this configuration:</p>
+
+<pre><code>$ sudo mdb -kwe 'zfs_dirty_data_max/z 0t68719476736'
+$ sudo mdb -kwe 'zfs_dirty_data_sync/z 0t34359738368'
+$ sudo mdb -kwe 'zfs_txg_timeout/z 0t3600'
+</code></pre>
+
+<p>It&rsquo;s also important to note that these values are dependent on the rate
+at which my workload would dirty data (i.e. the workload&rsquo;s write
+throughput), and the duration of the test. I ensured that the workload
+would not be able to dirty enough data to cause TXG sync prior to the
+test completing. With all of this configured correctly, the only way
+writes would get issued to disk would be via the ZIL, which is exactly
+what I wanted.</p>
+
+<p>Additionally, I further tuned the system to disable the IO aggregation
+that ZFS may do when there&rsquo;s sufficient write activity to warrant it:</p>
+
+<pre><code>$ sudo mdb -kwe 'zfs_vdev_aggregation_limit/z 0t0'
+</code></pre>
+
+<p>While this setting didn&rsquo;t help my workload&rsquo;s throughput, it did help me
+validate the correctness of my code changes.</p>
+
+</main>
+    <footer>
+  <hr />
+
+<div class="footer">
+  <div id="footer-left">
+    <a href="mailto:me@prakashsurya.com">me@prakashsurya.com</a>
+  </div>
+
+  <div id="footer-center">
+    Published: 04 Aug 2017
+  </div>
+
+  <div id="footer-right">
+    Last Modified: 04 Aug 2017
+  </div>
+</div>
+
+</footer>
+  </body>
+</html>
