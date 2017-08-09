@@ -30,6 +30,8 @@ draft = false
 
 ## Miscellaneous
 
+  - 08 Aug 2017 &raquo; Daniel Vetter &raquo;
+    [Why Github can't host the Linux Kernel Community](http://blog.ffwll.ch/2017/08/github-why-cant-host-the-kernel.html)
   - 06 Jul 2017 &raquo; Benjamin Pollack &raquo;
     [Why I Hate Slack and You Should Too](https://bitquabit.com/post/i-hate-slack-and-you-should-too/)
   - 19 Apr 2017 &raquo; Keegan Lowenstein &raquo;
