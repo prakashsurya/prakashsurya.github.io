@@ -6,7 +6,7 @@ draft = false
 +++
 
 I recently completed a project to improve the performance of the OpenZFS
-ZIL (see [here](https://github.com/openzfs/openzfs/pull/421) for more
+ZIL (see [here](https://github.com/openzfs/openzfs/pull/447) for more
 details); i.e. improving the performance of synchronous activity on
 OpenZFS, such as writes using the `O_SYNC` flag.  As part of that work,
 I had to run some performance testing and benchmarking of my code
