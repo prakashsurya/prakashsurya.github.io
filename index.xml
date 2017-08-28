@@ -6,8 +6,148 @@
     <description>Recent content on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 04 Aug 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Mon, 28 Aug 2017 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Using BCC&#39;s &#34;trace&#34; Instead of &#34;printk&#34;</title>
+      <link>https://www.prakashsurya.com/post/2017-08-28-using-bccs-trace-instead-of-printk/</link>
+      <pubDate>Mon, 28 Aug 2017 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2017-08-28-using-bccs-trace-instead-of-printk/</guid>
+      <description>
+
+&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
+
+&lt;p&gt;Recently I&amp;rsquo;ve been working on porting some changes that I made to the
+OpenZFS ZIL over to the ZFS on Linux codebase; see &lt;a href=&#34;https://github.com/openzfs/openzfs/pull/447&#34;&gt;here&lt;/a&gt;
+for the OpenZFS pull request, and &lt;a href=&#34;https://github.com/zfsonlinux/zfs/pull/6566&#34;&gt;here&lt;/a&gt; for the ZFS on
+Linux pull request.&lt;/p&gt;
+
+&lt;p&gt;In my initial port, I was running into a problem where the automated
+tests would trigger a &amp;ldquo;hang&amp;rdquo; as a result of the &lt;code&gt;readmmap&lt;/code&gt; program
+calling &lt;code&gt;msync&lt;/code&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ pstree -p 2337
+test-runner.py(2337)-+-sudo(3183)---mmap_read_001_p(3185)---readmmap(3198)
+                     `-{test-runner.py}(3184)
+
+$ sudo cat /proc/3198/stack
+[&amp;lt;ffffffff9bdafb68&amp;gt;] wait_on_page_bit_common+0x118/0x1d0
+[&amp;lt;ffffffff9bdafd34&amp;gt;] __filemap_fdatawait_range+0x114/0x190
+[&amp;lt;ffffffff9bdafdc4&amp;gt;] filemap_fdatawait_range+0x14/0x30
+[&amp;lt;ffffffff9bdb2477&amp;gt;] filemap_write_and_wait_range+0x57/0x90
+[&amp;lt;ffffffffc08f049d&amp;gt;] zpl_fsync+0x3d/0x110 [zfs]
+[&amp;lt;ffffffff9be7b93b&amp;gt;] vfs_fsync_range+0x4b/0xb0
+[&amp;lt;ffffffff9bdf6af2&amp;gt;] SyS_msync+0x182/0x200
+[&amp;lt;ffffffff9c4d453b&amp;gt;] entry_SYSCALL_64_fastpath+0x1e/0xad
+[&amp;lt;ffffffffffffffff&amp;gt;] 0xffffffffffffffff
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Once this state was reached, the &lt;code&gt;msync&lt;/code&gt; call would never return.&lt;/p&gt;
+
+&lt;p&gt;Without diving too far into the technical details, my hunch was that
+the &lt;code&gt;zfs_putpage_commit_cb&lt;/code&gt; function was not being called properly. At
+this point, I wanted to verify this, so I could then revisit the code
+with concrete data to support my suspicision.&lt;/p&gt;
+
+&lt;p&gt;If I hit this issue on illumos, I would have quickly jumped to using
+either &lt;code&gt;dtrace&lt;/code&gt; or &lt;code&gt;mdb&lt;/code&gt; to help verify and debug the situation. Since
+I was on Linux, I had neither of these tools at my disposal. Thankfully
+though, I did have a test case that would reliably reproduce
+the issue in a matter of minutes.&lt;/p&gt;
+
+&lt;p&gt;I thought about adding some &lt;code&gt;printk&lt;/code&gt; or &lt;code&gt;zfs_dbgmsg&lt;/code&gt; statments to the
+code and re-compiling to gather some data, but after having used
+&lt;code&gt;dtrace&lt;/code&gt; on illumos, I resented that idea. I had previously read about
+&lt;a href=&#34;http://www.brendangregg.com/blog/2016-03-05/linux-bpf-superpowers.html&#34;&gt;Linux BPF&lt;/a&gt; and &lt;a href=&#34;https://github.com/iovisor/bcc&#34;&gt;Linux BCC&lt;/a&gt;, so this felt like a
+good opportunity try and experiment with those to see if I could use it
+to gain better insight into my problem, without making any code changes.&lt;/p&gt;
+
+&lt;h2 id=&#34;building-and-installing-bcc-from-source&#34;&gt;Building and Installing BCC from Source&lt;/h2&gt;
+
+&lt;p&gt;First off, I wanted to build and install BCC from source, rather than
+use a pre-built package. This decision was strictly for educational
+purposes; I wanted to learn how easy or difficult this would be, in case
+I ever wanted to make modifications to it in the future.&lt;/p&gt;
+
+&lt;p&gt;The project contains easy to follow instructions for doing this in its
+&lt;a href=&#34;https://github.com/iovisor/bcc/blob/master/INSTALL.md&#34;&gt;Install.md&lt;/a&gt; document. Since I was running on Ubuntu 17.04,
+the process was documented and works as described:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# Trusty and older
+VER=trusty
+$ echo &amp;quot;deb http://llvm.org/apt/$VER/ llvm-toolchain-$VER-3.7 main
+$ deb-src http://llvm.org/apt/$VER/ llvm-toolchain-$VER-3.7 main&amp;quot; | \
+  sudo tee /etc/apt/sources.list.d/llvm.list
+$ wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+$ sudo apt-get update
+
+# All versions
+$ sudo apt-get -y install bison build-essential cmake flex git libedit-dev \
+  libllvm3.7 llvm-3.7-dev libclang-3.7-dev python zlib1g-dev libelf-dev
+
+# For Lua support
+$ sudo apt-get -y install luajit luajit-5.1-dev
+
+$ git clone https://github.com/iovisor/bcc.git
+$ mkdir bcc/build; cd bcc/build
+$ cmake .. -DCMAKE_INSTALL_PREFIX=/usr
+$ make
+$ sudo make install
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;After running those commands, I found the various BCC tools, examples,
+and manpages installed in &lt;code&gt;/usr/share/bcc&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&#34;using-bcc-s-trace&#34;&gt;Using BCC&amp;rsquo;s &amp;ldquo;trace&amp;rdquo;&lt;/h2&gt;
+
+&lt;p&gt;Now that I had the BCC tools installed, I could use them to gather some
+data about my issue. While there&amp;rsquo;s quite a few tools in the BCC
+repository to help trace the various Linux subsystems, what I needed was
+targeted specifically at the &lt;code&gt;zfs_putpage_commit_cb&lt;/code&gt; function. I wanted
+to see if that function was getting called at all; and for that, the &lt;code&gt;trace&lt;/code&gt;
+command was just what I needed.&lt;/p&gt;
+
+&lt;p&gt;First I used this tool while running the ZFS modules without my changes,
+to provide a baseline:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# /usr/share/bcc/tools/trace -K zfs_putpage_commit_cb 2&amp;gt;/dev/null
+PID    TID    COMM         FUNC
+27605  27605  readmmap     zfs_putpage_commit_cb
+        zfs_putpage_commit_cb+0x1 [kernel]
+        zil_commit+0x17 [kernel]
+        zpl_writepages+0xd6 [kernel]
+        do_writepages+0x1e [kernel]
+        __filemap_fdatawrite_range+0xc6 [kernel]
+        filemap_write_and_wait_range+0x41 [kernel]
+        zpl_fsync+0x3d [kernel]
+        vfs_fsync_range+0x4b [kernel]
+        sys_msync+0x182 [kernel]
+        entry_SYSCALL_64_fastpath+0x1e [kernel]
+^C
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;With the reproducer running in another shell, this told me that this
+function definitely was being called when my changes were not applied,
+and even provided a stack trace that lead to the function call.&lt;/p&gt;
+
+&lt;p&gt;Now that I verified the behavior without my changes, it was time to run
+the same test, but with my modified version of ZFS:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# /usr/share/bcc/tools/trace -K zfs_putpage_commit_cb 2&amp;gt;/dev/null
+PID    TID    COMM         FUNC
+^C
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Just like before, I had the reproducer running in another shell, but
+this time the &lt;code&gt;trace&lt;/code&gt; command didn&amp;rsquo;t produce any output, which means the
+function wasn&amp;rsquo;t called.&lt;/p&gt;
+
+&lt;p&gt;With these observations in mind, I was able to re-visit the code and
+ultimately track down my problem.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>OpenZFS: Isolating ZIL Disk Activity</title>

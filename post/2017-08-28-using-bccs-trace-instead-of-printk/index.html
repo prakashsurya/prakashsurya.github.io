@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.18.1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://www.prakashsurya.com/post/2017-08-28-using-bccs-trace-instead-of-printk/">
+<link rel="stylesheet" type="text/css" href="/css/hack.css">
+<link rel="stylesheet" type="text/css" href="/css/custom.css">
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-91378771-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <title>
+  Using BCC&#39;s &#34;trace&#34; Instead of &#34;printk&#34; &raquo; www.prakashsurya.com
+</title>
+  </head>
+  <body class="hack container">
+    <header>
+      <nav>
+  
+    <a class="active" href="/">Home</a>
+  
+    <a class="active" href="/post/">Posts</a>
+  
+    <a class="active" href="/link/">Links</a>
+  
+</nav>
+
+    </header>
+    <main>
+  <h1>Using BCC&#39;s &#34;trace&#34; Instead of &#34;printk&#34;</h1>
+  <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#building-and-installing-bcc-from-source">Building and Installing BCC from Source</a></li>
+<li><a href="#using-bcc-s-trace">Using BCC&rsquo;s &ldquo;trace&rdquo;</a></li>
+</ul></li>
+</ul>
+</nav>
+  
+
+<h2 id="introduction">Introduction</h2>
+
+<p>Recently I&rsquo;ve been working on porting some changes that I made to the
+OpenZFS ZIL over to the ZFS on Linux codebase; see <a href="https://github.com/openzfs/openzfs/pull/447">here</a>
+for the OpenZFS pull request, and <a href="https://github.com/zfsonlinux/zfs/pull/6566">here</a> for the ZFS on
+Linux pull request.</p>
+
+<p>In my initial port, I was running into a problem where the automated
+tests would trigger a &ldquo;hang&rdquo; as a result of the <code>readmmap</code> program
+calling <code>msync</code>:</p>
+
+<pre><code>$ pstree -p 2337
+test-runner.py(2337)-+-sudo(3183)---mmap_read_001_p(3185)---readmmap(3198)
+                     `-{test-runner.py}(3184)
+
+$ sudo cat /proc/3198/stack
+[&lt;ffffffff9bdafb68&gt;] wait_on_page_bit_common+0x118/0x1d0
+[&lt;ffffffff9bdafd34&gt;] __filemap_fdatawait_range+0x114/0x190
+[&lt;ffffffff9bdafdc4&gt;] filemap_fdatawait_range+0x14/0x30
+[&lt;ffffffff9bdb2477&gt;] filemap_write_and_wait_range+0x57/0x90
+[&lt;ffffffffc08f049d&gt;] zpl_fsync+0x3d/0x110 [zfs]
+[&lt;ffffffff9be7b93b&gt;] vfs_fsync_range+0x4b/0xb0
+[&lt;ffffffff9bdf6af2&gt;] SyS_msync+0x182/0x200
+[&lt;ffffffff9c4d453b&gt;] entry_SYSCALL_64_fastpath+0x1e/0xad
+[&lt;ffffffffffffffff&gt;] 0xffffffffffffffff
+</code></pre>
+
+<p>Once this state was reached, the <code>msync</code> call would never return.</p>
+
+<p>Without diving too far into the technical details, my hunch was that
+the <code>zfs_putpage_commit_cb</code> function was not being called properly. At
+this point, I wanted to verify this, so I could then revisit the code
+with concrete data to support my suspicision.</p>
+
+<p>If I hit this issue on illumos, I would have quickly jumped to using
+either <code>dtrace</code> or <code>mdb</code> to help verify and debug the situation. Since
+I was on Linux, I had neither of these tools at my disposal. Thankfully
+though, I did have a test case that would reliably reproduce
+the issue in a matter of minutes.</p>
+
+<p>I thought about adding some <code>printk</code> or <code>zfs_dbgmsg</code> statments to the
+code and re-compiling to gather some data, but after having used
+<code>dtrace</code> on illumos, I resented that idea. I had previously read about
+<a href="http://www.brendangregg.com/blog/2016-03-05/linux-bpf-superpowers.html">Linux BPF</a> and <a href="https://github.com/iovisor/bcc">Linux BCC</a>, so this felt like a
+good opportunity try and experiment with those to see if I could use it
+to gain better insight into my problem, without making any code changes.</p>
+
+<h2 id="building-and-installing-bcc-from-source">Building and Installing BCC from Source</h2>
+
+<p>First off, I wanted to build and install BCC from source, rather than
+use a pre-built package. This decision was strictly for educational
+purposes; I wanted to learn how easy or difficult this would be, in case
+I ever wanted to make modifications to it in the future.</p>
+
+<p>The project contains easy to follow instructions for doing this in its
+<a href="https://github.com/iovisor/bcc/blob/master/INSTALL.md">Install.md</a> document. Since I was running on Ubuntu 17.04,
+the process was documented and works as described:</p>
+
+<pre><code># Trusty and older
+VER=trusty
+$ echo &quot;deb http://llvm.org/apt/$VER/ llvm-toolchain-$VER-3.7 main
+$ deb-src http://llvm.org/apt/$VER/ llvm-toolchain-$VER-3.7 main&quot; | \
+  sudo tee /etc/apt/sources.list.d/llvm.list
+$ wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+$ sudo apt-get update
+
+# All versions
+$ sudo apt-get -y install bison build-essential cmake flex git libedit-dev \
+  libllvm3.7 llvm-3.7-dev libclang-3.7-dev python zlib1g-dev libelf-dev
+
+# For Lua support
+$ sudo apt-get -y install luajit luajit-5.1-dev
+
+$ git clone https://github.com/iovisor/bcc.git
+$ mkdir bcc/build; cd bcc/build
+$ cmake .. -DCMAKE_INSTALL_PREFIX=/usr
+$ make
+$ sudo make install
+</code></pre>
+
+<p>After running those commands, I found the various BCC tools, examples,
+and manpages installed in <code>/usr/share/bcc</code>.</p>
+
+<h2 id="using-bcc-s-trace">Using BCC&rsquo;s &ldquo;trace&rdquo;</h2>
+
+<p>Now that I had the BCC tools installed, I could use them to gather some
+data about my issue. While there&rsquo;s quite a few tools in the BCC
+repository to help trace the various Linux subsystems, what I needed was
+targeted specifically at the <code>zfs_putpage_commit_cb</code> function. I wanted
+to see if that function was getting called at all; and for that, the <code>trace</code>
+command was just what I needed.</p>
+
+<p>First I used this tool while running the ZFS modules without my changes,
+to provide a baseline:</p>
+
+<pre><code># /usr/share/bcc/tools/trace -K zfs_putpage_commit_cb 2&gt;/dev/null
+PID    TID    COMM         FUNC
+27605  27605  readmmap     zfs_putpage_commit_cb
+        zfs_putpage_commit_cb+0x1 [kernel]
+        zil_commit+0x17 [kernel]
+        zpl_writepages+0xd6 [kernel]
+        do_writepages+0x1e [kernel]
+        __filemap_fdatawrite_range+0xc6 [kernel]
+        filemap_write_and_wait_range+0x41 [kernel]
+        zpl_fsync+0x3d [kernel]
+        vfs_fsync_range+0x4b [kernel]
+        sys_msync+0x182 [kernel]
+        entry_SYSCALL_64_fastpath+0x1e [kernel]
+^C
+</code></pre>
+
+<p>With the reproducer running in another shell, this told me that this
+function definitely was being called when my changes were not applied,
+and even provided a stack trace that lead to the function call.</p>
+
+<p>Now that I verified the behavior without my changes, it was time to run
+the same test, but with my modified version of ZFS:</p>
+
+<pre><code># /usr/share/bcc/tools/trace -K zfs_putpage_commit_cb 2&gt;/dev/null
+PID    TID    COMM         FUNC
+^C
+</code></pre>
+
+<p>Just like before, I had the reproducer running in another shell, but
+this time the <code>trace</code> command didn&rsquo;t produce any output, which means the
+function wasn&rsquo;t called.</p>
+
+<p>With these observations in mind, I was able to re-visit the code and
+ultimately track down my problem.</p>
+
+</main>
+    <footer>
+  <hr />
+
+<div class="footer">
+  <div id="footer-left">
+    <a href="mailto:me@prakashsurya.com">me@prakashsurya.com</a>
+  </div>
+
+  <div id="footer-center">
+    Published: 28 Aug 2017
+  </div>
+
+  <div id="footer-right">
+    Last Modified: 28 Aug 2017
+  </div>
+</div>
+
+</footer>
+  </body>
+</html>
