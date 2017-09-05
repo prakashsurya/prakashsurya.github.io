@@ -6,8 +6,122 @@
     <description>Recent content on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 28 Aug 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Tue, 05 Sep 2017 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Building and Using &#34;crash&#34; on Ubuntu 16.04</title>
+      <link>https://www.prakashsurya.com/post/2017-09-05-building-and-using-crash-on-ubuntu-16-04/</link>
+      <pubDate>Tue, 05 Sep 2017 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2017-09-05-building-and-using-crash-on-ubuntu-16-04/</guid>
+      <description>
+
+&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
+
+&lt;p&gt;I&amp;rsquo;ve been working on the ZFS on Linux project recently, and had a need
+to use &lt;code&gt;crash&lt;/code&gt; on the Ubuntu 16.04 based VM I was using. The following
+is some notes regarding the steps I had to take, in order to build,
+install, and ultimately run the utility against the &amp;ldquo;live&amp;rdquo; system.&lt;/p&gt;
+
+&lt;h2 id=&#34;build-and-install-crash&#34;&gt;Build and Install &amp;ldquo;crash&amp;rdquo;&lt;/h2&gt;
+
+&lt;p&gt;First, I had to install the build dependencies:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo apt-get install -y \
+    git build-essential libncurses5-dev zlib1g-dev bison
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Then I could checkout the source code, build, and install:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ git clone https://github.com/crash-utility/crash
+$ cd crash
+$ make
+$ sudo make install
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;install-kernel-debug-symbols&#34;&gt;Install Kernel Debug Symbols&lt;/h2&gt;
+
+&lt;p&gt;In order to run the &lt;code&gt;crash&lt;/code&gt; utility against the live system, we need
+access to the uncompressed kernel image. We can obtain this by
+installing the corresponding &lt;code&gt;-dbgsym&lt;/code&gt; package for the running kernel.&lt;/p&gt;
+
+&lt;p&gt;First, we have to enable the APT repositories that contain these
+packages:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo tee /etc/apt/sources.list.d/ddebs.list &amp;lt;&amp;lt;EOF
+deb http://ddebs.ubuntu.com/ $(lsb_release -c -s)          main restricted universe multiverse
+deb http://ddebs.ubuntu.com/ $(lsb_release -c -s)-updates  main restricted universe multiverse
+deb http://ddebs.ubuntu.com/ $(lsb_release -c -s)-proposed main restricted universe multiverse
+EOF
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Then add the correct key for these repositories:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo apt-key adv \
+    --keyserver keyserver.ubuntu.com \
+    --recv-keys 428D7C01 C8CAB6595FDFF622
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And now we can refresh the APT cache and install the kernel&amp;rsquo;s &lt;code&gt;-dbgsym&lt;/code&gt;
+package:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo apt-get update -y
+$ sudo apt-get install -y linux-image-$(uname -r)-dbgsym
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;run-crash-against-live-system&#34;&gt;Run &amp;ldquo;crash&amp;rdquo; Against Live System&lt;/h2&gt;
+
+&lt;p&gt;Finally, with all of the above done, I could run the &lt;code&gt;crash&lt;/code&gt; utility
+against the running system like so:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo crash /usr/lib/debug/boot/vmlinux-$(uname -r)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Here&amp;rsquo;s a quick example for dumping the kernel backtrace for a specific
+process (the process I needed to debug):&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;crash&amp;gt; bt 28365
+PID: 28365  TASK: ffff887b7b978e00  CPU: 5   COMMAND: &amp;quot;fio&amp;quot;
+ #0 [ffff887cd2167870] __schedule at ffffffff8183e9ee
+ #1 [ffff887cd21678c0] schedule at ffffffff8183f0d5
+ #2 [ffff887cd21678d8] spl_panic at ffffffffc02d70ca [spl]
+ #3 [ffff887cd2167a60] zil_commit at ffffffffc1271daa [zfs]
+ #4 [ffff887cd2167b50] zfs_write at ffffffffc1260d6d [zfs]
+ #5 [ffff887cd2167d48] zpl_write_common_iovec at ffffffffc128b391 [zfs]
+ #6 [ffff887cd2167dc0] zpl_iter_write at ffffffffc128b4e1 [zfs]
+ #7 [ffff887cd2167e30] new_sync_write at ffffffff8120ec0b
+ #8 [ffff887cd2167eb8] __vfs_write at ffffffff8120ec76
+ #9 [ffff887cd2167ec8] vfs_write at ffffffff8120f5f9
+#10 [ffff887cd2167f08] sys_pwrite64 at ffffffff81210465
+#11 [ffff887cd2167f50] entry_SYSCALL_64_fastpath at ffffffff818431f2
+    RIP: 00007f08274fbda3  RSP: 00007ffc1eae8a70  RFLAGS: 00000293
+    RAX: ffffffffffffffda  RBX: 00007f080f6d8240  RCX: 00007f08274fbda3
+    RDX: 0000000000002000  RSI: 0000000000f9b660  RDI: 0000000000000004
+    RBP: 00007f080f6d8240   R8: 0000000000000000   R9: 0000000000000001
+    R10: 0000000000374000  R11: 0000000000000293  R12: 000000000009bea3
+    R13: 0000000000000001  R14: 0000000000002000  R15: 0000000000372000
+    ORIG_RAX: 0000000000000012  CS: 0033  SS: 002b
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And another example showing information about the running system:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;crash&amp;gt; sys
+      KERNEL: /usr/lib/debug/boot/vmlinux-4.4.0-93-generic
+    DUMPFILE: /proc/kcore
+        CPUS: 32
+        DATE: Tue Sep  5 22:55:59 2017
+      UPTIME: 06:58:42
+LOAD AVERAGE: 512.32, 512.25, 512.26
+       TASKS: 1035
+    NODENAME: ubuntu-16-04
+     RELEASE: 4.4.0-93-generic
+     VERSION: #116-Ubuntu SMP Fri Aug 11 21:17:51 UTC 2017
+     MACHINE: x86_64  (2199 Mhz)
+      MEMORY: 512 GB
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
     
     <item>
       <title>Using BCC&#39;s &#34;trace&#34; Instead of &#34;printk&#34;</title>
