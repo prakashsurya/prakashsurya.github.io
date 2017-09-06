@@ -30,6 +30,8 @@ draft = false
 
 ## Miscellaneous
 
+  - 05 Sep 2017 &raquo; Brendan Gregg &raquo;
+    [Solaris to Linux Migration 2017](http://www.brendangregg.com/blog/2017-09-05/solaris-to-linux-2017.html)
   - 08 Aug 2017 &raquo; Daniel Vetter &raquo;
     [Why Github can't host the Linux Kernel Community](http://blog.ffwll.ch/2017/08/github-why-cant-host-the-kernel.html)
   - 06 Jul 2017 &raquo; Benjamin Pollack &raquo;
