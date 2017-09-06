@@ -36,6 +36,8 @@ draft = false
     [Why I Hate Slack and You Should Too](https://bitquabit.com/post/i-hate-slack-and-you-should-too/)
   - 19 Apr 2017 &raquo; Keegan Lowenstein &raquo;
     [Tmux and Vim - even better together](https://blog.bugsnag.com/tmux-and-vim/)
+  - 18 Nov 2016 &raquo; Bryan Cantrill &raquo;
+    [Oral Tradition in Software Engineering](https://www.youtube.com/watch?v=4PaWFYm0kEw)
   - 01 Aug 2016 &raquo; Deviant Ollam &raquo;
     [The Search for the Perfect Door](https://www.youtube.com/watch?v=4YYvBLAF4T8)
   - 17 Dec 2015 &raquo; Bryan Cantrill &raquo;
