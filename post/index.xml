@@ -6,8 +6,443 @@
     <description>Recent content in Posts on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 05 Sep 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Thu, 07 Sep 2017 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Using Python and Jupyter for Performance Testing and Analysis</title>
+      <link>https://www.prakashsurya.com/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/</link>
+      <pubDate>Thu, 07 Sep 2017 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/</guid>
+      <description>
+
+&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
+
+&lt;p&gt;I recently worked on some changes to the OpenZFS ZIL (see &lt;a href=&#34;https://github.com/openzfs/openzfs/pull/447&#34;&gt;here&lt;/a&gt;),
+and in the context of working on that project, I discovered some new
+tools that helped me run my performance tests and analyze their
+results. What follows is some notes on the tools that I used, and how I
+used them.&lt;/p&gt;
+
+&lt;h2 id=&#34;quick-overview&#34;&gt;Quick Overview&lt;/h2&gt;
+
+&lt;p&gt;Before I dive into the details of how I used these tools, I wanted to
+quickly go over what the tools were:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;a href=&#34;https://github.com/axboe/fio&#34;&gt;fio&lt;/a&gt; was used to generate the workload, and provide statistics
+about the performance from the application&amp;rsquo;s perspective.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;a href=&#34;http://jupyter.org/&#34;&gt;Jupyter&lt;/a&gt; was used for analysis of the test results; e.g.
+performing data manipulations, generating visualizations, and
+presenting the data/visualizations along with text explanations in
+a unified document.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;a href=&#34;https://www.python.org/&#34;&gt;Python&lt;/a&gt; was used for everything; e.g. running the tests,
+capturing the results, analysis of the data, and generating
+visualizations were all driven by python scripts. In addition to the
+core language, the following modules were used:
+&lt;a href=&#34;https://amoffat.github.io/sh/&#34;&gt;sh&lt;/a&gt;,
+&lt;a href=&#34;http://pandas.pydata.org/&#34;&gt;pandas&lt;/a&gt;,
+&lt;a href=&#34;http://www.numpy.org/&#34;&gt;numpy&lt;/a&gt;,
+&lt;a href=&#34;https://seaborn.pydata.org/&#34;&gt;seaborn&lt;/a&gt;,
+and &lt;a href=&#34;https://matplotlib.org/&#34;&gt;matplotlib&lt;/a&gt;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;a href=&#34;https://github.com/pyenv/pyenv&#34;&gt;pyenv&lt;/a&gt; and &lt;a href=&#34;https://github.com/pyenv/pyenv-virtualenv&#34;&gt;pyenv-virtualenv&lt;/a&gt; were used to
+provide an isolated Python environment.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;a href=&#34;https://github.com/&#34;&gt;GitHub&lt;/a&gt; and &lt;a href=&#34;https://nbviewer.jupyter.org/&#34;&gt;nbviewer&lt;/a&gt; were used to share the
+Jupyter notebooks, which contained the results of the tests.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&#34;install-prerequisites-on-ubuntu-16-04&#34;&gt;Install Prerequisites on Ubuntu 16.04&lt;/h2&gt;
+
+&lt;p&gt;Before we can use the above referenced tools, we first must download,
+build, and/or install them such that they are available for us to use.
+Below is some instructions for how to do that on an Ubuntu 16.04 VM that
+I used; if using another operating system, the specific commands may not
+work, but hopefully what&amp;rsquo;s included here can be easily adapted.&lt;/p&gt;
+
+&lt;h3 id=&#34;install-build-dependencies&#34;&gt;Install Build Dependencies&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo apt install -y git build-essential zlib1g-dev \
+    libbz2-dev libssl-dev libreadline-dev libsqlite3-dev
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;install-pyenv-and-pyenv-virtualenv&#34;&gt;Install &amp;ldquo;pyenv&amp;rdquo; and &amp;ldquo;pyenv virtualenv&amp;rdquo;&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ git clone https://github.com/pyenv/pyenv ~/.pyenv
+$ git clone https://github.com/pyenv/pyenv-virtualenv.git \
+    ~/.pyenv/plugins/pyenv-virtualenv
+
+$ echo &#39;export PYENV_ROOT=&amp;quot;$HOME/.pyenv&amp;quot;&#39; &amp;gt;&amp;gt; ~/.bash_profile
+$ echo &#39;export PATH=&amp;quot;$PYENV_ROOT/bin:$PATH&amp;quot;&#39; &amp;gt;&amp;gt; ~/.bash_profile
+$ echo &#39;eval &amp;quot;$(pyenv init -)&amp;quot;&#39; &amp;gt;&amp;gt; ~/.bash_profile
+$ echo &#39;eval &amp;quot;$(pyenv virtualenv-init -)&amp;quot;&#39; &amp;gt;&amp;gt; ~/.bash_profile
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;install-python-3-and-create-virtual-environment&#34;&gt;Install Python 3 and Create Virtual Environment&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ pyenv install 3.6.2
+$ pyenv virtualenv
+$ pyenv virtualenv 3.6.2 jupyter-example
+$ mkdir ~/jupyter-example
+$ cd ~/jupyter-example
+$ echo jupyter-example &amp;gt; .python-version
+$ pip install jupyter pandas numpy seaborn matplotlib sh
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;build-and-install-fio&#34;&gt;Build and Install &amp;ldquo;fio&amp;rdquo;&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ git clone https://github.com/axboe/fio ~/fio
+$ cd ~/fio
+$ make
+$ sudo make install
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;install-additional-utilities&#34;&gt;Install Additional Utilities&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo apt install -y zfsutils-linux jq sysstat
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;generate-results-data-required-for-analysis&#34;&gt;Generate Results Data Required for Analysis&lt;/h2&gt;
+
+&lt;p&gt;Now that all of the necessary tools have been installed, we can write a
+Python script that uses these tools to run the tests and collect any
+data that will be needed for proper analysis.&lt;/p&gt;
+
+&lt;h3 id=&#34;generate-fio-test-configuration&#34;&gt;Generate &amp;ldquo;fio&amp;rdquo; Test Configuration&lt;/h3&gt;
+
+&lt;p&gt;We&amp;rsquo;ll be using &amp;ldquo;fio&amp;rdquo; to generate the workload. Let&amp;rsquo;s first create the
+configuration file that will be passed to fio, which tells it how to
+behave:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ cat &amp;gt; ~/jupyter-example/workload.fio &amp;lt;&amp;lt;EOF
+[global]
+group_reporting
+clocksource=cpu
+ioengine=psync
+fallocate=none
+rw=write
+blocksize=8k
+time_based
+iodepth=1
+thread=0
+direct=0
+sync=1
+
+[workload]
+EOF
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;generate-python-script-to-run-fio-tests&#34;&gt;Generate Python Script to Run &amp;ldquo;fio&amp;rdquo; Tests&lt;/h3&gt;
+
+&lt;p&gt;Now we&amp;rsquo;ll create the python script that will be used to:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;create a ZFS pool and dataset from a known set of disks&lt;/li&gt;
+&lt;li&gt;run &amp;ldquo;fio&amp;rdquo;, such that it uses the ZFS dataset previously created&lt;/li&gt;
+&lt;li&gt;run &amp;ldquo;iostat&amp;rdquo;, collecting disk metrics concurrently while &amp;ldquo;fio&amp;rdquo; runs&lt;/li&gt;
+&lt;li&gt;copy the data generated from &amp;ldquo;fio&amp;rdquo; and &amp;ldquo;iostat&amp;rdquo; to a &amp;ldquo;results&amp;rdquo;
+ directory so they can be analyzed at a later time&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Here&amp;rsquo;s what the script may look like:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ cat &amp;gt; ~/jupyter-example/workload.py &amp;lt;&amp;lt;EOF
+#!/usr/bin/env python3
+
+import sh
+import tempfile
+
+def fio(directory, numjobs, disks, runtime=60):
+  with tempfile.TemporaryDirectory(dir=&#39;/var/tmp&#39;) as tempdir:
+    procs = []
+
+    for d in disks:
+      iostat = sh.iostat(&#39;-dxy&#39;, d, &#39;1&#39;,
+                         _piped=True, _bg=True, _bg_exc=False)
+      procs.append(iostat)
+
+      grep = sh.grep(iostat, d, _bg=True, _bg_exc=False,
+                     _out=&#39;{:s}/iostat-{:s}.txt&#39;.format(tempdir, d))
+      procs.append(grep)
+
+    sh.sudo.fio(&#39;--directory={:s}&#39;.format(directory),
+                &#39;--size={:.0f}M&#39;.format(2**20 / numjobs),
+                &#39;--numjobs={:d}&#39;.format(numjobs),
+                &#39;--runtime={:d}&#39;.format(runtime),
+                &#39;--output={:s}/{:s}&#39;.format(tempdir, &#39;fio.json&#39;),
+                &#39;--output-format=json+&#39;,
+                &#39;./workload.fio&#39;)
+
+    for p in procs:
+      try:
+        sh.sudo.kill(p.pid)
+        p.wait
+      except (sh.ErrorReturnCode_1, sh.SignalException_SIGTERM):
+        pass
+
+    directory = &#39;results/{:d}-disks/{:d}-jobs&#39;.format(len(disks), numjobs)
+    sh.mkdir(&#39;-p&#39;, directory)
+    sh.rm(&#39;-rf&#39;, directory)
+    sh.cp(&#39;-r&#39;, tempdir, directory)
+    sh.chmod(&#39;755&#39;, directory)
+
+def test(disks):
+  for numjobs in [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]:
+    try:
+      sh.sudo.zpool(&#39;create&#39;, &#39;-f&#39;, &#39;tank&#39;, disks)
+      sh.sudo.zfs(&#39;create&#39;, &#39;-o&#39;, &#39;recsize=8k&#39;, &#39;tank/dozer&#39;)
+      fio(&#39;/tank/dozer&#39;, numjobs, disks)
+    finally:
+      sh.sudo.zpool(&#39;destroy&#39;, &#39;tank&#39;)
+
+def main():
+  sh.rm(&#39;-rf&#39;, &#39;results&#39;)
+  sh.mkdir(&#39;results&#39;)
+
+  test([&#39;sdb&#39;])
+  test([&#39;sdb&#39;, &#39;sdc&#39;])
+  test([&#39;sdb&#39;, &#39;sdc&#39;, &#39;sdd&#39;])
+
+if __name__ == &#39;__main__&#39;:
+  main()
+EOF
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;run-python-script-to-generate-results&#34;&gt;Run Python Script to Generate Results&lt;/h3&gt;
+
+&lt;p&gt;The python script created in the previous section can then be run, which
+will generate a &amp;ldquo;results&amp;rdquo; directory with all of the raw data from &amp;ldquo;fio&amp;rdquo;
+and &amp;ldquo;iostat&amp;rdquo;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;(jupyter-example) $ time python3 workload.py
+
+real    34m55.771s
+user    2m19.040s
+sys     12m20.656s
+
+(jupyter-example) $ ls results/*
+results/1-disks:
+1024-jobs  128-jobs  16-jobs  1-jobs  256-jobs  2-jobs  32-jobs  4-jobs  512-jobs  64-jobs  8-jobs
+
+results/2-disks:
+1024-jobs  128-jobs  16-jobs  1-jobs  256-jobs  2-jobs  32-jobs  4-jobs  512-jobs  64-jobs  8-jobs
+
+results/3-disks:
+1024-jobs  128-jobs  16-jobs  1-jobs  256-jobs  2-jobs  32-jobs  4-jobs  512-jobs  64-jobs  8-jobs
+
+(jupyter-example) $ ls results/*-disks/1024-jobs
+results/1-disks/1024-jobs:
+fio.json  iostat-sdb.txt
+
+results/2-disks/1024-jobs:
+fio.json  iostat-sdb.txt  iostat-sdc.txt
+
+results/3-disks/1024-jobs:
+fio.json  iostat-sdb.txt  iostat-sdc.txt  iostat-sdd.txt
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;As one can see, each unique test configuration (i.e. number of disks in
+the zpool, and number of &amp;ldquo;fio&amp;rdquo; threads) has its own directory containing
+the results for that specific test configuration. The &amp;ldquo;fio.json&amp;rdquo;
+contains the JSON formatted output from &amp;ldquo;fio&amp;rdquo;, and the &amp;ldquo;iostat-*.txt&amp;rdquo;
+files contains the output from &amp;ldquo;iostat&amp;rdquo; for each specific disk.&lt;/p&gt;
+
+&lt;p&gt;Here&amp;rsquo;s a quick inspection of one of the &amp;ldquo;fio&amp;rdquo; files:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;(jupyter-example) $ head results/2-disks/32-jobs/fio.json
+{
+  &amp;quot;fio version&amp;quot; : &amp;quot;fio-3.0-48-g83a9&amp;quot;,
+  &amp;quot;timestamp&amp;quot; : 1504768846,
+  &amp;quot;timestamp_ms&amp;quot; : 1504768846239,
+  &amp;quot;time&amp;quot; : &amp;quot;Thu Sep  7 07:20:46 2017&amp;quot;,
+  &amp;quot;global options&amp;quot; : {
+    &amp;quot;directory&amp;quot; : &amp;quot;/tank/dozer&amp;quot;,
+    &amp;quot;size&amp;quot; : &amp;quot;32768M&amp;quot;,
+    &amp;quot;runtime&amp;quot; : &amp;quot;60&amp;quot;,
+    &amp;quot;clocksource&amp;quot; : &amp;quot;cpu&amp;quot;,
+
+(jupyter-example) $ jq -Mr .jobs[0].write.lat_ns results/2-disks/32-jobs/fio.json
+{
+  &amp;quot;min&amp;quot;: 712505,
+  &amp;quot;max&amp;quot;: 312646560,
+  &amp;quot;mean&amp;quot;: 5412690.837107,
+  &amp;quot;stddev&amp;quot;: 7953187.998254
+}
+
+(jupyter-example) $ jq -Mr .jobs[0].write.iops results/2-disks/32-jobs/fio.json
+5906.296339
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;From this, we can see that on average, each write made by fio took
+roughly 5ms to complete. Additionally, fio averaged about 5.9K IOPs
+during that specific test&amp;rsquo;s runtime.&lt;/p&gt;
+
+&lt;p&gt;Similarly, we can briefly look at the iostat data collected for that
+same test configuration:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;(jupyter-example) $ head results/2-disks/32-jobs/iostat-sdb.txt
+sdb               0.00     0.00    0.00  304.00     0.00 18116.50   119.19     0.54    1.78    0.00    1.78   1.45  44.00
+sdb               0.00     0.00    0.00  667.00     0.00 60725.50   182.09     1.23    1.84    0.00    1.84   1.27  84.40
+sdb               0.00     0.00    0.00  500.00     0.00 49707.50   198.83     0.92    1.86    0.00    1.86   1.58  78.80
+sdb               0.00     0.00    0.00  502.00     0.00 45371.00   180.76     0.91    1.80    0.00    1.80   1.50  75.20
+sdb               0.00     0.00    0.00  523.00     0.00 47920.50   183.25     1.07    2.06    0.00    2.06   1.48  77.20
+sdb               0.00     0.00    0.00  598.00     0.00 58390.50   195.29     1.38    2.29    0.00    2.29   1.55  92.80
+sdb               0.00     0.00    0.00  393.00     0.00 37456.00   190.62     0.98    2.49    0.00    2.49   2.06  80.80
+sdb               0.00     0.00    0.00  527.00     0.00 48050.00   182.35     1.08    2.05    0.00    2.05   1.53  80.40
+sdb               0.00     0.00    0.00  590.00     0.00 55418.00   187.86     1.24    2.10    0.00    2.10   1.48  87.60
+sdb               0.00     0.00    0.00  663.00     0.00 64226.50   193.75     1.18    1.78    0.00    1.78   1.32  87.20
+
+(jupyter-example) $ head results/2-disks/32-jobs/iostat-sdc.txt
+sdc               0.00     0.00    0.00  295.00     0.00 25714.00   174.33     0.50    1.69    0.00    1.69   1.40  41.20
+sdc               0.00     0.00    0.00  640.00     0.00 59921.00   187.25     1.22    1.90    0.00    1.90   1.33  85.20
+sdc               0.00     0.00    0.00  509.00     0.00 53581.50   210.54     1.00    1.96    0.00    1.96   1.70  86.40
+sdc               0.00     0.00    0.00  512.00     0.00 41799.00   163.28     0.95    1.85    0.00    1.85   1.48  75.60
+sdc               0.00     0.00    0.00  538.00     0.00 48975.50   182.07     1.09    2.03    0.00    2.03   1.50  80.80
+sdc               0.00     0.00    0.00  601.00     0.00 50568.00   168.28     1.36    2.25    0.00    2.25   1.50  90.40
+sdc               0.00     0.00    0.00  395.00     0.00 38467.00   194.77     1.03    2.61    0.00    2.61   2.14  84.40
+sdc               0.00     0.00    0.00  540.00     0.00 49031.00   181.60     1.03    1.91    0.00    1.91   1.45  78.40
+sdc               0.00     0.00    0.00  580.00     0.00 53762.50   185.39     1.28    2.21    0.00    2.21   1.49  86.40
+sdc               0.00     0.00    0.00  648.00     0.00 57146.50   176.38     1.19    1.83    0.00    1.83   1.31  85.20
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;These files contain the output of &amp;ldquo;iostat -dxy&amp;rdquo; for each device in the
+ZFS pool used for the specific test configuration. In this case, the
+pool consisted of 2 disks, &amp;ldquo;sdb&amp;rdquo; and &amp;ldquo;sdc&amp;rdquo;. Each line in the file
+represents a 1 second interval.&lt;/p&gt;
+
+&lt;p&gt;For completeness, since the iostat column headers are not included in
+these files, here&amp;rsquo;s what they are:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Device:         rrqm/s   wrqm/s     r/s     w/s    rkB/s    wkB/s avgrq-sz avgqu-sz   await r_await w_await  svctm  %util
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Thus, we can see that usually an IO request sent to these disks was
+serviced in less than 2ms, judging by the &lt;code&gt;svctm&lt;/code&gt; column.&lt;/p&gt;
+
+&lt;h2 id=&#34;analyzing-results-data-with-pandas-and-jupyter&#34;&gt;Analyzing Results Data with Pandas and Jupyter&lt;/h2&gt;
+
+&lt;p&gt;Now that the data had been gathered from &amp;ldquo;fio&amp;rdquo; and &amp;ldquo;iostat&amp;rdquo; for all of
+the test configurations, it was time to parse and analyze the data.&lt;/p&gt;
+
+&lt;h3 id=&#34;parsing-fio-results-with-pandas&#34;&gt;Parsing &amp;ldquo;fio&amp;rdquo; Results with Pandas&lt;/h3&gt;
+
+&lt;p&gt;To parse the &amp;ldquo;fio&amp;rdquo; results files, I used a combination of the previously
+used &amp;ldquo;sh&amp;rdquo; Python module, and the &amp;ldquo;jq&amp;rdquo; command. Here&amp;rsquo;s some code that
+would parse the the IOPs reported by fio for each test configuration,
+and print the results as a table:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;(jupyter-example) $ python3
+Python 3.6.2 (default, Sep  6 2017, 21:23:54)
+[GCC 5.4.0 20160609] on linux
+Type &amp;quot;help&amp;quot;, &amp;quot;copyright&amp;quot;, &amp;quot;credits&amp;quot; or &amp;quot;license&amp;quot; for more information.
+&amp;gt;&amp;gt;&amp;gt; import pandas
+&amp;gt;&amp;gt;&amp;gt; import sh
+&amp;gt;&amp;gt;&amp;gt;
+&amp;gt;&amp;gt;&amp;gt; numjobs = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+&amp;gt;&amp;gt;&amp;gt; numdisks = [1, 2, 3]
+&amp;gt;&amp;gt;&amp;gt;
+&amp;gt;&amp;gt;&amp;gt; jq = sh.jq.bake(&#39;-M&#39;, &#39;-r&#39;)
+&amp;gt;&amp;gt;&amp;gt; iops = pandas.DataFrame()
+&amp;gt;&amp;gt;&amp;gt; for i in numdisks:
+...   tmp = []
+...   for j in numjobs:
+...     data = jq(&#39;.jobs[0].write.iops&#39;,
+...               &#39;results/{:d}-disks/{:d}-jobs/fio.json&#39;.format(i, j))
+...     tmp.append(float(data.strip()))
+...   iops[&#39;{:d} disks&#39;.format(i)] = pandas.Series(tmp, numjobs)
+...
+&amp;gt;&amp;gt;&amp;gt; print(iops)
+          1 disks       2 disks       3 disks
+1      693.355111    539.923004    399.353355
+2      946.218459    817.014473    465.543389
+4     1487.733742   1367.766810    817.556196
+8     2597.526832   2714.935671    902.661356
+16    3958.774225   4132.298054   3854.193054
+32    6192.515329   5906.296339   5730.420583
+64    7470.722522   8216.463923   8146.322770
+128   8649.000333   9370.233395   9525.552187
+256   8601.175804  10942.662150  10868.330780
+512   7327.968610  11595.399661  11321.241803
+1024  7792.668597  11137.351190  11391.167610
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Similarly, here&amp;rsquo;s code that would report the average write latency (in
+nanoseconds) reported by fio for each test configuration:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;(jupyter-example) $ python3
+Python 3.6.2 (default, Sep  6 2017, 21:23:54)
+[GCC 5.4.0 20160609] on linux
+Type &amp;quot;help&amp;quot;, &amp;quot;copyright&amp;quot;, &amp;quot;credits&amp;quot; or &amp;quot;license&amp;quot; for more information.
+&amp;gt;&amp;gt;&amp;gt; import pandas
+&amp;gt;&amp;gt;&amp;gt; import sh
+&amp;gt;&amp;gt;&amp;gt;
+&amp;gt;&amp;gt;&amp;gt; numjobs = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+&amp;gt;&amp;gt;&amp;gt; numdisks = [1, 2, 3]
+&amp;gt;&amp;gt;&amp;gt;
+&amp;gt;&amp;gt;&amp;gt; jq = sh.jq.bake(&#39;-M&#39;, &#39;-r&#39;)
+&amp;gt;&amp;gt;&amp;gt; lat = pandas.DataFrame()
+&amp;gt;&amp;gt;&amp;gt; for i in numdisks:
+...   tmp = []
+...   for j in numjobs:
+...     data = jq(&#39;.jobs[0].write.lat_ns.mean&#39;,
+...               &#39;results/{:d}-disks/{:d}-jobs/fio.json&#39;.format(i, j))
+...     tmp.append(float(data.strip()))
+...   lat[&#39;{:d} disks&#39;.format(i)] = pandas.Series(tmp, numjobs)
+...
+&amp;gt;&amp;gt;&amp;gt; print(lat)
+           1 disks       2 disks       3 disks
+1     1.438905e+06  1.848592e+06  2.500436e+06
+2     2.110580e+06  2.444135e+06  4.292531e+06
+4     2.685592e+06  2.919950e+06  4.889253e+06
+8     3.076803e+06  2.943452e+06  8.858595e+06
+16    4.038235e+06  3.868267e+06  4.148222e+06
+32    5.163324e+06  5.412691e+06  5.580323e+06
+64    8.561707e+06  7.783084e+06  7.850346e+06
+128   1.478921e+07  1.364914e+07  1.342665e+07
+256   2.973660e+07  2.333695e+07  2.352923e+07
+512   6.972930e+07  4.406545e+07  4.511673e+07
+1024  1.305812e+08  9.137294e+07  8.931305e+07
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;visualizing-fio-results-with-jupyter&#34;&gt;Visualizing &amp;ldquo;fio&amp;rdquo; Results with Jupyter&lt;/h3&gt;
+
+&lt;p&gt;While the text-based tables shown in the previous section are better
+than nothing, Jupyter can be used to execute this parsing code, and
+visualize the data using Python&amp;rsquo;s &amp;ldquo;matplotlib&amp;rdquo; graphing module.&lt;/p&gt;
+
+&lt;p&gt;The Jupyter notebook software is easy to start up:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;(jupyter-example) $ jupyter notebook --ip=0.0.0.0
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Then one can navigate to the server running the notebook using a web
+browser; e.g. I would enter &lt;code&gt;http://ps-jupyter.dcenter.delphix.com:8888&lt;/code&gt;
+into my browser.&lt;/p&gt;
+
+&lt;p&gt;If the &lt;code&gt;jupyter&lt;/code&gt; command is run from a local shell (e.g. on one&amp;rsquo;s
+workstation), the &lt;code&gt;--ip&lt;/code&gt; option can be ommitted, and the command will
+automatically attempt to open a new browser window with the notebook&amp;rsquo;s
+URL already populated.&lt;/p&gt;
+
+&lt;p&gt;Here&amp;rsquo;s an &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/visualizing-fio-results-with-jupyter.ipynb
+&#34;&gt;example&lt;/a&gt; Jupyter notebook, migrating the parsing
+code from the prior section into the notebook, and adding some more logic
+to generate graphs rather than text-based tables.&lt;/p&gt;
+
+&lt;h3 id=&#34;visualizing-iostat-results-with-jupyter&#34;&gt;Visualizing &amp;ldquo;iostat&amp;rdquo; Results with Jupyter&lt;/h3&gt;
+
+&lt;p&gt;Similarly, the data from &amp;ldquo;iostat&amp;rdquo; can also be parsed and visualized just
+like the &amp;ldquo;fio&amp;rdquo; data. Rather than repeat the explanations from the prior
+sections, I&amp;rsquo;ll simply link directly to the &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/visualizing-iostat-results-with-jupyter.ipynb
+&#34;&gt;example&lt;/a&gt;
+Jupyter notebook; which contains the code for both parsing the &amp;ldquo;iostat&amp;rdquo;
+data files, as well as generating graphs from that data.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Building and Using &#34;crash&#34; on Ubuntu 16.04</title>
