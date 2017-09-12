@@ -6,8 +6,153 @@
     <description>Recent content on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 08 Sep 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Mon, 11 Sep 2017 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Using &#34;gcov&#34; with ZFS on Linux Kernel Modules</title>
+      <link>https://www.prakashsurya.com/post/2017-09-11-using-gcov-with-zfs-on-linux-kernel-modules/</link>
+      <pubDate>Mon, 11 Sep 2017 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2017-09-11-using-gcov-with-zfs-on-linux-kernel-modules/</guid>
+      <description>
+
+&lt;h2 id=&#34;building-a-gcov-enabled-linux-kernel&#34;&gt;Building a &amp;ldquo;gcov&amp;rdquo; Enabled Linux Kernel&lt;/h2&gt;
+
+&lt;p&gt;In order to extract &amp;ldquo;gcov&amp;rdquo; data from the Linux kernel, and/or Linux
+kernel modules, a &amp;ldquo;gcov&amp;rdquo; enabled Linux kernel is needed. Since my
+current development environment is based on Ubuntu 17.04, and the fact
+that Ubuntu doesn&amp;rsquo;t provide a pre-built kernel with &amp;ldquo;gcov&amp;rdquo; enabled, I
+had to build the kernel from source. This was actually pretty simple,
+and most of that process is already documented &lt;a href=&#34;https://kernelnewbies.org/KernelBuild&#34;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h3 id=&#34;install-the-kernel-build-dependencies&#34;&gt;Install the Kernel Build Dependencies&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo apt-get install libncurses5-dev \
+      gcc make git exuberant-ctags bc libssl-dev
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;obtaining-the-mainline-kernel-sources&#34;&gt;Obtaining the Mainline Kernel Sources&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ git clone https://github.com/torvalds/linux.git ~/linux
+$ cd ~/linux
+$ git checkout v4.13
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;default-kernel-build-configuration&#34;&gt;Default Kernel Build Configuration&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ cp /boot/config-$(uname -r) .config
+$ yes &#39;&#39; | make oldconfig
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;adding-gcov-specific-configurations&#34;&gt;Adding &amp;ldquo;gcov&amp;rdquo; Specific Configurations&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ echo &#39;CONFIG_DEBUG_FS=y&#39; &amp;gt;&amp;gt; .config
+$ echo &#39;CONFIG_GCOV_KERNEL=y&#39; &amp;gt;&amp;gt; .config
+$ echo &#39;CONFIG_GCOV_FORMAT_AUTODETECT=y&#39; &amp;gt;&amp;gt; .config
+$ echo &#39;CONFIG_GCOV_PROFILE_ALL=y&#39; &amp;gt;&amp;gt; .config
+$ yes &#39;&#39; | make oldconfig
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;building-and-installing-the-custom-kernel&#34;&gt;Building and Installing the Custom Kernel&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ make -j$(nproc)
+$ sudo make modules_install install
+$ sudo reboot
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;verifying-gcov-support-is-enabled&#34;&gt;Verifying &amp;ldquo;gcov&amp;rdquo; Support is Enabled&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo mount -t debugfs none /sys/kernel/debug
+$ sudo ls -1d /sys/kernel/debug/gcov
+/sys/kernel/debug/gcov
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;building-zfs-on-linux-modules&#34;&gt;Building ZFS on Linux Modules&lt;/h2&gt;
+
+&lt;p&gt;There&amp;rsquo;s nothing special that we need to do, in order to enable &amp;ldquo;gcov&amp;rdquo;
+support for the ZFS on Linux modules. Since the kernel was built with
+&amp;ldquo;gcov&amp;rdquo; enabled, the modules will be automatically built with it enabled
+as well.&lt;/p&gt;
+
+&lt;h3 id=&#34;building-the-spl-repository&#34;&gt;Building the SPL Repository&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ git clone git://github.com/zfsonlinux/spl.git ~/spl
+$ cd ~/spl
+$ ./autogen.sh &amp;amp;&amp;amp; ./configure &amp;amp;&amp;amp; make
+$ sudo make install
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;building-the-zfs-repository&#34;&gt;Building the ZFS Repository&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ git clone git://github.com/zfsonlinux/zfs.git ~/zfs
+$ cd ~/zfs
+$ ./autogen.sh &amp;amp;&amp;amp; ./configure &amp;amp;&amp;amp; make
+$ sudo make install
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;running-a-test-and-collecting-data-files&#34;&gt;Running a Test and Collecting Data Files&lt;/h2&gt;
+
+&lt;p&gt;At this point, we&amp;rsquo;re running on a &amp;ldquo;gcov&amp;rdquo; enabled Linux kernel, and the
+ZFS on Linux kernel modules should be installed such that we can load
+them easily with &lt;code&gt;modprobe&lt;/code&gt;. Thus, we can finally run a trivial test,
+loading and unloading the &amp;ldquo;zfs&amp;rdquo; module, and then use &lt;code&gt;gcov&lt;/code&gt; to
+extract the code coverage information from that test.&lt;/p&gt;
+
+&lt;h3 id=&#34;loading-and-unloading-the-zfs-module&#34;&gt;Loading and Unloading the &amp;ldquo;zfs&amp;rdquo; module&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo modprobe zfs
+$ sudo modprobe -r zfs
+$ dmesg | grep ZFS
+[ 1214.307936] ZFS: Loaded module v0.7.0-1, ZFS pool version 5000, ZFS filesystem version 5
+[ 1216.475316] ZFS: Unloaded module v0.7.0-1
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;collecting-gcov-data-files&#34;&gt;Collecting &amp;ldquo;gcov&amp;rdquo; Data Files&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo chmod a+rx /sys/kernel/debug
+$ TEMPDIR=$(mktemp -d)
+$ cd /sys/kernel/debug/gcov/$HOME
+$ find . -type d -exec mkdir -p $TEMPDIR/{} \;
+$ find . -name &#39;*.gcda&#39; -exec sh -c &#39;sudo cat $0 &amp;gt; &#39;$TEMPDIR&#39;/$0&#39; {} \;
+$ find . -name &#39;*.gcno&#39; -exec sh -c &#39;cp -d $0 &#39;$TEMPDIR&#39;/$0&#39; {} \;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;use-data-files-to-extract-code-coverage-information&#34;&gt;Use Data Files to Extract Code Coverage Information&lt;/h2&gt;
+
+&lt;p&gt;Now that we have the &amp;ldquo;gcov&amp;rdquo; data files stored in &lt;code&gt;$TEMPDIR&lt;/code&gt;, we can
+finally use these to extract the code converage data for any particular
+source code file that we&amp;rsquo;re interested in. For this example, we&amp;rsquo;re going
+to look at the &lt;code&gt;zfs_ioctl.c&lt;/code&gt; file, and more specifically, at the &lt;code&gt;_fini&lt;/code&gt;
+function which is run a single time when the &amp;ldquo;zfs&amp;rdquo; module is unloaded:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ cd /tmp
+$ gcov -o $TEMPDIR/zfs/module/zfs zfs_ioctl.c
+$ cat zfs_ioctl.c.gcov
+...
+        -: 6751:static void __exit
+        1: 6752:_fini(void)
+        -: 6753:{
+        1: 6754:        zfs_detach();
+        1: 6755:        zfs_fini();
+        1: 6756:        spa_fini();
+        1: 6757:        zvol_fini();
+        -: 6758:
+        1: 6759:        tsd_destroy(&amp;amp;zfs_fsyncer_key);
+        1: 6760:        tsd_destroy(&amp;amp;rrw_tsd_key);
+        1: 6761:        tsd_destroy(&amp;amp;zfs_allow_log_key);
+        -: 6762:
+        1: 6763:        printk(KERN_NOTICE &amp;quot;ZFS: Unloaded module v%s-%s%s\n&amp;quot;,
+        -: 6764:            ZFS_META_VERSION, ZFS_META_RELEASE, ZFS_DEBUG_STR);
+        1: 6765:}
+...
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Here we can see that each line of the &lt;code&gt;_fini&lt;/code&gt; function was executed
+exactly a single time, which is expected based on our trival load/unload
+test case.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Performance Testing Results for OpenZFS #447</title>

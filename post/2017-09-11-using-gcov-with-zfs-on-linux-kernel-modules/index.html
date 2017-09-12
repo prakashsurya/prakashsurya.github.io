@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.18.1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://www.prakashsurya.com/post/2017-09-11-using-gcov-with-zfs-on-linux-kernel-modules/">
+<link rel="stylesheet" type="text/css" href="/css/hack.css">
+<link rel="stylesheet" type="text/css" href="/css/custom.css">
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-91378771-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <title>
+  Using &#34;gcov&#34; with ZFS on Linux Kernel Modules &raquo; www.prakashsurya.com
+</title>
+  </head>
+  <body class="hack container">
+    <header>
+      <nav>
+  
+    <a class="active" href="/">Home</a>
+  
+    <a class="active" href="/post/">Posts</a>
+  
+    <a class="active" href="/link/">Links</a>
+  
+</nav>
+
+    </header>
+    <main>
+  <h1>Using &#34;gcov&#34; with ZFS on Linux Kernel Modules</h1>
+  <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#building-a-gcov-enabled-linux-kernel">Building a &ldquo;gcov&rdquo; Enabled Linux Kernel</a>
+<ul>
+<li><a href="#install-the-kernel-build-dependencies">Install the Kernel Build Dependencies</a></li>
+<li><a href="#obtaining-the-mainline-kernel-sources">Obtaining the Mainline Kernel Sources</a></li>
+<li><a href="#default-kernel-build-configuration">Default Kernel Build Configuration</a></li>
+<li><a href="#adding-gcov-specific-configurations">Adding &ldquo;gcov&rdquo; Specific Configurations</a></li>
+<li><a href="#building-and-installing-the-custom-kernel">Building and Installing the Custom Kernel</a></li>
+<li><a href="#verifying-gcov-support-is-enabled">Verifying &ldquo;gcov&rdquo; Support is Enabled</a></li>
+</ul></li>
+<li><a href="#building-zfs-on-linux-modules">Building ZFS on Linux Modules</a>
+<ul>
+<li><a href="#building-the-spl-repository">Building the SPL Repository</a></li>
+<li><a href="#building-the-zfs-repository">Building the ZFS Repository</a></li>
+</ul></li>
+<li><a href="#running-a-test-and-collecting-data-files">Running a Test and Collecting Data Files</a>
+<ul>
+<li><a href="#loading-and-unloading-the-zfs-module">Loading and Unloading the &ldquo;zfs&rdquo; module</a></li>
+<li><a href="#collecting-gcov-data-files">Collecting &ldquo;gcov&rdquo; Data Files</a></li>
+</ul></li>
+<li><a href="#use-data-files-to-extract-code-coverage-information">Use Data Files to Extract Code Coverage Information</a></li>
+</ul></li>
+</ul>
+</nav>
+  
+
+<h2 id="building-a-gcov-enabled-linux-kernel">Building a &ldquo;gcov&rdquo; Enabled Linux Kernel</h2>
+
+<p>In order to extract &ldquo;gcov&rdquo; data from the Linux kernel, and/or Linux
+kernel modules, a &ldquo;gcov&rdquo; enabled Linux kernel is needed. Since my
+current development environment is based on Ubuntu 17.04, and the fact
+that Ubuntu doesn&rsquo;t provide a pre-built kernel with &ldquo;gcov&rdquo; enabled, I
+had to build the kernel from source. This was actually pretty simple,
+and most of that process is already documented <a href="https://kernelnewbies.org/KernelBuild">here</a>.</p>
+
+<h3 id="install-the-kernel-build-dependencies">Install the Kernel Build Dependencies</h3>
+
+<pre><code>$ sudo apt-get install libncurses5-dev \
+      gcc make git exuberant-ctags bc libssl-dev
+</code></pre>
+
+<h3 id="obtaining-the-mainline-kernel-sources">Obtaining the Mainline Kernel Sources</h3>
+
+<pre><code>$ git clone https://github.com/torvalds/linux.git ~/linux
+$ cd ~/linux
+$ git checkout v4.13
+</code></pre>
+
+<h3 id="default-kernel-build-configuration">Default Kernel Build Configuration</h3>
+
+<pre><code>$ cp /boot/config-$(uname -r) .config
+$ yes '' | make oldconfig
+</code></pre>
+
+<h3 id="adding-gcov-specific-configurations">Adding &ldquo;gcov&rdquo; Specific Configurations</h3>
+
+<pre><code>$ echo 'CONFIG_DEBUG_FS=y' &gt;&gt; .config
+$ echo 'CONFIG_GCOV_KERNEL=y' &gt;&gt; .config
+$ echo 'CONFIG_GCOV_FORMAT_AUTODETECT=y' &gt;&gt; .config
+$ echo 'CONFIG_GCOV_PROFILE_ALL=y' &gt;&gt; .config
+$ yes '' | make oldconfig
+</code></pre>
+
+<h3 id="building-and-installing-the-custom-kernel">Building and Installing the Custom Kernel</h3>
+
+<pre><code>$ make -j$(nproc)
+$ sudo make modules_install install
+$ sudo reboot
+</code></pre>
+
+<h3 id="verifying-gcov-support-is-enabled">Verifying &ldquo;gcov&rdquo; Support is Enabled</h3>
+
+<pre><code>$ sudo mount -t debugfs none /sys/kernel/debug
+$ sudo ls -1d /sys/kernel/debug/gcov
+/sys/kernel/debug/gcov
+</code></pre>
+
+<h2 id="building-zfs-on-linux-modules">Building ZFS on Linux Modules</h2>
+
+<p>There&rsquo;s nothing special that we need to do, in order to enable &ldquo;gcov&rdquo;
+support for the ZFS on Linux modules. Since the kernel was built with
+&ldquo;gcov&rdquo; enabled, the modules will be automatically built with it enabled
+as well.</p>
+
+<h3 id="building-the-spl-repository">Building the SPL Repository</h3>
+
+<pre><code>$ git clone git://github.com/zfsonlinux/spl.git ~/spl
+$ cd ~/spl
+$ ./autogen.sh &amp;&amp; ./configure &amp;&amp; make
+$ sudo make install
+</code></pre>
+
+<h3 id="building-the-zfs-repository">Building the ZFS Repository</h3>
+
+<pre><code>$ git clone git://github.com/zfsonlinux/zfs.git ~/zfs
+$ cd ~/zfs
+$ ./autogen.sh &amp;&amp; ./configure &amp;&amp; make
+$ sudo make install
+</code></pre>
+
+<h2 id="running-a-test-and-collecting-data-files">Running a Test and Collecting Data Files</h2>
+
+<p>At this point, we&rsquo;re running on a &ldquo;gcov&rdquo; enabled Linux kernel, and the
+ZFS on Linux kernel modules should be installed such that we can load
+them easily with <code>modprobe</code>. Thus, we can finally run a trivial test,
+loading and unloading the &ldquo;zfs&rdquo; module, and then use <code>gcov</code> to
+extract the code coverage information from that test.</p>
+
+<h3 id="loading-and-unloading-the-zfs-module">Loading and Unloading the &ldquo;zfs&rdquo; module</h3>
+
+<pre><code>$ sudo modprobe zfs
+$ sudo modprobe -r zfs
+$ dmesg | grep ZFS
+[ 1214.307936] ZFS: Loaded module v0.7.0-1, ZFS pool version 5000, ZFS filesystem version 5
+[ 1216.475316] ZFS: Unloaded module v0.7.0-1
+</code></pre>
+
+<h3 id="collecting-gcov-data-files">Collecting &ldquo;gcov&rdquo; Data Files</h3>
+
+<pre><code>$ sudo chmod a+rx /sys/kernel/debug
+$ TEMPDIR=$(mktemp -d)
+$ cd /sys/kernel/debug/gcov/$HOME
+$ find . -type d -exec mkdir -p $TEMPDIR/{} \;
+$ find . -name '*.gcda' -exec sh -c 'sudo cat $0 &gt; '$TEMPDIR'/$0' {} \;
+$ find . -name '*.gcno' -exec sh -c 'cp -d $0 '$TEMPDIR'/$0' {} \;
+</code></pre>
+
+<h2 id="use-data-files-to-extract-code-coverage-information">Use Data Files to Extract Code Coverage Information</h2>
+
+<p>Now that we have the &ldquo;gcov&rdquo; data files stored in <code>$TEMPDIR</code>, we can
+finally use these to extract the code converage data for any particular
+source code file that we&rsquo;re interested in. For this example, we&rsquo;re going
+to look at the <code>zfs_ioctl.c</code> file, and more specifically, at the <code>_fini</code>
+function which is run a single time when the &ldquo;zfs&rdquo; module is unloaded:</p>
+
+<pre><code>$ cd /tmp
+$ gcov -o $TEMPDIR/zfs/module/zfs zfs_ioctl.c
+$ cat zfs_ioctl.c.gcov
+...
+        -: 6751:static void __exit
+        1: 6752:_fini(void)
+        -: 6753:{
+        1: 6754:        zfs_detach();
+        1: 6755:        zfs_fini();
+        1: 6756:        spa_fini();
+        1: 6757:        zvol_fini();
+        -: 6758:
+        1: 6759:        tsd_destroy(&amp;zfs_fsyncer_key);
+        1: 6760:        tsd_destroy(&amp;rrw_tsd_key);
+        1: 6761:        tsd_destroy(&amp;zfs_allow_log_key);
+        -: 6762:
+        1: 6763:        printk(KERN_NOTICE &quot;ZFS: Unloaded module v%s-%s%s\n&quot;,
+        -: 6764:            ZFS_META_VERSION, ZFS_META_RELEASE, ZFS_DEBUG_STR);
+        1: 6765:}
+...
+</code></pre>
+
+<p>Here we can see that each line of the <code>_fini</code> function was executed
+exactly a single time, which is expected based on our trival load/unload
+test case.</p>
+
+</main>
+    <footer>
+  <hr />
+
+<div class="footer">
+  <div id="footer-left">
+    <a href="mailto:me@prakashsurya.com">me@prakashsurya.com</a>
+  </div>
+
+  <div id="footer-center">
+    Published: 11 Sep 2017
+  </div>
+
+  <div id="footer-right">
+    Last Modified: 11 Sep 2017
+  </div>
+</div>
+
+</footer>
+  </body>
+</html>
