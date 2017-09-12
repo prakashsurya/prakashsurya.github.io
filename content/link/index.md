@@ -32,6 +32,8 @@ draft = false
 
   - 05 Sep 2017 &raquo; Brendan Gregg &raquo;
     [Solaris to Linux Migration 2017](http://www.brendangregg.com/blog/2017-09-05/solaris-to-linux-2017.html)
+  - ?? Aug 2017 &raquo; Bryan Cantrill &raquo;
+    [Platform as a Reflection of Values](http://www.nodesummit.com/videos/?the-video-node2017=45)
   - 08 Aug 2017 &raquo; Daniel Vetter &raquo;
     [Why Github can't host the Linux Kernel Community](http://blog.ffwll.ch/2017/08/github-why-cant-host-the-kernel.html)
   - 06 Jul 2017 &raquo; Benjamin Pollack &raquo;
