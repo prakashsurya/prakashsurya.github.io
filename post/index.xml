@@ -6,8 +6,175 @@
     <description>Recent content in Posts on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 11 Sep 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Mon, 18 Sep 2017 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Code Coverage for ZFS on Linux</title>
+      <link>https://www.prakashsurya.com/post/2017-09-18-code-coverage-for-zfs-on-linux/</link>
+      <pubDate>Mon, 18 Sep 2017 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2017-09-18-code-coverage-for-zfs-on-linux/</guid>
+      <description>&lt;p&gt;I&amp;rsquo;ve been working with Brian Behlendorf on getting code coverage
+information for the ZFS on Linux. The goal was to get code coverage data
+for pull requests, as well as branches; this way, we can get a sense of
+how well tested any given PR is by the automated tests, prior to landing
+it. There&amp;rsquo;s still some wrinkles that need to be ironed out, but we&amp;rsquo;ve
+mostly achieved that goal by leveraging &lt;a href=&#34;https://codecov.io/&#34;&gt;codecov.io&lt;/a&gt;, along
+with a small &lt;a href=&#34;https://github.com/zfsonlinux/zfs-buildbot/blob/master/scripts/bb-test-cleanup.sh&#34;&gt;bash script&lt;/a&gt;. Here&amp;rsquo;s an &lt;a href=&#34;https://codecov.io/gh/zfsonlinux/zfs/pull/6566/diff&#34;&gt;example&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;While what we&amp;rsquo;ve currently implemented is better than nothing, there&amp;rsquo;s
+some potential improvements that&amp;rsquo;d I&amp;rsquo;d like to investigate when I have
+time (and this post serves as a way to help me remember what they are):&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Currently in the automated tests that are run for the ZFS on Linux
+ project, the kernel&amp;rsquo;s code coverage data isn&amp;rsquo;t reset prior to
+ running any tests. This is because in my testing, a hang would
+ occur whenever I would write to the kernel&amp;rsquo;s &amp;ldquo;reset&amp;rdquo; file. For
+ example, I would run this command:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; # echo &#39;&#39; &amp;gt; /sys/kernel/debug/gcov/reset
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;and it would never return; it would have the following backtrace:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# cat /proc/1624/stack
+[&amp;lt;ffffffffb736f501&amp;gt;] __synchronize_srcu+0xe1/0x100
+[&amp;lt;ffffffffb736f5eb&amp;gt;] synchronize_srcu+0xcb/0x1c0
+[&amp;lt;ffffffffb7749390&amp;gt;] debugfs_remove+0xa0/0xe0
+[&amp;lt;ffffffffb73e5f82&amp;gt;] release_node+0x62/0x140
+[&amp;lt;ffffffffb73e613b&amp;gt;] reset_write+0xdb/0x120
+[&amp;lt;ffffffffb774a3e4&amp;gt;] full_proxy_write+0x84/0xd0
+[&amp;lt;ffffffffb758a90f&amp;gt;] __vfs_write+0x3f/0x230
+[&amp;lt;ffffffffb758e38e&amp;gt;] vfs_write+0xfe/0x270
+[&amp;lt;ffffffffb758e889&amp;gt;] SyS_write+0x79/0x130
+[&amp;lt;ffffffffb7f8083b&amp;gt;] entry_SYSCALL_64_fastpath+0x1e/0xa9
+[&amp;lt;ffffffffffffffff&amp;gt;] 0xffffffffffffffff
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Unfortunately, I never got around to doing any root cause analysis
+of the issue. Instead, we simply aren&amp;rsquo;t resetting the kernel&amp;rsquo;s
+coverage data, which is fine because we only upload a single unified
+report to Codecov (which contains the data for all tests in the
+automated test suite).&lt;/p&gt;
+
+&lt;p&gt;Also, it&amp;rsquo;s worth noting that while writing this post, I attempted
+that same command to clear the kernel&amp;rsquo;s coverage data, and I was
+unable to reproduce the hang. I&amp;rsquo;m running a different kernel now, so
+perhaps the previous behavior was a bug in the kernel that&amp;rsquo;s been
+fixed in a later release? Without an RCA, anything is possible.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;We&amp;rsquo;re not collecting any data for the userspace libraries, such as
+ &lt;code&gt;libzpool&lt;/code&gt;; which unfortunately means we don&amp;rsquo;t get much coverage
+ data from runs of &lt;code&gt;ztest&lt;/code&gt; and &lt;code&gt;zloop&lt;/code&gt;. The reason behind this is
+ simply due to the additional implementation complexity required to
+ support the libraries:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Some of the libraries are composed of the same source files as
+ the kernel modules. Thus, we&amp;rsquo;d need to be careful when
+ generating the gcov reports if we included these libaries, such
+ that the kernel report for a given source file isn&amp;rsquo;t replaced
+ by the userspace report (or vice versa). If we happened to be
+ careless, it&amp;rsquo;d be easy to generate the kernel report for a
+ source file, and then accidentally overwrite that report with
+ the userspace data when generating the userspace report.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The &lt;code&gt;.gcda&lt;/code&gt; files for the libraries often are found in a
+ &lt;code&gt;.libs&lt;/code&gt; sub-directory, rather than directly in the same
+ directory as the source code (like non-libary sources). For
+ example, the &lt;code&gt;.gcda&lt;/code&gt; files for &lt;code&gt;libzpool&lt;/code&gt; are here:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; $ find lib/libzpool -name &#39;*.gcda&#39; | head -n 5
+ lib/libzpool/.libs/zfs_rlock.gcda
+ lib/libzpool/.libs/zpool_prop.gcda
+ lib/libzpool/.libs/vdev_raidz.gcda
+ lib/libzpool/.libs/dsl_pool.gcda
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This is in contrast to where these files are stored for the
+ commands:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; $ find cmd -name &#39;*.gcda&#39; | head -n 5
+ cmd/zfs/zfs_iter.gcda
+ cmd/zfs/zfs_main.gcda
+ cmd/ztest/ztest.gcda
+ cmd/mount_zfs/mount_zfs.gcda
+ cmd/zpool/zpool_iter.gcda
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;As a result, we have to use the &lt;code&gt;-o&lt;/code&gt; option when running &lt;code&gt;gcov&lt;/code&gt;
+ for the libraries, but not for the commands:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; $ cd ~/zfs/lib/libzpool
+ $ gcov -o .libs arc.gcno
+ File &#39;../../module/zfs/arc.c&#39;
+ Lines executed:60.72% of 3055
+ Creating &#39;arc.c.gcov&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The gcov data files reference their corresponding source files
+ using relative paths to parts of the project&amp;rsquo;s repository. This
+ happens when a library references one of the source files from
+ the &lt;code&gt;module&lt;/code&gt; directory (i.e. when file is built both for kernel
+ mode and user mode), and is a result of how the build system
+ works for these libraries.&lt;/p&gt;
+
+&lt;p&gt;Thus, if &lt;code&gt;gcov&lt;/code&gt; is run from the &amp;ldquo;root&amp;rdquo; of the project
+ directory, it will be unable to find the source files for that
+ library. For example:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; $ gcov -b lib/libzpool/arc.gcno
+ ...
+ Cannot open source file ../../module/zfs/arc.c
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This can be relatively easily worked around by first &lt;code&gt;cd&lt;/code&gt;-ing
+ into the directory that contains the &lt;code&gt;.gcno&lt;/code&gt; file, and then
+ running &lt;code&gt;gcov&lt;/code&gt;, but that idea falls apart for the &lt;code&gt;libicp&lt;/code&gt;
+ library.&lt;/p&gt;
+
+&lt;p&gt;For this libary, one must execute &lt;code&gt;gcov&lt;/code&gt; from the &lt;code&gt;lib/libicp&lt;/code&gt;
+ directory, but the &lt;code&gt;.gcno&lt;/code&gt; files are stored in subdirectories
+ from there. For example, this fails:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; $ cd ~/zfs/lib/libicp/algs/sha2
+ $ gcov -o .libs sha2.gcno
+ File &#39;../../module/icp/algs/sha2/sha2.c&#39;
+ Lines executed:67.41% of 135
+ Creating &#39;sha2.c.gcov&#39;
+ Cannot open source file ../../module/icp/algs/sha2/sha2.c
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;But this works:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; $ cd ~/zfs/lib/libicp
+ $ gcov -o algs/sha2/.libs algs/sha2/sha2.gcno
+ File &#39;../../module/icp/algs/sha2/sha2.c&#39;
+ Lines executed:67.41% of 135
+ Creating &#39;sha2.c.gcov&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The last complication to consider is that, since we can have
+ two different modes of execution for any given source file
+ (since we compile certain files in both kernel and user mode),
+ it&amp;rsquo;d be ideal to have seperate coverage reports for kernel and
+ user mode execution. Codecov appears to support this via its
+ concept of &amp;ldquo;flags&amp;rdquo; (i.e. using the &lt;code&gt;-F&lt;/code&gt; option of their &lt;a href=&#34;https://docs.codecov.io/v4.3.6/docs/about-the-codecov-bash-uploader&#34;&gt;Bash
+ uploader&lt;/a&gt;), but that functionality still needs to be
+ evaluated to make sure it&amp;rsquo;ll work for our needs.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;All in all, coming up with solutions for any (or all) of these
+complications is possible, it just requires a little more work to be
+done. For the first attempt at collecting coverage data, I opted to keep
+the implementation simple yet functional and useful. I hope to revisit
+these issues, and extend the coverage data to include the libraries
+soon.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Using &#34;gcov&#34; with ZFS on Linux Kernel Modules</title>

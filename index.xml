@@ -6,8 +6,175 @@
     <description>Recent content on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 11 Sep 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Mon, 18 Sep 2017 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Code Coverage for ZFS on Linux</title>
+      <link>https://www.prakashsurya.com/post/2017-09-18-code-coverage-for-zfs-on-linux/</link>
+      <pubDate>Mon, 18 Sep 2017 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2017-09-18-code-coverage-for-zfs-on-linux/</guid>
+      <description>&lt;p&gt;I&amp;rsquo;ve been working with Brian Behlendorf on getting code coverage
+information for the ZFS on Linux. The goal was to get code coverage data
+for pull requests, as well as branches; this way, we can get a sense of
+how well tested any given PR is by the automated tests, prior to landing
+it. There&amp;rsquo;s still some wrinkles that need to be ironed out, but we&amp;rsquo;ve
+mostly achieved that goal by leveraging &lt;a href=&#34;https://codecov.io/&#34;&gt;codecov.io&lt;/a&gt;, along
+with a small &lt;a href=&#34;https://github.com/zfsonlinux/zfs-buildbot/blob/master/scripts/bb-test-cleanup.sh&#34;&gt;bash script&lt;/a&gt;. Here&amp;rsquo;s an &lt;a href=&#34;https://codecov.io/gh/zfsonlinux/zfs/pull/6566/diff&#34;&gt;example&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;While what we&amp;rsquo;ve currently implemented is better than nothing, there&amp;rsquo;s
+some potential improvements that&amp;rsquo;d I&amp;rsquo;d like to investigate when I have
+time (and this post serves as a way to help me remember what they are):&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Currently in the automated tests that are run for the ZFS on Linux
+ project, the kernel&amp;rsquo;s code coverage data isn&amp;rsquo;t reset prior to
+ running any tests. This is because in my testing, a hang would
+ occur whenever I would write to the kernel&amp;rsquo;s &amp;ldquo;reset&amp;rdquo; file. For
+ example, I would run this command:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; # echo &#39;&#39; &amp;gt; /sys/kernel/debug/gcov/reset
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;and it would never return; it would have the following backtrace:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# cat /proc/1624/stack
+[&amp;lt;ffffffffb736f501&amp;gt;] __synchronize_srcu+0xe1/0x100
+[&amp;lt;ffffffffb736f5eb&amp;gt;] synchronize_srcu+0xcb/0x1c0
+[&amp;lt;ffffffffb7749390&amp;gt;] debugfs_remove+0xa0/0xe0
+[&amp;lt;ffffffffb73e5f82&amp;gt;] release_node+0x62/0x140
+[&amp;lt;ffffffffb73e613b&amp;gt;] reset_write+0xdb/0x120
+[&amp;lt;ffffffffb774a3e4&amp;gt;] full_proxy_write+0x84/0xd0
+[&amp;lt;ffffffffb758a90f&amp;gt;] __vfs_write+0x3f/0x230
+[&amp;lt;ffffffffb758e38e&amp;gt;] vfs_write+0xfe/0x270
+[&amp;lt;ffffffffb758e889&amp;gt;] SyS_write+0x79/0x130
+[&amp;lt;ffffffffb7f8083b&amp;gt;] entry_SYSCALL_64_fastpath+0x1e/0xa9
+[&amp;lt;ffffffffffffffff&amp;gt;] 0xffffffffffffffff
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Unfortunately, I never got around to doing any root cause analysis
+of the issue. Instead, we simply aren&amp;rsquo;t resetting the kernel&amp;rsquo;s
+coverage data, which is fine because we only upload a single unified
+report to Codecov (which contains the data for all tests in the
+automated test suite).&lt;/p&gt;
+
+&lt;p&gt;Also, it&amp;rsquo;s worth noting that while writing this post, I attempted
+that same command to clear the kernel&amp;rsquo;s coverage data, and I was
+unable to reproduce the hang. I&amp;rsquo;m running a different kernel now, so
+perhaps the previous behavior was a bug in the kernel that&amp;rsquo;s been
+fixed in a later release? Without an RCA, anything is possible.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;We&amp;rsquo;re not collecting any data for the userspace libraries, such as
+ &lt;code&gt;libzpool&lt;/code&gt;; which unfortunately means we don&amp;rsquo;t get much coverage
+ data from runs of &lt;code&gt;ztest&lt;/code&gt; and &lt;code&gt;zloop&lt;/code&gt;. The reason behind this is
+ simply due to the additional implementation complexity required to
+ support the libraries:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Some of the libraries are composed of the same source files as
+ the kernel modules. Thus, we&amp;rsquo;d need to be careful when
+ generating the gcov reports if we included these libaries, such
+ that the kernel report for a given source file isn&amp;rsquo;t replaced
+ by the userspace report (or vice versa). If we happened to be
+ careless, it&amp;rsquo;d be easy to generate the kernel report for a
+ source file, and then accidentally overwrite that report with
+ the userspace data when generating the userspace report.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The &lt;code&gt;.gcda&lt;/code&gt; files for the libraries often are found in a
+ &lt;code&gt;.libs&lt;/code&gt; sub-directory, rather than directly in the same
+ directory as the source code (like non-libary sources). For
+ example, the &lt;code&gt;.gcda&lt;/code&gt; files for &lt;code&gt;libzpool&lt;/code&gt; are here:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; $ find lib/libzpool -name &#39;*.gcda&#39; | head -n 5
+ lib/libzpool/.libs/zfs_rlock.gcda
+ lib/libzpool/.libs/zpool_prop.gcda
+ lib/libzpool/.libs/vdev_raidz.gcda
+ lib/libzpool/.libs/dsl_pool.gcda
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This is in contrast to where these files are stored for the
+ commands:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; $ find cmd -name &#39;*.gcda&#39; | head -n 5
+ cmd/zfs/zfs_iter.gcda
+ cmd/zfs/zfs_main.gcda
+ cmd/ztest/ztest.gcda
+ cmd/mount_zfs/mount_zfs.gcda
+ cmd/zpool/zpool_iter.gcda
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;As a result, we have to use the &lt;code&gt;-o&lt;/code&gt; option when running &lt;code&gt;gcov&lt;/code&gt;
+ for the libraries, but not for the commands:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; $ cd ~/zfs/lib/libzpool
+ $ gcov -o .libs arc.gcno
+ File &#39;../../module/zfs/arc.c&#39;
+ Lines executed:60.72% of 3055
+ Creating &#39;arc.c.gcov&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The gcov data files reference their corresponding source files
+ using relative paths to parts of the project&amp;rsquo;s repository. This
+ happens when a library references one of the source files from
+ the &lt;code&gt;module&lt;/code&gt; directory (i.e. when file is built both for kernel
+ mode and user mode), and is a result of how the build system
+ works for these libraries.&lt;/p&gt;
+
+&lt;p&gt;Thus, if &lt;code&gt;gcov&lt;/code&gt; is run from the &amp;ldquo;root&amp;rdquo; of the project
+ directory, it will be unable to find the source files for that
+ library. For example:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; $ gcov -b lib/libzpool/arc.gcno
+ ...
+ Cannot open source file ../../module/zfs/arc.c
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This can be relatively easily worked around by first &lt;code&gt;cd&lt;/code&gt;-ing
+ into the directory that contains the &lt;code&gt;.gcno&lt;/code&gt; file, and then
+ running &lt;code&gt;gcov&lt;/code&gt;, but that idea falls apart for the &lt;code&gt;libicp&lt;/code&gt;
+ library.&lt;/p&gt;
+
+&lt;p&gt;For this libary, one must execute &lt;code&gt;gcov&lt;/code&gt; from the &lt;code&gt;lib/libicp&lt;/code&gt;
+ directory, but the &lt;code&gt;.gcno&lt;/code&gt; files are stored in subdirectories
+ from there. For example, this fails:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; $ cd ~/zfs/lib/libicp/algs/sha2
+ $ gcov -o .libs sha2.gcno
+ File &#39;../../module/icp/algs/sha2/sha2.c&#39;
+ Lines executed:67.41% of 135
+ Creating &#39;sha2.c.gcov&#39;
+ Cannot open source file ../../module/icp/algs/sha2/sha2.c
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;But this works:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; $ cd ~/zfs/lib/libicp
+ $ gcov -o algs/sha2/.libs algs/sha2/sha2.gcno
+ File &#39;../../module/icp/algs/sha2/sha2.c&#39;
+ Lines executed:67.41% of 135
+ Creating &#39;sha2.c.gcov&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The last complication to consider is that, since we can have
+ two different modes of execution for any given source file
+ (since we compile certain files in both kernel and user mode),
+ it&amp;rsquo;d be ideal to have seperate coverage reports for kernel and
+ user mode execution. Codecov appears to support this via its
+ concept of &amp;ldquo;flags&amp;rdquo; (i.e. using the &lt;code&gt;-F&lt;/code&gt; option of their &lt;a href=&#34;https://docs.codecov.io/v4.3.6/docs/about-the-codecov-bash-uploader&#34;&gt;Bash
+ uploader&lt;/a&gt;), but that functionality still needs to be
+ evaluated to make sure it&amp;rsquo;ll work for our needs.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;All in all, coming up with solutions for any (or all) of these
+complications is possible, it just requires a little more work to be
+done. For the first attempt at collecting coverage data, I opted to keep
+the implementation simple yet functional and useful. I hope to revisit
+these issues, and extend the coverage data to include the libraries
+soon.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Using &#34;gcov&#34; with ZFS on Linux Kernel Modules</title>
@@ -3323,242 +3490,6 @@ selecting the absolutely oldest buffer, to being a randomly selected
 buffer out of a group of &amp;ldquo;old&amp;rdquo; buffers. The group of old buffers
 being composed of the tails of all the sublists.&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>OpenZFS Developer Summit 2014: OpenZFS on illumos</title>
-      <link>https://www.prakashsurya.com/post/2015-01-06-openzfs-developer-summit-2014-openzfs-on-illumos/</link>
-      <pubDate>Tue, 06 Jan 2015 00:00:00 -0800</pubDate>
-      
-      <guid>https://www.prakashsurya.com/post/2015-01-06-openzfs-developer-summit-2014-openzfs-on-illumos/</guid>
-      <description>
-
-&lt;p&gt;The &lt;a href=&#34;http://open-zfs.org/&#34;&gt;OpenZFS&lt;/a&gt; project is growing! The &lt;a href=&#34;http://www.open-zfs.org/wiki/OpenZFS_Developer_Summit_2014&#34;&gt;second annual OpenZFS developer
-summit&lt;/a&gt; concluded just under two months ago, and overall I thought it
-went very well. There was roughly 70 attendees, twice as many as the
-previous year, and the talks given were very engaging and interesting.&lt;/p&gt;
-
-&lt;p&gt;I gave a short talk about ZFS on the &lt;a href=&#34;http://www.illumos.org/&#34;&gt;illumos&lt;/a&gt; platform, and also
-touched briefly on some of my subjective opinions coming from a
-&lt;a href=&#34;http://zfsonlinux.org/&#34;&gt;ZFS on Linux&lt;/a&gt; background. While a video recording of &lt;a href=&#34;http://youtu.be/UtlGt3ag0o0&#34;&gt;my talk&lt;/a&gt; is
-available, I thought it&amp;rsquo;d be good to also present some of that in written
-format, which might be a more approachable format for those who weren&amp;rsquo;t
-able to attend the conference. So here goes&amp;hellip;&lt;/p&gt;
-
-&lt;h2 id=&#34;openzfs-history&#34;&gt;OpenZFS History&lt;/h2&gt;
-
-&lt;p&gt;As most readers will already know, ZFS was originally designed and
-developed at Sun Microsystems starting around 2001. It was later
-released as open source in 2005 via OpenSolaris. In 2010 illumos was
-born as a fork of OpenSolaris, and in 2013 the OpenZFS was created.&lt;/p&gt;
-
-&lt;p&gt;As a result of this lineage, OpenZFS really feels &amp;ldquo;at home&amp;rdquo; within the
-illumos project; and what I mean by that, is it has a very polished
-integration with the illumos operating system and the code base as a
-whole. Just to state a couple explicit examples of this:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;It&amp;rsquo;s very easy to boot and run ZFS as the root filesystem (even in
-the face of on-disk feature changes) as it and the boot loader both
-live and change within the same repository.&lt;/li&gt;
-&lt;li&gt;The debugging tools on illumos (e.g. mdb) have knowledge of
-ZFS-specific structures and have ZFS-specific features to allow
-efficient debugging and development.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;But, as OpenZFS is growing, its integration on other operating systems
-is continually getting better.&lt;/p&gt;
-
-&lt;h2 id=&#34;openzfs-on-illumos-development-process&#34;&gt;OpenZFS on illumos Development Process&lt;/h2&gt;
-
-&lt;p&gt;The development model for OpenZFS on illumos follows the same
-conventions as all other illumos development. Access to commit to the
-repository is granted to &amp;ldquo;advocates&amp;rdquo;, and these advocates rely on the
-community (possibly themselves as well) to review any proposed changes,
-and ensure the changes are correct and are of high quality. In practice,
-each proposed change must reviewed and approved by a subject matter
-expert (e.g. for OpenZFS, this is typically Matt Ahrens or George
-Wilson) prior to an advocate committing the change.&lt;/p&gt;
-
-&lt;p&gt;Since the illumos project doesn&amp;rsquo;t have any specific releases, this
-implies that each commit to the repository must be of high quality as
-each commit is effectively a &amp;ldquo;release&amp;rdquo;. There isn&amp;rsquo;t the option of
-merging code known to be defective, with the intention of fixing the
-defect in a follow up commit prior to the &amp;ldquo;next release&amp;rdquo;.&lt;/p&gt;
-
-&lt;h2 id=&#34;openzfs-on-illumos-collaboration&#34;&gt;OpenZFS on illumos Collaboration&lt;/h2&gt;
-
-&lt;p&gt;Since OpenZFS on illumos is the &amp;ldquo;upstream&amp;rdquo; platform for OpenZFS, it&amp;rsquo;s
-important that there is open communication and collaboration between
-the illumos developers and developers of the other platforms. As
-changes from one platform are merged into illumos, all other platforms
-will (ideally) pull these changes into their own version of OpenZFS
-which is mutually beneficial for a number of reasons:&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;Less time spent on merge conflicts when pulling changes in between
-OpenZFS platforms. If each platform is active in pushing to illumos
-and pulling from illumos, then we&amp;rsquo;ll all be using as close to the
-same source code as possible.&lt;/li&gt;
-&lt;li&gt;Less duplication of effort. There&amp;rsquo;s been a number of times where
-I&amp;rsquo;ve personally spent effort investigating or solving a specific
-problem, only to find out that it&amp;rsquo;s already been solved on another
-OpenZFS platform. If each platform was more actively kept in sync
-with each other, this situation would be far less likely.&lt;/li&gt;
-&lt;li&gt;More varied testing. If all platforms are running the same code,
-then we all benefit from the variety of workloads each platform
-brings to the table; and as a result, we all test each others&amp;rsquo; code.&lt;/li&gt;
-&lt;li&gt;Proliferation of new OpenZFS features. Currently, most new ZFS
-features are first developed on, and committed to illumos. Thus, if
-other platforms are active in pushing changes into illumos, these
-new features are inherently developed around and incorporate the
-most recent changes in each platform. This makes it much easier to
-pull the new features into the downstream platforms, allowing all
-OpenZFS consumers to benefit from the new features as soon as
-possible.&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;In order to achieve this goal, the process of building and testing
-changes to the OpenZFS on illumos code base needs to be simplified and
-streamlined. Work is on-going on this front, and my hope is that the
-necessary improvements will happen over the next year, and we&amp;rsquo;ll be
-able to sing a different tune for next year&amp;rsquo;s developer summit.&lt;/p&gt;
-
-&lt;h2 id=&#34;developer-debugging-tools-on-illumos&#34;&gt;Developer/Debugging Tools on illumos&lt;/h2&gt;
-
-&lt;p&gt;One of the nice things about OpenZFS development on illumos is that I
-get to make use of the outstanding developer tools available on the
-platform. Having spent much of the last few years working within the
-Linux kernel, I&amp;rsquo;ve been implicitly trained to rely almost entirely on
-the source code and stack traces for debugging most production and
-development problems. Now that I&amp;rsquo;ve jumped to illumos, I can see
-first hand what I&amp;rsquo;ve been missing with tools like dtrace, kmdb,
-and &lt;strong&gt;especially&lt;/strong&gt; mdb.&lt;/p&gt;
-
-&lt;p&gt;In my short time working on the illumos platform, I&amp;rsquo;ve found mdb to be
-easily one of the best parts about the jump from ZFS on Linux. Certain
-tasks that would taken hours, or have been prohibitively difficult, on
-Linux can be done with ease using mdb&amp;rsquo;s dcmds and pipelines.&lt;/p&gt;
-
-&lt;p&gt;For example, while working on the ZFS on Linux port I would often be
-puzzled by what I found when looking at the ARC kstats. To try and make
-some sense of it, I wanted to know exactly what was contained in the ARC
-and what was contained in the dbuf cache; this eventually led to the
-implementation of the &amp;ldquo;dbufs&amp;rdquo; proc handler on the Linux port. On
-illumos, there&amp;rsquo;s already a mdb dcmd to do exactly that:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# Lines ending with &#39;...&#39; have been truncated to fit in 80 columns.
-$ sudo mdb -k
-&amp;gt; ::dbufs | ::dbuf ! head
-        addr object lvl blkid holds os
-ffffff160e924b10     114f 0        19  0 rpool/versions/2014.12.2014.1 ...
-ffffff160e924c30     1c50 0        35  0 rpool/versions/2014.12.2014.1 ...
-ffffff160e924d50     1c4d 0        33  0 rpool/versions/2014.12.2014.1 ...
-ffffff160e9092f8     164b 0        24  0 rpool/versions/2014.12.2014.1 ...
-ffffff160e8cc050       a0 0         3  0 mos
-ffffff160e8c04e0     177b 0        3a  0 rpool/versions/2014.12.2014.1 ...
-ffffff160e8bcde8     1c4d 0        1a  0 rpool/versions/2014.12.2014.1 ...
-ffffff160e8b2bb8       74 0         0  0 mos
-ffffff160e8b2cd8     1c4c 0         f  0 rpool/versions/2014.12.2014.1 ...
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;And better yet, I can print the full contents for each buffer if that
-level of detail is needed:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo mdb -k
-&amp;gt; ::dbufs | ::print dmu_buf_impl_t ! head
-{
-    db = {
-        db_object = 0x114f
-        db_offset = 0x320000
-        db_size = 0x20000
-        db_data = 0xffffff012e283000
-    }
-    db_objset = 0xffffff096dd82500
-    db_dnode_handle = 0xffffff160e858d20
-    db_parent = 0xffffff160e63cb70
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Or filter out the specific dbufs of interest:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# Lines ending with &#39;...&#39; have been truncated to fit in 80 columns.
-$ sudo mdb -k
-&amp;gt; ::dbufs -o 0x90 | ::dbuf ! head
-        addr object lvl blkid holds os
-ffffff1609deb210       90 0         1  0 mos
-ffffff0980966790       90 0         2  0 mos
-ffffff0982633030       90 0         0  0 mos
-ffffff096e53c9a8       90 1         0  3 mos
-ffffff15edcd7bf0       90 0     bonus  1 tank/fish
-ffffff097340dab8       90 0     bonus  1 rpool/versions/2014.12.2014.1 ...
-ffffff096e118450       90 0         0  0 rpool/versions/2014.12.2014.1 ...
-ffffff09179a79e8       90 0     bonus  1 mos
-ffffff09157b6cc0       90 0     bonus  0 rpool/versions/2014.12.2014.1 ...
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;But what if one wants to filter on something that isn&amp;rsquo;t supported by the
-&lt;code&gt;::dbufs&lt;/code&gt; command? Well, here&amp;rsquo;s a more general approach, filtering out
-only the buffers with a reference count of 3, using &lt;code&gt;::grep&lt;/code&gt;:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# Lines ending with &#39;...&#39; have been truncated to fit in 80 columns.
-# Also, mdb doesn&#39;t actually support continuation of input lines
-# using the &amp;quot;\&amp;quot; character; but it helps me format the command within
-# 80 columns for this post, and resembles a bash line continuation.
-
-$ sudo mdb -k
-&amp;gt; ::dbufs | ::print dmu_buf_impl_t db_holds.rc_count | \
-  ::grep &#39;.==0x3&#39; | ::eval &amp;amp;lt;dbuf=K | ::dbuf ! head
-        addr object lvl blkid holds os
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Additionally, the ability to get stack traces detailing where objects
-were allocated using &lt;code&gt;kmem_flags=0x1&lt;/code&gt; is hugely beneficial. Using it,
-things like the &lt;code&gt;::refcount&lt;/code&gt; dcmd can not only provide information about
-the current number of holds, but it can also provide the full kernel
-stack trace of the thread that took the hold when the hold was taken.&lt;/p&gt;
-
-&lt;p&gt;Likewise, the &lt;code&gt;::whatis&lt;/code&gt; dcmd also makes use of this information and
-displays it to the user. Imagine a case where you have a &amp;ldquo;random&amp;rdquo;
-pointer to an object (e.g. a pointer to an &lt;code&gt;arc_buf_t&lt;/code&gt;), and wanted to
-know where this object came from. If using &lt;code&gt;kmem_flags=0x1&lt;/code&gt; on illumos,
-this is as simple as the following:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo mdb -k
-&amp;gt; ::walk dmu_buf_impl_t ! head -n 1
-0xffffff0ab4001048
-&amp;gt; 0xffffff0ab4001048::whatis
-ffffff0ab4001048 is allocated from dmu_buf_impl_t:
-            ADDR          BUFADDR        TIMESTAMP           THREAD
-                            CACHE          LASTLOG         CONTENTS
-ffffff0ab4059128 ffffff0ab4001048      157ca42dbaf ffffff09e088e440
-                 ffffff0958a5a008 ffffff090b0ebbc0 ffffff0932c80430
-                 kmem_cache_alloc_debug+0x2e0
-                 kmem_cache_alloc+0xdd
-                 dbuf_create+0x79
-                 dbuf_hold_impl+0x192
-                 dbuf_hold+0x27
-                 dmu_buf_hold_array_by_dnode+0x129
-                 dmu_read_uio_dnode+0x5a
-                 dmu_read_uio_dbuf+0x51
-                 zfs_read+0x1a3
-                 fop_read+0x5b
-                 pread64+0x25d
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;I could go on and on about the cool things mdb allows, but this post is
-already long enough, so I&amp;rsquo;ll cut myself off here. It would be great to
-see an mdb port to Linux! (or even a more feature rich version of
-&lt;a href=&#34;http://people.redhat.com/anderson/crash_whitepaper/&#34;&gt;crash&lt;/a&gt; with OpenZFS support)&lt;/p&gt;
 </description>
     </item>
     

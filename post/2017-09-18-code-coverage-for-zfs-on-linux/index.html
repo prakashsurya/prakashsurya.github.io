@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.18.1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://www.prakashsurya.com/post/2017-09-18-code-coverage-for-zfs-on-linux/">
+<link rel="stylesheet" type="text/css" href="/css/hack.css">
+<link rel="stylesheet" type="text/css" href="/css/custom.css">
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-91378771-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <title>
+  Code Coverage for ZFS on Linux &raquo; www.prakashsurya.com
+</title>
+  </head>
+  <body class="hack container">
+    <header>
+      <nav>
+  
+    <a class="active" href="/">Home</a>
+  
+    <a class="active" href="/post/">Posts</a>
+  
+    <a class="active" href="/link/">Links</a>
+  
+</nav>
+
+    </header>
+    <main>
+  <h1>Code Coverage for ZFS on Linux</h1>
+  
+  <p>I&rsquo;ve been working with Brian Behlendorf on getting code coverage
+information for the ZFS on Linux. The goal was to get code coverage data
+for pull requests, as well as branches; this way, we can get a sense of
+how well tested any given PR is by the automated tests, prior to landing
+it. There&rsquo;s still some wrinkles that need to be ironed out, but we&rsquo;ve
+mostly achieved that goal by leveraging <a href="https://codecov.io/">codecov.io</a>, along
+with a small <a href="https://github.com/zfsonlinux/zfs-buildbot/blob/master/scripts/bb-test-cleanup.sh">bash script</a>. Here&rsquo;s an <a href="https://codecov.io/gh/zfsonlinux/zfs/pull/6566/diff">example</a>.</p>
+
+<p>While what we&rsquo;ve currently implemented is better than nothing, there&rsquo;s
+some potential improvements that&rsquo;d I&rsquo;d like to investigate when I have
+time (and this post serves as a way to help me remember what they are):</p>
+
+<ol>
+<li><p>Currently in the automated tests that are run for the ZFS on Linux
+ project, the kernel&rsquo;s code coverage data isn&rsquo;t reset prior to
+ running any tests. This is because in my testing, a hang would
+ occur whenever I would write to the kernel&rsquo;s &ldquo;reset&rdquo; file. For
+ example, I would run this command:</p>
+
+<pre><code> # echo '' &gt; /sys/kernel/debug/gcov/reset
+</code></pre>
+
+<p>and it would never return; it would have the following backtrace:</p>
+
+<pre><code># cat /proc/1624/stack
+[&lt;ffffffffb736f501&gt;] __synchronize_srcu+0xe1/0x100
+[&lt;ffffffffb736f5eb&gt;] synchronize_srcu+0xcb/0x1c0
+[&lt;ffffffffb7749390&gt;] debugfs_remove+0xa0/0xe0
+[&lt;ffffffffb73e5f82&gt;] release_node+0x62/0x140
+[&lt;ffffffffb73e613b&gt;] reset_write+0xdb/0x120
+[&lt;ffffffffb774a3e4&gt;] full_proxy_write+0x84/0xd0
+[&lt;ffffffffb758a90f&gt;] __vfs_write+0x3f/0x230
+[&lt;ffffffffb758e38e&gt;] vfs_write+0xfe/0x270
+[&lt;ffffffffb758e889&gt;] SyS_write+0x79/0x130
+[&lt;ffffffffb7f8083b&gt;] entry_SYSCALL_64_fastpath+0x1e/0xa9
+[&lt;ffffffffffffffff&gt;] 0xffffffffffffffff
+</code></pre>
+
+<p>Unfortunately, I never got around to doing any root cause analysis
+of the issue. Instead, we simply aren&rsquo;t resetting the kernel&rsquo;s
+coverage data, which is fine because we only upload a single unified
+report to Codecov (which contains the data for all tests in the
+automated test suite).</p>
+
+<p>Also, it&rsquo;s worth noting that while writing this post, I attempted
+that same command to clear the kernel&rsquo;s coverage data, and I was
+unable to reproduce the hang. I&rsquo;m running a different kernel now, so
+perhaps the previous behavior was a bug in the kernel that&rsquo;s been
+fixed in a later release? Without an RCA, anything is possible.</p></li>
+
+<li><p>We&rsquo;re not collecting any data for the userspace libraries, such as
+ <code>libzpool</code>; which unfortunately means we don&rsquo;t get much coverage
+ data from runs of <code>ztest</code> and <code>zloop</code>. The reason behind this is
+ simply due to the additional implementation complexity required to
+ support the libraries:</p>
+
+<ul>
+<li><p>Some of the libraries are composed of the same source files as
+ the kernel modules. Thus, we&rsquo;d need to be careful when
+ generating the gcov reports if we included these libaries, such
+ that the kernel report for a given source file isn&rsquo;t replaced
+ by the userspace report (or vice versa). If we happened to be
+ careless, it&rsquo;d be easy to generate the kernel report for a
+ source file, and then accidentally overwrite that report with
+ the userspace data when generating the userspace report.</p></li>
+
+<li><p>The <code>.gcda</code> files for the libraries often are found in a
+ <code>.libs</code> sub-directory, rather than directly in the same
+ directory as the source code (like non-libary sources). For
+ example, the <code>.gcda</code> files for <code>libzpool</code> are here:</p>
+
+<pre><code> $ find lib/libzpool -name '*.gcda' | head -n 5
+ lib/libzpool/.libs/zfs_rlock.gcda
+ lib/libzpool/.libs/zpool_prop.gcda
+ lib/libzpool/.libs/vdev_raidz.gcda
+ lib/libzpool/.libs/dsl_pool.gcda
+</code></pre>
+
+<p>This is in contrast to where these files are stored for the
+ commands:</p>
+
+<pre><code> $ find cmd -name '*.gcda' | head -n 5
+ cmd/zfs/zfs_iter.gcda
+ cmd/zfs/zfs_main.gcda
+ cmd/ztest/ztest.gcda
+ cmd/mount_zfs/mount_zfs.gcda
+ cmd/zpool/zpool_iter.gcda
+</code></pre>
+
+<p>As a result, we have to use the <code>-o</code> option when running <code>gcov</code>
+ for the libraries, but not for the commands:</p>
+
+<pre><code> $ cd ~/zfs/lib/libzpool
+ $ gcov -o .libs arc.gcno
+ File '../../module/zfs/arc.c'
+ Lines executed:60.72% of 3055
+ Creating 'arc.c.gcov'
+</code></pre></li>
+
+<li><p>The gcov data files reference their corresponding source files
+ using relative paths to parts of the project&rsquo;s repository. This
+ happens when a library references one of the source files from
+ the <code>module</code> directory (i.e. when file is built both for kernel
+ mode and user mode), and is a result of how the build system
+ works for these libraries.</p>
+
+<p>Thus, if <code>gcov</code> is run from the &ldquo;root&rdquo; of the project
+ directory, it will be unable to find the source files for that
+ library. For example:</p>
+
+<pre><code> $ gcov -b lib/libzpool/arc.gcno
+ ...
+ Cannot open source file ../../module/zfs/arc.c
+</code></pre>
+
+<p>This can be relatively easily worked around by first <code>cd</code>-ing
+ into the directory that contains the <code>.gcno</code> file, and then
+ running <code>gcov</code>, but that idea falls apart for the <code>libicp</code>
+ library.</p>
+
+<p>For this libary, one must execute <code>gcov</code> from the <code>lib/libicp</code>
+ directory, but the <code>.gcno</code> files are stored in subdirectories
+ from there. For example, this fails:</p>
+
+<pre><code> $ cd ~/zfs/lib/libicp/algs/sha2
+ $ gcov -o .libs sha2.gcno
+ File '../../module/icp/algs/sha2/sha2.c'
+ Lines executed:67.41% of 135
+ Creating 'sha2.c.gcov'
+ Cannot open source file ../../module/icp/algs/sha2/sha2.c
+</code></pre>
+
+<p>But this works:</p>
+
+<pre><code> $ cd ~/zfs/lib/libicp
+ $ gcov -o algs/sha2/.libs algs/sha2/sha2.gcno
+ File '../../module/icp/algs/sha2/sha2.c'
+ Lines executed:67.41% of 135
+ Creating 'sha2.c.gcov'
+</code></pre></li>
+
+<li><p>The last complication to consider is that, since we can have
+ two different modes of execution for any given source file
+ (since we compile certain files in both kernel and user mode),
+ it&rsquo;d be ideal to have seperate coverage reports for kernel and
+ user mode execution. Codecov appears to support this via its
+ concept of &ldquo;flags&rdquo; (i.e. using the <code>-F</code> option of their <a href="https://docs.codecov.io/v4.3.6/docs/about-the-codecov-bash-uploader">Bash
+ uploader</a>), but that functionality still needs to be
+ evaluated to make sure it&rsquo;ll work for our needs.</p></li>
+</ul></li>
+</ol>
+
+<p>All in all, coming up with solutions for any (or all) of these
+complications is possible, it just requires a little more work to be
+done. For the first attempt at collecting coverage data, I opted to keep
+the implementation simple yet functional and useful. I hope to revisit
+these issues, and extend the coverage data to include the libraries
+soon.</p>
+
+</main>
+    <footer>
+  <hr />
+
+<div class="footer">
+  <div id="footer-left">
+    <a href="mailto:me@prakashsurya.com">me@prakashsurya.com</a>
+  </div>
+
+  <div id="footer-center">
+    Published: 18 Sep 2017
+  </div>
+
+  <div id="footer-right">
+    Last Modified: 18 Sep 2017
+  </div>
+</div>
+
+</footer>
+  </body>
+</html>
