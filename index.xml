@@ -6,8 +6,397 @@
     <description>Recent content on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 18 Sep 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Tue, 19 Sep 2017 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Python &#43; Jupyter for Performance Testing</title>
+      <link>https://www.prakashsurya.com/post/2017-09-19-python-plus-jupyter-for-performance-testing/</link>
+      <pubDate>Tue, 19 Sep 2017 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2017-09-19-python-plus-jupyter-for-performance-testing/</guid>
+      <description>
+
+&lt;h1 id=&#34;setting-the-stage&#34;&gt;Setting the stage.&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Working on performance improvement to ZFS (sync writes)&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;To verify my changes, I needed to:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Measure the performance of the system &lt;strong&gt;without&lt;/strong&gt; my changes.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Measure the performance of the system &lt;strong&gt;with&lt;/strong&gt; my changes.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Analyze the difference(s) in performance with and without my
+changes.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Collect tangential information from the system, to support
+(or refute) my conclusions.&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;visualizations-required&#34;&gt;Visualizations required?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;While not strictly required, visualizations are often powerful.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Examples:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Flamegraphs for on-CPU Analysis.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Heatmaps and/or Histograms for multi-modal latency data.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Simple 2D line graphs for high level application metrics.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Thus, visualizations are &lt;em&gt;kind of&lt;/em&gt; required&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Analysis is prohibitively difficult without them.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;this-must-be-a-solved-problem-right&#34;&gt;This must be a solved problem&amp;hellip; right?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Rather than re-invent the wheel, lets learn from my co-workers.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;What tools were used for past performance related work?&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Excel&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Google Spreadsheets&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;How was data transferred into the spreadsheet?&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;CSV file&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Copy/Paste&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Everything done in an ad-hoc basis, specific to each project.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;ok-google-spreadsheets-it-is-take-one&#34;&gt;OK, Google Spreadsheets it is&amp;hellip; take one.&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&amp;ldquo;fio&amp;rdquo; was used; it output metrics about the IO it performs:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code&gt;  write: io=4171.3MB, bw=70549KB/s, iops=8818, runt= 60544msec
+    clat (usec): min=680, max=2260.4K, avg=115400.25, stdev=214661.67
+     lat (usec): min=681, max=2260.4K, avg=115401.19, stdev=214661.63
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;40 unique test configurations:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;fio run with 10 different thread counts; 1 to 1024 threads.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;zpool used with 4 different disk counts; 1 to 8 disks.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;80 tests in total; 40 with changes, 40 without my changes.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For each test, I would manually copy/paste fio data into spreadsheet.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Graphs generated from the data was nice&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Inputting data into the spreadsheet was terrible.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;google-spreadsheets-take-two&#34;&gt;Google Spreadsheets; take two.&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&amp;ldquo;Take one&amp;rdquo; was lame&amp;hellip; So, I started looking for ways to improve it.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Discovered that fio can output JSON data using &amp;ldquo;&amp;ndash;output-format&amp;rdquo;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Maybe that, combined with &amp;ldquo;jq&amp;rdquo; and some Bash would help?&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Wrote a Bash script to:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;iterate over all fio JSON output files&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;use jq to parse IOPs data for each test iteration&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;output CSV (to stdout) for all 40 test configurations&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;I would then manually copy/paste CSV data into spreadsheet.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Using a CSV file rather than copy/paste isn&amp;rsquo;t much different.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;end-result-so-far&#34;&gt;End result so far.&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Spreadsheet would contain a table like the following:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;.center[```
+iops    |    1   |    2   |     4   |     8   |    16   |     32   | &amp;hellip;
+&amp;mdash;&amp;mdash;&amp;ndash;+&amp;mdash;&amp;mdash;&amp;ndash;+&amp;mdash;&amp;mdash;&amp;ndash;+&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;-+&amp;mdash;-
+1 disk  | 164.79 | 328.89 |  672.61 | 1361.03 | 18414.9 | 19130.33 | &amp;hellip;
+2 disks | 201.11 | 390.75 | 1171.71 | 1342.84 | 2630.02 |  5389.89 | &amp;hellip;
+4 disks | 200.31 | 364.79 | 1184.56 | 2228.02 | 2677.17 |  5223.90 | &amp;hellip;
+8 disks | 180.57 | 395.95 | 1158.49 | 1940.64 | 3602.46 |  5340.03 | &amp;hellip;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-]&#34;&gt;
+ - And this would get converted into a simple line graph:
+
+.center[![:scale 95%](spreadsheet-iops.png)]
+
+---
+
+background-image: url(spreadsheet-iops.png)
+
+# Huh.. The blue line looks different.. Why?
+
+---
+
+# Application metrics is not sufficient.
+
+ - Started looking at data from &amp;quot;iostat&amp;quot;
+
+ - Used a script to:
+
+    - log &amp;quot;iostat&amp;quot; output to a file for each test configuration...
+
+    - then parse the output files for each configuration...
+
+    - then output CSV to standard output.
+
+ - CSV data would be manually copied into the spreadsheet
+
+ - Now, there were copy/pasted tables (and graphs) for:
+
+    - fio IOPs vs. fio threads
+
+    - iostat &amp;quot;%b&amp;quot;, &amp;quot;actv&amp;quot;, &amp;quot;asvc_t&amp;quot;, and &amp;quot;w/s&amp;quot; (each vs. fio threads)
+
+ - Starting to encroach on original problem; too much copy/paste.
+
+---
+
+# iostat&#39;s %b vs. fio threads
+
+.center[```
+   %b   |   1   |   2   |   4   |   8   |   16  |   32  | ...
+--------+-------+-------+-------+-------+-------+-------+----
+1 disk  | 81.68 | 80.37 | 97.40 | 99.42 | 99.42 | 99.42 | ...
+2 disks | 38.93 | 38.36 | 48.25 | 91.25 | 88.07 | 77.83 | ...
+4 disks | 19.52 | 19.47 | 24.08 | 42.15 | 78.91 | 82.66 | ...
+8 disks |  9.96 |  9.54 | 12.00 | 21.02 | 36.17 | 71.26 | ...
+```]
+
+.center[![:scale 100%](spreadsheet-pct-b.png)]
+
+---
+
+# iostat&#39;s actv vs. fio threads
+
+.center[```
+  actv  |   1   |   2   |   4   |   8   |   16  |   32  | ...
+--------+-------+-------+-------+-------+-------+-------+----
+1 disk  |  0.81 |  0.81 |  1.00 |  2.00 |  3.57 |  7.39 | ...
+2 disks |  0.40 |  0.39 |  0.49 |  0.93 |  1.66 |  2.77 | ...
+4 disks |  0.19 |  0.20 |  0.24 |  0.42 |  0.80 |  1.43 | ...
+8 disks |  0.10 |  0.10 |  0.12 |  0.21 |  0.36 |  0.72 | ...
+```]
+
+.center[![:scale 100%](spreadsheet-actv.png)]
+
+---
+
+# iostat&#39;s asvc_t vs. fio threads
+
+.center[```
+ asvc_t |   1   |   2   |   4   |   8   |   16  |   32  | ...
+--------+-------+-------+-------+-------+-------+-------+----
+1 disk  |  5.04 |  4.97 |  5.84 |  5.80 |  0.98 |  1.65 | ...
+2 disks |  4.27 |  4.26 |  3.56 |  5.49 |  5.07 |  4.08 | ...
+4 disks |  4.03 |  4.38 |  3.42 |  3.15 |  4.75 |  4.40 | ...
+8 disks |  5.65 |  4.02 |  3.43 |  3.55 |  3.23 |  4.34 | ...
+```]
+
+.center[![:scale 100%](spreadsheet-asvc-t.png)]
+
+---
+
+# Spreadsheets: decent, but far from ideal.
+
+ - Pros:
+
+    - No setup required.
+
+    - Visualizations helped understand data.
+
+ - Cons:
+
+    - Data input is manual and error prone.
+
+    - Available visualizations can be limiting; e.g. flamegraphs?
+
+    - Code is seperate from data/visualizations.
+
+    - No way to review code/data for correctness.&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;
+
+    - No way to annotate data/visualizations with explanations.
+
+.footnote[&amp;lt;sub&amp;gt;&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;&amp;lt;sub&amp;gt;http://www.nytimes.com/2013/04/19/opinion/krugman-the-excel-depression.html&amp;lt;/sub&amp;gt;&amp;lt;/sub&amp;gt;]
+
+---
+
+# Is there a better way?
+
+ - Spent some time googling around for different ideas/approaches.
+
+ - Discovered Jupyter and Jupyter Notebooks.
+
+ - With Jupyter, I am able to:
+
+    - Generate complex visualizations using Python libraries
+
+    - Perform data analysis using Python libraries
+
+    - Embed text/explanations inline with visualizations
+
+    - Embed python data analysis code directly in the notebook
+
+---
+
+# What is Jupyter?
+
+- Excerpt taken from &amp;quot;What is Jupyter?&amp;quot; article&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;&amp;hellip;&lt;/p&gt;
+
+&lt;p&gt;But without attracting the hype, Jupyter Notebooks are revolutionizing
+the way engineers and data scientists work together. If all important
+work is collaborative, the most important tools we have are tools for
+collaboration, tools that make working together more productive.&lt;/p&gt;
+
+&lt;p&gt;That&amp;rsquo;s what Jupyter is, in a nutshell: it&amp;rsquo;s a tool for collaborating.
+It’s built for writing and sharing code and text, within the context of
+a web page.&lt;/p&gt;
+
+&lt;p&gt;&amp;hellip;&lt;/p&gt;
+
+&lt;p&gt;Code is never just code. It&amp;rsquo;s part of a thought process, an argument,
+even an experiment. This is particularly true for data analysis, but
+it&amp;rsquo;s true for almost any application. Jupyter lets you build a &amp;ldquo;lab
+notebook&amp;rdquo; that shows your work: the code, the data, the results, along
+with your explanation and reasoning.&lt;/p&gt;
+
+&lt;p&gt;&amp;hellip;
+```&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;.footnote[&lt;sub&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;sub&gt;&lt;a href=&#34;https://www.oreilly.com/ideas/what-is-jupyter&#34;&gt;https://www.oreilly.com/ideas/what-is-jupyter&lt;/a&gt;&lt;/sub&gt;&lt;/sub&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;basic-example-1-visualizaing-fio-iops&#34;&gt;Basic example 1: Visualizaing fio IOPs&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://github.com/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/visualizing-fio-results-with-jupyter.ipynb&#34;&gt;notebook&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/visualizing-fio-results-with-jupyter.ipynb&#34;&gt;nbviewer&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;basic-example-2-visualizaing-iostat&#34;&gt;Basic example 2: Visualizaing iostat&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://github.com/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/visualizing-iostat-results-with-jupyter.ipynb&#34;&gt;notebook&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/visualizing-iostat-results-with-jupyter.ipynb&#34;&gt;nbviewer&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;real-example-my-results-for-openzfs-447&#34;&gt;Real example: My results for OpenZFS #447&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-08-performance-testing-results-for-openzfs-447/openzfs-447-perf-max-rate-submit-hdd.ipynb&#34;&gt;Max Rate Submit on HDDs&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-08-performance-testing-results-for-openzfs-447/openzfs-447-perf-max-rate-submit-ssd.ipynb&#34;&gt;Max Rate Submit on SSDs&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-08-performance-testing-results-for-openzfs-447/openzfs-447-perf-fixed-rate-submit-hdd.ipynb&#34;&gt;Fixed Rate Submit on HDDs&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-08-performance-testing-results-for-openzfs-447/openzfs-447-perf-fixed-rate-submit-hdd.ipynb&#34;&gt;Fixed Rate Submit on HDDs&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;.footnote[&lt;sub&gt;&lt;sup&gt;*&lt;/sup&gt;&lt;sub&gt;&lt;a href=&#34;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/&#34;&gt;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/&lt;/a&gt;&lt;/sub&gt;&lt;/sub&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;my-jupyter-tips&#34;&gt;My Jupyter Tips&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Use relavant Python libraries; e.g. Pandas, Matplotlib, etc.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Format output data to allow easier ingestion.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;e.g. use &lt;code&gt;pandas.read_csv&lt;/code&gt; rather than custom parsing.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Use &lt;code&gt;pandas.DataFrame&lt;/code&gt;; makes data analysis and graphing easy:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;df.plot()&lt;/code&gt; to plot data.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;df3 = df1 - df2&lt;/code&gt; to determine the difference&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;seaborn&lt;/code&gt; library can help make graphs subjectively &amp;ldquo;prettier&amp;rdquo;.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;As simple as &lt;code&gt;import seaborn&lt;/code&gt; to change defaults&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-to-install-and-run-jupyter&#34;&gt;How to install and run Jupyter?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Official documentation: &lt;a href=&#34;http://jupyter.readthedocs.io/en/latest/content-quickstart.html&#34;&gt;Jupyter Notebook Quickstart&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;My notes: &lt;a href=&#34;https://www.prakashsurya.com/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/&#34;&gt;Using Python and Jupyter for Performance Testing and Analysis&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;end&#34;&gt;End&lt;/h1&gt;
+</description>
+    </item>
     
     <item>
       <title>Code Coverage for ZFS on Linux</title>
@@ -3161,335 +3550,6 @@ io:::done
         ts[args[0]-&amp;gt;b_edev, args[0]-&amp;gt;b_lblkno] = 0;
 }
 &lt;/code&gt;&lt;/pre&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>OpenZFS: Reducing ARC Lock Contention</title>
-      <link>https://www.prakashsurya.com/post/2015-03-23-openzfs-reducing-arc-lock-contention/</link>
-      <pubDate>Mon, 23 Mar 2015 00:00:00 -0800</pubDate>
-      
-      <guid>https://www.prakashsurya.com/post/2015-03-23-openzfs-reducing-arc-lock-contention/</guid>
-      <description>
-
-&lt;p&gt;&lt;strong&gt;tl;dr;&lt;/strong&gt; Cached random read performance of 8K blocks was improved by
-225% by reducing internal lock contention within the OpenZFS ARC on
-illumos.&lt;/p&gt;
-
-&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
-
-&lt;p&gt;Locks are a pain. Even worse, is a single lock serializing all of the
-page cache accesses for a filesystem. While that&amp;rsquo;s not &lt;em&gt;quite&lt;/em&gt; the
-situation the OpenZFS ARC was in earlier this year, it was pretty close.&lt;/p&gt;
-
-&lt;p&gt;For those unfamiliar, the OpenZFS file system is built atop its very own
-page cache based on the paper by Nimrod Megiddo and Dharmendra S. Modha,
-&amp;ldquo;ARC: A Self-Tuning, Low Overhead Replacement Cache&amp;rdquo;. While the paper
-provides a very good basis from which actual code can be written to
-implement its concepts, there&amp;rsquo;s a number of real world problems it fails
-to address. For this article, we&amp;rsquo;ll be looking at one of these problems:
-concurrency.&lt;/p&gt;
-
-&lt;h2 id=&#34;real-world-problems-with-the-arc&#34;&gt;Real World Problems with the ARC&lt;/h2&gt;
-
-&lt;p&gt;The paper describes a global data structure from which all page accesses
-are performed; the problem is, it doesn&amp;rsquo;t describe a mechanism to do
-this safely in a highly concurrent environment. Since any modern file
-system obviously needs to support multi-threaded concurrent operations,
-locks had to be added to protect the global data used to manage and
-implement the ARC. How might one do this?&lt;/p&gt;
-
-&lt;p&gt;One way is to is to wrap all operations modifying the global structures
-with a single mutually exclusive lock. This satisfies the requirement
-that all accesses are safe to perform concurrently from many threads,
-while also be fairly simple to understand and implement. To my surprise,
-this is how the OpenZFS ARC was structured for nearly the past decade&lt;/p&gt;
-
-&lt;h2 id=&#34;performance-before&#34;&gt;Performance: Before&lt;/h2&gt;
-
-&lt;p&gt;As one might expect, the main drawback with this simplistic approach is
-performance. While safe, on systems with many CPUs, this approach
-causes terrible lock contention for multi-threaded cached workloads. To
-highlight this performance issue, I used FIO to perform a cached random
-read workload using 32 threads. Each thread would use its own unique
-file, reading 8K blocks at random 8K aligned offsets from its file
-[&lt;a href=&#34;#appendix-1&#34;&gt;Appendix 1&lt;/a&gt;]. The aggregate bandwidth was measured while
-varying the number of virtual CPUs allocated to the virtual machine,
-and the results are as follows:&lt;/p&gt;
-
-&lt;table&gt;
-&lt;thead&gt;
-&lt;tr&gt;
-&lt;th&gt;# of CPUS&lt;/th&gt;
-&lt;th&gt;Bandwidth&lt;/th&gt;
-&lt;/tr&gt;
-&lt;/thead&gt;
-
-&lt;tbody&gt;
-&lt;tr&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;td&gt;840893 KB/s&lt;/td&gt;
-&lt;/tr&gt;
-
-&lt;tr&gt;
-&lt;td&gt;2&lt;/td&gt;
-&lt;td&gt;1559.5 MB/s&lt;/td&gt;
-&lt;/tr&gt;
-
-&lt;tr&gt;
-&lt;td&gt;4&lt;/td&gt;
-&lt;td&gt;3022.1 MB/s&lt;/td&gt;
-&lt;/tr&gt;
-
-&lt;tr&gt;
-&lt;td&gt;8&lt;/td&gt;
-&lt;td&gt;5104.9 MB/s&lt;/td&gt;
-&lt;/tr&gt;
-
-&lt;tr&gt;
-&lt;td&gt;16&lt;/td&gt;
-&lt;td&gt;3854.3 MB/s&lt;/td&gt;
-&lt;/tr&gt;
-
-&lt;tr&gt;
-&lt;td&gt;32&lt;/td&gt;
-&lt;td&gt;3036.2 MB/s&lt;/td&gt;
-&lt;/tr&gt;
-&lt;/tbody&gt;
-&lt;/table&gt;
-
-&lt;p&gt;See [&lt;a href=&#34;#appendix-2&#34;&gt;Appendix 2&lt;/a&gt;] for more detailed performance metrics.&lt;/p&gt;
-
-&lt;p&gt;As one can see, the performance scales terribly when increasing the
-number of CPUs in the system. Not only does performance fail to increase
-with more CPUs, it actually gets much worse with more CPUs! Clearly this
-is a bad situation to be in; especially so, with large CPU count systems
-becoming increasingly more common.&lt;/p&gt;
-
-&lt;p&gt;Looking at a snippet of lockstat profiling data, it&amp;rsquo;s clear which locks
-are to blame (the following was taken from a run on a system with 32
-CPUs):&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Count indv cuml rcnt     nsec Lock                   Caller
--------------------------------------------------------------------------------
-4191777  47%  47% 0.00    67709 ARC_mfu+0x58           remove_reference+0x63
-4103160  46%  92% 0.00    75366 ARC_mfu+0x58           add_reference+0x8d
-   1877   0%  92% 0.00   436330 buf_hash_table+0x750   arc_buf_add_ref+0x6a
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;The two locks causing the bottleneck are used to protect the ARC&amp;rsquo;s
-internal lists. These lists contain all ARC buffers residing in the
-cache that aren&amp;rsquo;t actively used by consumers of the ARC (i.e. buffers
-with a reference count of zero). Every time a buffer is added or removed
-from one of these lists, the list&amp;rsquo;s lock must be held. This means the
-lists&amp;rsquo; lock must be acquired for all of the following operations: a read
-from disk, an ARC cache hit, when evicting a buffer, when dirtying a
-buffer, when all references to a buffer are released by consumers, etc.&lt;/p&gt;
-
-&lt;h2 id=&#34;remove-the-lists&#34;&gt;Remove the Lists?&lt;/h2&gt;
-
-&lt;p&gt;Before I dive into the solution that was taken, I should make it clear
-why the lists are needed in the first place. These lists allow for
-iterating over the buffers from the least recently accessed buffer to
-the most recently accessed buffer, or vice versa. The ability to do this
-iteration is critical to implementing the ARC as described by the paper.
-It allows for the least recently accessed buffer to be selected in
-constant-time during the eviction process [&lt;a href=&#34;#appendix-3&#34;&gt;Appendix 3&lt;/a&gt;].&lt;/p&gt;
-
-&lt;h2 id=&#34;solution-use-more-locks&#34;&gt;Solution: Use More Locks!&lt;/h2&gt;
-
-&lt;p&gt;To alleviate the issue, we really needed a way to perform this iteration
-without causing so much locking overhead to the performance critical
-code paths (e.g. during a ARC cache hit). The solution we decided on is
-to split each of the ARC&amp;rsquo;s internal lists into a variable number of
-sublists, each sublist having its own lock and maintaining a time
-ordering within itself (i.e. the buffers in each sublist are ordered
-based on access time, but there&amp;rsquo;s no ordering of buffers between the
-different sublists). Thus, a new data structure was created to
-encapsulate these semantics, a &amp;ldquo;multilist&amp;rdquo; [&lt;a href=&#34;#appendix-4&#34;&gt;Appendix 4&lt;/a&gt;].&lt;/p&gt;
-
-&lt;p&gt;On the surface this seems like a pretty trivial change, but there&amp;rsquo;s a
-key aspect that make it more complex to implement than one might expect.
-Due to the sublists not maintaining a strict ordering between each
-other, selecting the least (or most) recently accessed buffer is no
-longer a constant-time operation. In general, it becomes a linear-time
-operation as each sublist must be iterated, comparing the elements in
-each sublists with each other.&lt;/p&gt;
-
-&lt;p&gt;A linear-time lookup of the least recently accessed buffer is
-insufficient, so a clever domain-specific workaround was used to allow
-for this lookup to maintain its constant-time complexity. Rather than
-selecting the absolute least recently accessed buffer during eviction,
-a buffer that is &amp;ldquo;old enough&amp;rdquo; is selected instead; this selection
-happening in constant-time.&lt;/p&gt;
-
-&lt;p&gt;We do this by evenly inserting buffers into each sublist, and then
-during eviction, a randomly selected sublist is chosen. This sublist&amp;rsquo;s
-least recently accessed buffer is selected and evicted. This process
-will select a buffer that&amp;rsquo;s &amp;ldquo;old enough&amp;rdquo; based on the fact that buffers
-are evenly inserted into each of the sublists, so each sublist&amp;rsquo;s least
-recently accessed buffer will have an access time proportional to all
-other sublists&amp;rsquo; least recently accessed buffer [&lt;a href=&#34;#appendix-5&#34;&gt;Appendix
-5&lt;/a&gt;].&lt;/p&gt;
-
-&lt;h2 id=&#34;performance-after&#34;&gt;Performance: After&lt;/h2&gt;
-
-&lt;p&gt;As with any performance related change, empirical results are necessary
-to give the change any sort of credibility. So, the workload that was
-previously used to exemplify the problem [&lt;a href=&#34;#appendix-1&#34;&gt;Appendix 1&lt;/a&gt;],
-was used again to ensure the expected performance gains were achieved.
-The following table contains aggregate bandwidth numbers with the fix in
-place (&amp;ldquo;Bandwidth After&amp;rdquo; column), as well as the aggregate bandwidth
-numbers without the fix (&amp;ldquo;Bandwidth Before&amp;rdquo; column, the same results
-previously shown):&lt;/p&gt;
-
-&lt;table&gt;
-&lt;thead&gt;
-&lt;tr&gt;
-&lt;th&gt;# of CPUS&lt;/th&gt;
-&lt;th&gt;Bandwidth After&lt;/th&gt;
-&lt;th&gt;Bandwidth Before&lt;/th&gt;
-&lt;/tr&gt;
-&lt;/thead&gt;
-
-&lt;tbody&gt;
-&lt;tr&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;td&gt;833163 KB/s&lt;/td&gt;
-&lt;td&gt;840893 KB/s&lt;/td&gt;
-&lt;/tr&gt;
-
-&lt;tr&gt;
-&lt;td&gt;2&lt;/td&gt;
-&lt;td&gt;1520.2 MB/s&lt;/td&gt;
-&lt;td&gt;1559.5 MB/s&lt;/td&gt;
-&lt;/tr&gt;
-
-&lt;tr&gt;
-&lt;td&gt;4&lt;/td&gt;
-&lt;td&gt;2985.3 MB/s&lt;/td&gt;
-&lt;td&gt;3022.1 MB/s&lt;/td&gt;
-&lt;/tr&gt;
-
-&lt;tr&gt;
-&lt;td&gt;8&lt;/td&gt;
-&lt;td&gt;5913.2 MB/s&lt;/td&gt;
-&lt;td&gt;5104.9 MB/s&lt;/td&gt;
-&lt;/tr&gt;
-
-&lt;tr&gt;
-&lt;td&gt;16&lt;/td&gt;
-&lt;td&gt;8938.9 MB/s&lt;/td&gt;
-&lt;td&gt;3854.3 MB/s&lt;/td&gt;
-&lt;/tr&gt;
-
-&lt;tr&gt;
-&lt;td&gt;32&lt;/td&gt;
-&lt;td&gt;9896.6 MB/s&lt;/td&gt;
-&lt;td&gt;3036.2 MB/s&lt;/td&gt;
-&lt;/tr&gt;
-&lt;/tbody&gt;
-&lt;/table&gt;
-
-&lt;p&gt;As expected, performance scales much better as more CPUs are added to
-the system, and the overall performance saw a 225% improvement when
-using 32 CPUs (the largest CPU count I had available to test). Also,
-the performance difference when using a small number of CPUs was
-negligible.&lt;/p&gt;
-
-&lt;p&gt;Lockstat was used again, and contention is clearly much less than before
-(as before, this snippet was taken from a run on a system with 32 CPUs):&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;Count indv cuml rcnt     nsec Lock                   Caller
-------------------------------------------------------------------------------
-142396   3%   3% 0.00     2785 0xffffff09168112b0     rrw_exit+0x23
-136499   3%   6% 0.00     3012 0xffffff09168112b0     rrw_enter_read+0x2
- 82009   2%   8% 0.00     3359 0xffffff09168110d0     rrw_enter_read+0x27
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Success!&lt;/p&gt;
-
-&lt;h2 id=&#34;commit-details&#34;&gt;Commit Details&lt;/h2&gt;
-
-&lt;p&gt;For those interested, this fix was committed to illumos on January 12th,
-2015 via this commit:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;commit 244781f10dcd82684fd8163c016540667842f203
-Author:     Prakash Surya
-AuthorDate: Mon Jan 12 19:52:19 2015 -0800
-Commit:     Christopher Siden
-CommitDate: Mon Jan 12 19:52:19 2015 -0800
-
-    5497 lock contention on arcs_mtx
-    Reviewed by: George Wilson
-    Reviewed by: Matthew Ahrens
-    Reviewed by: Richard Elling
-    Approved by: Dan McDonald
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;It&amp;rsquo;s also in the process of being ported and merged into FreeBSD and
-OpenZFS on Linux (at least, it was at the time of this writing).&lt;/p&gt;
-
-&lt;h2 id=&#34;appendix&#34;&gt;Appendix&lt;/h2&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;a name=&#34;appendix-1&#34;&gt;&lt;/a&gt;The FIO script used to run the performance
-benchmarks is below. Keep in mind, this script was run a number of
-times prior to gathering the performance data, as I was specifically
-targeting a fully cached workload and needed to ensure the files
-were cached in the ARC.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[global]
-group_reporting=1
-fallocate=none
-ioengine=psync
-numjobs=32
-iodepth=1
-bs=8k
-filesize=512m
-size=512m
-randrepeat=0
-use_os_rand=1
-
-[32threads]
-rw=randread
-time_based
-runtime=1m
-directory=/tank/fish
-&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;a name=&#34;appendix-2&#34;&gt;&lt;/a&gt;In addition to the run used to gather the
-aggregate bandwidth numbers, the FIO script was run a couple more
-times to gather more useful debugging and performance metrics.
-Specifically, it was run with lockstat profiling enabled, which was
-used to pinpoint the lock(s) causing the poor scaling. As well as
-another iteration with flame graph profiling enabled to pinpoint the
-specific functions of interest (additionally to provide
-corroborating evidence to back up the lockstat data). Unfortunately,
-it looks like I can&amp;rsquo;t upload SVG or TAR files; so if anybody is
-interested in the full lockstat output or the flamegraphs, drop me
-an email and we can work something out (probably just email the TAR
-archive directly as it&amp;rsquo;s only 227K compressed).&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;a name=&#34;appendix-3&#34;&gt;&lt;/a&gt;The lists can also be iterated starting
-from the most recently accessed buffer to the least recently
-accessed buffer too. This iteration direction is used when
-populating the L2ARC device prior to the cache being &amp;ldquo;warmed up&amp;rdquo;.&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;a name=&#34;appendix-4&#34;&gt;&lt;/a&gt;This concept is not original to me, as
-FreeBSD has included a similar fix to the ARC in their platform for
-some time. FreeBSD&amp;rsquo;s usage of this concept actually gave me
-confidence that it would work out in practice, prior to actually
-having a working solution.&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;a id=&#34;appendix-5&#34;&gt;&lt;/a&gt;I realize &amp;ldquo;old enough&amp;rdquo; is vague, but
-essentially what we&amp;rsquo;re doing here is using a heuristic to determine
-what buffer would be the best candidate to be evicted from the
-cache. So, we&amp;rsquo;re modifying the previous heuristic from always
-selecting the absolutely oldest buffer, to being a randomly selected
-buffer out of a group of &amp;ldquo;old&amp;rdquo; buffers. The group of old buffers
-being composed of the tails of all the sublists.&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;
 </description>
     </item>
     

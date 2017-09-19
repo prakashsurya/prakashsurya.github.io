@@ -6,8 +6,397 @@
     <description>Recent content in Posts on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 18 Sep 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Tue, 19 Sep 2017 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Python &#43; Jupyter for Performance Testing</title>
+      <link>https://www.prakashsurya.com/post/2017-09-19-python-plus-jupyter-for-performance-testing/</link>
+      <pubDate>Tue, 19 Sep 2017 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2017-09-19-python-plus-jupyter-for-performance-testing/</guid>
+      <description>
+
+&lt;h1 id=&#34;setting-the-stage&#34;&gt;Setting the stage.&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Working on performance improvement to ZFS (sync writes)&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;To verify my changes, I needed to:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Measure the performance of the system &lt;strong&gt;without&lt;/strong&gt; my changes.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Measure the performance of the system &lt;strong&gt;with&lt;/strong&gt; my changes.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Analyze the difference(s) in performance with and without my
+changes.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Collect tangential information from the system, to support
+(or refute) my conclusions.&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;visualizations-required&#34;&gt;Visualizations required?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;While not strictly required, visualizations are often powerful.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Examples:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Flamegraphs for on-CPU Analysis.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Heatmaps and/or Histograms for multi-modal latency data.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Simple 2D line graphs for high level application metrics.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Thus, visualizations are &lt;em&gt;kind of&lt;/em&gt; required&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Analysis is prohibitively difficult without them.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;this-must-be-a-solved-problem-right&#34;&gt;This must be a solved problem&amp;hellip; right?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Rather than re-invent the wheel, lets learn from my co-workers.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;What tools were used for past performance related work?&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Excel&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Google Spreadsheets&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;How was data transferred into the spreadsheet?&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;CSV file&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Copy/Paste&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Everything done in an ad-hoc basis, specific to each project.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;ok-google-spreadsheets-it-is-take-one&#34;&gt;OK, Google Spreadsheets it is&amp;hellip; take one.&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&amp;ldquo;fio&amp;rdquo; was used; it output metrics about the IO it performs:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code&gt;  write: io=4171.3MB, bw=70549KB/s, iops=8818, runt= 60544msec
+    clat (usec): min=680, max=2260.4K, avg=115400.25, stdev=214661.67
+     lat (usec): min=681, max=2260.4K, avg=115401.19, stdev=214661.63
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;40 unique test configurations:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;fio run with 10 different thread counts; 1 to 1024 threads.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;zpool used with 4 different disk counts; 1 to 8 disks.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;80 tests in total; 40 with changes, 40 without my changes.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For each test, I would manually copy/paste fio data into spreadsheet.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Graphs generated from the data was nice&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Inputting data into the spreadsheet was terrible.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;google-spreadsheets-take-two&#34;&gt;Google Spreadsheets; take two.&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&amp;ldquo;Take one&amp;rdquo; was lame&amp;hellip; So, I started looking for ways to improve it.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Discovered that fio can output JSON data using &amp;ldquo;&amp;ndash;output-format&amp;rdquo;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Maybe that, combined with &amp;ldquo;jq&amp;rdquo; and some Bash would help?&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Wrote a Bash script to:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;iterate over all fio JSON output files&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;use jq to parse IOPs data for each test iteration&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;output CSV (to stdout) for all 40 test configurations&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;I would then manually copy/paste CSV data into spreadsheet.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Using a CSV file rather than copy/paste isn&amp;rsquo;t much different.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;end-result-so-far&#34;&gt;End result so far.&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Spreadsheet would contain a table like the following:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;.center[```
+iops    |    1   |    2   |     4   |     8   |    16   |     32   | &amp;hellip;
+&amp;mdash;&amp;mdash;&amp;ndash;+&amp;mdash;&amp;mdash;&amp;ndash;+&amp;mdash;&amp;mdash;&amp;ndash;+&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;-+&amp;mdash;-
+1 disk  | 164.79 | 328.89 |  672.61 | 1361.03 | 18414.9 | 19130.33 | &amp;hellip;
+2 disks | 201.11 | 390.75 | 1171.71 | 1342.84 | 2630.02 |  5389.89 | &amp;hellip;
+4 disks | 200.31 | 364.79 | 1184.56 | 2228.02 | 2677.17 |  5223.90 | &amp;hellip;
+8 disks | 180.57 | 395.95 | 1158.49 | 1940.64 | 3602.46 |  5340.03 | &amp;hellip;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-]&#34;&gt;
+ - And this would get converted into a simple line graph:
+
+.center[![:scale 95%](spreadsheet-iops.png)]
+
+---
+
+background-image: url(spreadsheet-iops.png)
+
+# Huh.. The blue line looks different.. Why?
+
+---
+
+# Application metrics is not sufficient.
+
+ - Started looking at data from &amp;quot;iostat&amp;quot;
+
+ - Used a script to:
+
+    - log &amp;quot;iostat&amp;quot; output to a file for each test configuration...
+
+    - then parse the output files for each configuration...
+
+    - then output CSV to standard output.
+
+ - CSV data would be manually copied into the spreadsheet
+
+ - Now, there were copy/pasted tables (and graphs) for:
+
+    - fio IOPs vs. fio threads
+
+    - iostat &amp;quot;%b&amp;quot;, &amp;quot;actv&amp;quot;, &amp;quot;asvc_t&amp;quot;, and &amp;quot;w/s&amp;quot; (each vs. fio threads)
+
+ - Starting to encroach on original problem; too much copy/paste.
+
+---
+
+# iostat&#39;s %b vs. fio threads
+
+.center[```
+   %b   |   1   |   2   |   4   |   8   |   16  |   32  | ...
+--------+-------+-------+-------+-------+-------+-------+----
+1 disk  | 81.68 | 80.37 | 97.40 | 99.42 | 99.42 | 99.42 | ...
+2 disks | 38.93 | 38.36 | 48.25 | 91.25 | 88.07 | 77.83 | ...
+4 disks | 19.52 | 19.47 | 24.08 | 42.15 | 78.91 | 82.66 | ...
+8 disks |  9.96 |  9.54 | 12.00 | 21.02 | 36.17 | 71.26 | ...
+```]
+
+.center[![:scale 100%](spreadsheet-pct-b.png)]
+
+---
+
+# iostat&#39;s actv vs. fio threads
+
+.center[```
+  actv  |   1   |   2   |   4   |   8   |   16  |   32  | ...
+--------+-------+-------+-------+-------+-------+-------+----
+1 disk  |  0.81 |  0.81 |  1.00 |  2.00 |  3.57 |  7.39 | ...
+2 disks |  0.40 |  0.39 |  0.49 |  0.93 |  1.66 |  2.77 | ...
+4 disks |  0.19 |  0.20 |  0.24 |  0.42 |  0.80 |  1.43 | ...
+8 disks |  0.10 |  0.10 |  0.12 |  0.21 |  0.36 |  0.72 | ...
+```]
+
+.center[![:scale 100%](spreadsheet-actv.png)]
+
+---
+
+# iostat&#39;s asvc_t vs. fio threads
+
+.center[```
+ asvc_t |   1   |   2   |   4   |   8   |   16  |   32  | ...
+--------+-------+-------+-------+-------+-------+-------+----
+1 disk  |  5.04 |  4.97 |  5.84 |  5.80 |  0.98 |  1.65 | ...
+2 disks |  4.27 |  4.26 |  3.56 |  5.49 |  5.07 |  4.08 | ...
+4 disks |  4.03 |  4.38 |  3.42 |  3.15 |  4.75 |  4.40 | ...
+8 disks |  5.65 |  4.02 |  3.43 |  3.55 |  3.23 |  4.34 | ...
+```]
+
+.center[![:scale 100%](spreadsheet-asvc-t.png)]
+
+---
+
+# Spreadsheets: decent, but far from ideal.
+
+ - Pros:
+
+    - No setup required.
+
+    - Visualizations helped understand data.
+
+ - Cons:
+
+    - Data input is manual and error prone.
+
+    - Available visualizations can be limiting; e.g. flamegraphs?
+
+    - Code is seperate from data/visualizations.
+
+    - No way to review code/data for correctness.&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;
+
+    - No way to annotate data/visualizations with explanations.
+
+.footnote[&amp;lt;sub&amp;gt;&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;&amp;lt;sub&amp;gt;http://www.nytimes.com/2013/04/19/opinion/krugman-the-excel-depression.html&amp;lt;/sub&amp;gt;&amp;lt;/sub&amp;gt;]
+
+---
+
+# Is there a better way?
+
+ - Spent some time googling around for different ideas/approaches.
+
+ - Discovered Jupyter and Jupyter Notebooks.
+
+ - With Jupyter, I am able to:
+
+    - Generate complex visualizations using Python libraries
+
+    - Perform data analysis using Python libraries
+
+    - Embed text/explanations inline with visualizations
+
+    - Embed python data analysis code directly in the notebook
+
+---
+
+# What is Jupyter?
+
+- Excerpt taken from &amp;quot;What is Jupyter?&amp;quot; article&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;&amp;hellip;&lt;/p&gt;
+
+&lt;p&gt;But without attracting the hype, Jupyter Notebooks are revolutionizing
+the way engineers and data scientists work together. If all important
+work is collaborative, the most important tools we have are tools for
+collaboration, tools that make working together more productive.&lt;/p&gt;
+
+&lt;p&gt;That&amp;rsquo;s what Jupyter is, in a nutshell: it&amp;rsquo;s a tool for collaborating.
+It’s built for writing and sharing code and text, within the context of
+a web page.&lt;/p&gt;
+
+&lt;p&gt;&amp;hellip;&lt;/p&gt;
+
+&lt;p&gt;Code is never just code. It&amp;rsquo;s part of a thought process, an argument,
+even an experiment. This is particularly true for data analysis, but
+it&amp;rsquo;s true for almost any application. Jupyter lets you build a &amp;ldquo;lab
+notebook&amp;rdquo; that shows your work: the code, the data, the results, along
+with your explanation and reasoning.&lt;/p&gt;
+
+&lt;p&gt;&amp;hellip;
+```&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;.footnote[&lt;sub&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;sub&gt;&lt;a href=&#34;https://www.oreilly.com/ideas/what-is-jupyter&#34;&gt;https://www.oreilly.com/ideas/what-is-jupyter&lt;/a&gt;&lt;/sub&gt;&lt;/sub&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;basic-example-1-visualizaing-fio-iops&#34;&gt;Basic example 1: Visualizaing fio IOPs&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://github.com/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/visualizing-fio-results-with-jupyter.ipynb&#34;&gt;notebook&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/visualizing-fio-results-with-jupyter.ipynb&#34;&gt;nbviewer&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;basic-example-2-visualizaing-iostat&#34;&gt;Basic example 2: Visualizaing iostat&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://github.com/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/visualizing-iostat-results-with-jupyter.ipynb&#34;&gt;notebook&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/visualizing-iostat-results-with-jupyter.ipynb&#34;&gt;nbviewer&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;real-example-my-results-for-openzfs-447&#34;&gt;Real example: My results for OpenZFS #447&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-08-performance-testing-results-for-openzfs-447/openzfs-447-perf-max-rate-submit-hdd.ipynb&#34;&gt;Max Rate Submit on HDDs&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-08-performance-testing-results-for-openzfs-447/openzfs-447-perf-max-rate-submit-ssd.ipynb&#34;&gt;Max Rate Submit on SSDs&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-08-performance-testing-results-for-openzfs-447/openzfs-447-perf-fixed-rate-submit-hdd.ipynb&#34;&gt;Fixed Rate Submit on HDDs&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Link to &lt;a href=&#34;https://nbviewer.jupyter.org/github/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-08-performance-testing-results-for-openzfs-447/openzfs-447-perf-fixed-rate-submit-hdd.ipynb&#34;&gt;Fixed Rate Submit on HDDs&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;.footnote[&lt;sub&gt;&lt;sup&gt;*&lt;/sup&gt;&lt;sub&gt;&lt;a href=&#34;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/&#34;&gt;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/&lt;/a&gt;&lt;/sub&gt;&lt;/sub&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;my-jupyter-tips&#34;&gt;My Jupyter Tips&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Use relavant Python libraries; e.g. Pandas, Matplotlib, etc.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Format output data to allow easier ingestion.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;e.g. use &lt;code&gt;pandas.read_csv&lt;/code&gt; rather than custom parsing.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Use &lt;code&gt;pandas.DataFrame&lt;/code&gt;; makes data analysis and graphing easy:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;df.plot()&lt;/code&gt; to plot data.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;df3 = df1 - df2&lt;/code&gt; to determine the difference&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;seaborn&lt;/code&gt; library can help make graphs subjectively &amp;ldquo;prettier&amp;rdquo;.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;As simple as &lt;code&gt;import seaborn&lt;/code&gt; to change defaults&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-to-install-and-run-jupyter&#34;&gt;How to install and run Jupyter?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Official documentation: &lt;a href=&#34;http://jupyter.readthedocs.io/en/latest/content-quickstart.html&#34;&gt;Jupyter Notebook Quickstart&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;My notes: &lt;a href=&#34;https://www.prakashsurya.com/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/&#34;&gt;Using Python and Jupyter for Performance Testing and Analysis&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;end&#34;&gt;End&lt;/h1&gt;
+</description>
+    </item>
     
     <item>
       <title>Code Coverage for ZFS on Linux</title>
@@ -3362,242 +3751,6 @@ selecting the absolutely oldest buffer, to being a randomly selected
 buffer out of a group of &amp;ldquo;old&amp;rdquo; buffers. The group of old buffers
 being composed of the tails of all the sublists.&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>OpenZFS Developer Summit 2014: OpenZFS on illumos</title>
-      <link>https://www.prakashsurya.com/post/2015-01-06-openzfs-developer-summit-2014-openzfs-on-illumos/</link>
-      <pubDate>Tue, 06 Jan 2015 00:00:00 -0800</pubDate>
-      
-      <guid>https://www.prakashsurya.com/post/2015-01-06-openzfs-developer-summit-2014-openzfs-on-illumos/</guid>
-      <description>
-
-&lt;p&gt;The &lt;a href=&#34;http://open-zfs.org/&#34;&gt;OpenZFS&lt;/a&gt; project is growing! The &lt;a href=&#34;http://www.open-zfs.org/wiki/OpenZFS_Developer_Summit_2014&#34;&gt;second annual OpenZFS developer
-summit&lt;/a&gt; concluded just under two months ago, and overall I thought it
-went very well. There was roughly 70 attendees, twice as many as the
-previous year, and the talks given were very engaging and interesting.&lt;/p&gt;
-
-&lt;p&gt;I gave a short talk about ZFS on the &lt;a href=&#34;http://www.illumos.org/&#34;&gt;illumos&lt;/a&gt; platform, and also
-touched briefly on some of my subjective opinions coming from a
-&lt;a href=&#34;http://zfsonlinux.org/&#34;&gt;ZFS on Linux&lt;/a&gt; background. While a video recording of &lt;a href=&#34;http://youtu.be/UtlGt3ag0o0&#34;&gt;my talk&lt;/a&gt; is
-available, I thought it&amp;rsquo;d be good to also present some of that in written
-format, which might be a more approachable format for those who weren&amp;rsquo;t
-able to attend the conference. So here goes&amp;hellip;&lt;/p&gt;
-
-&lt;h2 id=&#34;openzfs-history&#34;&gt;OpenZFS History&lt;/h2&gt;
-
-&lt;p&gt;As most readers will already know, ZFS was originally designed and
-developed at Sun Microsystems starting around 2001. It was later
-released as open source in 2005 via OpenSolaris. In 2010 illumos was
-born as a fork of OpenSolaris, and in 2013 the OpenZFS was created.&lt;/p&gt;
-
-&lt;p&gt;As a result of this lineage, OpenZFS really feels &amp;ldquo;at home&amp;rdquo; within the
-illumos project; and what I mean by that, is it has a very polished
-integration with the illumos operating system and the code base as a
-whole. Just to state a couple explicit examples of this:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;It&amp;rsquo;s very easy to boot and run ZFS as the root filesystem (even in
-the face of on-disk feature changes) as it and the boot loader both
-live and change within the same repository.&lt;/li&gt;
-&lt;li&gt;The debugging tools on illumos (e.g. mdb) have knowledge of
-ZFS-specific structures and have ZFS-specific features to allow
-efficient debugging and development.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;But, as OpenZFS is growing, its integration on other operating systems
-is continually getting better.&lt;/p&gt;
-
-&lt;h2 id=&#34;openzfs-on-illumos-development-process&#34;&gt;OpenZFS on illumos Development Process&lt;/h2&gt;
-
-&lt;p&gt;The development model for OpenZFS on illumos follows the same
-conventions as all other illumos development. Access to commit to the
-repository is granted to &amp;ldquo;advocates&amp;rdquo;, and these advocates rely on the
-community (possibly themselves as well) to review any proposed changes,
-and ensure the changes are correct and are of high quality. In practice,
-each proposed change must reviewed and approved by a subject matter
-expert (e.g. for OpenZFS, this is typically Matt Ahrens or George
-Wilson) prior to an advocate committing the change.&lt;/p&gt;
-
-&lt;p&gt;Since the illumos project doesn&amp;rsquo;t have any specific releases, this
-implies that each commit to the repository must be of high quality as
-each commit is effectively a &amp;ldquo;release&amp;rdquo;. There isn&amp;rsquo;t the option of
-merging code known to be defective, with the intention of fixing the
-defect in a follow up commit prior to the &amp;ldquo;next release&amp;rdquo;.&lt;/p&gt;
-
-&lt;h2 id=&#34;openzfs-on-illumos-collaboration&#34;&gt;OpenZFS on illumos Collaboration&lt;/h2&gt;
-
-&lt;p&gt;Since OpenZFS on illumos is the &amp;ldquo;upstream&amp;rdquo; platform for OpenZFS, it&amp;rsquo;s
-important that there is open communication and collaboration between
-the illumos developers and developers of the other platforms. As
-changes from one platform are merged into illumos, all other platforms
-will (ideally) pull these changes into their own version of OpenZFS
-which is mutually beneficial for a number of reasons:&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;Less time spent on merge conflicts when pulling changes in between
-OpenZFS platforms. If each platform is active in pushing to illumos
-and pulling from illumos, then we&amp;rsquo;ll all be using as close to the
-same source code as possible.&lt;/li&gt;
-&lt;li&gt;Less duplication of effort. There&amp;rsquo;s been a number of times where
-I&amp;rsquo;ve personally spent effort investigating or solving a specific
-problem, only to find out that it&amp;rsquo;s already been solved on another
-OpenZFS platform. If each platform was more actively kept in sync
-with each other, this situation would be far less likely.&lt;/li&gt;
-&lt;li&gt;More varied testing. If all platforms are running the same code,
-then we all benefit from the variety of workloads each platform
-brings to the table; and as a result, we all test each others&amp;rsquo; code.&lt;/li&gt;
-&lt;li&gt;Proliferation of new OpenZFS features. Currently, most new ZFS
-features are first developed on, and committed to illumos. Thus, if
-other platforms are active in pushing changes into illumos, these
-new features are inherently developed around and incorporate the
-most recent changes in each platform. This makes it much easier to
-pull the new features into the downstream platforms, allowing all
-OpenZFS consumers to benefit from the new features as soon as
-possible.&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;In order to achieve this goal, the process of building and testing
-changes to the OpenZFS on illumos code base needs to be simplified and
-streamlined. Work is on-going on this front, and my hope is that the
-necessary improvements will happen over the next year, and we&amp;rsquo;ll be
-able to sing a different tune for next year&amp;rsquo;s developer summit.&lt;/p&gt;
-
-&lt;h2 id=&#34;developer-debugging-tools-on-illumos&#34;&gt;Developer/Debugging Tools on illumos&lt;/h2&gt;
-
-&lt;p&gt;One of the nice things about OpenZFS development on illumos is that I
-get to make use of the outstanding developer tools available on the
-platform. Having spent much of the last few years working within the
-Linux kernel, I&amp;rsquo;ve been implicitly trained to rely almost entirely on
-the source code and stack traces for debugging most production and
-development problems. Now that I&amp;rsquo;ve jumped to illumos, I can see
-first hand what I&amp;rsquo;ve been missing with tools like dtrace, kmdb,
-and &lt;strong&gt;especially&lt;/strong&gt; mdb.&lt;/p&gt;
-
-&lt;p&gt;In my short time working on the illumos platform, I&amp;rsquo;ve found mdb to be
-easily one of the best parts about the jump from ZFS on Linux. Certain
-tasks that would taken hours, or have been prohibitively difficult, on
-Linux can be done with ease using mdb&amp;rsquo;s dcmds and pipelines.&lt;/p&gt;
-
-&lt;p&gt;For example, while working on the ZFS on Linux port I would often be
-puzzled by what I found when looking at the ARC kstats. To try and make
-some sense of it, I wanted to know exactly what was contained in the ARC
-and what was contained in the dbuf cache; this eventually led to the
-implementation of the &amp;ldquo;dbufs&amp;rdquo; proc handler on the Linux port. On
-illumos, there&amp;rsquo;s already a mdb dcmd to do exactly that:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# Lines ending with &#39;...&#39; have been truncated to fit in 80 columns.
-$ sudo mdb -k
-&amp;gt; ::dbufs | ::dbuf ! head
-        addr object lvl blkid holds os
-ffffff160e924b10     114f 0        19  0 rpool/versions/2014.12.2014.1 ...
-ffffff160e924c30     1c50 0        35  0 rpool/versions/2014.12.2014.1 ...
-ffffff160e924d50     1c4d 0        33  0 rpool/versions/2014.12.2014.1 ...
-ffffff160e9092f8     164b 0        24  0 rpool/versions/2014.12.2014.1 ...
-ffffff160e8cc050       a0 0         3  0 mos
-ffffff160e8c04e0     177b 0        3a  0 rpool/versions/2014.12.2014.1 ...
-ffffff160e8bcde8     1c4d 0        1a  0 rpool/versions/2014.12.2014.1 ...
-ffffff160e8b2bb8       74 0         0  0 mos
-ffffff160e8b2cd8     1c4c 0         f  0 rpool/versions/2014.12.2014.1 ...
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;And better yet, I can print the full contents for each buffer if that
-level of detail is needed:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo mdb -k
-&amp;gt; ::dbufs | ::print dmu_buf_impl_t ! head
-{
-    db = {
-        db_object = 0x114f
-        db_offset = 0x320000
-        db_size = 0x20000
-        db_data = 0xffffff012e283000
-    }
-    db_objset = 0xffffff096dd82500
-    db_dnode_handle = 0xffffff160e858d20
-    db_parent = 0xffffff160e63cb70
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Or filter out the specific dbufs of interest:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# Lines ending with &#39;...&#39; have been truncated to fit in 80 columns.
-$ sudo mdb -k
-&amp;gt; ::dbufs -o 0x90 | ::dbuf ! head
-        addr object lvl blkid holds os
-ffffff1609deb210       90 0         1  0 mos
-ffffff0980966790       90 0         2  0 mos
-ffffff0982633030       90 0         0  0 mos
-ffffff096e53c9a8       90 1         0  3 mos
-ffffff15edcd7bf0       90 0     bonus  1 tank/fish
-ffffff097340dab8       90 0     bonus  1 rpool/versions/2014.12.2014.1 ...
-ffffff096e118450       90 0         0  0 rpool/versions/2014.12.2014.1 ...
-ffffff09179a79e8       90 0     bonus  1 mos
-ffffff09157b6cc0       90 0     bonus  0 rpool/versions/2014.12.2014.1 ...
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;But what if one wants to filter on something that isn&amp;rsquo;t supported by the
-&lt;code&gt;::dbufs&lt;/code&gt; command? Well, here&amp;rsquo;s a more general approach, filtering out
-only the buffers with a reference count of 3, using &lt;code&gt;::grep&lt;/code&gt;:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# Lines ending with &#39;...&#39; have been truncated to fit in 80 columns.
-# Also, mdb doesn&#39;t actually support continuation of input lines
-# using the &amp;quot;\&amp;quot; character; but it helps me format the command within
-# 80 columns for this post, and resembles a bash line continuation.
-
-$ sudo mdb -k
-&amp;gt; ::dbufs | ::print dmu_buf_impl_t db_holds.rc_count | \
-  ::grep &#39;.==0x3&#39; | ::eval &amp;amp;lt;dbuf=K | ::dbuf ! head
-        addr object lvl blkid holds os
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-ffffff1607afe080      5f2 1         0  3 rpool/versions/2014.12.2014.1 ...
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Additionally, the ability to get stack traces detailing where objects
-were allocated using &lt;code&gt;kmem_flags=0x1&lt;/code&gt; is hugely beneficial. Using it,
-things like the &lt;code&gt;::refcount&lt;/code&gt; dcmd can not only provide information about
-the current number of holds, but it can also provide the full kernel
-stack trace of the thread that took the hold when the hold was taken.&lt;/p&gt;
-
-&lt;p&gt;Likewise, the &lt;code&gt;::whatis&lt;/code&gt; dcmd also makes use of this information and
-displays it to the user. Imagine a case where you have a &amp;ldquo;random&amp;rdquo;
-pointer to an object (e.g. a pointer to an &lt;code&gt;arc_buf_t&lt;/code&gt;), and wanted to
-know where this object came from. If using &lt;code&gt;kmem_flags=0x1&lt;/code&gt; on illumos,
-this is as simple as the following:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo mdb -k
-&amp;gt; ::walk dmu_buf_impl_t ! head -n 1
-0xffffff0ab4001048
-&amp;gt; 0xffffff0ab4001048::whatis
-ffffff0ab4001048 is allocated from dmu_buf_impl_t:
-            ADDR          BUFADDR        TIMESTAMP           THREAD
-                            CACHE          LASTLOG         CONTENTS
-ffffff0ab4059128 ffffff0ab4001048      157ca42dbaf ffffff09e088e440
-                 ffffff0958a5a008 ffffff090b0ebbc0 ffffff0932c80430
-                 kmem_cache_alloc_debug+0x2e0
-                 kmem_cache_alloc+0xdd
-                 dbuf_create+0x79
-                 dbuf_hold_impl+0x192
-                 dbuf_hold+0x27
-                 dmu_buf_hold_array_by_dnode+0x129
-                 dmu_read_uio_dnode+0x5a
-                 dmu_read_uio_dbuf+0x51
-                 zfs_read+0x1a3
-                 fop_read+0x5b
-                 pread64+0x25d
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;I could go on and on about the cool things mdb allows, but this post is
-already long enough, so I&amp;rsquo;ll cut myself off here. It would be great to
-see an mdb port to Linux! (or even a more feature rich version of
-&lt;a href=&#34;http://people.redhat.com/anderson/crash_whitepaper/&#34;&gt;crash&lt;/a&gt; with OpenZFS support)&lt;/p&gt;
 </description>
     </item>
     
