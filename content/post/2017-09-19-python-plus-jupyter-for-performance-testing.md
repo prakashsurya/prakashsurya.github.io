@@ -1,6 +1,6 @@
 +++
 date = "2017-09-19T00:00:00-08:00"
-lastmod = "2017-09-19T00:00:00-08:00"
+lastmod = "2017-09-20T00:00:00-08:00"
 title = "Python + Jupyter for Performance Testing"
 type = "slides"
 draft = false
@@ -42,6 +42,56 @@ draft = false
 
 ---
 
+# Performance testing overview.
+
+ - Generally, performance testing takes the following approach:
+
+    1. Run some (usually known) workload.
+
+    2. Collect application and/or system metrics in some "random" format.
+
+        - The format depends on the metric being collect.
+
+        - Different metrics output data in different formats.
+
+    3. Consume metric data with a tool to generate visualizations.
+
+    4. Analyze raw data and/or visualizations to form conclusions.
+
+        - Analysis must be easy to share...
+
+        - So it can be scrutinized by others.
+
+    5. Learn, Refine, Repeat.
+
+---
+
+# Always use the right tool for the job.
+
+ - Without proper tooling, any of the prior steps:
+
+    - can become tedious.
+
+    - can be done incorrectly (and lead to incorrect conclusions).
+
+    - can be insufficiently documented.
+
+ - Without proper documentation:
+
+    - mistakes can go unrecognized.
+
+    - methods cannot be shared.
+
+    - analysis cannot be scrutinized.
+
+    - conclusions can be forgotten.
+
+    - results cannot be reproduced.
+
+ - The "right tool" must enable solutions to these complications.
+
+---
+
 # This must be a solved problem... right?
 
  - Rather than re-invent the wheel, lets learn from my co-workers.
@@ -59,6 +109,10 @@ draft = false
     - Copy/Paste
 
  - Everything done in an ad-hoc basis, specific to each project.
+
+    - Workload chosen by developer, using tools familiar to them.
+
+    - Usually, all steps in the process undocumented (often forgotten).
 
 ---
 
@@ -78,13 +132,30 @@ draft = false
 
     - zpool used with 4 different disk counts; 1 to 8 disks.
 
- - 80 tests in total; 40 with changes, 40 without my changes.
+ - 80 tests in total; 40 **with** my changes, 40 **without** my changes.
 
  - For each test, I would manually copy/paste fio data into spreadsheet.
 
  - Graphs generated from the data was nice...
 
  - Inputting data into the spreadsheet was terrible.
+
+---
+
+# End result.
+
+.center[```
+iops    |    1   |    2   |     4   |     8   |     16   |     32   | ...
+--------+--------+--------+---------+---------+----------+----------+----
+1 disk  | 164.79 | 328.89 |  672.61 | 1361.03 | 18414.90 | 19130.33 | ...
+2 disks | 201.11 | 390.75 | 1171.71 | 1342.84 |  2630.02 |  5389.89 | ...
+4 disks | 200.31 | 364.79 | 1184.56 | 2228.02 |  2677.17 |  5223.90 | ...
+8 disks | 180.57 | 395.95 | 1158.49 | 1940.64 |  3602.46 |  5340.03 | ...
+```]
+
+.center[![:scale 85%](spreadsheet-iops.png)]
+
+ - Would use a meeting to discuss results, share analysis, etc.
 
 ---
 
@@ -110,22 +181,20 @@ draft = false
 
 ---
 
-# End result so far.
-
- - Spreadsheet would contain a table like the following:
+# Same result; easier to generate.
 
 .center[```
-iops    |    1   |    2   |     4   |     8   |    16   |     32   | ...
---------+--------+--------+---------+---------+---------+----------+----
-1 disk  | 164.79 | 328.89 |  672.61 | 1361.03 | 18414.9 | 19130.33 | ...
-2 disks | 201.11 | 390.75 | 1171.71 | 1342.84 | 2630.02 |  5389.89 | ...
-4 disks | 200.31 | 364.79 | 1184.56 | 2228.02 | 2677.17 |  5223.90 | ...
-8 disks | 180.57 | 395.95 | 1158.49 | 1940.64 | 3602.46 |  5340.03 | ...
+iops    |    1   |    2   |     4   |     8   |     16   |     32   | ...
+--------+--------+--------+---------+---------+----------+----------+----
+1 disk  | 164.79 | 328.89 |  672.61 | 1361.03 | 18414.90 | 19130.33 | ...
+2 disks | 201.11 | 390.75 | 1171.71 | 1342.84 |  2630.02 |  5389.89 | ...
+4 disks | 200.31 | 364.79 | 1184.56 | 2228.02 |  2677.17 |  5223.90 | ...
+8 disks | 180.57 | 395.95 | 1158.49 | 1940.64 |  3602.46 |  5340.03 | ...
 ```]
 
- - And this would get converted into a simple line graph:
+.center[![:scale 85%](spreadsheet-iops.png)]
 
-.center[![:scale 95%](spreadsheet-iops.png)]
+ - Still no supporting documentation to explain process or results.
 
 ---
 
@@ -303,7 +372,7 @@ background-image: url(spreadsheet-iops.png)
 
  - Link to [Fixed Rate Submit on HDDs][fixed-rate-submit-hdds]
 
-.footnote[<sub><sup>*</sup><sub>https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/</sub></sub>]
+.footnote[<sub><sup>\*</sup><sub>https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/</sub></sub>]
 
 ---
 
