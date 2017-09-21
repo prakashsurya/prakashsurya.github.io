@@ -1,6 +1,6 @@
 +++
 date = "2017-09-19T00:00:00-08:00"
-lastmod = "2017-09-20T00:00:00-08:00"
+lastmod = "2017-09-21T00:00:00-08:00"
 title = "Python + Jupyter for Performance Testing"
 type = "slides"
 draft = false
@@ -403,6 +403,16 @@ background-image: url(spreadsheet-iops.png)
  - My notes: [Using Python and Jupyter for Performance Testing and Analysis](https://www.prakashsurya.com/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/)
 
  - The "`jupyter`" DCenter image is Ubuntu 17.04 with Jupyter pre-installed.
+
+    - No LDAP; log in using `delphix` user and run `jupyter`
+
+```
+$ jupyter notebook --ip=0.0.0.0
+
+    Copy/paste this URL into your browser when you connect for the first time,
+    to login with a token:
+        http://0.0.0.0:8888/?token=431434aa3c192dd33613c4bff990e4207a3af5e402f48012
+```
 
 ---
 
