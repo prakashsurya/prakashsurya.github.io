@@ -436,12 +436,6 @@ $ jupyter notebook --ip=0.0.0.0
 
  - Would require a cultural shift, to adopt Jupyter effectively.
 
----
-
-class: middle, center
-
-# End
-
 [basic-example-1-notebook]: https://github.com/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/visualizing-fio-results-with-jupyter.ipynb
 [basic-example-2-notebook]: https://github.com/prakashsurya/prakashsurya.github.io/blob/src/static/post/2017-09-07-using-python-and-jupyter-for-performance-testing-and-analysis/visualizing-iostat-results-with-jupyter.ipynb
 
