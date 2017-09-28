@@ -54,6 +54,8 @@ draft = false
     [Simplicity is Complicated](https://www.youtube.com/watch?v=rFejpH_tAHM)
   - 15 Nov 2015 &raquo; Ryan Zezeski &raquo;
     [Fixing Bugs in illumos](https://www.youtube.com/watch?v=HXjIz-RzhK8)
+  - 21 Oct 2015 &raquo; Greg Law &raquo;
+    [Give me 15 minutes & I'll change your view of GDB](https://www.youtube.com/watch?v=PorfLSr3DDI)
   - 03 Sep 2015 &raquo; Bryan Cantrill &raquo;
     [Software: Immaculate, fetid and grimy](http://dtrace.org/blogs/bmc/2015/09/03/software-immaculate-fetid-and-grimy/)
   - 01 Jul 2015 &raquo; Bryan Cantrill &raquo;
