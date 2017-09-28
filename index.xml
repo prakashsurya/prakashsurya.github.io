@@ -6,8 +6,221 @@
     <description>Recent content on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 26 Sep 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Thu, 28 Sep 2017 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Generating Code Coverage Reports for ZFS on Linux</title>
+      <link>https://www.prakashsurya.com/post/2017-09-28-generating-code-coverage-reports-for-zfs-on-linux/</link>
+      <pubDate>Thu, 28 Sep 2017 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2017-09-28-generating-code-coverage-reports-for-zfs-on-linux/</guid>
+      <description>
+
+&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
+
+&lt;p&gt;This is another post about collecting code coverage data for the ZFS on
+Linux project. We&amp;rsquo;ve recently added a new make target to the project, so
+I wanted to highlight how easy it is to use this to generate static HTML
+based code coverage reports, and/or to generate a report that can be
+used with other tools and services (e.g. &lt;a href=&#34;https://codecov.io/gh/zfsonlinux/zfs&#34;&gt;codecov.io&lt;/a&gt;).&lt;/p&gt;
+
+&lt;h2 id=&#34;examples&#34;&gt;Examples&lt;/h2&gt;
+
+&lt;p&gt;Before I get into the specifics for how to run the tests and generate
+the coverage report, I want to show off the results. After the tests
+have been run, one can use &lt;code&gt;make code-coverage-capture&lt;/code&gt; to generate the
+code coverage information.&lt;/p&gt;
+
+&lt;p&gt;This generates a directory full of static HTML pages, and a &lt;code&gt;.info&lt;/code&gt;
+file; both of which describe the lines executed for the set of tests
+that were run. The HTML pages are to be consumed by humans, and the
+&lt;code&gt;.info&lt;/code&gt; file consumed by tools.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;See &lt;a href=&#34;zfs-0.7.0-coverage/index.html&#34;&gt;here&lt;/a&gt; to view an example of the
+static HTML pages.&lt;/li&gt;
+&lt;li&gt;See &lt;a href=&#34;zfs-0.7.0-coverage.info&#34;&gt;here&lt;/a&gt; to view/download an example of
+the &lt;code&gt;.info&lt;/code&gt; file.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;I&amp;rsquo;ll go into the details below, but that coverage was generated after
+running &lt;code&gt;zloop&lt;/code&gt; and ZTS, and only contains data for user execution.
+Generating this data for kernel execution isn&amp;rsquo;t difficult, it just
+requires a little more work, and is out of scope for this post (I have
+some notes on this at the end of this post).&lt;/p&gt;
+
+&lt;h2 id=&#34;details&#34;&gt;Details&lt;/h2&gt;
+
+&lt;p&gt;With the end result in mind, lets now dive into the details of how I
+generated those reports.&lt;/p&gt;
+
+&lt;p&gt;As one might expect, we first need to compile the ZFS project, and
+ensure it&amp;rsquo;s configured to correctly generate the needed code coverage
+data. We do this via the new &lt;code&gt;--enable-code-coverage&lt;/code&gt; flag to
+&lt;code&gt;configure&lt;/code&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ ./autogen.sh &amp;amp;&amp;amp; ./configure --enable-code-coverage &amp;amp;&amp;amp; make
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now, before we jump into running the tests, we need to run the following
+commands to setup our environment:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ ./scripts/zfs-tests.sh -c         # create and populate constrained PATH
+$ sudo ./scripts/zfs-helpers.sh -vi # create various symlinks in &amp;quot;/&amp;quot;
+$ sudo ./scripts/zfs.sh -u          # unload kernel modules
+$ sudo ./scripts/zfs.sh             # load kernel modules
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;We need to run the tests completely in-tree, so that the &lt;code&gt;.gcda&lt;/code&gt; files
+will be created within the ZFS repository tree. This enables the make
+target to find these files, which it needs to generate the coverage
+reports. Thus, the above commands are needed to configure the system to
+enable running the tests in-tree vs. installing the various libraries,
+commands, and kernel modules into the root filesystem.&lt;/p&gt;
+
+&lt;p&gt;With that done, we can go ahead and run our first test. This test will
+run &lt;code&gt;ztest&lt;/code&gt; in a loop for an hour:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo ./scripts/zloop.sh -t $((60*60))
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;After that completes, we can run ZTS (ZFS Test Suite):&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ ./scripts/zfs-tests.sh -vx
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And finally, now we can generate the code coverage data for the tests
+that we ran above:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ export CODE_COVERAGE_BRANCH_COVERAGE=1
+$ make code-coverage-capture
+  LCOV   --capture zfs-0.7.0-coverage.info
+  LCOV   --remove /tmp/*
+lcov: WARNING: negative counts found in tracefile zfs-0.7.0-coverage.info.tmp
+  GEN    zfs-0.7.0-coverage
+file:///export/home/delphix/zfs/zfs-0.7.0-coverage/index.html
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;That&amp;rsquo;s it!&lt;/p&gt;
+
+&lt;p&gt;After running that &lt;code&gt;make&lt;/code&gt; command it should emit a &lt;code&gt;.info&lt;/code&gt; file, and a
+directory full of static HTML pages; much like the ones that I linked to
+in the &amp;ldquo;Examples&amp;rdquo; section earlier in this post.&lt;/p&gt;
+
+&lt;h2 id=&#34;more-details&#34;&gt;More Details&lt;/h2&gt;
+
+&lt;p&gt;If you&amp;rsquo;ve read this far, you might be interested in the following
+details as well.&lt;/p&gt;
+
+&lt;h3 id=&#34;branch-coverage&#34;&gt;Branch Coverage&lt;/h3&gt;
+
+&lt;p&gt;We set the &lt;code&gt;CODE_COVERAGE_BRANCH_COVERAGE&lt;/code&gt; environment variable prior to
+running &lt;code&gt;make code-coverage-capture&lt;/code&gt;, so that we&amp;rsquo;ll get coverage data
+for which branches of a conditional are executed, and which branches are
+not. This allows us to see when a conditional is executed, but only a
+subset of all possibilities of the branch are covered.&lt;/p&gt;
+
+&lt;p&gt;By default, &lt;code&gt;lcov&lt;/code&gt; (which is used by the make target) has this feature
+disabled, so branch coverage will not be collected without setting this
+variable.&lt;/p&gt;
+
+&lt;h3 id=&#34;kernel-coverage&#34;&gt;Kernel Coverage&lt;/h3&gt;
+
+&lt;p&gt;I mentioned this before, but it&amp;rsquo;s worth pointing out again. The
+instructions in this post will only produce code coverage data for user
+execution. Generating data for kernel execution isn&amp;rsquo;t much more
+difficult than what&amp;rsquo;s described above, but it requires a couple of
+additional things.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;The kernel must be compiled with &lt;code&gt;gcov&lt;/code&gt; support. If your kernel
+isn&amp;rsquo;t already compiled with this support, than you&amp;rsquo;ll have to build
+a new kernel that&amp;rsquo;s configured to expose the required code coverage
+data. I wrote some notes on this &lt;a href=&#34;http://localhost:1313/post/2017-09-11-using-gcov-with-zfs-on-linux-kernel-modules/&#34;&gt;here&lt;/a&gt;. A more
+authoritative source can be found &lt;a href=&#34;https://kernelnewbies.org/KernelBuild&#34;&gt;here&lt;/a&gt; and
+&lt;a href=&#34;https://www.kernel.org/doc/html/latest/dev-tools/gcov.html&#34;&gt;here&lt;/a&gt;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Once running a kernel that supports exporting gcov data, the
+coverage data for the kernel modules need to be copied into the zfs
+tree prior to generating the reports (i.e. prior to running &lt;code&gt;make
+code-coverage-capture&lt;/code&gt;). The following small script is one way this
+can be done:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# Allow access to gcov files as a non-root user
+$ sudo chmod -R a+rx /sys/kernel/debug/gcov
+$ sudo chmod a+rx /sys/kernel/debug
+
+$ GCOV_KERNEL=&amp;quot;/sys/kernel/debug/gcov&amp;quot;
+$ ZFS_BUILD=&amp;quot;$(readlink -f ~/zfs)&amp;quot;
+$ pushd &amp;quot;$GCOV_KERNEL$ZFS_BUILD&amp;quot; &amp;gt;/dev/null
+$ find . -name &amp;quot;*.gcda&amp;quot; -exec sh -c &#39;cp -v $0 &#39;$ZFS_BUILD&#39;/$0&#39; {} \;
+$ find . -name &amp;quot;*.gcno&amp;quot; -exec sh -c &#39;cp -vdn $0 &#39;$ZFS_BUILD&#39;/$0&#39; {} \;
+$ popd &amp;gt;/dev/null
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The idea here, is to copy the kernel module&amp;rsquo;s &lt;code&gt;.gcda&lt;/code&gt; and &lt;code&gt;.gcno&lt;/code&gt;
+files out of &lt;code&gt;/sys/kernel/debug/gcov&lt;/code&gt; and place them along side the
+&lt;code&gt;.c&lt;/code&gt; file they correspond to. This way, these files can be found by
+&lt;code&gt;make code-coverage-capture&lt;/code&gt; just like the user execution files. See
+&lt;a href=&#34;https://github.com/prakashsurya/zfs-buildbot/blob/master/scripts/bb-test-cleanup.sh&#34;&gt;here&lt;/a&gt; for an example of how we&amp;rsquo;re doing this in
+the ZFS on Linux project&amp;rsquo;s automation.&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;commit-adding-new-make-target&#34;&gt;Commit Adding New Make Target&lt;/h3&gt;
+
+&lt;p&gt;The new &lt;code&gt;code-coverage-capture&lt;/code&gt; make target was added in this commit to
+the ZFS on Linux project:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;commit acf044420b134b022da5c866b19df69934ad3778
+Author: Prakash Surya &amp;lt;prakash.surya@delphix.com&amp;gt;
+Date:   Fri Sep 22 18:49:57 2017 -0700
+
+    Add support for &amp;quot;--enable-code-coverage&amp;quot; option
+
+    This change adds support for a new option that can be passed to the
+    configure script: &amp;quot;--enable-code-coverage&amp;quot;. Further, the &amp;quot;--enable-gcov&amp;quot;
+    option has been removed, as this new option provides the same
+    functionality (plus more).
+
+    When using this new option the following make targets are available:
+
+     * check-code-coverage
+     * code-coverage-capture
+     * code-coverage-clean
+
+    Note: these make targets can only be run from the root of the project.
+
+    Reviewed-by: Brian Behlendorf &amp;lt;behlendorf1@llnl.gov&amp;gt;
+    Signed-off-by: Prakash Surya &amp;lt;prakash.surya@delphix.com&amp;gt;
+    Closes #6670
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Thus, in order to use this new make target, one will need to use a
+version of the project that contains this commit.&lt;/p&gt;
+
+&lt;h3 id=&#34;zfs-commit-tested&#34;&gt;ZFS Commit Tested&lt;/h3&gt;
+
+&lt;p&gt;For the testing and coverage data I showed in the &amp;ldquo;Examples&amp;rdquo; section, I
+used the following commit from the ZFS on Linux&amp;rsquo;s &amp;ldquo;master&amp;rdquo; branch:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;commit 269db7a4b3ef2bc14f3c2cf95f050479cbd69e72
+Author: Simon Guest &amp;lt;simon.guest@tesujimath.org&amp;gt;
+Date:   Thu Sep 28 06:39:47 2017 +1300
+
+    vdev_id: extension for new scsi topology
+
+    On systems with SCSI rather than SAS disk topology, this change enables
+    the vdev_id script to match against the block device path, and therefore
+    create a vdev alias in /dev/disk/by-vdev.
+
+    Reviewed-by: Tony Hutter &amp;lt;hutter2@llnl.gov&amp;gt;
+    Reviewed-by: Brian Behlendorf &amp;lt;behlendorf1@llnl.gov&amp;gt;
+    Signed-off-by: Simon Guest &amp;lt;simon.guest@tesujimath.org&amp;gt;
+    Closes #6592
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
     
     <item>
       <title>ZFS on Linux Code Coverage</title>
@@ -2851,311 +3064,6 @@ IMAGE   ami-5b065a3b
 
 &lt;p&gt;It should now be possible to use this AMI to create new Amazon EC2
 instances.&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Creating Custom Installation Media for OI Hipster</title>
-      <link>https://www.prakashsurya.com/post/2017-02-01-creating-custom-istallation-media-for-oi-hipster/</link>
-      <pubDate>Wed, 01 Feb 2017 00:00:00 -0800</pubDate>
-      
-      <guid>https://www.prakashsurya.com/post/2017-02-01-creating-custom-istallation-media-for-oi-hipster/</guid>
-      <description>
-
-&lt;h2 id=&#34;preface&#34;&gt;Preface&lt;/h2&gt;
-
-&lt;p&gt;This post is a write up of my notes for creating custom installation
-media for &lt;a href=&#34;https://www.openindiana.org/overview/the-hipster-branch/&#34;&gt;OpenIndiana Hipster&lt;/a&gt;, using a custom/patched
-version of &lt;a href=&#34;https://illumos.org&#34;&gt;illumos&lt;/a&gt;. It assumes that OI Hipster has already
-been installed on a machine (e.g. installed on a VM using their
-&lt;a href=&#34;https://www.openindiana.org/download/&#34;&gt;provided&lt;/a&gt; installation media); and this server will be
-used to build our custom version of illumos, as well as the custom OI
-installation media. The goal of this exercise is to create a &amp;ldquo;Live DVD&amp;rdquo;
-that can be used to install our custom version of illumos.&lt;/p&gt;
-
-&lt;h2 id=&#34;shoutouts&#34;&gt;Shoutouts&lt;/h2&gt;
-
-&lt;p&gt;Before I get started, I want to thank &lt;code&gt;alp&lt;/code&gt; and &lt;code&gt;tsoome&lt;/code&gt; from the
-&lt;code&gt;#oi-dev&lt;/code&gt; IRC channel on freenode for answering my various questions as
-I was learning how to do this; their help definitely saved me hours of
-frustration. Thanks again :)&lt;/p&gt;
-
-&lt;h2 id=&#34;step-1-fetch-illumos&#34;&gt;Step 1: Fetch illumos&lt;/h2&gt;
-
-&lt;p&gt;The illumos repository &lt;a href=&#34;https://github.com/illumos/illumos-gate&#34;&gt;is on GitHub&lt;/a&gt;, so we&amp;rsquo;ll use this to
-obtain our copy. First, we must install &lt;code&gt;git&lt;/code&gt; on the server:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo pkg install git
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;and then we can use &lt;code&gt;git clone&lt;/code&gt; to fetch the code:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ git clone https://github.com/illumos/illumos-gate.git
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h2 id=&#34;step-2-prep-for-building-illumos&#34;&gt;Step 2: Prep for Building illumos&lt;/h2&gt;
-
-&lt;p&gt;Now we can move on to compiling the illumos codebase; we&amp;rsquo;ll use the
-&lt;a href=&#34;https://wiki.illumos.org/display/illumos/How+To+Build+illumos&#34;&gt;documented process&lt;/a&gt; as a guide. We need to
-download and install all the required build tools (e.g. compilers, etc),
-which can can be easily done using the &lt;code&gt;build-essentials&lt;/code&gt; meta-package:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo pkg install build-essential
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-2-1-download-and-unpack-closed-binaries&#34;&gt;Step 2.1: Download and Unpack Closed Binaries&lt;/h3&gt;
-
-&lt;p&gt;After that completes, we have to download and unpack the &amp;ldquo;closed
-binaries&amp;rdquo;; these are closed source components from Sun/Oracle that are
-required to build illumos (and have not yet been replaced):&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ cd illumos-gate/
-$ wget -c \
-    https://download.joyent.com/pub/build/illumos/on-closed-bins.i386.tar.bz2 \
-    https://download.joyent.com/pub/build/illumos/on-closed-bins-nd.i386.tar.bz2
-$ tar xjvpf on-closed-bins.i386.tar.bz2
-$ tar xjvpf on-closed-bins-nd.i386.tar.bz2
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-2-2-configure-environment-file-illumos-sh&#34;&gt;Step 2.2: Configure Environment File &amp;ndash; illumos.sh&lt;/h3&gt;
-
-&lt;p&gt;The illumos build system is configured using an &amp;ldquo;environment&amp;rdquo; file. This
-file contains various environment variables that the build uses to
-determine what actions it will take; for example:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Should it run lint checks?&lt;/li&gt;
-&lt;li&gt;Should it perform a &amp;ldquo;debug&amp;rdquo; or &amp;ldquo;non-debug&amp;rdquo; build? Or both?&lt;/li&gt;
-&lt;li&gt;etc&amp;hellip;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;For our purposes, we&amp;rsquo;ll leave all of the default values, and only make
-the minimal modifications necessary:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ cp usr/src/tools/env/illumos.sh .
-$ PKGVERS_BRANCH=$(pkg info  -r pkg://openindiana.org/SUNWcs | \
-&amp;gt;                  awk &#39;$1 == &amp;quot;Branch:&amp;quot; {print $2}&#39;)
-$ echo &amp;quot;export PKGVERS_BRANCH=&#39;$PKGVERS_BRANCH&#39;&amp;quot; &amp;gt;&amp;gt; illumos.sh
-$ echo &amp;quot;export ONNV_BUILDNUM=&#39;$PKGVERS_BRANCH&#39;&amp;quot; &amp;gt;&amp;gt; illumos.sh
-$ echo &amp;quot;export PERL_VERSION=&#39;5.22&#39;&amp;quot; &amp;gt;&amp;gt; illumos.sh
-$ echo &amp;quot;export PERL_PKGVERS=&#39;-522&#39;&amp;quot; &amp;gt;&amp;gt; illumos.sh
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h2 id=&#34;step-3-build-illumos&#34;&gt;Step 3: Build illumos&lt;/h2&gt;
-
-&lt;p&gt;Now we&amp;rsquo;re ready to start the build. This is expected to take a couple
-hours to complete, so I&amp;rsquo;d recommend using a program such as &lt;code&gt;screen&lt;/code&gt; or
-&lt;code&gt;tmux&lt;/code&gt;. That way, if the connection with the server performing the build
-were to fail, the build process will remain running. For this guide I&amp;rsquo;ll
-use &lt;code&gt;screen&lt;/code&gt;, since it&amp;rsquo;s already installed:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ screen -S illumos-build
-$ cp usr/src/tools/scripts/nightly.sh .
-$ chmod +x nightly.sh
-$ time ./nightly.sh illumos.sh
-
-real    123m31.031s
-user    178m14.443s
-sys     42m54.293s
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h2 id=&#34;step-4-prep-for-building-the-installation-media&#34;&gt;Step 4: Prep for Building the Installation Media&lt;/h2&gt;
-
-&lt;p&gt;In order to build the installation media, we need to use the
-&lt;code&gt;distro_const&lt;/code&gt; command, which is provided by the
-&lt;code&gt;distribution-constructor&lt;/code&gt; package:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo pkg install distribution-constructor
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;To use &lt;code&gt;distro_const&lt;/code&gt;, we must pass it a &amp;ldquo;manifest&amp;rdquo; file, which is
-nothing more than a specially formatted XML file. We&amp;rsquo;ll start with a
-manifest template provided by the package, and then tweak the template
-to suite our needs.&lt;/p&gt;
-
-&lt;h3 id=&#34;step-4-1-copy-distro-const-manifest-template&#34;&gt;Step 4.1: Copy distro_const Manifest Template&lt;/h3&gt;
-
-&lt;p&gt;First, we need to copy the template so we can make modifications to it:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ cd ~
-$ cp /usr/share/distro_const/text_install/text_mode_x86.xml .
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-4-1-replace-dev-ips-repository-with-hipster&#34;&gt;Step 4.1: Replace &amp;ldquo;dev&amp;rdquo; IPS Repository with &amp;ldquo;hipster&amp;rdquo;&lt;/h3&gt;
-
-&lt;p&gt;The first modification we need to make, is to point to the &amp;ldquo;hipster&amp;rdquo;
-&lt;a href=&#34;https://en.wikipedia.org/wiki/Image_Packaging_System&#34;&gt;IPS&lt;/a&gt; repository as opposed to the default &amp;ldquo;dev&amp;rdquo; repository. To do
-this, we need to locate the &lt;code&gt;pkg_repo_default_authority&lt;/code&gt; and
-&lt;code&gt;post_install_repo_default_authority&lt;/code&gt; sections, and replace
-&lt;code&gt;http://pkg.openindiana.org/dev&lt;/code&gt; with
-&lt;code&gt;http://pkg.openindiana.org/hipster&lt;/code&gt;. Here&amp;rsquo;s &lt;code&gt;diff&lt;/code&gt; of this change:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ diff -u text_mode_x86.xml text_mode_x86.xml.orig
---- text_mode_x86.xml.orig      Thu Feb  2 02:09:32 2017
-+++ text_mode_x86.xml           Thu Feb  2 02:10:33 2017
-@@ -192,7 +192,7 @@
-                --&amp;gt;
-                &amp;lt;pkg_repo_default_authority&amp;gt;
-                        &amp;lt;main
--                               url=&amp;quot;http://pkg.openindiana.org/dev&amp;quot;
-+                               url=&amp;quot;http://pkg.openindiana.org/hipster&amp;quot;
-                                authname=&amp;quot;openindiana.org&amp;quot;/&amp;gt;
-                        &amp;lt;!--
-                             If you want to use one or more  mirrors that are
-@@ -229,7 +229,7 @@
-                --&amp;gt;
-                &amp;lt;post_install_repo_default_authority&amp;gt;
-                        &amp;lt;main
--                               url=&amp;quot;http://pkg.openindiana.org/dev&amp;quot;
-+                               url=&amp;quot;http://pkg.openindiana.org/hipster&amp;quot;
-                                authname=&amp;quot;openindiana.org&amp;quot;/&amp;gt;
-                        &amp;lt;!--
-                             Uncomment before using.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-4-2-point-to-ips-repository-from-custom-illumos-build&#34;&gt;Step 4.2: Point to IPS Repository from Custom illumos Build&lt;/h3&gt;
-
-&lt;p&gt;As part of illumos build in &lt;a href=&#34;#step-3-build-illumos&#34;&gt;step 3&lt;/a&gt;, an IPS
-repository was generated under the &lt;code&gt;packages/i386/nightly/repo.redist&lt;/code&gt;
-directory. Since my illumos codebase is stored in the directory,
-&lt;code&gt;/export/home/ps/illumos-gate&lt;/code&gt;, the full path to this IPS repository is
-&lt;code&gt;/export/home/ps/illumos-gate/packages/i386/nightly/repo.redist&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;In order for the installation media to use my custom built version of
-illumos, the manifest needs to be modified to point to this IPS
-repository, &lt;strong&gt;in addition to&lt;/strong&gt; the default OI &amp;ldquo;hipster&amp;rdquo; repository. It&amp;rsquo;s
-important to note, that we&amp;rsquo;re not replacing the &amp;ldquo;hipster&amp;rdquo; repository
-with the custom illumos build&amp;rsquo;s repository; rather, we want to use the
-build&amp;rsquo;s repository as the &amp;ldquo;main&amp;rdquo; repository, and the &amp;ldquo;hipster&amp;rdquo;
-repository as an &amp;ldquo;additional&amp;rdquo; repository.&lt;/p&gt;
-
-&lt;p&gt;To do this, we&amp;rsquo;ll modify the &lt;code&gt;url&lt;/code&gt; specified in the
-&lt;code&gt;pkg_repo_default_authority&lt;/code&gt; section to point to the illumos build&amp;rsquo;s
-repository, using a &lt;code&gt;file://&lt;/code&gt; based URL, and we&amp;rsquo;ll modify the &lt;code&gt;url&lt;/code&gt; of
-the &lt;code&gt;pkg_repo_addl_authority&lt;/code&gt; section to point to the original &amp;ldquo;hipster&amp;rdquo;
-IPS repository. Here&amp;rsquo;s a diff of these changes:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ diff -u text_mode_x86.xml.orig text_mode_x86.xml
---- text_mode_x86.xml.orig      Thu Feb  2 02:18:19 2017
-+++ text_mode_x86.xml           Thu Feb  2 02:19:45 2017
-@@ -192,8 +192,8 @@
-                --&amp;gt;
-                &amp;lt;pkg_repo_default_authority&amp;gt;
-                        &amp;lt;main
--                               url=&amp;quot;http://pkg.openindiana.org/hipster&amp;quot;
--                               authname=&amp;quot;openindiana.org&amp;quot;/&amp;gt;
-+                               url=&amp;quot;file:///export/home/ps/illumos-gate/packages/i386/nightly/repo.redist&amp;quot;
-+                               authname=&amp;quot;on-nightly&amp;quot;/&amp;gt;
-                        &amp;lt;!--
-                             If you want to use one or more  mirrors that are
-                             setup for the authority, specify the urls here.
-@@ -210,15 +210,12 @@
-                     If you want to use one or more  mirrors that are
-                     setup for the authority, specify the urls here.
-                --&amp;gt;
--               &amp;lt;!--
--                    Uncomment before using.
-                &amp;lt;pkg_repo_addl_authority&amp;gt;
-                        &amp;lt;main
--                               url=&amp;quot;&amp;quot;
--                               authname=&amp;quot;&amp;quot;/&amp;gt;
-+                               url=&amp;quot;http://pkg.openindiana.org/hipster&amp;quot;
-+                               authname=&amp;quot;openindiana.org&amp;quot;/&amp;gt;
-                        &amp;lt;mirror url=&amp;quot;&amp;quot; /&amp;gt;
-                &amp;lt;/pkg_repo_addl_authority&amp;gt;
--               --&amp;gt;
-                &amp;lt;!--
-                     The default preferred authority to be used by the system
-                     after it has been installed.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-4-3-use-oi-repository-for-ssh-and-ftp-packages&#34;&gt;Step 4.3: Use OI Repository for &amp;ldquo;ssh&amp;rdquo; and &amp;ldquo;ftp&amp;rdquo; Packages&lt;/h3&gt;
-
-&lt;p&gt;I don&amp;rsquo;t fully understand why this step is necessary, but we need to
-modify the manifest to force the use of the OpenIndiana&amp;rsquo;s IPS repository
-when fetching the following packages:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;pkg:/network/ssh&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pkg:/service/network/ftp&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pkg:/service/network/ssh&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;This is done by adding the package URL for these packages to the
-&lt;code&gt;packages&lt;/code&gt; section of the manifest; the following &lt;code&gt;diff&lt;/code&gt; does this:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ diff -u text_mode_x86.xml.orig text_mode_x86.xml
---- text_mode_x86.xml.orig      Thu Feb  2 03:38:37 2017
-+++ text_mode_x86.xml           Thu Feb  2 03:56:46 2017
-@@ -266,6 +266,9 @@
-                        &amp;lt;pkg name=&amp;quot;pkg:/server_install&amp;quot;/&amp;gt;
-                        &amp;lt;pkg name=&amp;quot;pkg:/system/install/text-install&amp;quot;/&amp;gt;
-                        &amp;lt;pkg name=&amp;quot;pkg:/system/install/media/internal&amp;quot;/&amp;gt;
-+                       &amp;lt;pkg name=&amp;quot;pkg://openindiana.org/network/ssh&amp;quot;/&amp;gt;
-+                       &amp;lt;pkg name=&amp;quot;pkg://openindiana.org/service/network/ftp&amp;quot;/&amp;gt;
-+                       &amp;lt;pkg name=&amp;quot;pkg://openindiana.org/service/network/ssh&amp;quot;/&amp;gt;
-                &amp;lt;/packages&amp;gt;
- &amp;lt;!--
-      Items below this line are rarely configured
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-4-4-remove-certain-packages-from-illumos-build-repository&#34;&gt;Step 4.4: Remove Certain Packages from illumos Build Repository&lt;/h3&gt;
-
-&lt;p&gt;I understand even less about why this step is necessary, but we need to
-remove certain packages from the IPS repository generated by the
-previous illumos build (the build from &lt;a href=&#34;#step-3-build-illumos&#34;&gt;step 3&lt;/a&gt;),
-otherwise the &lt;a href=&#34;#step-5-building-the-installation-media&#34;&gt;next step&lt;/a&gt; will
-fail to build the installation media. The packages we need to remove
-are:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;pkg:/network/ssh&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pkg:/service/network/ssh&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pkg:/service/network/ftp&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pkg:/service/network/ssh-common&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pkg:/service/network/smtp/sendmail&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;We can use &lt;code&gt;pkgrepo&lt;/code&gt; to remove them like so:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ REPO=&amp;quot;/export/home/ps/illumos-gate/packages/i386/nightly/repo.redist&amp;quot;
-$ for pkg in &amp;quot;pkg:/network/ssh&amp;quot; \
-&amp;gt;            &amp;quot;pkg:/service/network/ssh&amp;quot; \
-&amp;gt;            &amp;quot;pkg:/service/network/ftp&amp;quot; \
-&amp;gt;            &amp;quot;pkg:/service/network/ssh-common&amp;quot; \
-&amp;gt;            &amp;quot;pkg:/service/network/smtp/sendmail&amp;quot;; do
-&amp;gt;     pkgrepo -s &amp;quot;$REPO&amp;quot; remove &amp;quot;$pkg&amp;quot;
-&amp;gt; done
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h2 id=&#34;step-5-building-the-installation-media&#34;&gt;Step 5: Building the Installation Media&lt;/h2&gt;
-
-&lt;p&gt;Now, with all of the above steps completed, we&amp;rsquo;re ready to use
-&lt;code&gt;distro_const&lt;/code&gt; to build the installation media files; this part is
-simple:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo distro_const build text_mode_x86.xml
-... &amp;lt;snip&amp;gt; ...
-Build completed Thu Feb  2 05:26:06 2017
-Build is successful.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;After that completes, the installation media should be found in
-&lt;code&gt;/rpool/dc/media&lt;/code&gt;:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ls -lh /rpool/dc/media/
-total 2793956
--rw-r--r--   1 root     root        657M Feb  2 05:25 OpenIndiana_Text_X86.iso
--r--r--r--   1 root     root        793M Feb  2 05:25 OpenIndiana_Text_X86.usb
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Success!&lt;/p&gt;
-
-&lt;p&gt;Those files can now be used to install our custom OpenIndiana Hipster
-distribution onto any machine of our choosing (e.g. a VM, bare metal,
-etc), and the installed operating system will be our custom version of
-illumos, plus all additional packages packages that constitute OI
-Hipster.&lt;/p&gt;
 </description>
     </item>
     

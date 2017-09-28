@@ -1,0 +1,1119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/dsl_destroy.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - dsl_destroy.c<span style="font-size: 80%;"> (source / <a href="dsl_destroy.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">339</td>
+            <td class="headerCovTableEntry">442</td>
+            <td class="headerCovTableEntryMed">76.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">14</td>
+            <td class="headerCovTableEntry">19</td>
+            <td class="headerCovTableEntryLo">73.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">170</td>
+            <td class="headerCovTableEntry">356</td>
+            <td class="headerCovTableEntryLo">47.8 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2012, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright (c) 2013 Steven Hartland. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  * Copyright (c) 2013 by Joyent, Inc. All rights reserved.
+<span class="lineNum">      26 </span>                :            :  * Copyright (c) 2016 Actifio, Inc. All rights reserved.
+<span class="lineNum">      27 </span>                :            :  */
+<span class="lineNum">      28 </span>                :            : 
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/dsl_userhold.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/dsl_dataset.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/dsl_synctask.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/dmu_tx.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/dsl_pool.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/dsl_dir.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;sys/dmu_traverse.h&gt;
+<span class="lineNum">      37 </span>                :            : #include &lt;sys/dsl_scan.h&gt;
+<span class="lineNum">      38 </span>                :            : #include &lt;sys/dmu_objset.h&gt;
+<span class="lineNum">      39 </span>                :            : #include &lt;sys/zap.h&gt;
+<span class="lineNum">      40 </span>                :            : #include &lt;sys/zfeature.h&gt;
+<span class="lineNum">      41 </span>                :            : #include &lt;sys/zfs_ioctl.h&gt;
+<span class="lineNum">      42 </span>                :            : #include &lt;sys/dsl_deleg.h&gt;
+<span class="lineNum">      43 </span>                :            : #include &lt;sys/dmu_impl.h&gt;
+<span class="lineNum">      44 </span>                :            : #include &lt;sys/zvol.h&gt;
+<span class="lineNum">      45 </span>                :            : 
+<span class="lineNum">      46 </span>                :            : typedef struct dmu_snapshots_destroy_arg {
+<span class="lineNum">      47 </span>                :            :         nvlist_t *dsda_snaps;
+<span class="lineNum">      48 </span>                :            :         nvlist_t *dsda_successful_snaps;
+<span class="lineNum">      49 </span>                :            :         boolean_t dsda_defer;
+<span class="lineNum">      50 </span>                :            :         nvlist_t *dsda_errlist;
+<span class="lineNum">      51 </span>                :            : } dmu_snapshots_destroy_arg_t;
+<a name="52"><span class="lineNum">      52 </span>                :            : </a>
+<span class="lineNum">      53 </span>                :            : int
+<span class="lineNum">      54 </span>                :<span class="lineCov">        211 : dsl_destroy_snapshot_check_impl(dsl_dataset_t *ds, boolean_t defer)</span>
+<span class="lineNum">      55 </span>                :            : {
+<span class="lineNum">      56 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 211 times"> + </span>]:<span class="lineCov">        211 :         if (!ds-&gt;ds_is_snapshot)</span>
+<span class="lineNum">      57 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EINVAL));</span>
+<span class="lineNum">      58 </span>                :            : 
+<span class="lineNum">      59 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 211 times"> + </span>]:<span class="lineCov">        211 :         if (dsl_dataset_long_held(ds))</span>
+<span class="lineNum">      60 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EBUSY));</span>
+<span class="lineNum">      61 </span>                :            : 
+<span class="lineNum">      62 </span>                :            :         /*
+<span class="lineNum">      63 </span>                :            :          * Only allow deferred destroy on pools that support it.
+<span class="lineNum">      64 </span>                :            :          * NOTE: deferred destroy is only supported on snapshots.
+<span class="lineNum">      65 </span>                :            :          */
+<span class="lineNum">      66 </span>        [<span class="branchCov" title="Branch 0 was taken 130 times"> + </span><span class="branchCov" title="Branch 1 was taken 81 times"> + </span>]:<span class="lineCov">        211 :         if (defer) {</span>
+<span class="lineNum">      67 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 130 times"> + </span>]:<span class="lineCov">        130 :                 if (spa_version(ds-&gt;ds_dir-&gt;dd_pool-&gt;dp_spa) &lt;</span>
+<span class="lineNum">      68 </span>                :            :                     SPA_VERSION_USERREFS)
+<span class="lineNum">      69 </span>                :<span class="lineNoCov">          0 :                         return (SET_ERROR(ENOTSUP));</span>
+<span class="lineNum">      70 </span>                :            :                 return (0);
+<span class="lineNum">      71 </span>                :            :         }
+<span class="lineNum">      72 </span>                :            : 
+<span class="lineNum">      73 </span>                :            :         /*
+<span class="lineNum">      74 </span>                :            :          * If this snapshot has an elevated user reference count,
+<span class="lineNum">      75 </span>                :            :          * we can't destroy it yet.
+<span class="lineNum">      76 </span>                :            :          */
+<span class="lineNum">      77 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchCov" title="Branch 1 was taken 21 times"> + </span>]:<span class="lineCov">         81 :         if (ds-&gt;ds_userrefs &gt; 0)</span>
+<span class="lineNum">      78 </span>                :<span class="lineCov">         60 :                 return (SET_ERROR(EBUSY));</span>
+<span class="lineNum">      79 </span>                :            : 
+<span class="lineNum">      80 </span>                :            :         /*
+<span class="lineNum">      81 </span>                :            :          * Can't delete a branch point.
+<span class="lineNum">      82 </span>                :            :          */
+<span class="lineNum">      83 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 21 times"> + </span>]:<span class="lineCov">         21 :         if (dsl_dataset_phys(ds)-&gt;ds_num_children &gt; 1)</span>
+<span class="lineNum">      84 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EEXIST));</span>
+<span class="lineNum">      85 </span>                :            : 
+<span class="lineNum">      86 </span>                :            :         return (0);
+<span class="lineNum">      87 </span>                :            : }
+<a name="88"><span class="lineNum">      88 </span>                :            : </a>
+<span class="lineNum">      89 </span>                :            : static int
+<span class="lineNum">      90 </span>                :<span class="lineCov">        712 : dsl_destroy_snapshot_check(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">      91 </span>                :            : {
+<span class="lineNum">      92 </span>                :<span class="lineCov">        712 :         dmu_snapshots_destroy_arg_t *dsda = arg;</span>
+<span class="lineNum">      93 </span>                :<span class="lineCov">        712 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">      94 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">      95 </span>                :<span class="lineCov">        712 :         int error = 0;</span>
+<span class="lineNum">      96 </span>                :            : 
+<span class="lineNum">      97 </span>        [<span class="branchCov" title="Branch 1 was taken 356 times"> + </span><span class="branchCov" title="Branch 2 was taken 356 times"> + </span>]:<span class="lineCov">        712 :         if (!dmu_tx_is_syncing(tx))</span>
+<span class="lineNum">      98 </span>                :            :                 return (0);
+<span class="lineNum">      99 </span>                :            : 
+<span class="lineNum">     100 </span>        [<span class="branchCov" title="Branch 1 was taken 356 times"> + </span><span class="branchCov" title="Branch 2 was taken 356 times"> + </span>]:<span class="lineCov">        712 :         for (pair = nvlist_next_nvpair(dsda-&gt;dsda_snaps, NULL);</span>
+<span class="lineNum">     101 </span>                :<span class="lineCov">        356 :             pair != NULL; pair = nvlist_next_nvpair(dsda-&gt;dsda_snaps, pair)) {</span>
+<span class="lineNum">     102 </span>                :            :                 dsl_dataset_t *ds;
+<span class="lineNum">     103 </span>                :            : 
+<span class="lineNum">     104 </span>                :<span class="lineCov">        356 :                 error = dsl_dataset_hold(dp, nvpair_name(pair),</span>
+<span class="lineNum">     105 </span>                :            :                     FTAG, &amp;ds);
+<span class="lineNum">     106 </span>                :            : 
+<span class="lineNum">     107 </span>                :            :                 /*
+<span class="lineNum">     108 </span>                :            :                  * If the snapshot does not exist, silently ignore it
+<span class="lineNum">     109 </span>                :            :                  * (it's &quot;already destroyed&quot;).
+<span class="lineNum">     110 </span>                :            :                  */
+<span class="lineNum">     111 </span>        [<span class="branchCov" title="Branch 0 was taken 145 times"> + </span><span class="branchCov" title="Branch 1 was taken 211 times"> + </span>]:<span class="lineCov">        356 :                 if (error == ENOENT)</span>
+<span class="lineNum">     112 </span>                :<span class="lineCov">        145 :                         continue;</span>
+<span class="lineNum">     113 </span>                :            : 
+<span class="lineNum">     114 </span>        [<span class="branchCov" title="Branch 0 was taken 211 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        211 :                 if (error == 0) {</span>
+<span class="lineNum">     115 </span>                :<span class="lineCov">        211 :                         error = dsl_destroy_snapshot_check_impl(ds,</span>
+<span class="lineNum">     116 </span>                :            :                             dsda-&gt;dsda_defer);
+<span class="lineNum">     117 </span>                :<span class="lineCov">        211 :                         dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     118 </span>                :            :                 }
+<span class="lineNum">     119 </span>                :            : 
+<span class="lineNum">     120 </span>        [<span class="branchCov" title="Branch 0 was taken 151 times"> + </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">        211 :                 if (error == 0) {</span>
+<span class="lineNum">     121 </span>                :<span class="lineCov">        151 :                         fnvlist_add_boolean(dsda-&gt;dsda_successful_snaps,</span>
+<span class="lineNum">     122 </span>                :<span class="lineCov">        151 :                             nvpair_name(pair));</span>
+<span class="lineNum">     123 </span>                :            :                 } else {
+<span class="lineNum">     124 </span>                :<span class="lineCov">        211 :                         fnvlist_add_int32(dsda-&gt;dsda_errlist,</span>
+<span class="lineNum">     125 </span>                :<span class="lineCov">         60 :                             nvpair_name(pair), error);</span>
+<span class="lineNum">     126 </span>                :            :                 }
+<span class="lineNum">     127 </span>                :            :         }
+<span class="lineNum">     128 </span>                :            : 
+<span class="lineNum">     129 </span>                :<span class="lineCov">        356 :         pair = nvlist_next_nvpair(dsda-&gt;dsda_errlist, NULL);</span>
+<span class="lineNum">     130 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchCov" title="Branch 1 was taken 296 times"> + </span>]:<span class="lineCov">        356 :         if (pair != NULL)</span>
+<span class="lineNum">     131 </span>                :<span class="lineCov">         60 :                 return (fnvpair_value_int32(pair));</span>
+<span class="lineNum">     132 </span>                :            : 
+<span class="lineNum">     133 </span>                :            :         return (0);
+<span class="lineNum">     134 </span>                :            : }
+<span class="lineNum">     135 </span>                :            : 
+<span class="lineNum">     136 </span>                :            : struct process_old_arg {
+<span class="lineNum">     137 </span>                :            :         dsl_dataset_t *ds;
+<span class="lineNum">     138 </span>                :            :         dsl_dataset_t *ds_prev;
+<span class="lineNum">     139 </span>                :            :         boolean_t after_branch_point;
+<span class="lineNum">     140 </span>                :            :         zio_t *pio;
+<span class="lineNum">     141 </span>                :            :         uint64_t used, comp, uncomp;
+<span class="lineNum">     142 </span>                :            : };
+<a name="143"><span class="lineNum">     143 </span>                :            : </a>
+<span class="lineNum">     144 </span>                :            : static int
+<span class="lineNum">     145 </span>                :<span class="lineNoCov">          0 : process_old_cb(void *arg, const blkptr_t *bp, dmu_tx_t *tx)</span>
+<span class="lineNum">     146 </span>                :            : {
+<span class="lineNum">     147 </span>                :<span class="lineNoCov">          0 :         struct process_old_arg *poa = arg;</span>
+<span class="lineNum">     148 </span>                :<span class="lineNoCov">          0 :         dsl_pool_t *dp = poa-&gt;ds-&gt;ds_dir-&gt;dd_pool;</span>
+<span class="lineNum">     149 </span>                :            : 
+<span class="lineNum">     150 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(!BP_IS_HOLE(bp));</span>
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">     151 </span>                :            : 
+<span class="lineNum">     152 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (bp-&gt;blk_birth &lt;= dsl_dataset_phys(poa-&gt;ds)-&gt;ds_prev_snap_txg) {</span>
+<span class="lineNum">     153 </span>                :<span class="lineNoCov">          0 :                 dsl_deadlist_insert(&amp;poa-&gt;ds-&gt;ds_deadlist, bp, tx);</span>
+<span class="lineNum">     154 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (poa-&gt;ds_prev &amp;&amp; !poa-&gt;after_branch_point &amp;&amp;</span>
+<span class="lineNum">         </span>  [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">     155 </span>                :<span class="lineNoCov">          0 :                     bp-&gt;blk_birth &gt;</span>
+<span class="lineNum">     156 </span>                :<span class="lineNoCov">          0 :                     dsl_dataset_phys(poa-&gt;ds_prev)-&gt;ds_prev_snap_txg) {</span>
+<span class="lineNum">     157 </span>                :<span class="lineNoCov">          0 :                         dsl_dataset_phys(poa-&gt;ds_prev)-&gt;ds_unique_bytes +=</span>
+<span class="lineNum">     158 </span>                :<span class="lineNoCov">          0 :                             bp_get_dsize_sync(dp-&gt;dp_spa, bp);</span>
+<span class="lineNum">     159 </span>                :            :                 }
+<span class="lineNum">     160 </span>                :            :         } else {
+<span class="lineNum">     161 </span>                :<span class="lineNoCov">          0 :                 poa-&gt;used += bp_get_dsize_sync(dp-&gt;dp_spa, bp);</span>
+<span class="lineNum">     162 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 poa-&gt;comp += BP_GET_PSIZE(bp);</span>
+<span class="lineNum">     163 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 poa-&gt;uncomp += BP_GET_UCSIZE(bp);</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 8 was not executed"> # </span><span class="branchNoExec" title="Branch 9 was not executed"> # </span>][<span class="branchNoExec" title="Branch 10 was not executed"> # </span><span class="branchNoExec" title="Branch 11 was not executed"> # </span>]
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 12 was not executed"> # </span><span class="branchNoExec" title="Branch 13 was not executed"> # </span>]
+<span class="lineNum">     164 </span>                :<span class="lineNoCov">          0 :                 dsl_free_sync(poa-&gt;pio, dp, tx-&gt;tx_txg, bp);</span>
+<span class="lineNum">     165 </span>                :            :         }
+<span class="lineNum">     166 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     167 </span>                :            : }
+<a name="168"><span class="lineNum">     168 </span>                :            : </a>
+<span class="lineNum">     169 </span>                :            : static void
+<span class="lineNum">     170 </span>                :<span class="lineNoCov">          0 : process_old_deadlist(dsl_dataset_t *ds, dsl_dataset_t *ds_prev,</span>
+<span class="lineNum">     171 </span>                :            :     dsl_dataset_t *ds_next, boolean_t after_branch_point, dmu_tx_t *tx)
+<span class="lineNum">     172 </span>                :            : {
+<span class="lineNum">     173 </span>                :<span class="lineNoCov">          0 :         struct process_old_arg poa = { 0 };</span>
+<span class="lineNum">     174 </span>                :<span class="lineNoCov">          0 :         dsl_pool_t *dp = ds-&gt;ds_dir-&gt;dd_pool;</span>
+<span class="lineNum">     175 </span>                :<span class="lineNoCov">          0 :         objset_t *mos = dp-&gt;dp_meta_objset;</span>
+<span class="lineNum">     176 </span>                :            :         uint64_t deadlist_obj;
+<span class="lineNum">     177 </span>                :            : 
+<span class="lineNum">     178 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ds-&gt;ds_deadlist.dl_oldfmt);</span>
+<span class="lineNum">     179 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ds_next-&gt;ds_deadlist.dl_oldfmt);</span>
+<span class="lineNum">     180 </span>                :            : 
+<span class="lineNum">     181 </span>                :<span class="lineNoCov">          0 :         poa.ds = ds;</span>
+<span class="lineNum">     182 </span>                :<span class="lineNoCov">          0 :         poa.ds_prev = ds_prev;</span>
+<span class="lineNum">     183 </span>                :<span class="lineNoCov">          0 :         poa.after_branch_point = after_branch_point;</span>
+<span class="lineNum">     184 </span>                :<span class="lineNoCov">          0 :         poa.pio = zio_root(dp-&gt;dp_spa, NULL, NULL, ZIO_FLAG_MUSTSUCCEED);</span>
+<span class="lineNum">     185 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(bpobj_iterate(&amp;ds_next-&gt;ds_deadlist.dl_bpobj,</span>
+<span class="lineNum">     186 </span>                :            :             process_old_cb, &amp;poa, tx));
+<span class="lineNum">     187 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(zio_wait(poa.pio));</span>
+<span class="lineNum">     188 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3U(poa.used, ==, dsl_dataset_phys(ds)-&gt;ds_unique_bytes);</span>
+<span class="lineNum">     189 </span>                :            : 
+<span class="lineNum">     190 </span>                :            :         /* change snapused */
+<span class="lineNum">     191 </span>                :<span class="lineNoCov">          0 :         dsl_dir_diduse_space(ds-&gt;ds_dir, DD_USED_SNAP,</span>
+<span class="lineNum">     192 </span>                :<span class="lineNoCov">          0 :             -poa.used, -poa.comp, -poa.uncomp, tx);</span>
+<span class="lineNum">     193 </span>                :            : 
+<span class="lineNum">     194 </span>                :            :         /* swap next's deadlist to our deadlist */
+<span class="lineNum">     195 </span>                :<span class="lineNoCov">          0 :         dsl_deadlist_close(&amp;ds-&gt;ds_deadlist);</span>
+<span class="lineNum">     196 </span>                :<span class="lineNoCov">          0 :         dsl_deadlist_close(&amp;ds_next-&gt;ds_deadlist);</span>
+<span class="lineNum">     197 </span>                :<span class="lineNoCov">          0 :         deadlist_obj = dsl_dataset_phys(ds)-&gt;ds_deadlist_obj;</span>
+<span class="lineNum">     198 </span>                :<span class="lineNoCov">          0 :         dsl_dataset_phys(ds)-&gt;ds_deadlist_obj =</span>
+<span class="lineNum">     199 </span>                :<span class="lineNoCov">          0 :             dsl_dataset_phys(ds_next)-&gt;ds_deadlist_obj;</span>
+<span class="lineNum">     200 </span>                :<span class="lineNoCov">          0 :         dsl_dataset_phys(ds_next)-&gt;ds_deadlist_obj = deadlist_obj;</span>
+<span class="lineNum">     201 </span>                :<span class="lineNoCov">          0 :         dsl_deadlist_open(&amp;ds-&gt;ds_deadlist, mos,</span>
+<span class="lineNum">     202 </span>                :<span class="lineNoCov">          0 :             dsl_dataset_phys(ds)-&gt;ds_deadlist_obj);</span>
+<span class="lineNum">     203 </span>                :<span class="lineNoCov">          0 :         dsl_deadlist_open(&amp;ds_next-&gt;ds_deadlist, mos,</span>
+<span class="lineNum">     204 </span>                :<span class="lineNoCov">          0 :             dsl_dataset_phys(ds_next)-&gt;ds_deadlist_obj);</span>
+<span class="lineNum">     205 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="206"><span class="lineNum">     206 </span>                :            : </a>
+<span class="lineNum">     207 </span>                :            : static void
+<span class="lineNum">     208 </span>                :<span class="lineCov">        153 : dsl_dataset_remove_clones_key(dsl_dataset_t *ds, uint64_t mintxg, dmu_tx_t *tx)</span>
+<span class="lineNum">     209 </span>                :            : {
+<span class="lineNum">     210 </span>                :<span class="lineCov">        153 :         objset_t *mos = ds-&gt;ds_dir-&gt;dd_pool-&gt;dp_meta_objset;</span>
+<span class="lineNum">     211 </span>                :            :         zap_cursor_t *zc;
+<span class="lineNum">     212 </span>                :            :         zap_attribute_t *za;
+<span class="lineNum">     213 </span>                :            : 
+<span class="lineNum">     214 </span>                :            :         /*
+<span class="lineNum">     215 </span>                :            :          * If it is the old version, dd_clones doesn't exist so we can't
+<span class="lineNum">     216 </span>                :            :          * find the clones, but dsl_deadlist_remove_key() is a no-op so it
+<span class="lineNum">     217 </span>                :            :          * doesn't matter.
+<span class="lineNum">     218 </span>                :            :          */
+<span class="lineNum">     219 </span>        [<span class="branchCov" title="Branch 1 was taken 137 times"> + </span><span class="branchCov" title="Branch 2 was taken 16 times"> + </span>]:<span class="lineCov">        153 :         if (dsl_dir_phys(ds-&gt;ds_dir)-&gt;dd_clones == 0)</span>
+<span class="lineNum">     220 </span>                :            :                 return;
+<span class="lineNum">     221 </span>                :            : 
+<span class="lineNum">     222 </span>                :<span class="lineCov">        137 :         zc = kmem_alloc(sizeof (zap_cursor_t), KM_SLEEP);</span>
+<span class="lineNum">     223 </span>                :<span class="lineCov">        137 :         za = kmem_alloc(sizeof (zap_attribute_t), KM_SLEEP);</span>
+<span class="lineNum">     224 </span>                :            : 
+<span class="lineNum">     225 </span>        [<span class="branchCov" title="Branch 2 was taken 4 times"> + </span><span class="branchCov" title="Branch 3 was taken 137 times"> + </span>]:<span class="lineCov">        278 :         for (zap_cursor_init(zc, mos, dsl_dir_phys(ds-&gt;ds_dir)-&gt;dd_clones);</span>
+<span class="lineNum">     226 </span>                :<span class="lineCov">        141 :             zap_cursor_retrieve(zc, za) == 0;</span>
+<span class="lineNum">     227 </span>                :<span class="lineCov">          4 :             zap_cursor_advance(zc)) {</span>
+<span class="lineNum">     228 </span>                :            :                 dsl_dataset_t *clone;
+<span class="lineNum">     229 </span>                :            : 
+<span class="lineNum">     230 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 4 times"> + </span>]:<span class="lineCov">          4 :                 VERIFY0(dsl_dataset_hold_obj(ds-&gt;ds_dir-&gt;dd_pool,</span>
+<span class="lineNum">     231 </span>                :            :                     za-&gt;za_first_integer, FTAG, &amp;clone));
+<span class="lineNum">     232 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 2 times"> + </span>]:<span class="lineCov">          4 :                 if (clone-&gt;ds_dir-&gt;dd_origin_txg &gt; mintxg) {</span>
+<span class="lineNum">     233 </span>                :<span class="lineCov">          2 :                         dsl_deadlist_remove_key(&amp;clone-&gt;ds_deadlist,</span>
+<span class="lineNum">     234 </span>                :            :                             mintxg, tx);
+<span class="lineNum">     235 </span>                :<span class="lineCov">          2 :                         dsl_dataset_remove_clones_key(clone, mintxg, tx);</span>
+<span class="lineNum">     236 </span>                :            :                 }
+<span class="lineNum">     237 </span>                :<span class="lineCov">          4 :                 dsl_dataset_rele(clone, FTAG);</span>
+<span class="lineNum">     238 </span>                :            :         }
+<span class="lineNum">     239 </span>                :<span class="lineCov">        137 :         zap_cursor_fini(zc);</span>
+<span class="lineNum">     240 </span>                :            : 
+<span class="lineNum">     241 </span>                :<span class="lineCov">        137 :         kmem_free(za, sizeof (zap_attribute_t));</span>
+<span class="lineNum">     242 </span>                :<span class="lineCov">        137 :         kmem_free(zc, sizeof (zap_cursor_t));</span>
+<span class="lineNum">     243 </span>                :            : }
+<a name="244"><span class="lineNum">     244 </span>                :            : </a>
+<span class="lineNum">     245 </span>                :            : void
+<span class="lineNum">     246 </span>                :<span class="lineCov">        271 : dsl_destroy_snapshot_sync_impl(dsl_dataset_t *ds, boolean_t defer, dmu_tx_t *tx)</span>
+<span class="lineNum">     247 </span>                :            : {
+<span class="lineNum">     248 </span>                :            :         spa_feature_t f;
+<span class="lineNum">     249 </span>                :<span class="lineCov">        271 :         int after_branch_point = FALSE;</span>
+<span class="lineNum">     250 </span>                :<span class="lineCov">        271 :         dsl_pool_t *dp = ds-&gt;ds_dir-&gt;dd_pool;</span>
+<span class="lineNum">     251 </span>                :<span class="lineCov">        271 :         objset_t *mos = dp-&gt;dp_meta_objset;</span>
+<span class="lineNum">     252 </span>                :<span class="lineCov">        271 :         dsl_dataset_t *ds_prev = NULL;</span>
+<span class="lineNum">     253 </span>                :<span class="lineCov">        271 :         uint64_t obj, old_unique, used = 0, comp = 0, uncomp = 0;</span>
+<span class="lineNum">     254 </span>                :            :         dsl_dataset_t *ds_next, *ds_head, *hds;
+<span class="lineNum">     255 </span>                :            : 
+<span class="lineNum">     256 </span>                :            : 
+<span class="lineNum">     257 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 271 times"> + </span>]:<span class="lineCov">        271 :         ASSERT(RRW_WRITE_HELD(&amp;dp-&gt;dp_config_rwlock));</span>
+<span class="lineNum">     258 </span>                :<span class="lineCov">        271 :         rrw_enter(&amp;ds-&gt;ds_bp_rwlock, RW_READER, FTAG);</span>
+<span class="lineNum">     259 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 271 times"> + </span>]:<span class="lineCov">        271 :         ASSERT3U(dsl_dataset_phys(ds)-&gt;ds_bp.blk_birth, &lt;=, tx-&gt;tx_txg);</span>
+<span class="lineNum">     260 </span>                :<span class="lineCov">        271 :         rrw_exit(&amp;ds-&gt;ds_bp_rwlock, FTAG);</span>
+<span class="lineNum">     261 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 271 times"> + </span>]:<span class="lineCov">        271 :         ASSERT(refcount_is_zero(&amp;ds-&gt;ds_longholds));</span>
+<span class="lineNum">     262 </span>                :            : 
+<span class="lineNum">     263 </span>[<span class="branchCov" title="Branch 0 was taken 130 times"> + </span><span class="branchCov" title="Branch 1 was taken 141 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 70 times"> + </span><span class="branchCov" title="Branch 3 was taken 60 times"> + </span>]:<span class="lineCov">        271 :         if (defer &amp;&amp;</span>
+<span class="lineNum">     264 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchCov" title="Branch 1 was taken 10 times"> + </span>]:<span class="lineCov">         70 :             (ds-&gt;ds_userrefs &gt; 0 ||</span>
+<span class="lineNum">     265 </span>                :<span class="lineCov">         70 :             dsl_dataset_phys(ds)-&gt;ds_num_children &gt; 1)) {</span>
+<span class="lineNum">     266 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 120 times"> + </span>]:<span class="lineCov">        120 :                 ASSERT(spa_version(dp-&gt;dp_spa) &gt;= SPA_VERSION_USERREFS);</span>
+<span class="lineNum">     267 </span>                :<span class="lineCov">        120 :                 dmu_buf_will_dirty(ds-&gt;ds_dbuf, tx);</span>
+<span class="lineNum">     268 </span>                :<span class="lineCov">        120 :                 dsl_dataset_phys(ds)-&gt;ds_flags |= DS_FLAG_DEFER_DESTROY;</span>
+<span class="lineNum">     269 </span>                :<span class="lineCov">        120 :                 spa_history_log_internal_ds(ds, &quot;defer_destroy&quot;, tx, &quot;&quot;);</span>
+<span class="lineNum">     270 </span>                :<span class="lineCov">        120 :                 return;</span>
+<span class="lineNum">     271 </span>                :            :         }
+<span class="lineNum">     272 </span>                :            : 
+<span class="lineNum">     273 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 151 times"> + </span>]:<span class="lineCov">        151 :         ASSERT3U(dsl_dataset_phys(ds)-&gt;ds_num_children, &lt;=, 1);</span>
+<span class="lineNum">     274 </span>                :            : 
+<span class="lineNum">     275 </span>                :            :         /* We need to log before removing it from the namespace. */
+<span class="lineNum">     276 </span>                :<span class="lineCov">        151 :         spa_history_log_internal_ds(ds, &quot;destroy&quot;, tx, &quot;&quot;);</span>
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>                :<span class="lineCov">        151 :         dsl_scan_ds_destroyed(ds, tx);</span>
+<span class="lineNum">     279 </span>                :            : 
+<span class="lineNum">     280 </span>                :<span class="lineCov">        151 :         obj = ds-&gt;ds_object;</span>
+<span class="lineNum">     281 </span>                :            : 
+<span class="lineNum">     282 </span>        [<span class="branchCov" title="Branch 0 was taken 2718 times"> + </span><span class="branchCov" title="Branch 1 was taken 151 times"> + </span>]:<span class="lineCov">       2869 :         for (f = 0; f &lt; SPA_FEATURES; f++) {</span>
+<span class="lineNum">     283 </span>        [<span class="branchCov" title="Branch 0 was taken 242 times"> + </span><span class="branchCov" title="Branch 1 was taken 2476 times"> + </span>]:<span class="lineCov">       2718 :                 if (ds-&gt;ds_feature_inuse[f]) {</span>
+<span class="lineNum">     284 </span>                :<span class="lineCov">        242 :                         dsl_dataset_deactivate_feature(obj, f, tx);</span>
+<span class="lineNum">     285 </span>                :<span class="lineCov">        242 :                         ds-&gt;ds_feature_inuse[f] = B_FALSE;</span>
+<span class="lineNum">     286 </span>                :            :                 }
+<span class="lineNum">     287 </span>                :            :         }
+<span class="lineNum">     288 </span>        [<span class="branchCov" title="Branch 1 was taken 151 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        151 :         if (dsl_dataset_phys(ds)-&gt;ds_prev_snap_obj != 0) {</span>
+<span class="lineNum">     289 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 151 times"> + </span>]:<span class="lineCov">        151 :                 ASSERT3P(ds-&gt;ds_prev, ==, NULL);</span>
+<span class="lineNum">     290 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 151 times"> + </span>]:<span class="lineCov">        151 :                 VERIFY0(dsl_dataset_hold_obj(dp,</span>
+<span class="lineNum">     291 </span>                :            :                     dsl_dataset_phys(ds)-&gt;ds_prev_snap_obj, FTAG, &amp;ds_prev));
+<span class="lineNum">     292 </span>                :<span class="lineCov">        151 :                 after_branch_point =</span>
+<span class="lineNum">     293 </span>                :<span class="lineCov">        151 :                     (dsl_dataset_phys(ds_prev)-&gt;ds_next_snap_obj != obj);</span>
+<span class="lineNum">     294 </span>                :            : 
+<span class="lineNum">     295 </span>                :<span class="lineCov">        151 :                 dmu_buf_will_dirty(ds_prev-&gt;ds_dbuf, tx);</span>
+<span class="lineNum">     296 </span>  [<span class="branchCov" title="Branch 0 was taken 104 times"> + </span><span class="branchCov" title="Branch 1 was taken 47 times"> + </span><span class="branchCov" title="Branch 2 was taken 104 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">        255 :                 if (after_branch_point &amp;&amp;</span>
+<span class="lineNum">     297 </span>                :<span class="lineCov">        104 :                     dsl_dataset_phys(ds_prev)-&gt;ds_next_clones_obj != 0) {</span>
+<span class="lineNum">     298 </span>                :<span class="lineCov">        104 :                         dsl_dataset_remove_from_next_clones(ds_prev, obj, tx);</span>
+<span class="lineNum">     299 </span>        [<span class="branchCov" title="Branch 1 was taken 104 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        104 :                         if (dsl_dataset_phys(ds)-&gt;ds_next_snap_obj != 0) {</span>
+<span class="lineNum">     300 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 104 times"> + </span>]:<span class="lineCov">        104 :                                 VERIFY0(zap_add_int(mos,</span>
+<span class="lineNum">     301 </span>                :            :                                     dsl_dataset_phys(ds_prev)-&gt;
+<span class="lineNum">     302 </span>                :            :                                     ds_next_clones_obj,
+<span class="lineNum">     303 </span>                :            :                                     dsl_dataset_phys(ds)-&gt;ds_next_snap_obj,
+<span class="lineNum">     304 </span>                :            :                                     tx));
+<span class="lineNum">     305 </span>                :            :                         }
+<span class="lineNum">     306 </span>                :            :                 }
+<span class="lineNum">     307 </span>        [<span class="branchCov" title="Branch 0 was taken 47 times"> + </span><span class="branchCov" title="Branch 1 was taken 104 times"> + </span>]:<span class="lineCov">        151 :                 if (!after_branch_point) {</span>
+<span class="lineNum">     308 </span>                :<span class="lineCov">         94 :                         dsl_dataset_phys(ds_prev)-&gt;ds_next_snap_obj =</span>
+<span class="lineNum">     309 </span>                :<span class="lineCov">         47 :                             dsl_dataset_phys(ds)-&gt;ds_next_snap_obj;</span>
+<span class="lineNum">     310 </span>                :            :                 }
+<span class="lineNum">     311 </span>                :            :         }
+<span class="lineNum">     312 </span>                :            : 
+<span class="lineNum">     313 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 151 times"> + </span>]:<span class="lineCov">        151 :         VERIFY0(dsl_dataset_hold_obj(dp,</span>
+<span class="lineNum">     314 </span>                :            :             dsl_dataset_phys(ds)-&gt;ds_next_snap_obj, FTAG, &amp;ds_next));
+<span class="lineNum">     315 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 151 times"> + </span>]:<span class="lineCov">        151 :         ASSERT3U(dsl_dataset_phys(ds_next)-&gt;ds_prev_snap_obj, ==, obj);</span>
+<span class="lineNum">     316 </span>                :            : 
+<span class="lineNum">     317 </span>                :<span class="lineCov">        151 :         old_unique = dsl_dataset_phys(ds_next)-&gt;ds_unique_bytes;</span>
+<span class="lineNum">     318 </span>                :            : 
+<span class="lineNum">     319 </span>                :<span class="lineCov">        151 :         dmu_buf_will_dirty(ds_next-&gt;ds_dbuf, tx);</span>
+<span class="lineNum">     320 </span>                :<span class="lineCov">        151 :         dsl_dataset_phys(ds_next)-&gt;ds_prev_snap_obj =</span>
+<span class="lineNum">     321 </span>                :<span class="lineCov">        151 :             dsl_dataset_phys(ds)-&gt;ds_prev_snap_obj;</span>
+<span class="lineNum">     322 </span>                :<span class="lineCov">        151 :         dsl_dataset_phys(ds_next)-&gt;ds_prev_snap_txg =</span>
+<span class="lineNum">     323 </span>                :<span class="lineCov">        151 :             dsl_dataset_phys(ds)-&gt;ds_prev_snap_txg;</span>
+<span class="lineNum">     324 </span>[<span class="branchCov" title="Branch 1 was taken 151 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 151 times"> + </span>]:<span class="lineCov">        151 :         ASSERT3U(dsl_dataset_phys(ds)-&gt;ds_prev_snap_txg, ==,</span>
+<span class="lineNum">     325 </span>                :            :             ds_prev ? dsl_dataset_phys(ds_prev)-&gt;ds_creation_txg : 0);
+<span class="lineNum">     326 </span>                :            : 
+<span class="lineNum">     327 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 151 times"> + </span>]:<span class="lineCov">        151 :         if (ds_next-&gt;ds_deadlist.dl_oldfmt) {</span>
+<span class="lineNum">     328 </span>                :<span class="lineNoCov">          0 :                 process_old_deadlist(ds, ds_prev, ds_next,</span>
+<span class="lineNum">     329 </span>                :            :                     after_branch_point, tx);
+<span class="lineNum">     330 </span>                :            :         } else {
+<span class="lineNum">     331 </span>                :            :                 /* Adjust prev's unique space. */
+<span class="lineNum">     332 </span>[<span class="branchCov" title="Branch 0 was taken 151 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 47 times"> + </span><span class="branchCov" title="Branch 3 was taken 104 times"> + </span>]:<span class="lineCov">        151 :                 if (ds_prev &amp;&amp; !after_branch_point) {</span>
+<span class="lineNum">     333 </span>                :<span class="lineCov">         47 :                         dsl_deadlist_space_range(&amp;ds_next-&gt;ds_deadlist,</span>
+<span class="lineNum">     334 </span>                :<span class="lineCov">         47 :                             dsl_dataset_phys(ds_prev)-&gt;ds_prev_snap_txg,</span>
+<span class="lineNum">     335 </span>                :<span class="lineCov">         47 :                             dsl_dataset_phys(ds)-&gt;ds_prev_snap_txg,</span>
+<span class="lineNum">     336 </span>                :            :                             &amp;used, &amp;comp, &amp;uncomp);
+<span class="lineNum">     337 </span>                :<span class="lineCov">         47 :                         dsl_dataset_phys(ds_prev)-&gt;ds_unique_bytes += used;</span>
+<span class="lineNum">     338 </span>                :            :                 }
+<span class="lineNum">     339 </span>                :            : 
+<span class="lineNum">     340 </span>                :            :                 /* Adjust snapused. */
+<span class="lineNum">     341 </span>                :<span class="lineCov">        151 :                 dsl_deadlist_space_range(&amp;ds_next-&gt;ds_deadlist,</span>
+<span class="lineNum">     342 </span>                :<span class="lineCov">        151 :                     dsl_dataset_phys(ds)-&gt;ds_prev_snap_txg, UINT64_MAX,</span>
+<span class="lineNum">     343 </span>                :            :                     &amp;used, &amp;comp, &amp;uncomp);
+<span class="lineNum">     344 </span>                :<span class="lineCov">        151 :                 dsl_dir_diduse_space(ds-&gt;ds_dir, DD_USED_SNAP,</span>
+<span class="lineNum">     345 </span>                :<span class="lineCov">        453 :                     -used, -comp, -uncomp, tx);</span>
+<span class="lineNum">     346 </span>                :            : 
+<span class="lineNum">     347 </span>                :            :                 /* Move blocks to be freed to pool's free list. */
+<span class="lineNum">     348 </span>                :<span class="lineCov">        151 :                 dsl_deadlist_move_bpobj(&amp;ds_next-&gt;ds_deadlist,</span>
+<span class="lineNum">     349 </span>                :<span class="lineCov">        151 :                     &amp;dp-&gt;dp_free_bpobj, dsl_dataset_phys(ds)-&gt;ds_prev_snap_txg,</span>
+<span class="lineNum">     350 </span>                :            :                     tx);
+<span class="lineNum">     351 </span>                :<span class="lineCov">        151 :                 dsl_dir_diduse_space(tx-&gt;tx_pool-&gt;dp_free_dir,</span>
+<span class="lineNum">     352 </span>                :            :                     DD_USED_HEAD, used, comp, uncomp, tx);
+<span class="lineNum">     353 </span>                :            : 
+<span class="lineNum">     354 </span>                :            :                 /* Merge our deadlist into next's and free it. */
+<span class="lineNum">     355 </span>                :<span class="lineCov">        151 :                 dsl_deadlist_merge(&amp;ds_next-&gt;ds_deadlist,</span>
+<span class="lineNum">     356 </span>                :<span class="lineCov">        151 :                     dsl_dataset_phys(ds)-&gt;ds_deadlist_obj, tx);</span>
+<span class="lineNum">     357 </span>                :            :         }
+<span class="lineNum">     358 </span>                :<span class="lineCov">        151 :         dsl_deadlist_close(&amp;ds-&gt;ds_deadlist);</span>
+<span class="lineNum">     359 </span>                :<span class="lineCov">        151 :         dsl_deadlist_free(mos, dsl_dataset_phys(ds)-&gt;ds_deadlist_obj, tx);</span>
+<span class="lineNum">     360 </span>                :<span class="lineCov">        151 :         dmu_buf_will_dirty(ds-&gt;ds_dbuf, tx);</span>
+<span class="lineNum">     361 </span>                :<span class="lineCov">        151 :         dsl_dataset_phys(ds)-&gt;ds_deadlist_obj = 0;</span>
+<span class="lineNum">     362 </span>                :            : 
+<span class="lineNum">     363 </span>                :            :         /* Collapse range in clone heads */
+<span class="lineNum">     364 </span>                :<span class="lineCov">        151 :         dsl_dataset_remove_clones_key(ds,</span>
+<span class="lineNum">     365 </span>                :<span class="lineCov">        151 :             dsl_dataset_phys(ds)-&gt;ds_creation_txg, tx);</span>
+<span class="lineNum">     366 </span>                :            : 
+<span class="lineNum">     367 </span>        [<span class="branchCov" title="Branch 0 was taken 7 times"> + </span><span class="branchCov" title="Branch 1 was taken 144 times"> + </span>]:<span class="lineCov">        151 :         if (ds_next-&gt;ds_is_snapshot) {</span>
+<span class="lineNum">     368 </span>                :            :                 dsl_dataset_t *ds_nextnext;
+<span class="lineNum">     369 </span>                :            : 
+<span class="lineNum">     370 </span>                :            :                 /*
+<span class="lineNum">     371 </span>                :            :                  * Update next's unique to include blocks which
+<span class="lineNum">     372 </span>                :            :                  * were previously shared by only this snapshot
+<span class="lineNum">     373 </span>                :            :                  * and it.  Those blocks will be born after the
+<span class="lineNum">     374 </span>                :            :                  * prev snap and before this snap, and will have
+<span class="lineNum">     375 </span>                :            :                  * died after the next snap and before the one
+<span class="lineNum">     376 </span>                :            :                  * after that (ie. be on the snap after next's
+<span class="lineNum">     377 </span>                :            :                  * deadlist).
+<span class="lineNum">     378 </span>                :            :                  */
+<span class="lineNum">     379 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 7 times"> + </span>]:<span class="lineCov">          7 :                 VERIFY0(dsl_dataset_hold_obj(dp,</span>
+<span class="lineNum">     380 </span>                :            :                     dsl_dataset_phys(ds_next)-&gt;ds_next_snap_obj,
+<span class="lineNum">     381 </span>                :            :                     FTAG, &amp;ds_nextnext));
+<span class="lineNum">     382 </span>                :<span class="lineCov">          7 :                 dsl_deadlist_space_range(&amp;ds_nextnext-&gt;ds_deadlist,</span>
+<span class="lineNum">     383 </span>                :<span class="lineCov">          7 :                     dsl_dataset_phys(ds)-&gt;ds_prev_snap_txg,</span>
+<span class="lineNum">     384 </span>                :<span class="lineCov">          7 :                     dsl_dataset_phys(ds)-&gt;ds_creation_txg,</span>
+<span class="lineNum">     385 </span>                :            :                     &amp;used, &amp;comp, &amp;uncomp);
+<span class="lineNum">     386 </span>                :<span class="lineCov">          7 :                 dsl_dataset_phys(ds_next)-&gt;ds_unique_bytes += used;</span>
+<span class="lineNum">     387 </span>                :<span class="lineCov">          7 :                 dsl_dataset_rele(ds_nextnext, FTAG);</span>
+<span class="lineNum">     388 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 7 times"> + </span>]:<span class="lineCov">          7 :                 ASSERT3P(ds_next-&gt;ds_prev, ==, NULL);</span>
+<span class="lineNum">     389 </span>                :            : 
+<span class="lineNum">     390 </span>                :            :                 /* Collapse range in this head. */
+<span class="lineNum">     391 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 7 times"> + </span>]:<span class="lineCov">          7 :                 VERIFY0(dsl_dataset_hold_obj(dp,</span>
+<span class="lineNum">     392 </span>                :            :                     dsl_dir_phys(ds-&gt;ds_dir)-&gt;dd_head_dataset_obj, FTAG, &amp;hds));
+<span class="lineNum">     393 </span>                :<span class="lineCov">          7 :                 dsl_deadlist_remove_key(&amp;hds-&gt;ds_deadlist,</span>
+<span class="lineNum">     394 </span>                :<span class="lineCov">          7 :                     dsl_dataset_phys(ds)-&gt;ds_creation_txg, tx);</span>
+<span class="lineNum">     395 </span>                :<span class="lineCov">          7 :                 dsl_dataset_rele(hds, FTAG);</span>
+<span class="lineNum">     396 </span>                :            : 
+<span class="lineNum">     397 </span>                :            :         } else {
+<span class="lineNum">     398 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 144 times"> + </span>]:<span class="lineCov">        144 :                 ASSERT3P(ds_next-&gt;ds_prev, ==, ds);</span>
+<span class="lineNum">     399 </span>                :<span class="lineCov">        144 :                 dsl_dataset_rele(ds_next-&gt;ds_prev, ds_next);</span>
+<span class="lineNum">     400 </span>                :<span class="lineCov">        144 :                 ds_next-&gt;ds_prev = NULL;</span>
+<span class="lineNum">     401 </span>        [<span class="branchCov" title="Branch 0 was taken 144 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        144 :                 if (ds_prev) {</span>
+<span class="lineNum">     402 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 144 times"> + </span>]:<span class="lineCov">        144 :                         VERIFY0(dsl_dataset_hold_obj(dp,</span>
+<span class="lineNum">     403 </span>                :            :                             dsl_dataset_phys(ds)-&gt;ds_prev_snap_obj,
+<span class="lineNum">     404 </span>                :            :                             ds_next, &amp;ds_next-&gt;ds_prev));
+<span class="lineNum">     405 </span>                :            :                 }
+<span class="lineNum">     406 </span>                :            : 
+<span class="lineNum">     407 </span>                :<span class="lineCov">        144 :                 dsl_dataset_recalc_head_uniq(ds_next);</span>
+<span class="lineNum">     408 </span>                :            : 
+<span class="lineNum">     409 </span>                :            :                 /*
+<span class="lineNum">     410 </span>                :            :                  * Reduce the amount of our unconsumed refreservation
+<span class="lineNum">     411 </span>                :            :                  * being charged to our parent by the amount of
+<span class="lineNum">     412 </span>                :            :                  * new unique data we have gained.
+<span class="lineNum">     413 </span>                :            :                  */
+<span class="lineNum">     414 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 144 times"> + </span>]:<span class="lineCov">        144 :                 if (old_unique &lt; ds_next-&gt;ds_reserved) {</span>
+<span class="lineNum">     415 </span>                :            :                         int64_t mrsdelta;
+<span class="lineNum">     416 </span>                :<span class="lineNoCov">          0 :                         uint64_t new_unique =</span>
+<span class="lineNum">     417 </span>                :<span class="lineNoCov">          0 :                             dsl_dataset_phys(ds_next)-&gt;ds_unique_bytes;</span>
+<span class="lineNum">     418 </span>                :            : 
+<span class="lineNum">     419 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(old_unique &lt;= new_unique);</span>
+<span class="lineNum">     420 </span>                :<span class="lineNoCov">          0 :                         mrsdelta = MIN(new_unique - old_unique,</span>
+<span class="lineNum">     421 </span>                :            :                             ds_next-&gt;ds_reserved - old_unique);
+<span class="lineNum">     422 </span>                :<span class="lineNoCov">          0 :                         dsl_dir_diduse_space(ds-&gt;ds_dir,</span>
+<span class="lineNum">     423 </span>                :            :                             DD_USED_REFRSRV, -mrsdelta, 0, 0, tx);
+<span class="lineNum">     424 </span>                :            :                 }
+<span class="lineNum">     425 </span>                :            :         }
+<span class="lineNum">     426 </span>                :<span class="lineCov">        151 :         dsl_dataset_rele(ds_next, FTAG);</span>
+<span class="lineNum">     427 </span>                :            : 
+<span class="lineNum">     428 </span>                :            :         /*
+<span class="lineNum">     429 </span>                :            :          * This must be done after the dsl_traverse(), because it will
+<span class="lineNum">     430 </span>                :            :          * re-open the objset.
+<span class="lineNum">     431 </span>                :            :          */
+<span class="lineNum">     432 </span>        [<span class="branchCov" title="Branch 0 was taken 4 times"> + </span><span class="branchCov" title="Branch 1 was taken 147 times"> + </span>]:<span class="lineCov">        151 :         if (ds-&gt;ds_objset) {</span>
+<span class="lineNum">     433 </span>                :<span class="lineCov">          4 :                 dmu_objset_evict(ds-&gt;ds_objset);</span>
+<span class="lineNum">     434 </span>                :<span class="lineCov">          4 :                 ds-&gt;ds_objset = NULL;</span>
+<span class="lineNum">     435 </span>                :            :         }
+<span class="lineNum">     436 </span>                :            : 
+<span class="lineNum">     437 </span>                :            :         /* remove from snapshot namespace */
+<span class="lineNum">     438 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 151 times"> + </span>]:<span class="lineCov">        151 :         ASSERT(dsl_dataset_phys(ds)-&gt;ds_snapnames_zapobj == 0);</span>
+<span class="lineNum">     439 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 151 times"> + </span>]:<span class="lineCov">        151 :         VERIFY0(dsl_dataset_hold_obj(dp,</span>
+<span class="lineNum">     440 </span>                :            :             dsl_dir_phys(ds-&gt;ds_dir)-&gt;dd_head_dataset_obj, FTAG, &amp;ds_head));
+<span class="lineNum">     441 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 151 times"> + </span>]:<span class="lineCov">        151 :         VERIFY0(dsl_dataset_get_snapname(ds));</span>
+<span class="lineNum">     442 </span>                :            : #ifdef ZFS_DEBUG
+<span class="lineNum">     443 </span>                :            :         {
+<span class="lineNum">     444 </span>                :            :                 uint64_t val;
+<span class="lineNum">     445 </span>                :            :                 int err;
+<span class="lineNum">     446 </span>                :            : 
+<span class="lineNum">     447 </span>                :<span class="lineCov">        151 :                 err = dsl_dataset_snap_lookup(ds_head,</span>
+<span class="lineNum">     448 </span>                :<span class="lineCov">        151 :                     ds-&gt;ds_snapname, &amp;val);</span>
+<span class="lineNum">     449 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 151 times"> + </span>]:<span class="lineCov">        151 :                 ASSERT0(err);</span>
+<span class="lineNum">     450 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 151 times"> + </span>]:<span class="lineCov">        151 :                 ASSERT3U(val, ==, obj);</span>
+<span class="lineNum">     451 </span>                :            :         }
+<span class="lineNum">     452 </span>                :            : #endif
+<span class="lineNum">     453 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 151 times"> + </span>]:<span class="lineCov">        151 :         VERIFY0(dsl_dataset_snap_remove(ds_head, ds-&gt;ds_snapname, tx, B_TRUE));</span>
+<span class="lineNum">     454 </span>                :<span class="lineCov">        151 :         dsl_dataset_rele(ds_head, FTAG);</span>
+<span class="lineNum">     455 </span>                :            : 
+<span class="lineNum">     456 </span>        [<span class="branchCov" title="Branch 0 was taken 151 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        151 :         if (ds_prev != NULL)</span>
+<span class="lineNum">     457 </span>                :<span class="lineCov">        151 :                 dsl_dataset_rele(ds_prev, FTAG);</span>
+<span class="lineNum">     458 </span>                :            : 
+<span class="lineNum">     459 </span>                :<span class="lineCov">        151 :         spa_prop_clear_bootfs(dp-&gt;dp_spa, ds-&gt;ds_object, tx);</span>
+<span class="lineNum">     460 </span>                :            : 
+<span class="lineNum">     461 </span>        [<span class="branchCov" title="Branch 1 was taken 70 times"> + </span><span class="branchCov" title="Branch 2 was taken 81 times"> + </span>]:<span class="lineCov">        151 :         if (dsl_dataset_phys(ds)-&gt;ds_next_clones_obj != 0) {</span>
+<span class="lineNum">     462 </span>                :            :                 ASSERTV(uint64_t count);
+<span class="lineNum">     463 </span>[<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 70 times"> + </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineCov">         70 :                 ASSERT0(zap_count(mos,</span>
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 5 was not taken"> - </span><span class="branchCov" title="Branch 6 was taken 70 times"> + </span>]
+<span class="lineNum">     464 </span>                :            :                     dsl_dataset_phys(ds)-&gt;ds_next_clones_obj, &amp;count) &amp;&amp;
+<span class="lineNum">     465 </span>                :            :                     count == 0);
+<span class="lineNum">     466 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 70 times"> + </span>]:<span class="lineCov">         70 :                 VERIFY0(dmu_object_free(mos,</span>
+<span class="lineNum">     467 </span>                :            :                     dsl_dataset_phys(ds)-&gt;ds_next_clones_obj, tx));
+<span class="lineNum">     468 </span>                :            :         }
+<span class="lineNum">     469 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 151 times"> + </span>]:<span class="lineCov">        151 :         if (dsl_dataset_phys(ds)-&gt;ds_props_obj != 0)</span>
+<span class="lineNum">     470 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY0(zap_destroy(mos, dsl_dataset_phys(ds)-&gt;ds_props_obj,</span>
+<span class="lineNum">     471 </span>                :            :                     tx));
+<span class="lineNum">     472 </span>        [<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchCov" title="Branch 2 was taken 91 times"> + </span>]:<span class="lineCov">        151 :         if (dsl_dataset_phys(ds)-&gt;ds_userrefs_obj != 0)</span>
+<span class="lineNum">     473 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">         60 :                 VERIFY0(zap_destroy(mos, dsl_dataset_phys(ds)-&gt;ds_userrefs_obj,</span>
+<span class="lineNum">     474 </span>                :            :                     tx));
+<span class="lineNum">     475 </span>                :<span class="lineCov">        151 :         dsl_dir_rele(ds-&gt;ds_dir, ds);</span>
+<span class="lineNum">     476 </span>                :<span class="lineCov">        151 :         ds-&gt;ds_dir = NULL;</span>
+<span class="lineNum">     477 </span>                :<span class="lineCov">        151 :         dmu_object_free_zapified(mos, obj, tx);</span>
+<span class="lineNum">     478 </span>                :            : }
+<a name="479"><span class="lineNum">     479 </span>                :            : </a>
+<span class="lineNum">     480 </span>                :            : static void
+<span class="lineNum">     481 </span>                :<span class="lineCov">        296 : dsl_destroy_snapshot_sync(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     482 </span>                :            : {
+<span class="lineNum">     483 </span>                :<span class="lineCov">        296 :         dmu_snapshots_destroy_arg_t *dsda = arg;</span>
+<span class="lineNum">     484 </span>                :<span class="lineCov">        296 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     485 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     486 </span>                :            : 
+<span class="lineNum">     487 </span>        [<span class="branchCov" title="Branch 1 was taken 151 times"> + </span><span class="branchCov" title="Branch 2 was taken 296 times"> + </span>]:<span class="lineCov">        447 :         for (pair = nvlist_next_nvpair(dsda-&gt;dsda_successful_snaps, NULL);</span>
+<span class="lineNum">     488 </span>                :            :             pair != NULL;
+<span class="lineNum">     489 </span>                :<span class="lineCov">        151 :             pair = nvlist_next_nvpair(dsda-&gt;dsda_successful_snaps, pair)) {</span>
+<span class="lineNum">     490 </span>                :            :                 dsl_dataset_t *ds;
+<span class="lineNum">     491 </span>                :            : 
+<span class="lineNum">     492 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 151 times"> + </span>]:<span class="lineCov">        151 :                 VERIFY0(dsl_dataset_hold(dp, nvpair_name(pair), FTAG, &amp;ds));</span>
+<span class="lineNum">     493 </span>                :            : 
+<span class="lineNum">     494 </span>                :<span class="lineCov">        151 :                 dsl_destroy_snapshot_sync_impl(ds, dsda-&gt;dsda_defer, tx);</span>
+<span class="lineNum">     495 </span>                :<span class="lineCov">        151 :                 zvol_remove_minors(dp-&gt;dp_spa, nvpair_name(pair), B_TRUE);</span>
+<span class="lineNum">     496 </span>                :<span class="lineCov">        151 :                 dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     497 </span>                :            :         }
+<span class="lineNum">     498 </span>                :<span class="lineCov">        296 : }</span>
+<span class="lineNum">     499 </span>                :            : 
+<span class="lineNum">     500 </span>                :            : /*
+<span class="lineNum">     501 </span>                :            :  * The semantics of this function are described in the comment above
+<span class="lineNum">     502 </span>                :            :  * lzc_destroy_snaps().  To summarize:
+<span class="lineNum">     503 </span>                :            :  *
+<span class="lineNum">     504 </span>                :            :  * The snapshots must all be in the same pool.
+<span class="lineNum">     505 </span>                :            :  *
+<span class="lineNum">     506 </span>                :            :  * Snapshots that don't exist will be silently ignored (considered to be
+<span class="lineNum">     507 </span>                :            :  * &quot;already deleted&quot;).
+<span class="lineNum">     508 </span>                :            :  *
+<span class="lineNum">     509 </span>                :            :  * On success, all snaps will be destroyed and this will return 0.
+<span class="lineNum">     510 </span>                :            :  * On failure, no snaps will be destroyed, the errlist will be filled in,
+<span class="lineNum">     511 </span>                :            :  * and this will return an errno.
+<a name="512"><span class="lineNum">     512 </span>                :            :  */</a>
+<span class="lineNum">     513 </span>                :            : int
+<span class="lineNum">     514 </span>                :<span class="lineCov">        356 : dsl_destroy_snapshots_nvl(nvlist_t *snaps, boolean_t defer,</span>
+<span class="lineNum">     515 </span>                :            :     nvlist_t *errlist)
+<span class="lineNum">     516 </span>                :            : {
+<span class="lineNum">     517 </span>                :            :         dmu_snapshots_destroy_arg_t dsda;
+<span class="lineNum">     518 </span>                :            :         int error;
+<span class="lineNum">     519 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     520 </span>                :            : 
+<span class="lineNum">     521 </span>                :<span class="lineCov">        356 :         pair = nvlist_next_nvpair(snaps, NULL);</span>
+<span class="lineNum">     522 </span>        [<span class="branchCov" title="Branch 0 was taken 356 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        356 :         if (pair == NULL)</span>
+<span class="lineNum">     523 </span>                :            :                 return (0);
+<span class="lineNum">     524 </span>                :            : 
+<span class="lineNum">     525 </span>                :<span class="lineCov">        356 :         dsda.dsda_snaps = snaps;</span>
+<span class="lineNum">     526 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 356 times"> + </span>]:<span class="lineCov">        356 :         VERIFY0(nvlist_alloc(&amp;dsda.dsda_successful_snaps,</span>
+<span class="lineNum">     527 </span>                :            :             NV_UNIQUE_NAME, KM_SLEEP));
+<span class="lineNum">     528 </span>                :<span class="lineCov">        356 :         dsda.dsda_defer = defer;</span>
+<span class="lineNum">     529 </span>                :<span class="lineCov">        356 :         dsda.dsda_errlist = errlist;</span>
+<span class="lineNum">     530 </span>                :            : 
+<span class="lineNum">     531 </span>                :<span class="lineCov">        356 :         error = dsl_sync_task(nvpair_name(pair),</span>
+<span class="lineNum">     532 </span>                :            :             dsl_destroy_snapshot_check, dsl_destroy_snapshot_sync,
+<span class="lineNum">     533 </span>                :            :             &amp;dsda, 0, ZFS_SPACE_CHECK_NONE);
+<span class="lineNum">     534 </span>                :<span class="lineCov">        356 :         fnvlist_free(dsda.dsda_successful_snaps);</span>
+<span class="lineNum">     535 </span>                :            : 
+<span class="lineNum">     536 </span>                :<span class="lineCov">        356 :         return (error);</span>
+<span class="lineNum">     537 </span>                :            : }
+<a name="538"><span class="lineNum">     538 </span>                :            : </a>
+<span class="lineNum">     539 </span>                :            : int
+<span class="lineNum">     540 </span>                :<span class="lineCov">        356 : dsl_destroy_snapshot(const char *name, boolean_t defer)</span>
+<span class="lineNum">     541 </span>                :            : {
+<span class="lineNum">     542 </span>                :            :         int error;
+<span class="lineNum">     543 </span>                :<span class="lineCov">        356 :         nvlist_t *nvl = fnvlist_alloc();</span>
+<span class="lineNum">     544 </span>                :<span class="lineCov">        356 :         nvlist_t *errlist = fnvlist_alloc();</span>
+<span class="lineNum">     545 </span>                :            : 
+<span class="lineNum">     546 </span>                :<span class="lineCov">        356 :         fnvlist_add_boolean(nvl, name);</span>
+<span class="lineNum">     547 </span>                :<span class="lineCov">        356 :         error = dsl_destroy_snapshots_nvl(nvl, defer, errlist);</span>
+<span class="lineNum">     548 </span>                :<span class="lineCov">        356 :         fnvlist_free(errlist);</span>
+<span class="lineNum">     549 </span>                :<span class="lineCov">        356 :         fnvlist_free(nvl);</span>
+<span class="lineNum">     550 </span>                :<span class="lineCov">        356 :         return (error);</span>
+<span class="lineNum">     551 </span>                :            : }
+<span class="lineNum">     552 </span>                :            : 
+<span class="lineNum">     553 </span>                :            : struct killarg {
+<span class="lineNum">     554 </span>                :            :         dsl_dataset_t *ds;
+<span class="lineNum">     555 </span>                :            :         dmu_tx_t *tx;
+<span class="lineNum">     556 </span>                :            : };
+<span class="lineNum">     557 </span>                :            : 
+<a name="558"><span class="lineNum">     558 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     559 </span>                :            : static int
+<span class="lineNum">     560 </span>                :<span class="lineNoCov">          0 : kill_blkptr(spa_t *spa, zilog_t *zilog, const blkptr_t *bp,</span>
+<span class="lineNum">     561 </span>                :            :     const zbookmark_phys_t *zb, const dnode_phys_t *dnp, void *arg)
+<span class="lineNum">     562 </span>                :            : {
+<span class="lineNum">     563 </span>                :<span class="lineNoCov">          0 :         struct killarg *ka = arg;</span>
+<span class="lineNum">     564 </span>                :<span class="lineNoCov">          0 :         dmu_tx_t *tx = ka-&gt;tx;</span>
+<span class="lineNum">     565 </span>                :            : 
+<span class="lineNum">     566 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (bp == NULL || BP_IS_HOLE(bp) || BP_IS_EMBEDDED(bp))</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 8 was not executed"> # </span><span class="branchNoExec" title="Branch 9 was not executed"> # </span>]
+<span class="lineNum">     567 </span>                :            :                 return (0);
+<span class="lineNum">     568 </span>                :            : 
+<span class="lineNum">     569 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (zb-&gt;zb_level == ZB_ZIL_LEVEL) {</span>
+<span class="lineNum">     570 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(zilog != NULL);</span>
+<span class="lineNum">     571 </span>                :            :                 /*
+<span class="lineNum">     572 </span>                :            :                  * It's a block in the intent log.  It has no
+<span class="lineNum">     573 </span>                :            :                  * accounting, so just free it.
+<span class="lineNum">     574 </span>                :            :                  */
+<span class="lineNum">     575 </span>                :<span class="lineNoCov">          0 :                 dsl_free(ka-&gt;tx-&gt;tx_pool, ka-&gt;tx-&gt;tx_txg, bp);</span>
+<span class="lineNum">     576 </span>                :            :         } else {
+<span class="lineNum">     577 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(zilog == NULL);</span>
+<span class="lineNum">     578 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT3U(bp-&gt;blk_birth, &gt;,</span>
+<span class="lineNum">     579 </span>                :            :                     dsl_dataset_phys(ka-&gt;ds)-&gt;ds_prev_snap_txg);
+<span class="lineNum">     580 </span>                :<span class="lineNoCov">          0 :                 (void) dsl_dataset_block_kill(ka-&gt;ds, bp, tx, B_FALSE);</span>
+<span class="lineNum">     581 </span>                :            :         }
+<span class="lineNum">     582 </span>                :            : 
+<span class="lineNum">     583 </span>                :            :         return (0);
+<span class="lineNum">     584 </span>                :            : }
+<a name="585"><span class="lineNum">     585 </span>                :            : </a>
+<span class="lineNum">     586 </span>                :            : static void
+<span class="lineNum">     587 </span>                :<span class="lineNoCov">          0 : old_synchronous_dataset_destroy(dsl_dataset_t *ds, dmu_tx_t *tx)</span>
+<span class="lineNum">     588 </span>                :            : {
+<span class="lineNum">     589 </span>                :            :         struct killarg ka;
+<span class="lineNum">     590 </span>                :            : 
+<span class="lineNum">     591 </span>                :            :         /*
+<span class="lineNum">     592 </span>                :            :          * Free everything that we point to (that's born after
+<span class="lineNum">     593 </span>                :            :          * the previous snapshot, if we are a clone)
+<span class="lineNum">     594 </span>                :            :          *
+<span class="lineNum">     595 </span>                :            :          * NB: this should be very quick, because we already
+<span class="lineNum">     596 </span>                :            :          * freed all the objects in open context.
+<span class="lineNum">     597 </span>                :            :          */
+<span class="lineNum">     598 </span>                :<span class="lineNoCov">          0 :         ka.ds = ds;</span>
+<span class="lineNum">     599 </span>                :<span class="lineNoCov">          0 :         ka.tx = tx;</span>
+<span class="lineNum">     600 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(traverse_dataset(ds,</span>
+<span class="lineNum">     601 </span>                :            :             dsl_dataset_phys(ds)-&gt;ds_prev_snap_txg, TRAVERSE_POST |
+<span class="lineNum">     602 </span>                :            :             TRAVERSE_NO_DECRYPT, kill_blkptr, &amp;ka));
+<span class="lineNum">     603 </span>[<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(!DS_UNIQUE_IS_ACCURATE(ds) ||</span>
+<span class="lineNum">     604 </span>                :            :             dsl_dataset_phys(ds)-&gt;ds_unique_bytes == 0);
+<span class="lineNum">     605 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     606 </span>                :            : 
+<span class="lineNum">     607 </span>                :            : typedef struct dsl_destroy_head_arg {
+<span class="lineNum">     608 </span>                :            :         const char *ddha_name;
+<span class="lineNum">     609 </span>                :            : } dsl_destroy_head_arg_t;
+<a name="610"><span class="lineNum">     610 </span>                :            : </a>
+<span class="lineNum">     611 </span>                :            : int
+<span class="lineNum">     612 </span>                :<span class="lineCov">        232 : dsl_destroy_head_check_impl(dsl_dataset_t *ds, int expected_holds)</span>
+<span class="lineNum">     613 </span>                :            : {
+<span class="lineNum">     614 </span>                :            :         int error;
+<span class="lineNum">     615 </span>                :            :         uint64_t count;
+<span class="lineNum">     616 </span>                :            :         objset_t *mos;
+<span class="lineNum">     617 </span>                :            : 
+<span class="lineNum">     618 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 232 times"> + </span>]:<span class="lineCov">        232 :         ASSERT(!ds-&gt;ds_is_snapshot);</span>
+<span class="lineNum">     619 </span>                :            :         if (ds-&gt;ds_is_snapshot)
+<span class="lineNum">     620 </span>                :            :                 return (SET_ERROR(EINVAL));
+<span class="lineNum">     621 </span>                :            : 
+<span class="lineNum">     622 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 232 times"> + </span>]:<span class="lineCov">        232 :         if (refcount_count(&amp;ds-&gt;ds_longholds) != expected_holds)</span>
+<span class="lineNum">     623 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EBUSY));</span>
+<span class="lineNum">     624 </span>                :            : 
+<span class="lineNum">     625 </span>                :<span class="lineCov">        232 :         mos = ds-&gt;ds_dir-&gt;dd_pool-&gt;dp_meta_objset;</span>
+<span class="lineNum">     626 </span>                :            : 
+<span class="lineNum">     627 </span>                :            :         /*
+<span class="lineNum">     628 </span>                :            :          * Can't delete a head dataset if there are snapshots of it.
+<span class="lineNum">     629 </span>                :            :          * (Except if the only snapshots are from the branch we cloned
+<span class="lineNum">     630 </span>                :            :          * from.)
+<span class="lineNum">     631 </span>                :            :          */
+<span class="lineNum">     632 </span>  [<span class="branchCov" title="Branch 0 was taken 232 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 232 times"> + </span>]:<span class="lineCov">        464 :         if (ds-&gt;ds_prev != NULL &amp;&amp;</span>
+<span class="lineNum">     633 </span>                :<span class="lineCov">        232 :             dsl_dataset_phys(ds-&gt;ds_prev)-&gt;ds_next_snap_obj == ds-&gt;ds_object)</span>
+<span class="lineNum">     634 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EBUSY));</span>
+<span class="lineNum">     635 </span>                :            : 
+<span class="lineNum">     636 </span>                :            :         /*
+<span class="lineNum">     637 </span>                :            :          * Can't delete if there are children of this fs.
+<span class="lineNum">     638 </span>                :            :          */
+<span class="lineNum">     639 </span>                :<span class="lineCov">        232 :         error = zap_count(mos,</span>
+<span class="lineNum">     640 </span>                :<span class="lineCov">        232 :             dsl_dir_phys(ds-&gt;ds_dir)-&gt;dd_child_dir_zapobj, &amp;count);</span>
+<span class="lineNum">     641 </span>        [<span class="branchCov" title="Branch 0 was taken 232 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        232 :         if (error != 0)</span>
+<span class="lineNum">     642 </span>                :            :                 return (error);
+<span class="lineNum">     643 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 232 times"> + </span>]:<span class="lineCov">        232 :         if (count != 0)</span>
+<span class="lineNum">     644 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EEXIST));</span>
+<span class="lineNum">     645 </span>                :            : 
+<span class="lineNum">     646 </span>[<span class="branchCov" title="Branch 1 was taken 140 times"> + </span><span class="branchCov" title="Branch 2 was taken 92 times"> + </span>][<span class="branchCov" title="Branch 4 was taken 120 times"> + </span><span class="branchCov" title="Branch 5 was taken 20 times"> + </span>]:<span class="lineCov">        232 :         if (dsl_dir_is_clone(ds-&gt;ds_dir) &amp;&amp; DS_IS_DEFER_DESTROY(ds-&gt;ds_prev) &amp;&amp;</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 6 was taken 120 times"> + </span><span class="branchNoCov" title="Branch 7 was not taken"> - </span>]
+<span class="lineNum">     647 </span>        [<span class="branchCov" title="Branch 0 was taken 120 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        120 :             dsl_dataset_phys(ds-&gt;ds_prev)-&gt;ds_num_children == 2 &amp;&amp;</span>
+<span class="lineNum">     648 </span>                :<span class="lineCov">        120 :             ds-&gt;ds_prev-&gt;ds_userrefs == 0) {</span>
+<span class="lineNum">     649 </span>                :            :                 /* We need to remove the origin snapshot as well. */
+<span class="lineNum">     650 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 120 times"> + </span>]:<span class="lineCov">        120 :                 if (!refcount_is_zero(&amp;ds-&gt;ds_prev-&gt;ds_longholds))</span>
+<span class="lineNum">     651 </span>                :<span class="lineNoCov">          0 :                         return (SET_ERROR(EBUSY));</span>
+<span class="lineNum">     652 </span>                :            :         }
+<span class="lineNum">     653 </span>                :            :         return (0);
+<span class="lineNum">     654 </span>                :            : }
+<a name="655"><span class="lineNum">     655 </span>                :            : </a>
+<span class="lineNum">     656 </span>                :            : static int
+<span class="lineNum">     657 </span>                :<span class="lineCov">        316 : dsl_destroy_head_check(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     658 </span>                :            : {
+<span class="lineNum">     659 </span>                :<span class="lineCov">        316 :         dsl_destroy_head_arg_t *ddha = arg;</span>
+<span class="lineNum">     660 </span>                :<span class="lineCov">        316 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     661 </span>                :            :         dsl_dataset_t *ds;
+<span class="lineNum">     662 </span>                :            :         int error;
+<span class="lineNum">     663 </span>                :            : 
+<span class="lineNum">     664 </span>                :<span class="lineCov">        316 :         error = dsl_dataset_hold(dp, ddha-&gt;ddha_name, FTAG, &amp;ds);</span>
+<span class="lineNum">     665 </span>        [<span class="branchCov" title="Branch 0 was taken 232 times"> + </span><span class="branchCov" title="Branch 1 was taken 84 times"> + </span>]:<span class="lineCov">        316 :         if (error != 0)</span>
+<span class="lineNum">     666 </span>                :            :                 return (error);
+<span class="lineNum">     667 </span>                :            : 
+<span class="lineNum">     668 </span>                :<span class="lineCov">        232 :         error = dsl_destroy_head_check_impl(ds, 0);</span>
+<span class="lineNum">     669 </span>                :<span class="lineCov">        232 :         dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     670 </span>                :<span class="lineCov">        232 :         return (error);</span>
+<span class="lineNum">     671 </span>                :            : }
+<a name="672"><span class="lineNum">     672 </span>                :            : </a>
+<span class="lineNum">     673 </span>                :            : static void
+<span class="lineNum">     674 </span>                :<span class="lineCov">        116 : dsl_dir_destroy_sync(uint64_t ddobj, dmu_tx_t *tx)</span>
+<span class="lineNum">     675 </span>                :            : {
+<span class="lineNum">     676 </span>                :            :         dsl_dir_t *dd;
+<span class="lineNum">     677 </span>                :<span class="lineCov">        116 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     678 </span>                :<span class="lineCov">        116 :         objset_t *mos = dp-&gt;dp_meta_objset;</span>
+<span class="lineNum">     679 </span>                :            :         dd_used_t t;
+<span class="lineNum">     680 </span>                :            : 
+<span class="lineNum">     681 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         ASSERT(RRW_WRITE_HELD(&amp;dmu_tx_pool(tx)-&gt;dp_config_rwlock));</span>
+<span class="lineNum">     682 </span>                :            : 
+<span class="lineNum">     683 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         VERIFY0(dsl_dir_hold_obj(dp, ddobj, NULL, FTAG, &amp;dd));</span>
+<span class="lineNum">     684 </span>                :            : 
+<span class="lineNum">     685 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         ASSERT0(dsl_dir_phys(dd)-&gt;dd_head_dataset_obj);</span>
+<span class="lineNum">     686 </span>                :            : 
+<span class="lineNum">     687 </span>                :            :         /*
+<span class="lineNum">     688 </span>                :            :          * Decrement the filesystem count for all parent filesystems.
+<span class="lineNum">     689 </span>                :            :          *
+<span class="lineNum">     690 </span>                :            :          * When we receive an incremental stream into a filesystem that already
+<span class="lineNum">     691 </span>                :            :          * exists, a temporary clone is created.  We never count this temporary
+<span class="lineNum">     692 </span>                :            :          * clone, whose name begins with a '%'.
+<span class="lineNum">     693 </span>                :            :          */
+<span class="lineNum">     694 </span>[<span class="branchCov" title="Branch 0 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">        116 :         if (dd-&gt;dd_myname[0] != '%' &amp;&amp; dd-&gt;dd_parent != NULL)</span>
+<span class="lineNum">     695 </span>                :<span class="lineCov">        116 :                 dsl_fs_ss_count_adjust(dd-&gt;dd_parent, -1,</span>
+<span class="lineNum">     696 </span>                :            :                     DD_FIELD_FILESYSTEM_COUNT, tx);
+<span class="lineNum">     697 </span>                :            : 
+<span class="lineNum">     698 </span>                :            :         /*
+<span class="lineNum">     699 </span>                :            :          * Remove our reservation. The impl() routine avoids setting the
+<span class="lineNum">     700 </span>                :            :          * actual property, which would require the (already destroyed) ds.
+<span class="lineNum">     701 </span>                :            :          */
+<span class="lineNum">     702 </span>                :<span class="lineCov">        116 :         dsl_dir_set_reservation_sync_impl(dd, 0, tx);</span>
+<span class="lineNum">     703 </span>                :            : 
+<span class="lineNum">     704 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         ASSERT0(dsl_dir_phys(dd)-&gt;dd_used_bytes);</span>
+<span class="lineNum">     705 </span>        [<span class="branchCov" title="Branch 0 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        116 :         ASSERT0(dsl_dir_phys(dd)-&gt;dd_reserved);</span>
+<span class="lineNum">     706 </span>        [<span class="branchCov" title="Branch 0 was taken 580 times"> + </span><span class="branchCov" title="Branch 1 was taken 116 times"> + </span>]:<span class="lineCov">        696 :         for (t = 0; t &lt; DD_USED_NUM; t++)</span>
+<span class="lineNum">     707 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 580 times"> + </span>]:<span class="lineCov">        580 :                 ASSERT0(dsl_dir_phys(dd)-&gt;dd_used_breakdown[t]);</span>
+<span class="lineNum">     708 </span>                :            : 
+<span class="lineNum">     709 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         if (dd-&gt;dd_crypto_obj != 0) {</span>
+<span class="lineNum">     710 </span>                :<span class="lineNoCov">          0 :                 dsl_crypto_key_destroy_sync(dd-&gt;dd_crypto_obj, tx);</span>
+<span class="lineNum">     711 </span>                :<span class="lineNoCov">          0 :                 (void) spa_keystore_unload_wkey_impl(dp-&gt;dp_spa, dd-&gt;dd_object);</span>
+<span class="lineNum">     712 </span>                :            :         }
+<span class="lineNum">     713 </span>                :            : 
+<span class="lineNum">     714 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         VERIFY0(zap_destroy(mos, dsl_dir_phys(dd)-&gt;dd_child_dir_zapobj, tx));</span>
+<span class="lineNum">     715 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         VERIFY0(zap_destroy(mos, dsl_dir_phys(dd)-&gt;dd_props_zapobj, tx));</span>
+<span class="lineNum">     716 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         VERIFY0(dsl_deleg_destroy(mos, dsl_dir_phys(dd)-&gt;dd_deleg_zapobj, tx));</span>
+<span class="lineNum">     717 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         VERIFY0(zap_remove(mos,</span>
+<span class="lineNum">     718 </span>                :            :             dsl_dir_phys(dd-&gt;dd_parent)-&gt;dd_child_dir_zapobj,
+<span class="lineNum">     719 </span>                :            :             dd-&gt;dd_myname, tx));
+<span class="lineNum">     720 </span>                :            : 
+<span class="lineNum">     721 </span>                :<span class="lineCov">        116 :         dsl_dir_rele(dd, FTAG);</span>
+<span class="lineNum">     722 </span>                :<span class="lineCov">        116 :         dmu_object_free_zapified(mos, ddobj, tx);</span>
+<span class="lineNum">     723 </span>                :<span class="lineCov">        116 : }</span>
+<a name="724"><span class="lineNum">     724 </span>                :            : </a>
+<span class="lineNum">     725 </span>                :            : void
+<span class="lineNum">     726 </span>                :<span class="lineCov">        116 : dsl_destroy_head_sync_impl(dsl_dataset_t *ds, dmu_tx_t *tx)</span>
+<span class="lineNum">     727 </span>                :            : {
+<span class="lineNum">     728 </span>                :<span class="lineCov">        116 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     729 </span>                :            :         spa_feature_t f;
+<span class="lineNum">     730 </span>                :<span class="lineCov">        116 :         objset_t *mos = dp-&gt;dp_meta_objset;</span>
+<span class="lineNum">     731 </span>                :<span class="lineCov">        116 :         uint64_t obj, ddobj, prevobj = 0;</span>
+<span class="lineNum">     732 </span>                :            :         boolean_t rmorigin;
+<span class="lineNum">     733 </span>                :            :         objset_t *os;
+<span class="lineNum">     734 </span>                :            : 
+<span class="lineNum">     735 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         ASSERT3U(dsl_dataset_phys(ds)-&gt;ds_num_children, &lt;=, 1);</span>
+<span class="lineNum">     736 </span>[<span class="branchCov" title="Branch 0 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         ASSERT(ds-&gt;ds_prev == NULL ||</span>
+<span class="lineNum">     737 </span>                :            :             dsl_dataset_phys(ds-&gt;ds_prev)-&gt;ds_next_snap_obj != ds-&gt;ds_object);
+<span class="lineNum">     738 </span>                :<span class="lineCov">        116 :         rrw_enter(&amp;ds-&gt;ds_bp_rwlock, RW_READER, FTAG);</span>
+<span class="lineNum">     739 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         ASSERT3U(dsl_dataset_phys(ds)-&gt;ds_bp.blk_birth, &lt;=, tx-&gt;tx_txg);</span>
+<span class="lineNum">     740 </span>                :<span class="lineCov">        116 :         rrw_exit(&amp;ds-&gt;ds_bp_rwlock, FTAG);</span>
+<span class="lineNum">     741 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         ASSERT(RRW_WRITE_HELD(&amp;dp-&gt;dp_config_rwlock));</span>
+<span class="lineNum">     742 </span>                :            : 
+<span class="lineNum">     743 </span>                :            :         /* We need to log before removing it from the namespace. */
+<span class="lineNum">     744 </span>                :<span class="lineCov">        116 :         spa_history_log_internal_ds(ds, &quot;destroy&quot;, tx, &quot;&quot;);</span>
+<span class="lineNum">     745 </span>                :            : 
+<span class="lineNum">     746 </span>        [<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchCov" title="Branch 2 was taken 10 times"> + </span>]:<span class="lineCov">        186 :         rmorigin = (dsl_dir_is_clone(ds-&gt;ds_dir) &amp;&amp;</span>
+<span class="lineNum">     747 </span>        [<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        130 :             DS_IS_DEFER_DESTROY(ds-&gt;ds_prev) &amp;&amp;</span>
+<span class="lineNum">     748 </span>[<span class="branchCov" title="Branch 0 was taken 70 times"> + </span><span class="branchCov" title="Branch 1 was taken 46 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 60 times"> + </span>]:<span class="lineCov">        176 :             dsl_dataset_phys(ds-&gt;ds_prev)-&gt;ds_num_children == 2 &amp;&amp;</span>
+<span class="lineNum">     749 </span>                :<span class="lineCov">         60 :             ds-&gt;ds_prev-&gt;ds_userrefs == 0);</span>
+<span class="lineNum">     750 </span>                :            : 
+<span class="lineNum">     751 </span>                :            :         /* Remove our reservation. */
+<span class="lineNum">     752 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         if (ds-&gt;ds_reserved != 0) {</span>
+<span class="lineNum">     753 </span>                :<span class="lineNoCov">          0 :                 dsl_dataset_set_refreservation_sync_impl(ds,</span>
+<span class="lineNum">     754 </span>                :            :                     (ZPROP_SRC_NONE | ZPROP_SRC_LOCAL | ZPROP_SRC_RECEIVED),
+<span class="lineNum">     755 </span>                :            :                     0, tx);
+<span class="lineNum">     756 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT0(ds-&gt;ds_reserved);</span>
+<span class="lineNum">     757 </span>                :            :         }
+<span class="lineNum">     758 </span>                :            : 
+<span class="lineNum">     759 </span>                :<span class="lineCov">        116 :         obj = ds-&gt;ds_object;</span>
+<span class="lineNum">     760 </span>                :            : 
+<span class="lineNum">     761 </span>        [<span class="branchCov" title="Branch 0 was taken 2088 times"> + </span><span class="branchCov" title="Branch 1 was taken 116 times"> + </span>]:<span class="lineCov">       2204 :         for (f = 0; f &lt; SPA_FEATURES; f++) {</span>
+<span class="lineNum">     762 </span>        [<span class="branchCov" title="Branch 0 was taken 147 times"> + </span><span class="branchCov" title="Branch 1 was taken 1941 times"> + </span>]:<span class="lineCov">       2088 :                 if (ds-&gt;ds_feature_inuse[f]) {</span>
+<span class="lineNum">     763 </span>                :<span class="lineCov">        147 :                         dsl_dataset_deactivate_feature(obj, f, tx);</span>
+<span class="lineNum">     764 </span>                :<span class="lineCov">        147 :                         ds-&gt;ds_feature_inuse[f] = B_FALSE;</span>
+<span class="lineNum">     765 </span>                :            :                 }
+<span class="lineNum">     766 </span>                :            :         }
+<span class="lineNum">     767 </span>                :            : 
+<span class="lineNum">     768 </span>                :<span class="lineCov">        116 :         dsl_scan_ds_destroyed(ds, tx);</span>
+<span class="lineNum">     769 </span>                :            : 
+<span class="lineNum">     770 </span>        [<span class="branchCov" title="Branch 1 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        116 :         if (dsl_dataset_phys(ds)-&gt;ds_prev_snap_obj != 0) {</span>
+<span class="lineNum">     771 </span>                :            :                 /* This is a clone */
+<span class="lineNum">     772 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 116 times"> + </span>]:<span class="lineCov">        116 :                 ASSERT(ds-&gt;ds_prev != NULL);</span>
+<span class="lineNum">     773 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :                 ASSERT3U(dsl_dataset_phys(ds-&gt;ds_prev)-&gt;ds_next_snap_obj, !=,</span>
+<span class="lineNum">     774 </span>                :            :                     obj);
+<span class="lineNum">     775 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 116 times"> + </span>]:<span class="lineCov">        116 :                 ASSERT0(dsl_dataset_phys(ds)-&gt;ds_next_snap_obj);</span>
+<span class="lineNum">     776 </span>                :            : 
+<span class="lineNum">     777 </span>                :<span class="lineCov">        116 :                 dmu_buf_will_dirty(ds-&gt;ds_prev-&gt;ds_dbuf, tx);</span>
+<span class="lineNum">     778 </span>        [<span class="branchCov" title="Branch 1 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        116 :                 if (dsl_dataset_phys(ds-&gt;ds_prev)-&gt;ds_next_clones_obj != 0) {</span>
+<span class="lineNum">     779 </span>                :<span class="lineCov">        116 :                         dsl_dataset_remove_from_next_clones(ds-&gt;ds_prev,</span>
+<span class="lineNum">     780 </span>                :            :                             obj, tx);
+<span class="lineNum">     781 </span>                :            :                 }
+<span class="lineNum">     782 </span>                :            : 
+<span class="lineNum">     783 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :                 ASSERT3U(dsl_dataset_phys(ds-&gt;ds_prev)-&gt;ds_num_children, &gt;, 1);</span>
+<span class="lineNum">     784 </span>                :<span class="lineCov">        116 :                 dsl_dataset_phys(ds-&gt;ds_prev)-&gt;ds_num_children--;</span>
+<span class="lineNum">     785 </span>                :            :         }
+<span class="lineNum">     786 </span>                :            : 
+<span class="lineNum">     787 </span>                :            :         /*
+<span class="lineNum">     788 </span>                :            :          * Destroy the deadlist.  Unless it's a clone, the
+<span class="lineNum">     789 </span>                :            :          * deadlist should be empty.  (If it's a clone, it's
+<span class="lineNum">     790 </span>                :            :          * safe to ignore the deadlist contents.)
+<span class="lineNum">     791 </span>                :            :          */
+<span class="lineNum">     792 </span>                :<span class="lineCov">        116 :         dsl_deadlist_close(&amp;ds-&gt;ds_deadlist);</span>
+<span class="lineNum">     793 </span>                :<span class="lineCov">        116 :         dsl_deadlist_free(mos, dsl_dataset_phys(ds)-&gt;ds_deadlist_obj, tx);</span>
+<span class="lineNum">     794 </span>                :<span class="lineCov">        116 :         dmu_buf_will_dirty(ds-&gt;ds_dbuf, tx);</span>
+<span class="lineNum">     795 </span>                :<span class="lineCov">        116 :         dsl_dataset_phys(ds)-&gt;ds_deadlist_obj = 0;</span>
+<span class="lineNum">     796 </span>                :            : 
+<span class="lineNum">     797 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         VERIFY0(dmu_objset_from_ds(ds, &amp;os));</span>
+<span class="lineNum">     798 </span>                :            : 
+<span class="lineNum">     799 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         if (!spa_feature_is_enabled(dp-&gt;dp_spa, SPA_FEATURE_ASYNC_DESTROY)) {</span>
+<span class="lineNum">     800 </span>                :<span class="lineNoCov">          0 :                 old_synchronous_dataset_destroy(ds, tx);</span>
+<span class="lineNum">     801 </span>                :            :         } else {
+<span class="lineNum">     802 </span>                :            :                 /*
+<span class="lineNum">     803 </span>                :            :                  * Move the bptree into the pool's list of trees to
+<span class="lineNum">     804 </span>                :            :                  * clean up and update space accounting information.
+<span class="lineNum">     805 </span>                :            :                  */
+<span class="lineNum">     806 </span>                :            :                 uint64_t used, comp, uncomp;
+<span class="lineNum">     807 </span>                :            : 
+<span class="lineNum">     808 </span>                :<span class="lineCov">        116 :                 zil_destroy_sync(dmu_objset_zil(os), tx);</span>
+<span class="lineNum">     809 </span>                :            : 
+<span class="lineNum">     810 </span>        [<span class="branchCov" title="Branch 1 was taken 108 times"> + </span><span class="branchCov" title="Branch 2 was taken 8 times"> + </span>]:<span class="lineCov">        116 :                 if (!spa_feature_is_active(dp-&gt;dp_spa,</span>
+<span class="lineNum">     811 </span>                :            :                     SPA_FEATURE_ASYNC_DESTROY)) {
+<span class="lineNum">     812 </span>                :<span class="lineCov">        108 :                         dsl_scan_t *scn = dp-&gt;dp_scan;</span>
+<span class="lineNum">     813 </span>                :<span class="lineCov">        108 :                         spa_feature_incr(dp-&gt;dp_spa, SPA_FEATURE_ASYNC_DESTROY,</span>
+<span class="lineNum">     814 </span>                :            :                             tx);
+<span class="lineNum">     815 </span>                :<span class="lineCov">        108 :                         dp-&gt;dp_bptree_obj = bptree_alloc(mos, tx);</span>
+<span class="lineNum">     816 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 108 times"> + </span>]:<span class="lineCov">        108 :                         VERIFY0(zap_add(mos,</span>
+<span class="lineNum">     817 </span>                :            :                             DMU_POOL_DIRECTORY_OBJECT,
+<span class="lineNum">     818 </span>                :            :                             DMU_POOL_BPTREE_OBJ, sizeof (uint64_t), 1,
+<span class="lineNum">     819 </span>                :            :                             &amp;dp-&gt;dp_bptree_obj, tx));
+<span class="lineNum">     820 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 108 times"> + </span>]:<span class="lineCov">        108 :                         ASSERT(!scn-&gt;scn_async_destroying);</span>
+<span class="lineNum">     821 </span>                :<span class="lineCov">        108 :                         scn-&gt;scn_async_destroying = B_TRUE;</span>
+<span class="lineNum">     822 </span>                :            :                 }
+<span class="lineNum">     823 </span>                :            : 
+<span class="lineNum">     824 </span>                :<span class="lineCov">        116 :                 used = dsl_dir_phys(ds-&gt;ds_dir)-&gt;dd_used_bytes;</span>
+<span class="lineNum">     825 </span>                :<span class="lineCov">        116 :                 comp = dsl_dir_phys(ds-&gt;ds_dir)-&gt;dd_compressed_bytes;</span>
+<span class="lineNum">     826 </span>                :<span class="lineCov">        116 :                 uncomp = dsl_dir_phys(ds-&gt;ds_dir)-&gt;dd_uncompressed_bytes;</span>
+<span class="lineNum">     827 </span>                :            : 
+<span class="lineNum">     828 </span>[<span class="branchCov" title="Branch 1 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 116 times"> + </span>]:<span class="lineCov">        116 :                 ASSERT(!DS_UNIQUE_IS_ACCURATE(ds) ||</span>
+<span class="lineNum">     829 </span>                :            :                     dsl_dataset_phys(ds)-&gt;ds_unique_bytes == used);
+<span class="lineNum">     830 </span>                :            : 
+<span class="lineNum">     831 </span>                :<span class="lineCov">        116 :                 rrw_enter(&amp;ds-&gt;ds_bp_rwlock, RW_READER, FTAG);</span>
+<span class="lineNum">     832 </span>                :<span class="lineCov">        116 :                 bptree_add(mos, dp-&gt;dp_bptree_obj,</span>
+<span class="lineNum">     833 </span>                :<span class="lineCov">        116 :                     &amp;dsl_dataset_phys(ds)-&gt;ds_bp,</span>
+<span class="lineNum">     834 </span>                :<span class="lineCov">        116 :                     dsl_dataset_phys(ds)-&gt;ds_prev_snap_txg,</span>
+<span class="lineNum">     835 </span>                :            :                     used, comp, uncomp, tx);
+<span class="lineNum">     836 </span>                :<span class="lineCov">        116 :                 rrw_exit(&amp;ds-&gt;ds_bp_rwlock, FTAG);</span>
+<span class="lineNum">     837 </span>                :<span class="lineCov">        116 :                 dsl_dir_diduse_space(ds-&gt;ds_dir, DD_USED_HEAD,</span>
+<span class="lineNum">     838 </span>                :<span class="lineCov">        348 :                     -used, -comp, -uncomp, tx);</span>
+<span class="lineNum">     839 </span>                :<span class="lineCov">        116 :                 dsl_dir_diduse_space(dp-&gt;dp_free_dir, DD_USED_HEAD,</span>
+<span class="lineNum">     840 </span>                :            :                     used, comp, uncomp, tx);
+<span class="lineNum">     841 </span>                :            :         }
+<span class="lineNum">     842 </span>                :            : 
+<span class="lineNum">     843 </span>        [<span class="branchCov" title="Branch 0 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        116 :         if (ds-&gt;ds_prev != NULL) {</span>
+<span class="lineNum">     844 </span>        [<span class="branchCov" title="Branch 1 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        116 :                 if (spa_version(dp-&gt;dp_spa) &gt;= SPA_VERSION_DIR_CLONES) {</span>
+<span class="lineNum">     845 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 116 times"> + </span>]:<span class="lineCov">        116 :                         VERIFY0(zap_remove_int(mos,</span>
+<span class="lineNum">     846 </span>                :            :                             dsl_dir_phys(ds-&gt;ds_prev-&gt;ds_dir)-&gt;dd_clones,
+<span class="lineNum">     847 </span>                :            :                             ds-&gt;ds_object, tx));
+<span class="lineNum">     848 </span>                :            :                 }
+<span class="lineNum">     849 </span>                :<span class="lineCov">        116 :                 prevobj = ds-&gt;ds_prev-&gt;ds_object;</span>
+<span class="lineNum">     850 </span>                :<span class="lineCov">        116 :                 dsl_dataset_rele(ds-&gt;ds_prev, ds);</span>
+<span class="lineNum">     851 </span>                :<span class="lineCov">        116 :                 ds-&gt;ds_prev = NULL;</span>
+<span class="lineNum">     852 </span>                :            :         }
+<span class="lineNum">     853 </span>                :            : 
+<span class="lineNum">     854 </span>                :            :         /*
+<span class="lineNum">     855 </span>                :            :          * This must be done after the dsl_traverse(), because it will
+<span class="lineNum">     856 </span>                :            :          * re-open the objset.
+<span class="lineNum">     857 </span>                :            :          */
+<span class="lineNum">     858 </span>        [<span class="branchCov" title="Branch 0 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        116 :         if (ds-&gt;ds_objset) {</span>
+<span class="lineNum">     859 </span>                :<span class="lineCov">        116 :                 dmu_objset_evict(ds-&gt;ds_objset);</span>
+<span class="lineNum">     860 </span>                :<span class="lineCov">        116 :                 ds-&gt;ds_objset = NULL;</span>
+<span class="lineNum">     861 </span>                :            :         }
+<span class="lineNum">     862 </span>                :            : 
+<span class="lineNum">     863 </span>                :            :         /* Erase the link in the dir */
+<span class="lineNum">     864 </span>                :<span class="lineCov">        116 :         dmu_buf_will_dirty(ds-&gt;ds_dir-&gt;dd_dbuf, tx);</span>
+<span class="lineNum">     865 </span>                :<span class="lineCov">        116 :         dsl_dir_phys(ds-&gt;ds_dir)-&gt;dd_head_dataset_obj = 0;</span>
+<span class="lineNum">     866 </span>                :<span class="lineCov">        116 :         ddobj = ds-&gt;ds_dir-&gt;dd_object;</span>
+<span class="lineNum">     867 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         ASSERT(dsl_dataset_phys(ds)-&gt;ds_snapnames_zapobj != 0);</span>
+<span class="lineNum">     868 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         VERIFY0(zap_destroy(mos,</span>
+<span class="lineNum">     869 </span>                :            :             dsl_dataset_phys(ds)-&gt;ds_snapnames_zapobj, tx));
+<span class="lineNum">     870 </span>                :            : 
+<span class="lineNum">     871 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         if (ds-&gt;ds_bookmarks != 0) {</span>
+<span class="lineNum">     872 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY0(zap_destroy(mos, ds-&gt;ds_bookmarks, tx));</span>
+<span class="lineNum">     873 </span>                :<span class="lineNoCov">          0 :                 spa_feature_decr(dp-&gt;dp_spa, SPA_FEATURE_BOOKMARKS, tx);</span>
+<span class="lineNum">     874 </span>                :            :         }
+<span class="lineNum">     875 </span>                :            : 
+<span class="lineNum">     876 </span>                :<span class="lineCov">        116 :         spa_prop_clear_bootfs(dp-&gt;dp_spa, ds-&gt;ds_object, tx);</span>
+<span class="lineNum">     877 </span>                :            : 
+<span class="lineNum">     878 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         ASSERT0(dsl_dataset_phys(ds)-&gt;ds_next_clones_obj);</span>
+<span class="lineNum">     879 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         ASSERT0(dsl_dataset_phys(ds)-&gt;ds_props_obj);</span>
+<span class="lineNum">     880 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         ASSERT0(dsl_dataset_phys(ds)-&gt;ds_userrefs_obj);</span>
+<span class="lineNum">     881 </span>                :<span class="lineCov">        116 :         dsl_dir_rele(ds-&gt;ds_dir, ds);</span>
+<span class="lineNum">     882 </span>                :<span class="lineCov">        116 :         ds-&gt;ds_dir = NULL;</span>
+<span class="lineNum">     883 </span>                :<span class="lineCov">        116 :         dmu_object_free_zapified(mos, obj, tx);</span>
+<span class="lineNum">     884 </span>                :            : 
+<span class="lineNum">     885 </span>                :<span class="lineCov">        116 :         dsl_dir_destroy_sync(ddobj, tx);</span>
+<span class="lineNum">     886 </span>                :            : 
+<span class="lineNum">     887 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchCov" title="Branch 1 was taken 56 times"> + </span>]:<span class="lineCov">        116 :         if (rmorigin) {</span>
+<span class="lineNum">     888 </span>                :            :                 dsl_dataset_t *prev;
+<span class="lineNum">     889 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">         60 :                 VERIFY0(dsl_dataset_hold_obj(dp, prevobj, FTAG, &amp;prev));</span>
+<span class="lineNum">     890 </span>                :<span class="lineCov">         60 :                 dsl_destroy_snapshot_sync_impl(prev, B_FALSE, tx);</span>
+<span class="lineNum">     891 </span>                :<span class="lineCov">         60 :                 dsl_dataset_rele(prev, FTAG);</span>
+<span class="lineNum">     892 </span>                :            :         }
+<span class="lineNum">     893 </span>                :<span class="lineCov">        116 : }</span>
+<a name="894"><span class="lineNum">     894 </span>                :            : </a>
+<span class="lineNum">     895 </span>                :            : static void
+<span class="lineNum">     896 </span>                :<span class="lineCov">        116 : dsl_destroy_head_sync(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     897 </span>                :            : {
+<span class="lineNum">     898 </span>                :<span class="lineCov">        116 :         dsl_destroy_head_arg_t *ddha = arg;</span>
+<span class="lineNum">     899 </span>                :<span class="lineCov">        116 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     900 </span>                :            :         dsl_dataset_t *ds;
+<span class="lineNum">     901 </span>                :            : 
+<span class="lineNum">     902 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         VERIFY0(dsl_dataset_hold(dp, ddha-&gt;ddha_name, FTAG, &amp;ds));</span>
+<span class="lineNum">     903 </span>                :<span class="lineCov">        116 :         dsl_destroy_head_sync_impl(ds, tx);</span>
+<span class="lineNum">     904 </span>                :<span class="lineCov">        116 :         zvol_remove_minors(dp-&gt;dp_spa, ddha-&gt;ddha_name, B_TRUE);</span>
+<span class="lineNum">     905 </span>                :<span class="lineCov">        116 :         dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     906 </span>                :<span class="lineCov">        116 : }</span>
+<a name="907"><span class="lineNum">     907 </span>                :            : </a>
+<span class="lineNum">     908 </span>                :            : static void
+<span class="lineNum">     909 </span>                :<span class="lineNoCov">          0 : dsl_destroy_head_begin_sync(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     910 </span>                :            : {
+<span class="lineNum">     911 </span>                :<span class="lineNoCov">          0 :         dsl_destroy_head_arg_t *ddha = arg;</span>
+<span class="lineNum">     912 </span>                :<span class="lineNoCov">          0 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     913 </span>                :            :         dsl_dataset_t *ds;
+<span class="lineNum">     914 </span>                :            : 
+<span class="lineNum">     915 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(dsl_dataset_hold(dp, ddha-&gt;ddha_name, FTAG, &amp;ds));</span>
+<span class="lineNum">     916 </span>                :            : 
+<span class="lineNum">     917 </span>                :            :         /* Mark it as inconsistent on-disk, in case we crash */
+<span class="lineNum">     918 </span>                :<span class="lineNoCov">          0 :         dmu_buf_will_dirty(ds-&gt;ds_dbuf, tx);</span>
+<span class="lineNum">     919 </span>                :<span class="lineNoCov">          0 :         dsl_dataset_phys(ds)-&gt;ds_flags |= DS_FLAG_INCONSISTENT;</span>
+<span class="lineNum">     920 </span>                :            : 
+<span class="lineNum">     921 </span>                :<span class="lineNoCov">          0 :         spa_history_log_internal_ds(ds, &quot;destroy begin&quot;, tx, &quot;&quot;);</span>
+<span class="lineNum">     922 </span>                :<span class="lineNoCov">          0 :         dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     923 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="924"><span class="lineNum">     924 </span>                :            : </a>
+<span class="lineNum">     925 </span>                :            : int
+<span class="lineNum">     926 </span>                :<span class="lineCov">        200 : dsl_destroy_head(const char *name)</span>
+<span class="lineNum">     927 </span>                :            : {
+<span class="lineNum">     928 </span>                :            :         dsl_destroy_head_arg_t ddha;
+<span class="lineNum">     929 </span>                :            :         int error;
+<span class="lineNum">     930 </span>                :            :         spa_t *spa;
+<span class="lineNum">     931 </span>                :            :         boolean_t isenabled;
+<span class="lineNum">     932 </span>                :            : 
+<span class="lineNum">     933 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">     934 </span>                :            :         zfs_destroy_unmount_origin(name);
+<span class="lineNum">     935 </span>                :            : #endif
+<span class="lineNum">     936 </span>                :            : 
+<span class="lineNum">     937 </span>                :<span class="lineCov">        200 :         error = spa_open(name, &amp;spa, FTAG);</span>
+<span class="lineNum">     938 </span>        [<span class="branchCov" title="Branch 0 was taken 200 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        200 :         if (error != 0)</span>
+<span class="lineNum">     939 </span>                :            :                 return (error);
+<span class="lineNum">     940 </span>                :<span class="lineCov">        200 :         isenabled = spa_feature_is_enabled(spa, SPA_FEATURE_ASYNC_DESTROY);</span>
+<span class="lineNum">     941 </span>                :<span class="lineCov">        200 :         spa_close(spa, FTAG);</span>
+<span class="lineNum">     942 </span>                :            : 
+<span class="lineNum">     943 </span>                :<span class="lineCov">        200 :         ddha.ddha_name = name;</span>
+<span class="lineNum">     944 </span>                :            : 
+<span class="lineNum">     945 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 200 times"> + </span>]:<span class="lineCov">        200 :         if (!isenabled) {</span>
+<span class="lineNum">     946 </span>                :            :                 objset_t *os;
+<span class="lineNum">     947 </span>                :            : 
+<span class="lineNum">     948 </span>                :<span class="lineNoCov">          0 :                 error = dsl_sync_task(name, dsl_destroy_head_check,</span>
+<span class="lineNum">     949 </span>                :            :                     dsl_destroy_head_begin_sync, &amp;ddha,
+<span class="lineNum">     950 </span>                :            :                     0, ZFS_SPACE_CHECK_NONE);
+<span class="lineNum">     951 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (error != 0)</span>
+<span class="lineNum">     952 </span>                :<span class="lineNoCov">          0 :                         return (error);</span>
+<span class="lineNum">     953 </span>                :            : 
+<span class="lineNum">     954 </span>                :            :                 /*
+<span class="lineNum">     955 </span>                :            :                  * Head deletion is processed in one txg on old pools;
+<span class="lineNum">     956 </span>                :            :                  * remove the objects from open context so that the txg sync
+<span class="lineNum">     957 </span>                :            :                  * is not too long.
+<span class="lineNum">     958 </span>                :            :                  */
+<span class="lineNum">     959 </span>                :<span class="lineNoCov">          0 :                 error = dmu_objset_own(name, DMU_OST_ANY, B_FALSE, B_FALSE,</span>
+<span class="lineNum">     960 </span>                :            :                     FTAG, &amp;os);
+<span class="lineNum">     961 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (error == 0) {</span>
+<span class="lineNum">     962 </span>                :            :                         uint64_t obj;
+<span class="lineNum">     963 </span>                :<span class="lineNoCov">          0 :                         uint64_t prev_snap_txg =</span>
+<span class="lineNum">     964 </span>                :<span class="lineNoCov">          0 :                             dsl_dataset_phys(dmu_objset_ds(os))-&gt;</span>
+<span class="lineNum">     965 </span>                :            :                             ds_prev_snap_txg;
+<span class="lineNum">     966 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         for (obj = 0; error == 0;</span>
+<span class="lineNum">     967 </span>                :<span class="lineNoCov">          0 :                             error = dmu_object_next(os, &amp;obj, FALSE,</span>
+<span class="lineNum">     968 </span>                :            :                             prev_snap_txg))
+<span class="lineNum">     969 </span>                :<span class="lineNoCov">          0 :                                 (void) dmu_free_long_object(os, obj);</span>
+<span class="lineNum">     970 </span>                :            :                         /* sync out all frees */
+<span class="lineNum">     971 </span>                :<span class="lineNoCov">          0 :                         txg_wait_synced(dmu_objset_pool(os), 0);</span>
+<span class="lineNum">     972 </span>                :<span class="lineNoCov">          0 :                         dmu_objset_disown(os, B_FALSE, FTAG);</span>
+<span class="lineNum">     973 </span>                :            :                 }
+<span class="lineNum">     974 </span>                :            :         }
+<span class="lineNum">     975 </span>                :            : 
+<span class="lineNum">     976 </span>                :<span class="lineCov">        200 :         return (dsl_sync_task(name, dsl_destroy_head_check,</span>
+<span class="lineNum">     977 </span>                :            :             dsl_destroy_head_sync, &amp;ddha, 0, ZFS_SPACE_CHECK_NONE));
+<span class="lineNum">     978 </span>                :            : }
+<span class="lineNum">     979 </span>                :            : 
+<span class="lineNum">     980 </span>                :            : /*
+<span class="lineNum">     981 </span>                :            :  * Note, this function is used as the callback for dmu_objset_find().  We
+<span class="lineNum">     982 </span>                :            :  * always return 0 so that we will continue to find and process
+<span class="lineNum">     983 </span>                :            :  * inconsistent datasets, even if we encounter an error trying to
+<span class="lineNum">     984 </span>                :            :  * process one of them.
+<span class="lineNum">     985 </span>                :            :  */
+<a name="986"><span class="lineNum">     986 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     987 </span>                :            : int
+<span class="lineNum">     988 </span>                :<span class="lineCov">       1412 : dsl_destroy_inconsistent(const char *dsname, void *arg)</span>
+<span class="lineNum">     989 </span>                :            : {
+<span class="lineNum">     990 </span>                :            :         objset_t *os;
+<span class="lineNum">     991 </span>                :            : 
+<span class="lineNum">     992 </span>        [<span class="branchCov" title="Branch 1 was taken 1412 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       1412 :         if (dmu_objset_hold(dsname, FTAG, &amp;os) == 0) {</span>
+<span class="lineNum">     993 </span>                :<span class="lineCov">       1412 :                 boolean_t need_destroy = DS_IS_INCONSISTENT(dmu_objset_ds(os));</span>
+<span class="lineNum">     994 </span>                :            : 
+<span class="lineNum">     995 </span>                :            :                 /*
+<span class="lineNum">     996 </span>                :            :                  * If the dataset is inconsistent because a resumable receive
+<span class="lineNum">     997 </span>                :            :                  * has failed, then do not destroy it.
+<span class="lineNum">     998 </span>                :            :                  */
+<span class="lineNum">     999 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 1412 times"> + </span>]:<span class="lineCov">       1412 :                 if (dsl_dataset_has_resume_receive_state(dmu_objset_ds(os)))</span>
+<span class="lineNum">    1000 </span>                :<span class="lineNoCov">          0 :                         need_destroy = B_FALSE;</span>
+<span class="lineNum">    1001 </span>                :            : 
+<span class="lineNum">    1002 </span>                :<span class="lineCov">       1412 :                 dmu_objset_rele(os, FTAG);</span>
+<span class="lineNum">    1003 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1412 times"> + </span>]:<span class="lineCov">       1412 :                 if (need_destroy)</span>
+<span class="lineNum">    1004 </span>                :<span class="lineNoCov">          0 :                         (void) dsl_destroy_head(dsname);</span>
+<span class="lineNum">    1005 </span>                :            :         }
+<span class="lineNum">    1006 </span>                :<span class="lineCov">       1412 :         return (0);</span>
+<span class="lineNum">    1007 </span>                :            : }
+<span class="lineNum">    1008 </span>                :            : 
+<span class="lineNum">    1009 </span>                :            : 
+<span class="lineNum">    1010 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">    1011 </span>                :            : EXPORT_SYMBOL(dsl_destroy_head);
+<span class="lineNum">    1012 </span>                :            : EXPORT_SYMBOL(dsl_destroy_head_sync_impl);
+<span class="lineNum">    1013 </span>                :            : EXPORT_SYMBOL(dsl_dataset_user_hold_check_one);
+<span class="lineNum">    1014 </span>                :            : EXPORT_SYMBOL(dsl_destroy_snapshot_sync_impl);
+<span class="lineNum">    1015 </span>                :            : EXPORT_SYMBOL(dsl_destroy_inconsistent);
+<span class="lineNum">    1016 </span>                :            : EXPORT_SYMBOL(dsl_dataset_user_release_tmp);
+<span class="lineNum">    1017 </span>                :            : EXPORT_SYMBOL(dsl_destroy_head_check_impl);
+<span class="lineNum">    1018 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

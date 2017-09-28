@@ -1,0 +1,891 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/dmu_traverse.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - dmu_traverse.c<span style="font-size: 80%;"> (source / <a href="dmu_traverse.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">268</td>
+            <td class="headerCovTableEntry">292</td>
+            <td class="headerCovTableEntryHi">91.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">216</td>
+            <td class="headerCovTableEntry">365</td>
+            <td class="headerCovTableEntryLo">59.2 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2012, 2016 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/dmu_objset.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/dmu_traverse.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/dsl_dataset.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/dsl_dir.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/dsl_pool.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/dnode.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/zio.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/dmu_impl.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;sys/sa.h&gt;
+<span class="lineNum">      37 </span>                :            : #include &lt;sys/sa_impl.h&gt;
+<span class="lineNum">      38 </span>                :            : #include &lt;sys/callb.h&gt;
+<span class="lineNum">      39 </span>                :            : #include &lt;sys/zfeature.h&gt;
+<span class="lineNum">      40 </span>                :            : 
+<span class="lineNum">      41 </span>                :            : int32_t zfs_pd_bytes_max = 50 * 1024 * 1024;    /* 50MB */
+<span class="lineNum">      42 </span>                :            : int32_t send_holes_without_birth_time = 1;
+<span class="lineNum">      43 </span>                :            : 
+<span class="lineNum">      44 </span>                :            : typedef struct prefetch_data {
+<span class="lineNum">      45 </span>                :            :         kmutex_t pd_mtx;
+<span class="lineNum">      46 </span>                :            :         kcondvar_t pd_cv;
+<span class="lineNum">      47 </span>                :            :         int32_t pd_bytes_fetched;
+<span class="lineNum">      48 </span>                :            :         int pd_flags;
+<span class="lineNum">      49 </span>                :            :         boolean_t pd_cancel;
+<span class="lineNum">      50 </span>                :            :         boolean_t pd_exited;
+<span class="lineNum">      51 </span>                :            :         zbookmark_phys_t pd_resume;
+<span class="lineNum">      52 </span>                :            : } prefetch_data_t;
+<span class="lineNum">      53 </span>                :            : 
+<span class="lineNum">      54 </span>                :            : typedef struct traverse_data {
+<span class="lineNum">      55 </span>                :            :         spa_t *td_spa;
+<span class="lineNum">      56 </span>                :            :         uint64_t td_objset;
+<span class="lineNum">      57 </span>                :            :         blkptr_t *td_rootbp;
+<span class="lineNum">      58 </span>                :            :         uint64_t td_min_txg;
+<span class="lineNum">      59 </span>                :            :         zbookmark_phys_t *td_resume;
+<span class="lineNum">      60 </span>                :            :         int td_flags;
+<span class="lineNum">      61 </span>                :            :         prefetch_data_t *td_pfd;
+<span class="lineNum">      62 </span>                :            :         boolean_t td_paused;
+<span class="lineNum">      63 </span>                :            :         uint64_t td_hole_birth_enabled_txg;
+<span class="lineNum">      64 </span>                :            :         blkptr_cb_t *td_func;
+<span class="lineNum">      65 </span>                :            :         void *td_arg;
+<span class="lineNum">      66 </span>                :            :         boolean_t td_realloc_possible;
+<span class="lineNum">      67 </span>                :            : } traverse_data_t;
+<span class="lineNum">      68 </span>                :            : 
+<span class="lineNum">      69 </span>                :            : static int traverse_dnode(traverse_data_t *td, const dnode_phys_t *dnp,
+<span class="lineNum">      70 </span>                :            :     uint64_t objset, uint64_t object);
+<span class="lineNum">      71 </span>                :            : static void prefetch_dnode_metadata(traverse_data_t *td, const dnode_phys_t *,
+<span class="lineNum">      72 </span>                :            :     uint64_t objset, uint64_t object);
+<a name="73"><span class="lineNum">      73 </span>                :            : </a>
+<span class="lineNum">      74 </span>                :            : static int
+<span class="lineNum">      75 </span>                :<span class="lineCov">       2276 : traverse_zil_block(zilog_t *zilog, blkptr_t *bp, void *arg, uint64_t claim_txg)</span>
+<span class="lineNum">      76 </span>                :            : {
+<span class="lineNum">      77 </span>                :<span class="lineCov">       2276 :         traverse_data_t *td = arg;</span>
+<span class="lineNum">      78 </span>                :            :         zbookmark_phys_t zb;
+<span class="lineNum">      79 </span>                :            : 
+<span class="lineNum">      80 </span>[<span class="branchCov" title="Branch 0 was taken 2276 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 2276 times"> + </span>]:<span class="lineCov">       2276 :         if (BP_IS_HOLE(bp))</span>
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">      81 </span>                :            :                 return (0);
+<span class="lineNum">      82 </span>                :            : 
+<span class="lineNum">      83 </span>[<span class="branchCov" title="Branch 0 was taken 1363 times"> + </span><span class="branchCov" title="Branch 1 was taken 913 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 1348 times"> + </span><span class="branchCov" title="Branch 4 was taken 15 times"> + </span>]:<span class="lineCov">       2276 :         if (claim_txg == 0 &amp;&amp; bp-&gt;blk_birth &gt;= spa_first_txg(td-&gt;td_spa))</span>
+<span class="lineNum">      84 </span>                :            :                 return (0);
+<span class="lineNum">      85 </span>                :            : 
+<span class="lineNum">      86 </span>                :<span class="lineCov">       2261 :         SET_BOOKMARK(&amp;zb, td-&gt;td_objset, ZB_ZIL_OBJECT, ZB_ZIL_LEVEL,</span>
+<span class="lineNum">      87 </span>                :            :             bp-&gt;blk_cksum.zc_word[ZIL_ZC_SEQ]);
+<span class="lineNum">      88 </span>                :            : 
+<span class="lineNum">      89 </span>                :<span class="lineCov">       2261 :         (void) td-&gt;td_func(td-&gt;td_spa, zilog, bp, &amp;zb, NULL, td-&gt;td_arg);</span>
+<span class="lineNum">      90 </span>                :            : 
+<span class="lineNum">      91 </span>                :<span class="lineCov">       2261 :         return (0);</span>
+<span class="lineNum">      92 </span>                :            : }
+<a name="93"><span class="lineNum">      93 </span>                :            : </a>
+<span class="lineNum">      94 </span>                :            : static int
+<span class="lineNum">      95 </span>                :<span class="lineCov">        113 : traverse_zil_record(zilog_t *zilog, lr_t *lrc, void *arg, uint64_t claim_txg)</span>
+<span class="lineNum">      96 </span>                :            : {
+<span class="lineNum">      97 </span>                :<span class="lineCov">        113 :         traverse_data_t *td = arg;</span>
+<span class="lineNum">      98 </span>                :            : 
+<span class="lineNum">      99 </span>        [<span class="branchCov" title="Branch 0 was taken 92 times"> + </span><span class="branchCov" title="Branch 1 was taken 21 times"> + </span>]:<span class="lineCov">        113 :         if (lrc-&gt;lrc_txtype == TX_WRITE) {</span>
+<span class="lineNum">     100 </span>                :<span class="lineCov">         92 :                 lr_write_t *lr = (lr_write_t *)lrc;</span>
+<span class="lineNum">     101 </span>                :<span class="lineCov">         92 :                 blkptr_t *bp = &amp;lr-&gt;lr_blkptr;</span>
+<span class="lineNum">     102 </span>                :            :                 zbookmark_phys_t zb;
+<span class="lineNum">     103 </span>                :            : 
+<span class="lineNum">     104 </span>[<span class="branchCov" title="Branch 0 was taken 66 times"> + </span><span class="branchCov" title="Branch 1 was taken 26 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 60 times"> + </span><span class="branchCov" title="Branch 3 was taken 6 times"> + </span>]:<span class="lineCov">         92 :                 if (BP_IS_HOLE(bp))</span>
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 60 times"> + </span>]
+<span class="lineNum">     105 </span>                :<span class="lineCov">         84 :                         return (0);</span>
+<span class="lineNum">     106 </span>                :            : 
+<span class="lineNum">     107 </span>[<span class="branchCov" title="Branch 0 was taken 8 times"> + </span><span class="branchCov" title="Branch 1 was taken 24 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 8 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">         32 :                 if (claim_txg == 0 || bp-&gt;blk_birth &lt; claim_txg)</span>
+<span class="lineNum">     108 </span>                :            :                         return (0);
+<span class="lineNum">     109 </span>                :            : 
+<span class="lineNum">     110 </span>[<span class="branchCov" title="Branch 0 was taken 8 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 8 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">          8 :                 SET_BOOKMARK(&amp;zb, td-&gt;td_objset, lr-&gt;lr_foid,</span>
+<span class="lineNum">     111 </span>                :            :                     ZB_ZIL_LEVEL, lr-&gt;lr_offset / BP_GET_LSIZE(bp));
+<span class="lineNum">     112 </span>                :            : 
+<span class="lineNum">     113 </span>                :<span class="lineCov">          8 :                 (void) td-&gt;td_func(td-&gt;td_spa, zilog, bp, &amp;zb, NULL,</span>
+<span class="lineNum">     114 </span>                :            :                     td-&gt;td_arg);
+<span class="lineNum">     115 </span>                :            :         }
+<span class="lineNum">     116 </span>                :            :         return (0);
+<span class="lineNum">     117 </span>                :            : }
+<a name="118"><span class="lineNum">     118 </span>                :            : </a>
+<span class="lineNum">     119 </span>                :            : static void
+<span class="lineNum">     120 </span>                :<span class="lineCov">       7569 : traverse_zil(traverse_data_t *td, zil_header_t *zh)</span>
+<span class="lineNum">     121 </span>                :            : {
+<span class="lineNum">     122 </span>                :<span class="lineCov">       7569 :         uint64_t claim_txg = zh-&gt;zh_claim_txg;</span>
+<span class="lineNum">     123 </span>                :            :         zilog_t *zilog;
+<span class="lineNum">     124 </span>                :            : 
+<span class="lineNum">     125 </span>                :            :         /*
+<span class="lineNum">     126 </span>                :            :          * We only want to visit blocks that have been claimed but not yet
+<span class="lineNum">     127 </span>                :            :          * replayed; plus, in read-only mode, blocks that are already stable.
+<span class="lineNum">     128 </span>                :            :          */
+<span class="lineNum">     129 </span>[<span class="branchCov" title="Branch 0 was taken 6660 times"> + </span><span class="branchCov" title="Branch 1 was taken 909 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 5876 times"> + </span><span class="branchCov" title="Branch 4 was taken 784 times"> + </span>]:<span class="lineCov">       7569 :         if (claim_txg == 0 &amp;&amp; spa_writeable(td-&gt;td_spa))</span>
+<span class="lineNum">     130 </span>                :            :                 return;
+<span class="lineNum">     131 </span>                :            : 
+<span class="lineNum">     132 </span>                :<span class="lineCov">       6785 :         zilog = zil_alloc(spa_get_dsl(td-&gt;td_spa)-&gt;dp_meta_objset, zh);</span>
+<span class="lineNum">     133 </span>                :            : 
+<span class="lineNum">     134 </span>                :<span class="lineCov">       6785 :         (void) zil_parse(zilog, traverse_zil_block, traverse_zil_record, td,</span>
+<span class="lineNum">     135 </span>                :<span class="lineCov">       6785 :             claim_txg, !(td-&gt;td_flags &amp; TRAVERSE_NO_DECRYPT));</span>
+<span class="lineNum">     136 </span>                :            : 
+<span class="lineNum">     137 </span>                :<span class="lineCov">       6785 :         zil_free(zilog);</span>
+<span class="lineNum">     138 </span>                :            : }
+<span class="lineNum">     139 </span>                :            : 
+<span class="lineNum">     140 </span>                :            : typedef enum resume_skip {
+<span class="lineNum">     141 </span>                :            :         RESUME_SKIP_ALL,
+<span class="lineNum">     142 </span>                :            :         RESUME_SKIP_NONE,
+<span class="lineNum">     143 </span>                :            :         RESUME_SKIP_CHILDREN
+<span class="lineNum">     144 </span>                :            : } resume_skip_t;
+<span class="lineNum">     145 </span>                :            : 
+<span class="lineNum">     146 </span>                :            : /*
+<span class="lineNum">     147 </span>                :            :  * Returns RESUME_SKIP_ALL if td indicates that we are resuming a traversal and
+<span class="lineNum">     148 </span>                :            :  * the block indicated by zb does not need to be visited at all. Returns
+<span class="lineNum">     149 </span>                :            :  * RESUME_SKIP_CHILDREN if we are resuming a post traversal and we reach the
+<span class="lineNum">     150 </span>                :            :  * resume point. This indicates that this block should be visited but not its
+<span class="lineNum">     151 </span>                :            :  * children (since they must have been visited in a previous traversal).
+<span class="lineNum">     152 </span>                :            :  * Otherwise returns RESUME_SKIP_NONE.
+<a name="153"><span class="lineNum">     153 </span>                :            :  */</a>
+<span class="lineNum">     154 </span>                :            : static resume_skip_t
+<span class="lineNum">     155 </span>                :<span class="lineCov">   86450124 : resume_skip_check(traverse_data_t *td, const dnode_phys_t *dnp,</span>
+<span class="lineNum">     156 </span>                :            :     const zbookmark_phys_t *zb)
+<span class="lineNum">     157 </span>                :            : {
+<span class="lineNum">     158 </span>[<span class="branchCov" title="Branch 0 was taken 38208352 times"> + </span><span class="branchCov" title="Branch 1 was taken 48241772 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 38208352 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">   86450124 :         if (td-&gt;td_resume != NULL &amp;&amp; !ZB_IS_ZERO(td-&gt;td_resume)) {</span>
+<span class="lineNum">         </span>[<span class="branchCov" title="Branch 4 was taken 38208352 times"> + </span><span class="branchNoCov" title="Branch 5 was not taken"> - </span>][<span class="branchCov" title="Branch 6 was taken 38208352 times"> + </span><span class="branchNoCov" title="Branch 7 was not taken"> - </span>]
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 8 was not taken"> - </span><span class="branchCov" title="Branch 9 was taken 38208352 times"> + </span>]
+<span class="lineNum">     159 </span>                :            :                 /*
+<span class="lineNum">     160 </span>                :            :                  * If we already visited this bp &amp; everything below,
+<span class="lineNum">     161 </span>                :            :                  * don't bother doing it again.
+<span class="lineNum">     162 </span>                :            :                  */
+<span class="lineNum">     163 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (zbookmark_subtree_completed(dnp, zb, td-&gt;td_resume))</span>
+<span class="lineNum">     164 </span>                :            :                         return (RESUME_SKIP_ALL);
+<span class="lineNum">     165 </span>                :            : 
+<span class="lineNum">     166 </span>                :            :                 /*
+<span class="lineNum">     167 </span>                :            :                  * If we found the block we're trying to resume from, zero
+<span class="lineNum">     168 </span>                :            :                  * the bookmark out to indicate that we have resumed.
+<span class="lineNum">     169 </span>                :            :                  */
+<span class="lineNum">     170 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (bcmp(zb, td-&gt;td_resume, sizeof (*zb)) == 0) {</span>
+<span class="lineNum">     171 </span>                :<span class="lineNoCov">          0 :                         bzero(td-&gt;td_resume, sizeof (*zb));</span>
+<span class="lineNum">     172 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (td-&gt;td_flags &amp; TRAVERSE_POST)</span>
+<span class="lineNum">     173 </span>                :            :                                 return (RESUME_SKIP_CHILDREN);
+<span class="lineNum">     174 </span>                :            :                 }
+<span class="lineNum">     175 </span>                :            :         }
+<span class="lineNum">     176 </span>                :            :         return (RESUME_SKIP_NONE);
+<span class="lineNum">     177 </span>                :            : }
+<a name="178"><span class="lineNum">     178 </span>                :            : </a>
+<span class="lineNum">     179 </span>                :            : static void
+<span class="lineNum">     180 </span>                :<span class="lineCov">   87366310 : traverse_prefetch_metadata(traverse_data_t *td,</span>
+<span class="lineNum">     181 </span>                :            :     const blkptr_t *bp, const zbookmark_phys_t *zb)
+<span class="lineNum">     182 </span>                :            : {
+<span class="lineNum">     183 </span>                :<span class="lineCov">   87366310 :         arc_flags_t flags = ARC_FLAG_NOWAIT | ARC_FLAG_PREFETCH;</span>
+<span class="lineNum">     184 </span>                :<span class="lineCov">   87366310 :         int zio_flags = ZIO_FLAG_CANFAIL;</span>
+<span class="lineNum">     185 </span>                :            : 
+<span class="lineNum">     186 </span>           [<span class="branchCov" title="Branch 0 was taken 87367405 times"> + </span>]:<span class="lineCov">   87366310 :         if (!(td-&gt;td_flags &amp; TRAVERSE_PREFETCH_METADATA))</span>
+<span class="lineNum">     187 </span>                :<span class="lineCov">   87124157 :                 return;</span>
+<span class="lineNum">     188 </span>                :            :         /*
+<span class="lineNum">     189 </span>                :            :          * If we are in the process of resuming, don't prefetch, because
+<span class="lineNum">     190 </span>                :            :          * some children will not be needed (and in fact may have already
+<span class="lineNum">     191 </span>                :            :          * been freed).
+<span class="lineNum">     192 </span>                :            :          */
+<span class="lineNum">     193 </span>[<span class="branchCov" title="Branch 0 was taken 38920150 times"> + </span><span class="branchCov" title="Branch 1 was taken 48447255 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 38920150 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">   87367405 :         if (td-&gt;td_resume != NULL &amp;&amp; !ZB_IS_ZERO(td-&gt;td_resume))</span>
+<span class="lineNum">         </span>[<span class="branchCov" title="Branch 4 was taken 38920150 times"> + </span><span class="branchNoCov" title="Branch 5 was not taken"> - </span>][<span class="branchCov" title="Branch 6 was taken 38920150 times"> + </span><span class="branchNoCov" title="Branch 7 was not taken"> - </span>]
+<span class="lineNum">         </span>           [<span class="branchCov" title="Branch 8 was taken 38924700 times"> + </span>]
+<span class="lineNum">     194 </span>                :            :                 return;
+<span class="lineNum">     195 </span>[<span class="branchCov" title="Branch 0 was taken 87238906 times"> + </span><span class="branchCov" title="Branch 1 was taken 133049 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 86777581 times"> + </span><span class="branchCov" title="Branch 3 was taken 461325 times"> + </span>]:<span class="lineCov">   87371955 :         if (BP_IS_HOLE(bp) || bp-&gt;blk_birth &lt;= td-&gt;td_min_txg)</span>
+<span class="lineNum">         </span>[<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 86777581 times"> + </span>][<span class="branchCov" title="Branch 6 was taken 511781 times"> + </span><span class="branchCov" title="Branch 7 was taken 82593 times"> + </span>]
+<span class="lineNum">     196 </span>                :            :                 return;
+<span class="lineNum">     197 </span>[<span class="branchCov" title="Branch 0 was taken 287380 times"> + </span><span class="branchCov" title="Branch 1 was taken 224401 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 17752 times"> + </span><span class="branchCov" title="Branch 3 was taken 269628 times"> + </span>]:<span class="lineCov">     511781 :         if (BP_GET_LEVEL(bp) == 0 &amp;&amp; BP_GET_TYPE(bp) != DMU_OT_DNODE)</span>
+<span class="lineNum">     198 </span>                :            :                 return;
+<span class="lineNum">     199 </span>                :            : 
+<span class="lineNum">     200 </span>   [<span class="branchCov" title="Branch 0 was taken 245552 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 245552 times"> + </span>]:<span class="lineCov">     242153 :         if ((td-&gt;td_flags &amp; TRAVERSE_NO_DECRYPT) &amp;&amp; BP_IS_PROTECTED(bp))</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 8 was not executed"> # </span><span class="branchNoExec" title="Branch 9 was not executed"> # </span>][<span class="branchNoExec" title="Branch 10 was not executed"> # </span><span class="branchNoExec" title="Branch 11 was not executed"> # </span>]
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 12 was not executed"> # </span><span class="branchNoExec" title="Branch 13 was not executed"> # </span>][<span class="branchNoExec" title="Branch 14 was not executed"> # </span><span class="branchNoExec" title="Branch 15 was not executed"> # </span>]
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 16 was not executed"> # </span><span class="branchNoExec" title="Branch 17 was not executed"> # </span>]
+<span class="lineNum">     201 </span>                :<span class="lineNoCov">          0 :                 zio_flags |= ZIO_FLAG_RAW;</span>
+<span class="lineNum">     202 </span>                :            : 
+<span class="lineNum">     203 </span>                :<span class="lineCov">     242153 :         (void) arc_read(NULL, td-&gt;td_spa, bp, NULL, NULL,</span>
+<span class="lineNum">     204 </span>                :            :             ZIO_PRIORITY_ASYNC_READ, zio_flags, &amp;flags, zb);
+<span class="lineNum">     205 </span>                :            : }
+<a name="206"><span class="lineNum">     206 </span>                :            : </a>
+<span class="lineNum">     207 </span>                :            : static boolean_t
+<span class="lineNum">     208 </span>                :<span class="lineCov">  129523790 : prefetch_needed(prefetch_data_t *pfd, const blkptr_t *bp)</span>
+<span class="lineNum">     209 </span>                :            : {
+<span class="lineNum">     210 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 64761895 times"> + </span>]:<span class="lineCov">   64761895 :         ASSERT(pfd-&gt;pd_flags &amp; TRAVERSE_PREFETCH_DATA);</span>
+<span class="lineNum">     211 </span>[<span class="branchCov" title="Branch 0 was taken 64705407 times"> + </span><span class="branchCov" title="Branch 1 was taken 56488 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 64372628 times"> + </span><span class="branchCov" title="Branch 3 was taken 332779 times"> + </span>]:<span class="lineCov">   64761895 :         if (BP_IS_HOLE(bp) || BP_IS_EMBEDDED(bp) ||</span>
+<span class="lineNum">         </span>[<span class="branchCov" title="Branch 4 was taken 31096 times"> + </span><span class="branchCov" title="Branch 5 was taken 64341532 times"> + </span>][<span class="branchCov" title="Branch 6 was taken 350382 times"> + </span><span class="branchCov" title="Branch 7 was taken 69981 times"> + </span>]
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 8 was not taken"> - </span><span class="branchCov" title="Branch 9 was taken 350382 times"> + </span>]
+<span class="lineNum">     212 </span>                :<span class="lineCov">     350382 :             BP_GET_TYPE(bp) == DMU_OT_INTENT_LOG)</span>
+<span class="lineNum">     213 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     214 </span>                :            :         return (B_TRUE);
+<span class="lineNum">     215 </span>                :            : }
+<a name="216"><span class="lineNum">     216 </span>                :            : </a>
+<span class="lineNum">     217 </span>                :            : static int
+<span class="lineNum">     218 </span>                :<span class="lineCov">   86402055 : traverse_visitbp(traverse_data_t *td, const dnode_phys_t *dnp,</span>
+<span class="lineNum">     219 </span>                :            :     const blkptr_t *bp, const zbookmark_phys_t *zb)
+<span class="lineNum">     220 </span>                :            : {
+<span class="lineNum">     221 </span>                :<span class="lineCov">   86402055 :         int err = 0;</span>
+<span class="lineNum">     222 </span>                :<span class="lineCov">   86402055 :         arc_buf_t *buf = NULL;</span>
+<span class="lineNum">     223 </span>                :<span class="lineCov">   86402055 :         prefetch_data_t *pd = td-&gt;td_pfd;</span>
+<span class="lineNum">     224 </span>                :            : 
+<span class="lineNum">     225 </span>     [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 86541827 times"> + </span><span class="branchCov" title="Branch 3 was taken 20629 times"> + </span>]:<span class="lineCov">   86402055 :         switch (resume_skip_check(td, dnp, zb)) {</span>
+<span class="lineNum">     226 </span>                :            :         case RESUME_SKIP_ALL:
+<span class="lineNum">     227 </span>                :            :                 return (0);
+<span class="lineNum">     228 </span>                :            :         case RESUME_SKIP_CHILDREN:
+<span class="lineNum">     229 </span>                :            :                 goto post;
+<span class="lineNum">     230 </span>                :            :         case RESUME_SKIP_NONE:
+<span class="lineNum">     231 </span>                :            :                 break;
+<span class="lineNum">     232 </span>                :            :         default:
+<span class="lineNum">     233 </span>                :<span class="lineNoCov">          0 :                 ASSERT(0);</span>
+<span class="lineNum">     234 </span>                :            :         }
+<span class="lineNum">     235 </span>                :            : 
+<span class="lineNum">     236 </span>        [<span class="branchCov" title="Branch 0 was taken 80926288 times"> + </span><span class="branchCov" title="Branch 1 was taken 5615539 times"> + </span>]:<span class="lineCov">   86541827 :         if (bp-&gt;blk_birth == 0) {</span>
+<span class="lineNum">     237 </span>                :            :                 /*
+<span class="lineNum">     238 </span>                :            :                  * Since this block has a birth time of 0 it must be one of
+<span class="lineNum">     239 </span>                :            :                  * two things: a hole created before the
+<span class="lineNum">     240 </span>                :            :                  * SPA_FEATURE_HOLE_BIRTH feature was enabled, or a hole
+<span class="lineNum">     241 </span>                :            :                  * which has always been a hole in an object.
+<span class="lineNum">     242 </span>                :            :                  *
+<span class="lineNum">     243 </span>                :            :                  * If a file is written sparsely, then the unwritten parts of
+<span class="lineNum">     244 </span>                :            :                  * the file were &quot;always holes&quot; -- that is, they have been
+<span class="lineNum">     245 </span>                :            :                  * holes since this object was allocated.  However, we (and
+<span class="lineNum">     246 </span>                :            :                  * our callers) can not necessarily tell when an object was
+<span class="lineNum">     247 </span>                :            :                  * allocated.  Therefore, if it's possible that this object
+<span class="lineNum">     248 </span>                :            :                  * was freed and then its object number reused, we need to
+<span class="lineNum">     249 </span>                :            :                  * visit all the holes with birth==0.
+<span class="lineNum">     250 </span>                :            :                  *
+<span class="lineNum">     251 </span>                :            :                  * If it isn't possible that the object number was reused,
+<span class="lineNum">     252 </span>                :            :                  * then if SPA_FEATURE_HOLE_BIRTH was enabled before we wrote
+<span class="lineNum">     253 </span>                :            :                  * all the blocks we will visit as part of this traversal,
+<span class="lineNum">     254 </span>                :            :                  * then this hole must have always existed, so we can skip
+<span class="lineNum">     255 </span>                :            :                  * it.  We visit blocks born after (exclusive) td_min_txg.
+<span class="lineNum">     256 </span>                :            :                  *
+<span class="lineNum">     257 </span>                :            :                  * Note that the meta-dnode cannot be reallocated.
+<span class="lineNum">     258 </span>                :            :                  */
+<span class="lineNum">     259 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 80926288 times"> + </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineCov">   80926288 :                 if (!send_holes_without_birth_time &amp;&amp;</span>
+<span class="lineNum">     260 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                     (!td-&gt;td_realloc_possible ||</span>
+<span class="lineNum">     261 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 216646 times"> + </span>]:<span class="lineCov">     216646 :                     zb-&gt;zb_object == DMU_META_DNODE_OBJECT) &amp;&amp;</span>
+<span class="lineNum">     262 </span>                :<span class="lineCov">     216646 :                     td-&gt;td_hole_birth_enabled_txg &lt;= td-&gt;td_min_txg)</span>
+<span class="lineNum">     263 </span>                :            :                         return (0);
+<span class="lineNum">     264 </span>        [<span class="branchCov" title="Branch 0 was taken 4963870 times"> + </span><span class="branchCov" title="Branch 1 was taken 651669 times"> + </span>]:<span class="lineCov">    5615539 :         } else if (bp-&gt;blk_birth &lt;= td-&gt;td_min_txg) {</span>
+<span class="lineNum">     265 </span>                :            :                 return (0);
+<span class="lineNum">     266 </span>                :            :         }
+<span class="lineNum">     267 </span>                :            : 
+<span class="lineNum">     268 </span>[<span class="branchCov" title="Branch 0 was taken 48951442 times"> + </span><span class="branchCov" title="Branch 1 was taken 36722070 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 28251472 times"> + </span><span class="branchCov" title="Branch 3 was taken 20699970 times"> + </span>]:<span class="lineCov">   85673512 :         if (pd != NULL &amp;&amp; !pd-&gt;pd_exited &amp;&amp; prefetch_needed(pd, bp)) {</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 5 was taken 160467 times"> + </span><span class="branchCov" title="Branch 6 was taken 28091005 times"> + </span>]
+<span class="lineNum">     269 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 160467 times"> + </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineCov">     160467 :                 uint64_t size = BP_GET_LSIZE(bp);</span>
+<span class="lineNum">     270 </span>                :<span class="lineCov">     160467 :                 mutex_enter(&amp;pd-&gt;pd_mtx);</span>
+<span class="lineNum">     271 </span>        [<span class="branchCov" title="Branch 0 was taken 160467 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">     160467 :                 ASSERT(pd-&gt;pd_bytes_fetched &gt;= 0);</span>
+<span class="lineNum">     272 </span>[<span class="branchCov" title="Branch 0 was taken 24151 times"> + </span><span class="branchCov" title="Branch 1 was taken 160467 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 24151 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">     184618 :                 while (pd-&gt;pd_bytes_fetched &lt; size &amp;&amp; !pd-&gt;pd_exited)</span>
+<span class="lineNum">     273 </span>                :<span class="lineCov">      24151 :                         cv_wait_sig(&amp;pd-&gt;pd_cv, &amp;pd-&gt;pd_mtx);</span>
+<span class="lineNum">     274 </span>                :<span class="lineCov">     160467 :                 pd-&gt;pd_bytes_fetched -= size;</span>
+<span class="lineNum">     275 </span>                :<span class="lineCov">     160467 :                 cv_broadcast(&amp;pd-&gt;pd_cv);</span>
+<span class="lineNum">     276 </span>                :<span class="lineCov">     160467 :                 mutex_exit(&amp;pd-&gt;pd_mtx);</span>
+<span class="lineNum">     277 </span>                :            :         }
+<span class="lineNum">     278 </span>                :            : 
+<span class="lineNum">     279 </span>[<span class="branchCov" title="Branch 0 was taken 85560962 times"> + </span><span class="branchCov" title="Branch 1 was taken 112550 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 85139977 times"> + </span><span class="branchCov" title="Branch 3 was taken 420985 times"> + </span>]:<span class="lineCov">   85673512 :         if (BP_IS_HOLE(bp)) {</span>
+<span class="lineNum">         </span>           [<span class="branchCov" title="Branch 4 was taken 85153522 times"> + </span>]
+<span class="lineNum">     280 </span>                :<span class="lineCov">   85153522 :                 err = td-&gt;td_func(td-&gt;td_spa, NULL, bp, zb, dnp, td-&gt;td_arg);</span>
+<span class="lineNum">     281 </span>           [<span class="branchCov" title="Branch 1 was taken 85140376 times"> + </span>]:<span class="lineCov">   85120523 :                 if (err != 0)</span>
+<span class="lineNum">     282 </span>                :            :                         goto post;
+<span class="lineNum">     283 </span>                :            :                 return (0);
+<span class="lineNum">     284 </span>                :            :         }
+<span class="lineNum">     285 </span>                :            : 
+<span class="lineNum">     286 </span>        [<span class="branchCov" title="Branch 0 was taken 518854 times"> + </span><span class="branchCov" title="Branch 1 was taken 1136 times"> + </span>]:<span class="lineCov">     519990 :         if (td-&gt;td_flags &amp; TRAVERSE_PRE) {</span>
+<span class="lineNum">     287 </span>                :<span class="lineCov">     518854 :                 err = td-&gt;td_func(td-&gt;td_spa, NULL, bp, zb, dnp,</span>
+<span class="lineNum">     288 </span>                :            :                     td-&gt;td_arg);
+<span class="lineNum">     289 </span>        [<span class="branchCov" title="Branch 0 was taken 518862 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">     518862 :                 if (err == TRAVERSE_VISIT_NO_CHILDREN)</span>
+<span class="lineNum">     290 </span>                :            :                         return (0);
+<span class="lineNum">     291 </span>        [<span class="branchCov" title="Branch 0 was taken 518860 times"> + </span><span class="branchCov" title="Branch 1 was taken 2 times"> + </span>]:<span class="lineCov">     518862 :                 if (err != 0)</span>
+<span class="lineNum">     292 </span>                :            :                         goto post;
+<span class="lineNum">     293 </span>                :            :         }
+<span class="lineNum">     294 </span>                :            : 
+<span class="lineNum">     295 </span>        [<span class="branchCov" title="Branch 0 was taken 224412 times"> + </span><span class="branchCov" title="Branch 1 was taken 295584 times"> + </span>]:<span class="lineCov">     519996 :         if (BP_GET_LEVEL(bp) &gt; 0) {</span>
+<span class="lineNum">     296 </span>                :<span class="lineCov">     224412 :                 uint32_t flags = ARC_FLAG_WAIT;</span>
+<span class="lineNum">     297 </span>                :            :                 int32_t i;
+<span class="lineNum">     298 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 224412 times"> + </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineCov">     224412 :                 int32_t epb = BP_GET_LSIZE(bp) &gt;&gt; SPA_BLKPTRSHIFT;</span>
+<span class="lineNum">     299 </span>                :            :                 zbookmark_phys_t *czb;
+<span class="lineNum">     300 </span>                :            : 
+<span class="lineNum">     301 </span>                :            :                 ASSERT(!BP_IS_PROTECTED(bp));
+<span class="lineNum">     302 </span>                :            : 
+<span class="lineNum">     303 </span>                :<span class="lineCov">     224412 :                 err = arc_read(NULL, td-&gt;td_spa, bp, arc_getbuf_func, &amp;buf,</span>
+<span class="lineNum">     304 </span>                :            :                     ZIO_PRIORITY_ASYNC_READ, ZIO_FLAG_CANFAIL, &amp;flags, zb);
+<span class="lineNum">     305 </span>        [<span class="branchCov" title="Branch 0 was taken 224409 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">     224409 :                 if (err != 0)</span>
+<span class="lineNum">     306 </span>                :            :                         goto post;
+<span class="lineNum">     307 </span>                :            : 
+<span class="lineNum">     308 </span>                :<span class="lineCov">     224409 :                 czb = kmem_alloc(sizeof (zbookmark_phys_t), KM_SLEEP);</span>
+<span class="lineNum">     309 </span>                :            : 
+<span class="lineNum">     310 </span>        [<span class="branchCov" title="Branch 1 was taken 86955214 times"> + </span><span class="branchCov" title="Branch 2 was taken 224401 times"> + </span>]:<span class="lineCov">   87178269 :                 for (i = 0; i &lt; epb; i++) {</span>
+<span class="lineNum">     311 </span>                :<span class="lineCov">   86955214 :                         SET_BOOKMARK(czb, zb-&gt;zb_objset, zb-&gt;zb_object,</span>
+<span class="lineNum">     312 </span>                :            :                             zb-&gt;zb_level - 1,
+<span class="lineNum">     313 </span>                :            :                             zb-&gt;zb_blkid * epb + i);
+<span class="lineNum">     314 </span>                :<span class="lineCov">   86955214 :                         traverse_prefetch_metadata(td,</span>
+<span class="lineNum">     315 </span>                :<span class="lineCov">   86955214 :                             &amp;((blkptr_t *)buf-&gt;b_data)[i], czb);</span>
+<span class="lineNum">     316 </span>                :            :                 }
+<span class="lineNum">     317 </span>                :            : 
+<span class="lineNum">     318 </span>                :            :                 /* recursively visitbp() blocks below this */
+<span class="lineNum">     319 </span>        [<span class="branchCov" title="Branch 0 was taken 85983906 times"> + </span><span class="branchCov" title="Branch 1 was taken 210084 times"> + </span>]:<span class="lineCov">   86193990 :                 for (i = 0; i &lt; epb; i++) {</span>
+<span class="lineNum">     320 </span>                :<span class="lineCov">   85983906 :                         SET_BOOKMARK(czb, zb-&gt;zb_objset, zb-&gt;zb_object,</span>
+<span class="lineNum">     321 </span>                :            :                             zb-&gt;zb_level - 1,
+<span class="lineNum">     322 </span>                :            :                             zb-&gt;zb_blkid * epb + i);
+<span class="lineNum">     323 </span>                :<span class="lineCov">   85983906 :                         err = traverse_visitbp(td, dnp,</span>
+<span class="lineNum">     324 </span>                :<span class="lineCov">   85983906 :                             &amp;((blkptr_t *)buf-&gt;b_data)[i], czb);</span>
+<span class="lineNum">     325 </span>           [<span class="branchCov" title="Branch 0 was taken 85969589 times"> + </span>]:<span class="lineCov">   85957355 :                         if (err != 0)</span>
+<span class="lineNum">     326 </span>                :            :                                 break;
+<span class="lineNum">     327 </span>                :            :                 }
+<span class="lineNum">     328 </span>                :            : 
+<span class="lineNum">     329 </span>                :<span class="lineCov">     197850 :                 kmem_free(czb, sizeof (zbookmark_phys_t));</span>
+<span class="lineNum">     330 </span>                :            : 
+<span class="lineNum">     331 </span>        [<span class="branchCov" title="Branch 0 was taken 21146 times"> + </span><span class="branchCov" title="Branch 1 was taken 274438 times"> + </span>]:<span class="lineCov">     295584 :         } else if (BP_GET_TYPE(bp) == DMU_OT_DNODE) {</span>
+<span class="lineNum">     332 </span>                :<span class="lineCov">      21146 :                 uint32_t flags = ARC_FLAG_WAIT;</span>
+<span class="lineNum">     333 </span>                :<span class="lineCov">      21146 :                 uint32_t zio_flags = ZIO_FLAG_CANFAIL;</span>
+<span class="lineNum">     334 </span>                :            :                 int32_t i;
+<span class="lineNum">     335 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 21146 times"> + </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineCov">      21146 :                 int32_t epb = BP_GET_LSIZE(bp) &gt;&gt; DNODE_SHIFT;</span>
+<span class="lineNum">     336 </span>                :            :                 dnode_phys_t *child_dnp;
+<span class="lineNum">     337 </span>                :            : 
+<span class="lineNum">     338 </span>                :            :                 /*
+<span class="lineNum">     339 </span>                :            :                  * dnode blocks might have their bonus buffers encrypted, so
+<span class="lineNum">     340 </span>                :            :                  * we must be careful to honor TRAVERSE_NO_DECRYPT
+<span class="lineNum">     341 </span>                :            :                  */
+<span class="lineNum">     342 </span>[<span class="branchCov" title="Branch 0 was taken 21146 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 21146 times"> + </span>]:<span class="lineCov">      21146 :                 if ((td-&gt;td_flags &amp; TRAVERSE_NO_DECRYPT) &amp;&amp; BP_IS_PROTECTED(bp))</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 8 was not executed"> # </span><span class="branchNoExec" title="Branch 9 was not executed"> # </span>][<span class="branchNoExec" title="Branch 10 was not executed"> # </span><span class="branchNoExec" title="Branch 11 was not executed"> # </span>]
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 12 was not executed"> # </span><span class="branchNoExec" title="Branch 13 was not executed"> # </span>][<span class="branchNoExec" title="Branch 14 was not executed"> # </span><span class="branchNoExec" title="Branch 15 was not executed"> # </span>]
+<span class="lineNum">     343 </span>                :<span class="lineNoCov">          0 :                         zio_flags |= ZIO_FLAG_RAW;</span>
+<span class="lineNum">     344 </span>                :            : 
+<span class="lineNum">     345 </span>                :<span class="lineCov">      21146 :                 err = arc_read(NULL, td-&gt;td_spa, bp, arc_getbuf_func, &amp;buf,</span>
+<span class="lineNum">     346 </span>                :            :                     ZIO_PRIORITY_ASYNC_READ, zio_flags, &amp;flags, zb);
+<span class="lineNum">     347 </span>        [<span class="branchCov" title="Branch 0 was taken 21146 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      21146 :                 if (err != 0)</span>
+<span class="lineNum">     348 </span>                :            :                         goto post;
+<span class="lineNum">     349 </span>                :            : 
+<span class="lineNum">     350 </span>                :<span class="lineCov">      21146 :                 child_dnp = buf-&gt;b_data;</span>
+<span class="lineNum">     351 </span>                :            : 
+<span class="lineNum">     352 </span>        [<span class="branchCov" title="Branch 0 was taken 517545 times"> + </span><span class="branchCov" title="Branch 1 was taken 21145 times"> + </span>]:<span class="lineCov">     538690 :                 for (i = 0; i &lt; epb; i += child_dnp[i].dn_extra_slots + 1) {</span>
+<span class="lineNum">     353 </span>                :<span class="lineCov">     517545 :                         prefetch_dnode_metadata(td, &amp;child_dnp[i],</span>
+<span class="lineNum">     354 </span>                :<span class="lineCov">     517545 :                             zb-&gt;zb_objset, zb-&gt;zb_blkid * epb + i);</span>
+<span class="lineNum">     355 </span>                :            :                 }
+<span class="lineNum">     356 </span>                :            : 
+<span class="lineNum">     357 </span>                :            :                 /* recursively visitbp() blocks below this */
+<span class="lineNum">     358 </span>        [<span class="branchCov" title="Branch 0 was taken 516983 times"> + </span><span class="branchCov" title="Branch 1 was taken 21115 times"> + </span>]:<span class="lineCov">     538129 :                 for (i = 0; i &lt; epb; i += child_dnp[i].dn_extra_slots + 1) {</span>
+<span class="lineNum">     359 </span>                :<span class="lineCov">     516983 :                         err = traverse_dnode(td, &amp;child_dnp[i],</span>
+<span class="lineNum">     360 </span>                :<span class="lineCov">     516983 :                             zb-&gt;zb_objset, zb-&gt;zb_blkid * epb + i);</span>
+<span class="lineNum">     361 </span>        [<span class="branchCov" title="Branch 0 was taken 516953 times"> + </span><span class="branchCov" title="Branch 1 was taken 31 times"> + </span>]:<span class="lineCov">     516984 :                         if (err != 0)</span>
+<span class="lineNum">     362 </span>                :            :                                 break;
+<span class="lineNum">     363 </span>                :            :                 }
+<span class="lineNum">     364 </span>        [<span class="branchCov" title="Branch 0 was taken 8203 times"> + </span><span class="branchCov" title="Branch 1 was taken 266235 times"> + </span>]:<span class="lineCov">     274438 :         } else if (BP_GET_TYPE(bp) == DMU_OT_OBJSET) {</span>
+<span class="lineNum">     365 </span>                :<span class="lineCov">       8203 :                 uint32_t zio_flags = ZIO_FLAG_CANFAIL;</span>
+<span class="lineNum">     366 </span>                :<span class="lineCov">       8203 :                 arc_flags_t flags = ARC_FLAG_WAIT;</span>
+<span class="lineNum">     367 </span>                :            :                 objset_phys_t *osp;
+<span class="lineNum">     368 </span>                :            : 
+<span class="lineNum">     369 </span>[<span class="branchCov" title="Branch 0 was taken 8203 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 8203 times"> + </span>]:<span class="lineCov">       8203 :                 if ((td-&gt;td_flags &amp; TRAVERSE_NO_DECRYPT) &amp;&amp; BP_IS_PROTECTED(bp))</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 8 was not executed"> # </span><span class="branchNoExec" title="Branch 9 was not executed"> # </span>][<span class="branchNoExec" title="Branch 10 was not executed"> # </span><span class="branchNoExec" title="Branch 11 was not executed"> # </span>]
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 12 was not executed"> # </span><span class="branchNoExec" title="Branch 13 was not executed"> # </span>][<span class="branchNoExec" title="Branch 14 was not executed"> # </span><span class="branchNoExec" title="Branch 15 was not executed"> # </span>]
+<span class="lineNum">     370 </span>                :<span class="lineNoCov">          0 :                         zio_flags |= ZIO_FLAG_RAW;</span>
+<span class="lineNum">     371 </span>                :            : 
+<span class="lineNum">     372 </span>                :<span class="lineCov">       8203 :                 err = arc_read(NULL, td-&gt;td_spa, bp, arc_getbuf_func, &amp;buf,</span>
+<span class="lineNum">     373 </span>                :            :                     ZIO_PRIORITY_ASYNC_READ, zio_flags, &amp;flags, zb);
+<span class="lineNum">     374 </span>        [<span class="branchCov" title="Branch 0 was taken 8203 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       8203 :                 if (err != 0)</span>
+<span class="lineNum">     375 </span>                :            :                         goto post;
+<span class="lineNum">     376 </span>                :            : 
+<span class="lineNum">     377 </span>                :<span class="lineCov">       8203 :                 osp = buf-&gt;b_data;</span>
+<span class="lineNum">     378 </span>                :<span class="lineCov">       8203 :                 prefetch_dnode_metadata(td, &amp;osp-&gt;os_meta_dnode, zb-&gt;zb_objset,</span>
+<span class="lineNum">     379 </span>                :            :                     DMU_META_DNODE_OBJECT);
+<span class="lineNum">     380 </span>                :            :                 /*
+<span class="lineNum">     381 </span>                :            :                  * See the block comment above for the goal of this variable.
+<span class="lineNum">     382 </span>                :            :                  * If the maxblkid of the meta-dnode is 0, then we know that
+<span class="lineNum">     383 </span>                :            :                  * we've never had more than DNODES_PER_BLOCK objects in the
+<span class="lineNum">     384 </span>                :            :                  * dataset, which means we can't have reused any object ids.
+<span class="lineNum">     385 </span>                :            :                  */
+<span class="lineNum">     386 </span>        [<span class="branchCov" title="Branch 0 was taken 3039 times"> + </span><span class="branchCov" title="Branch 1 was taken 5164 times"> + </span>]:<span class="lineCov">       8203 :                 if (osp-&gt;os_meta_dnode.dn_maxblkid == 0)</span>
+<span class="lineNum">     387 </span>                :<span class="lineCov">       3039 :                         td-&gt;td_realloc_possible = B_FALSE;</span>
+<span class="lineNum">     388 </span>                :            : 
+<span class="lineNum">     389 </span>        [<span class="branchCov" title="Branch 1 was taken 8173 times"> + </span><span class="branchCov" title="Branch 2 was taken 30 times"> + </span>]:<span class="lineCov">       8203 :                 if (arc_buf_size(buf) &gt;= sizeof (objset_phys_t)) {</span>
+<span class="lineNum">     390 </span>                :<span class="lineCov">       8173 :                         prefetch_dnode_metadata(td, &amp;osp-&gt;os_groupused_dnode,</span>
+<span class="lineNum">     391 </span>                :            :                             zb-&gt;zb_objset, DMU_GROUPUSED_OBJECT);
+<span class="lineNum">     392 </span>                :<span class="lineCov">       8173 :                         prefetch_dnode_metadata(td, &amp;osp-&gt;os_userused_dnode,</span>
+<span class="lineNum">     393 </span>                :            :                             zb-&gt;zb_objset, DMU_USERUSED_OBJECT);
+<span class="lineNum">     394 </span>                :            :                 }
+<span class="lineNum">     395 </span>                :            : 
+<span class="lineNum">     396 </span>                :<span class="lineCov">       8203 :                 err = traverse_dnode(td, &amp;osp-&gt;os_meta_dnode, zb-&gt;zb_objset,</span>
+<span class="lineNum">     397 </span>                :            :                     DMU_META_DNODE_OBJECT);
+<span class="lineNum">     398 </span>[<span class="branchCov" title="Branch 0 was taken 7885 times"> + </span><span class="branchCov" title="Branch 1 was taken 318 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 7855 times"> + </span><span class="branchCov" title="Branch 4 was taken 30 times"> + </span>]:<span class="lineCov">       8203 :                 if (err == 0 &amp;&amp; arc_buf_size(buf) &gt;= sizeof (objset_phys_t)) {</span>
+<span class="lineNum">     399 </span>                :<span class="lineCov">       7855 :                         err = traverse_dnode(td, &amp;osp-&gt;os_groupused_dnode,</span>
+<span class="lineNum">     400 </span>                :            :                             zb-&gt;zb_objset, DMU_GROUPUSED_OBJECT);
+<span class="lineNum">     401 </span>                :            :                 }
+<span class="lineNum">     402 </span>[<span class="branchCov" title="Branch 0 was taken 7885 times"> + </span><span class="branchCov" title="Branch 1 was taken 318 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 7855 times"> + </span><span class="branchCov" title="Branch 4 was taken 30 times"> + </span>]:<span class="lineCov">       8203 :                 if (err == 0 &amp;&amp; arc_buf_size(buf) &gt;= sizeof (objset_phys_t)) {</span>
+<span class="lineNum">     403 </span>                :<span class="lineCov">       8203 :                         err = traverse_dnode(td, &amp;osp-&gt;os_userused_dnode,</span>
+<span class="lineNum">     404 </span>                :            :                             zb-&gt;zb_objset, DMU_USERUSED_OBJECT);
+<span class="lineNum">     405 </span>                :            :                 }
+<span class="lineNum">     406 </span>                :            :         }
+<span class="lineNum">     407 </span>                :            : 
+<span class="lineNum">     408 </span>        [<span class="branchCov" title="Branch 0 was taken 253755 times"> + </span><span class="branchCov" title="Branch 1 was taken 266236 times"> + </span>]:<span class="lineCov">     519991 :         if (buf)</span>
+<span class="lineNum">     409 </span>                :<span class="lineCov">     253755 :                 arc_buf_destroy(buf, &amp;buf);</span>
+<span class="lineNum">     410 </span>                :            : 
+<span class="lineNum">     411 </span>                :            : post:
+<span class="lineNum">     412 </span>[<span class="branchCov" title="Branch 0 was taken 518787 times"> + </span><span class="branchCov" title="Branch 1 was taken 1986 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 1128 times"> + </span><span class="branchCov" title="Branch 3 was taken 517659 times"> + </span>]:<span class="lineCov">     520773 :         if (err == 0 &amp;&amp; (td-&gt;td_flags &amp; TRAVERSE_POST))</span>
+<span class="lineNum">     413 </span>                :<span class="lineCov">       1128 :                 err = td-&gt;td_func(td-&gt;td_spa, NULL, bp, zb, dnp, td-&gt;td_arg);</span>
+<span class="lineNum">     414 </span>                :            : 
+<span class="lineNum">     415 </span>[<span class="branchCov" title="Branch 0 was taken 466034 times"> + </span><span class="branchCov" title="Branch 1 was taken 54739 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 466034 times"> + </span>]:<span class="lineCov">     520773 :         if ((td-&gt;td_flags &amp; TRAVERSE_HARD) &amp;&amp; (err == EIO || err == ECKSUM)) {</span>
+<span class="lineNum">     416 </span>                :            :                 /*
+<span class="lineNum">     417 </span>                :            :                  * Ignore this disk error as requested by the HARD flag,
+<span class="lineNum">     418 </span>                :            :                  * and continue traversal.
+<span class="lineNum">     419 </span>                :            :                  */
+<span class="lineNum">     420 </span>                :<span class="lineNoCov">          0 :                 err = 0;</span>
+<span class="lineNum">     421 </span>                :            :         }
+<span class="lineNum">     422 </span>                :            : 
+<span class="lineNum">     423 </span>                :            :         /*
+<span class="lineNum">     424 </span>                :            :          * If we are stopping here, set td_resume.
+<span class="lineNum">     425 </span>                :            :          */
+<span class="lineNum">     426 </span>[<span class="branchCov" title="Branch 0 was taken 234478 times"> + </span><span class="branchCov" title="Branch 1 was taken 286295 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 1963 times"> + </span><span class="branchCov" title="Branch 3 was taken 232515 times"> + </span>]:<span class="lineCov">     520773 :         if (td-&gt;td_resume != NULL &amp;&amp; err != 0 &amp;&amp; !td-&gt;td_paused) {</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 767 times"> + </span><span class="branchCov" title="Branch 5 was taken 1196 times"> + </span>]
+<span class="lineNum">     427 </span>                :<span class="lineCov">        767 :                 td-&gt;td_resume-&gt;zb_objset = zb-&gt;zb_objset;</span>
+<span class="lineNum">     428 </span>                :<span class="lineCov">        767 :                 td-&gt;td_resume-&gt;zb_object = zb-&gt;zb_object;</span>
+<span class="lineNum">     429 </span>                :<span class="lineCov">        767 :                 td-&gt;td_resume-&gt;zb_level = 0;</span>
+<span class="lineNum">     430 </span>                :            :                 /*
+<span class="lineNum">     431 </span>                :            :                  * If we have stopped on an indirect block (e.g. due to
+<span class="lineNum">     432 </span>                :            :                  * i/o error), we have not visited anything below it.
+<span class="lineNum">     433 </span>                :            :                  * Set the bookmark to the first level-0 block that we need
+<span class="lineNum">     434 </span>                :            :                  * to visit.  This way, the resuming code does not need to
+<span class="lineNum">     435 </span>                :            :                  * deal with resuming from indirect blocks.
+<span class="lineNum">     436 </span>                :            :                  *
+<span class="lineNum">     437 </span>                :            :                  * Note, if zb_level &lt;= 0, dnp may be NULL, so we don't want
+<span class="lineNum">     438 </span>                :            :                  * to dereference it.
+<span class="lineNum">     439 </span>                :            :                  */
+<span class="lineNum">     440 </span>                :<span class="lineCov">        767 :                 td-&gt;td_resume-&gt;zb_blkid = zb-&gt;zb_blkid;</span>
+<span class="lineNum">     441 </span>        [<span class="branchCov" title="Branch 0 was taken 281 times"> + </span><span class="branchCov" title="Branch 1 was taken 486 times"> + </span>]:<span class="lineCov">        767 :                 if (zb-&gt;zb_level &gt; 0) {</span>
+<span class="lineNum">     442 </span>                :<span class="lineCov">        281 :                         td-&gt;td_resume-&gt;zb_blkid &lt;&lt;= zb-&gt;zb_level *</span>
+<span class="lineNum">     443 </span>                :<span class="lineCov">        281 :                             (dnp-&gt;dn_indblkshift - SPA_BLKPTRSHIFT);</span>
+<span class="lineNum">     444 </span>                :            :                 }
+<span class="lineNum">     445 </span>                :<span class="lineCov">        767 :                 td-&gt;td_paused = B_TRUE;</span>
+<span class="lineNum">     446 </span>                :            :         }
+<span class="lineNum">     447 </span>                :            : 
+<span class="lineNum">     448 </span>                :            :         return (err);
+<span class="lineNum">     449 </span>                :            : }
+<a name="450"><span class="lineNum">     450 </span>                :            : </a>
+<span class="lineNum">     451 </span>                :            : static void
+<span class="lineNum">     452 </span>                :<span class="lineCov">     542092 : prefetch_dnode_metadata(traverse_data_t *td, const dnode_phys_t *dnp,</span>
+<span class="lineNum">     453 </span>                :            :     uint64_t objset, uint64_t object)
+<span class="lineNum">     454 </span>                :            : {
+<span class="lineNum">     455 </span>                :            :         int j;
+<span class="lineNum">     456 </span>                :            :         zbookmark_phys_t czb;
+<span class="lineNum">     457 </span>                :            : 
+<span class="lineNum">     458 </span>        [<span class="branchCov" title="Branch 0 was taken 414919 times"> + </span><span class="branchCov" title="Branch 1 was taken 542084 times"> + </span>]:<span class="lineCov">     957003 :         for (j = 0; j &lt; dnp-&gt;dn_nblkptr; j++) {</span>
+<span class="lineNum">     459 </span>                :<span class="lineCov">     414919 :                 SET_BOOKMARK(&amp;czb, objset, object, dnp-&gt;dn_nlevels - 1, j);</span>
+<span class="lineNum">     460 </span>                :<span class="lineCov">     414919 :                 traverse_prefetch_metadata(td, &amp;dnp-&gt;dn_blkptr[j], &amp;czb);</span>
+<span class="lineNum">     461 </span>                :            :         }
+<span class="lineNum">     462 </span>                :            : 
+<span class="lineNum">     463 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 542084 times"> + </span>]:<span class="lineCov">     542084 :         if (dnp-&gt;dn_flags &amp; DNODE_FLAG_SPILL_BLKPTR) {</span>
+<span class="lineNum">     464 </span>                :<span class="lineNoCov">          0 :                 SET_BOOKMARK(&amp;czb, objset, object, 0, DMU_SPILL_BLKID);</span>
+<span class="lineNum">     465 </span>                :<span class="lineNoCov">          0 :                 traverse_prefetch_metadata(td, DN_SPILL_BLKPTR(dnp), &amp;czb);</span>
+<span class="lineNum">     466 </span>                :            :         }
+<span class="lineNum">     467 </span>                :<span class="lineCov">     542084 : }</span>
+<a name="468"><span class="lineNum">     468 </span>                :            : </a>
+<span class="lineNum">     469 </span>                :            : static int
+<span class="lineNum">     470 </span>                :<span class="lineCov">     540896 : traverse_dnode(traverse_data_t *td, const dnode_phys_t *dnp,</span>
+<span class="lineNum">     471 </span>                :            :     uint64_t objset, uint64_t object)
+<span class="lineNum">     472 </span>                :            : {
+<span class="lineNum">     473 </span>                :<span class="lineCov">     540896 :         int j, err = 0;</span>
+<span class="lineNum">     474 </span>                :            :         zbookmark_phys_t czb;
+<span class="lineNum">     475 </span>                :            : 
+<span class="lineNum">     476 </span>[<span class="branchCov" title="Branch 0 was taken 525674 times"> + </span><span class="branchCov" title="Branch 1 was taken 15222 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 161648 times"> + </span><span class="branchCov" title="Branch 3 was taken 364026 times"> + </span>]:<span class="lineCov">     540896 :         if (object != DMU_META_DNODE_OBJECT &amp;&amp; td-&gt;td_resume != NULL &amp;&amp;</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 161647 times"> + </span><span class="branchCov" title="Branch 5 was taken 1 time"> + </span>]
+<span class="lineNum">     477 </span>                :<span class="lineCov">     161648 :             object &lt; td-&gt;td_resume-&gt;zb_object)</span>
+<span class="lineNum">     478 </span>                :            :                 return (0);
+<span class="lineNum">     479 </span>                :            : 
+<span class="lineNum">     480 </span>        [<span class="branchCov" title="Branch 0 was taken 539038 times"> + </span><span class="branchCov" title="Branch 1 was taken 1857 times"> + </span>]:<span class="lineCov">     540895 :         if (td-&gt;td_flags &amp; TRAVERSE_PRE) {</span>
+<span class="lineNum">     481 </span>                :<span class="lineCov">     539038 :                 SET_BOOKMARK(&amp;czb, objset, object, ZB_DNODE_LEVEL,</span>
+<span class="lineNum">     482 </span>                :            :                     ZB_DNODE_BLKID);
+<span class="lineNum">     483 </span>                :<span class="lineCov">     539038 :                 err = td-&gt;td_func(td-&gt;td_spa, NULL, NULL, &amp;czb, dnp,</span>
+<span class="lineNum">     484 </span>                :            :                     td-&gt;td_arg);
+<span class="lineNum">     485 </span>        [<span class="branchCov" title="Branch 0 was taken 539034 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">     539034 :                 if (err == TRAVERSE_VISIT_NO_CHILDREN)</span>
+<span class="lineNum">     486 </span>                :            :                         return (0);
+<span class="lineNum">     487 </span>        [<span class="branchCov" title="Branch 0 was taken 539034 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">     540891 :                 if (err != 0)</span>
+<span class="lineNum">     488 </span>                :            :                         return (err);
+<span class="lineNum">     489 </span>                :            :         }
+<span class="lineNum">     490 </span>                :            : 
+<span class="lineNum">     491 </span>        [<span class="branchCov" title="Branch 0 was taken 414306 times"> + </span><span class="branchCov" title="Branch 1 was taken 540545 times"> + </span>]:<span class="lineCov">     954851 :         for (j = 0; j &lt; dnp-&gt;dn_nblkptr; j++) {</span>
+<span class="lineNum">     492 </span>                :<span class="lineCov">     414306 :                 SET_BOOKMARK(&amp;czb, objset, object, dnp-&gt;dn_nlevels - 1, j);</span>
+<span class="lineNum">     493 </span>                :<span class="lineCov">     414306 :                 err = traverse_visitbp(td, dnp, &amp;dnp-&gt;dn_blkptr[j], &amp;czb);</span>
+<span class="lineNum">     494 </span>        [<span class="branchCov" title="Branch 0 was taken 413960 times"> + </span><span class="branchCov" title="Branch 1 was taken 351 times"> + </span>]:<span class="lineCov">     414311 :                 if (err != 0)</span>
+<span class="lineNum">     495 </span>                :            :                         break;
+<span class="lineNum">     496 </span>                :            :         }
+<span class="lineNum">     497 </span>                :            : 
+<span class="lineNum">     498 </span>[<span class="branchCov" title="Branch 0 was taken 540547 times"> + </span><span class="branchCov" title="Branch 1 was taken 349 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 540547 times"> + </span>]:<span class="lineCov">     540896 :         if (err == 0 &amp;&amp; (dnp-&gt;dn_flags &amp; DNODE_FLAG_SPILL_BLKPTR)) {</span>
+<span class="lineNum">     499 </span>                :<span class="lineNoCov">          0 :                 SET_BOOKMARK(&amp;czb, objset, object, 0, DMU_SPILL_BLKID);</span>
+<span class="lineNum">     500 </span>                :<span class="lineNoCov">          0 :                 err = traverse_visitbp(td, dnp, DN_SPILL_BLKPTR(dnp), &amp;czb);</span>
+<span class="lineNum">     501 </span>                :            :         }
+<span class="lineNum">     502 </span>                :            : 
+<span class="lineNum">     503 </span>[<span class="branchCov" title="Branch 0 was taken 540547 times"> + </span><span class="branchCov" title="Branch 1 was taken 350 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 1857 times"> + </span><span class="branchCov" title="Branch 3 was taken 538690 times"> + </span>]:<span class="lineCov">     540897 :         if (err == 0 &amp;&amp; (td-&gt;td_flags &amp; TRAVERSE_POST)) {</span>
+<span class="lineNum">     504 </span>                :<span class="lineCov">       1857 :                 SET_BOOKMARK(&amp;czb, objset, object, ZB_DNODE_LEVEL,</span>
+<span class="lineNum">     505 </span>                :            :                     ZB_DNODE_BLKID);
+<span class="lineNum">     506 </span>                :<span class="lineCov">       1857 :                 err = td-&gt;td_func(td-&gt;td_spa, NULL, NULL, &amp;czb, dnp,</span>
+<span class="lineNum">     507 </span>                :            :                     td-&gt;td_arg);
+<span class="lineNum">     508 </span>        [<span class="branchCov" title="Branch 0 was taken 1857 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       1857 :                 if (err == TRAVERSE_VISIT_NO_CHILDREN)</span>
+<span class="lineNum">     509 </span>                :            :                         return (0);
+<span class="lineNum">     510 </span>                :            :                 if (err != 0)
+<span class="lineNum">     511 </span>                :            :                         return (err);
+<span class="lineNum">     512 </span>                :            :         }
+<span class="lineNum">     513 </span>                :            :         return (err);
+<span class="lineNum">     514 </span>                :            : }
+<span class="lineNum">     515 </span>                :            : 
+<a name="516"><span class="lineNum">     516 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     517 </span>                :            : static int
+<span class="lineNum">     518 </span>                :<span class="lineCov">   37831762 : traverse_prefetcher(spa_t *spa, zilog_t *zilog, const blkptr_t *bp,</span>
+<span class="lineNum">     519 </span>                :            :     const zbookmark_phys_t *zb, const dnode_phys_t *dnp, void *arg)
+<span class="lineNum">     520 </span>                :            : {
+<span class="lineNum">     521 </span>                :<span class="lineCov">   37831762 :         prefetch_data_t *pfd = arg;</span>
+<span class="lineNum">     522 </span>                :<span class="lineCov">   37831762 :         int zio_flags = ZIO_FLAG_CANFAIL | ZIO_FLAG_SPECULATIVE;</span>
+<span class="lineNum">     523 </span>                :<span class="lineCov">   37831762 :         arc_flags_t aflags = ARC_FLAG_NOWAIT | ARC_FLAG_PREFETCH;</span>
+<span class="lineNum">     524 </span>                :            : 
+<span class="lineNum">     525 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 37831762 times"> + </span>]:<span class="lineCov">   37831762 :         ASSERT(pfd-&gt;pd_bytes_fetched &gt;= 0);</span>
+<span class="lineNum">     526 </span>        [<span class="branchCov" title="Branch 0 was taken 37666345 times"> + </span><span class="branchCov" title="Branch 1 was taken 165417 times"> + </span>]:<span class="lineCov">   37831762 :         if (bp == NULL)</span>
+<span class="lineNum">     527 </span>                :            :                 return (0);
+<span class="lineNum">     528 </span>        [<span class="branchCov" title="Branch 0 was taken 767 times"> + </span><span class="branchCov" title="Branch 1 was taken 37665578 times"> + </span>]:<span class="lineCov">   37666345 :         if (pfd-&gt;pd_cancel)</span>
+<span class="lineNum">     529 </span>                :<span class="lineCov">        767 :                 return (SET_ERROR(EINTR));</span>
+<span class="lineNum">     530 </span>                :            : 
+<span class="lineNum">     531 </span>        [<span class="branchCov" title="Branch 1 was taken 189940 times"> + </span><span class="branchCov" title="Branch 2 was taken 37475638 times"> + </span>]:<span class="lineCov">   37665578 :         if (!prefetch_needed(pfd, bp))</span>
+<span class="lineNum">     532 </span>                :            :                 return (0);
+<span class="lineNum">     533 </span>                :            : 
+<span class="lineNum">     534 </span>                :<span class="lineCov">     189940 :         mutex_enter(&amp;pfd-&gt;pd_mtx);</span>
+<span class="lineNum">     535 </span>[<span class="branchCov" title="Branch 0 was taken 189940 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 189940 times"> + </span>]:<span class="lineCov">     189940 :         while (!pfd-&gt;pd_cancel &amp;&amp; pfd-&gt;pd_bytes_fetched &gt;= zfs_pd_bytes_max)</span>
+<span class="lineNum">     536 </span>                :<span class="lineNoCov">          0 :                 cv_wait_sig(&amp;pfd-&gt;pd_cv, &amp;pfd-&gt;pd_mtx);</span>
+<span class="lineNum">     537 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 189940 times"> + </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineCov">     189940 :         pfd-&gt;pd_bytes_fetched += BP_GET_LSIZE(bp);</span>
+<span class="lineNum">     538 </span>                :<span class="lineCov">     189940 :         cv_broadcast(&amp;pfd-&gt;pd_cv);</span>
+<span class="lineNum">     539 </span>                :<span class="lineCov">     189940 :         mutex_exit(&amp;pfd-&gt;pd_mtx);</span>
+<span class="lineNum">     540 </span>                :            : 
+<span class="lineNum">     541 </span>[<span class="branchCov" title="Branch 0 was taken 189940 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 189940 times"> + </span>]:<span class="lineCov">     189940 :         if ((pfd-&gt;pd_flags &amp; TRAVERSE_NO_DECRYPT) &amp;&amp; BP_IS_PROTECTED(bp))</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 8 was not executed"> # </span><span class="branchNoExec" title="Branch 9 was not executed"> # </span>][<span class="branchNoExec" title="Branch 10 was not executed"> # </span><span class="branchNoExec" title="Branch 11 was not executed"> # </span>]
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 12 was not executed"> # </span><span class="branchNoExec" title="Branch 13 was not executed"> # </span>][<span class="branchNoExec" title="Branch 14 was not executed"> # </span><span class="branchNoExec" title="Branch 15 was not executed"> # </span>]
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 16 was not executed"> # </span><span class="branchNoExec" title="Branch 17 was not executed"> # </span>]
+<span class="lineNum">     542 </span>                :<span class="lineNoCov">          0 :                 zio_flags |= ZIO_FLAG_RAW;</span>
+<span class="lineNum">     543 </span>                :            : 
+<span class="lineNum">     544 </span>                :<span class="lineCov">     189940 :         (void) arc_read(NULL, spa, bp, NULL, NULL, ZIO_PRIORITY_ASYNC_READ,</span>
+<span class="lineNum">     545 </span>                :            :             zio_flags, &amp;aflags, zb);
+<span class="lineNum">     546 </span>                :            : 
+<span class="lineNum">     547 </span>                :<span class="lineCov">     189940 :         return (0);</span>
+<span class="lineNum">     548 </span>                :            : }
+<a name="549"><span class="lineNum">     549 </span>                :            : </a>
+<span class="lineNum">     550 </span>                :            : static void
+<span class="lineNum">     551 </span>                :<span class="lineCov">       3582 : traverse_prefetch_thread(void *arg)</span>
+<span class="lineNum">     552 </span>                :            : {
+<span class="lineNum">     553 </span>                :<span class="lineCov">       3582 :         traverse_data_t *td_main = arg;</span>
+<span class="lineNum">     554 </span>                :<span class="lineCov">       3582 :         traverse_data_t td = *td_main;</span>
+<span class="lineNum">     555 </span>                :            :         zbookmark_phys_t czb;
+<span class="lineNum">     556 </span>                :<span class="lineCov">       3582 :         fstrans_cookie_t cookie = spl_fstrans_mark();</span>
+<span class="lineNum">     557 </span>                :            : 
+<span class="lineNum">     558 </span>                :<span class="lineCov">       3582 :         td.td_func = traverse_prefetcher;</span>
+<span class="lineNum">     559 </span>                :<span class="lineCov">       3582 :         td.td_arg = td_main-&gt;td_pfd;</span>
+<span class="lineNum">     560 </span>                :<span class="lineCov">       3582 :         td.td_pfd = NULL;</span>
+<span class="lineNum">     561 </span>                :<span class="lineCov">       3582 :         td.td_resume = &amp;td_main-&gt;td_pfd-&gt;pd_resume;</span>
+<span class="lineNum">     562 </span>                :            : 
+<span class="lineNum">     563 </span>                :<span class="lineCov">       3582 :         SET_BOOKMARK(&amp;czb, td.td_objset,</span>
+<span class="lineNum">     564 </span>                :            :             ZB_ROOT_OBJECT, ZB_ROOT_LEVEL, ZB_ROOT_BLKID);
+<span class="lineNum">     565 </span>                :<span class="lineCov">       3582 :         (void) traverse_visitbp(&amp;td, NULL, td.td_rootbp, &amp;czb);</span>
+<span class="lineNum">     566 </span>                :            : 
+<span class="lineNum">     567 </span>                :<span class="lineCov">       3582 :         mutex_enter(&amp;td_main-&gt;td_pfd-&gt;pd_mtx);</span>
+<span class="lineNum">     568 </span>                :<span class="lineCov">       3582 :         td_main-&gt;td_pfd-&gt;pd_exited = B_TRUE;</span>
+<span class="lineNum">     569 </span>                :<span class="lineCov">       3582 :         cv_broadcast(&amp;td_main-&gt;td_pfd-&gt;pd_cv);</span>
+<span class="lineNum">     570 </span>                :<span class="lineCov">       3582 :         mutex_exit(&amp;td_main-&gt;td_pfd-&gt;pd_mtx);</span>
+<span class="lineNum">     571 </span>                :<span class="lineCov">       3582 :         spl_fstrans_unmark(cookie);</span>
+<span class="lineNum">     572 </span>                :<span class="lineCov">       3582 : }</span>
+<span class="lineNum">     573 </span>                :            : 
+<span class="lineNum">     574 </span>                :            : /*
+<span class="lineNum">     575 </span>                :            :  * NB: dataset must not be changing on-disk (eg, is a snapshot or we are
+<span class="lineNum">     576 </span>                :            :  * in syncing context).
+<a name="577"><span class="lineNum">     577 </span>                :            :  */</a>
+<span class="lineNum">     578 </span>                :            : static int
+<span class="lineNum">     579 </span>                :<span class="lineCov">      12834 : traverse_impl(spa_t *spa, dsl_dataset_t *ds, uint64_t objset, blkptr_t *rootbp,</span>
+<span class="lineNum">     580 </span>                :            :     uint64_t txg_start, zbookmark_phys_t *resume, int flags,
+<span class="lineNum">     581 </span>                :            :     blkptr_cb_t func, void *arg)
+<span class="lineNum">     582 </span>                :            : {
+<span class="lineNum">     583 </span>                :            :         traverse_data_t *td;
+<span class="lineNum">     584 </span>                :            :         prefetch_data_t *pd;
+<span class="lineNum">     585 </span>                :            :         zbookmark_phys_t *czb;
+<span class="lineNum">     586 </span>                :            :         int err;
+<span class="lineNum">     587 </span>                :            : 
+<span class="lineNum">     588 </span>[<span class="branchCov" title="Branch 0 was taken 11687 times"> + </span><span class="branchCov" title="Branch 1 was taken 1147 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 11687 times"> + </span>]:<span class="lineCov">      12834 :         ASSERT(ds == NULL || objset == ds-&gt;ds_object);</span>
+<span class="lineNum">     589 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 12834 times"> + </span>]:<span class="lineCov">      12834 :         ASSERT(!(flags &amp; TRAVERSE_PRE) || !(flags &amp; TRAVERSE_POST));</span>
+<span class="lineNum">     590 </span>                :            : 
+<span class="lineNum">     591 </span>                :<span class="lineCov">      12834 :         td = kmem_alloc(sizeof (traverse_data_t), KM_SLEEP);</span>
+<span class="lineNum">     592 </span>                :<span class="lineCov">      12834 :         pd = kmem_zalloc(sizeof (prefetch_data_t), KM_SLEEP);</span>
+<span class="lineNum">     593 </span>                :<span class="lineCov">      12834 :         czb = kmem_alloc(sizeof (zbookmark_phys_t), KM_SLEEP);</span>
+<span class="lineNum">     594 </span>                :            : 
+<span class="lineNum">     595 </span>                :<span class="lineCov">      12834 :         td-&gt;td_spa = spa;</span>
+<span class="lineNum">     596 </span>                :<span class="lineCov">      12834 :         td-&gt;td_objset = objset;</span>
+<span class="lineNum">     597 </span>                :<span class="lineCov">      12834 :         td-&gt;td_rootbp = rootbp;</span>
+<span class="lineNum">     598 </span>                :<span class="lineCov">      12834 :         td-&gt;td_min_txg = txg_start;</span>
+<span class="lineNum">     599 </span>                :<span class="lineCov">      12834 :         td-&gt;td_resume = resume;</span>
+<span class="lineNum">     600 </span>                :<span class="lineCov">      12834 :         td-&gt;td_func = func;</span>
+<span class="lineNum">     601 </span>                :<span class="lineCov">      12834 :         td-&gt;td_arg = arg;</span>
+<span class="lineNum">     602 </span>                :<span class="lineCov">      12834 :         td-&gt;td_pfd = pd;</span>
+<span class="lineNum">     603 </span>                :<span class="lineCov">      12834 :         td-&gt;td_flags = flags;</span>
+<span class="lineNum">     604 </span>                :<span class="lineCov">      12834 :         td-&gt;td_paused = B_FALSE;</span>
+<span class="lineNum">     605 </span>                :<span class="lineCov">      12834 :         td-&gt;td_realloc_possible = (txg_start == 0 ? B_FALSE : B_TRUE);</span>
+<span class="lineNum">     606 </span>                :            : 
+<span class="lineNum">     607 </span>        [<span class="branchCov" title="Branch 1 was taken 12772 times"> + </span><span class="branchCov" title="Branch 2 was taken 62 times"> + </span>]:<span class="lineCov">      12834 :         if (spa_feature_is_active(spa, SPA_FEATURE_HOLE_BIRTH)) {</span>
+<span class="lineNum">     608 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 12772 times"> + </span>]:<span class="lineCov">      12772 :                 VERIFY(spa_feature_enabled_txg(spa,</span>
+<span class="lineNum">     609 </span>                :            :                     SPA_FEATURE_HOLE_BIRTH, &amp;td-&gt;td_hole_birth_enabled_txg));
+<span class="lineNum">     610 </span>                :            :         } else {
+<span class="lineNum">     611 </span>                :<span class="lineCov">         62 :                 td-&gt;td_hole_birth_enabled_txg = UINT64_MAX;</span>
+<span class="lineNum">     612 </span>                :            :         }
+<span class="lineNum">     613 </span>                :            : 
+<span class="lineNum">     614 </span>                :<span class="lineCov">      12834 :         pd-&gt;pd_flags = flags;</span>
+<span class="lineNum">     615 </span>        [<span class="branchCov" title="Branch 0 was taken 116 times"> + </span><span class="branchCov" title="Branch 1 was taken 12718 times"> + </span>]:<span class="lineCov">      12834 :         if (resume != NULL)</span>
+<span class="lineNum">     616 </span>                :<span class="lineCov">        116 :                 pd-&gt;pd_resume = *resume;</span>
+<span class="lineNum">     617 </span>                :<span class="lineCov">      12834 :         mutex_init(&amp;pd-&gt;pd_mtx, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     618 </span>                :<span class="lineCov">      12834 :         cv_init(&amp;pd-&gt;pd_cv, NULL, CV_DEFAULT, NULL);</span>
+<span class="lineNum">     619 </span>                :            : 
+<span class="lineNum">     620 </span>                :<span class="lineCov">      12834 :         SET_BOOKMARK(czb, td-&gt;td_objset,</span>
+<span class="lineNum">     621 </span>                :            :             ZB_ROOT_OBJECT, ZB_ROOT_LEVEL, ZB_ROOT_BLKID);
+<span class="lineNum">     622 </span>                :            : 
+<span class="lineNum">     623 </span>                :            :         /* See comment on ZIL traversal in dsl_scan_visitds. */
+<span class="lineNum">     624 </span>[<span class="branchCov" title="Branch 0 was taken 11687 times"> + </span><span class="branchCov" title="Branch 1 was taken 1147 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 8595 times"> + </span><span class="branchCov" title="Branch 3 was taken 3092 times"> + </span>]:<span class="lineCov">      12834 :         if (ds != NULL &amp;&amp; !ds-&gt;ds_is_snapshot &amp;&amp; !BP_IS_HOLE(rootbp)) {</span>
+<span class="lineNum">         </span>[<span class="branchCov" title="Branch 4 was taken 8595 times"> + </span><span class="branchNoCov" title="Branch 5 was not taken"> - </span>][<span class="branchCov" title="Branch 6 was taken 1026 times"> + </span><span class="branchCov" title="Branch 7 was taken 7569 times"> + </span>]
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 8 was not taken"> - </span><span class="branchCov" title="Branch 9 was taken 1026 times"> + </span>]
+<span class="lineNum">     625 </span>                :<span class="lineCov">       7569 :                 enum zio_flag zio_flags = ZIO_FLAG_CANFAIL;</span>
+<span class="lineNum">     626 </span>                :<span class="lineCov">       7569 :                 uint32_t flags = ARC_FLAG_WAIT;</span>
+<span class="lineNum">     627 </span>                :            :                 objset_phys_t *osp;
+<span class="lineNum">     628 </span>                :            :                 arc_buf_t *buf;
+<span class="lineNum">     629 </span>                :            : 
+<span class="lineNum">     630 </span>[<span class="branchCov" title="Branch 0 was taken 7569 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 7569 times"> + </span>]:<span class="lineCov">       7569 :                 if ((td-&gt;td_flags &amp; TRAVERSE_NO_DECRYPT) &amp;&amp;</span>
+<span class="lineNum">     631 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                     BP_IS_PROTECTED(rootbp))</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 8 was not executed"> # </span><span class="branchNoExec" title="Branch 9 was not executed"> # </span>][<span class="branchNoExec" title="Branch 10 was not executed"> # </span><span class="branchNoExec" title="Branch 11 was not executed"> # </span>]
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 12 was not executed"> # </span><span class="branchNoExec" title="Branch 13 was not executed"> # </span>]
+<span class="lineNum">     632 </span>                :<span class="lineNoCov">          0 :                         zio_flags |= ZIO_FLAG_RAW;</span>
+<span class="lineNum">     633 </span>                :            : 
+<span class="lineNum">     634 </span>                :<span class="lineCov">       7569 :                 err = arc_read(NULL, td-&gt;td_spa, rootbp, arc_getbuf_func,</span>
+<span class="lineNum">     635 </span>                :            :                     &amp;buf, ZIO_PRIORITY_ASYNC_READ, zio_flags, &amp;flags, czb);
+<span class="lineNum">     636 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 7569 times"> + </span>]:<span class="lineCov">       7569 :                 if (err != 0)</span>
+<span class="lineNum">     637 </span>                :<span class="lineNoCov">          0 :                         return (err);</span>
+<span class="lineNum">     638 </span>                :            : 
+<span class="lineNum">     639 </span>                :<span class="lineCov">       7569 :                 osp = buf-&gt;b_data;</span>
+<span class="lineNum">     640 </span>                :<span class="lineCov">       7569 :                 traverse_zil(td, &amp;osp-&gt;os_zil_header);</span>
+<span class="lineNum">     641 </span>                :<span class="lineCov">       7569 :                 arc_buf_destroy(buf, &amp;buf);</span>
+<span class="lineNum">     642 </span>                :            :         }
+<span class="lineNum">     643 </span>                :            : 
+<span class="lineNum">     644 </span>  [<span class="branchCov" title="Branch 0 was taken 3582 times"> + </span><span class="branchCov" title="Branch 1 was taken 9252 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 3582 times"> + </span>]:<span class="lineCov">      16416 :         if (!(flags &amp; TRAVERSE_PREFETCH_DATA) ||</span>
+<span class="lineNum">     645 </span>                :<span class="lineCov">       3582 :             taskq_dispatch(system_taskq, traverse_prefetch_thread,</span>
+<span class="lineNum">     646 </span>                :            :             td, TQ_NOQUEUE) == TASKQID_INVALID)
+<span class="lineNum">     647 </span>                :<span class="lineCov">       9252 :                 pd-&gt;pd_exited = B_TRUE;</span>
+<span class="lineNum">     648 </span>                :            : 
+<span class="lineNum">     649 </span>                :<span class="lineCov">      12834 :         err = traverse_visitbp(td, NULL, rootbp, czb);</span>
+<span class="lineNum">     650 </span>                :            : 
+<span class="lineNum">     651 </span>                :<span class="lineCov">      12834 :         mutex_enter(&amp;pd-&gt;pd_mtx);</span>
+<span class="lineNum">     652 </span>                :<span class="lineCov">      12834 :         pd-&gt;pd_cancel = B_TRUE;</span>
+<span class="lineNum">     653 </span>                :<span class="lineCov">      12834 :         cv_broadcast(&amp;pd-&gt;pd_cv);</span>
+<span class="lineNum">     654 </span>        [<span class="branchCov" title="Branch 0 was taken 966 times"> + </span><span class="branchCov" title="Branch 1 was taken 12834 times"> + </span>]:<span class="lineCov">      13800 :         while (!pd-&gt;pd_exited)</span>
+<span class="lineNum">     655 </span>                :<span class="lineCov">        966 :                 cv_wait_sig(&amp;pd-&gt;pd_cv, &amp;pd-&gt;pd_mtx);</span>
+<span class="lineNum">     656 </span>                :<span class="lineCov">      12834 :         mutex_exit(&amp;pd-&gt;pd_mtx);</span>
+<span class="lineNum">     657 </span>                :            : 
+<span class="lineNum">     658 </span>                :<span class="lineCov">      12834 :         mutex_destroy(&amp;pd-&gt;pd_mtx);</span>
+<span class="lineNum">     659 </span>                :<span class="lineCov">      12834 :         cv_destroy(&amp;pd-&gt;pd_cv);</span>
+<span class="lineNum">     660 </span>                :            : 
+<span class="lineNum">     661 </span>                :<span class="lineCov">      12834 :         kmem_free(czb, sizeof (zbookmark_phys_t));</span>
+<span class="lineNum">     662 </span>                :<span class="lineCov">      12834 :         kmem_free(pd, sizeof (struct prefetch_data));</span>
+<span class="lineNum">     663 </span>                :<span class="lineCov">      12834 :         kmem_free(td, sizeof (struct traverse_data));</span>
+<span class="lineNum">     664 </span>                :            : 
+<span class="lineNum">     665 </span>                :<span class="lineCov">      12834 :         return (err);</span>
+<span class="lineNum">     666 </span>                :            : }
+<span class="lineNum">     667 </span>                :            : 
+<span class="lineNum">     668 </span>                :            : /*
+<span class="lineNum">     669 </span>                :            :  * NB: dataset must not be changing on-disk (eg, is a snapshot or we are
+<span class="lineNum">     670 </span>                :            :  * in syncing context).
+<a name="671"><span class="lineNum">     671 </span>                :            :  */</a>
+<span class="lineNum">     672 </span>                :            : int
+<span class="lineNum">     673 </span>                :<span class="lineCov">      11687 : traverse_dataset_resume(dsl_dataset_t *ds, uint64_t txg_start,</span>
+<span class="lineNum">     674 </span>                :            :     zbookmark_phys_t *resume,
+<span class="lineNum">     675 </span>                :            :     int flags, blkptr_cb_t func, void *arg)
+<span class="lineNum">     676 </span>                :            : {
+<span class="lineNum">     677 </span>                :<span class="lineCov">      11687 :         return (traverse_impl(ds-&gt;ds_dir-&gt;dd_pool-&gt;dp_spa, ds, ds-&gt;ds_object,</span>
+<span class="lineNum">     678 </span>                :<span class="lineCov">      11687 :             &amp;dsl_dataset_phys(ds)-&gt;ds_bp, txg_start, resume, flags, func, arg));</span>
+<span class="lineNum">     679 </span>                :            : }
+<a name="680"><span class="lineNum">     680 </span>                :            : </a>
+<span class="lineNum">     681 </span>                :            : int
+<span class="lineNum">     682 </span>                :<span class="lineCov">      11687 : traverse_dataset(dsl_dataset_t *ds, uint64_t txg_start,</span>
+<span class="lineNum">     683 </span>                :            :     int flags, blkptr_cb_t func, void *arg)
+<span class="lineNum">     684 </span>                :            : {
+<span class="lineNum">     685 </span>                :<span class="lineCov">      11687 :         return (traverse_dataset_resume(ds, txg_start, NULL, flags, func, arg));</span>
+<span class="lineNum">     686 </span>                :            : }
+<a name="687"><span class="lineNum">     687 </span>                :            : </a>
+<span class="lineNum">     688 </span>                :            : int
+<span class="lineNum">     689 </span>                :<span class="lineCov">        116 : traverse_dataset_destroyed(spa_t *spa, blkptr_t *blkptr,</span>
+<span class="lineNum">     690 </span>                :            :     uint64_t txg_start, zbookmark_phys_t *resume, int flags,
+<span class="lineNum">     691 </span>                :            :     blkptr_cb_t func, void *arg)
+<span class="lineNum">     692 </span>                :            : {
+<span class="lineNum">     693 </span>                :<span class="lineCov">        116 :         return (traverse_impl(spa, NULL, ZB_DESTROYED_OBJSET,</span>
+<span class="lineNum">     694 </span>                :            :             blkptr, txg_start, resume, flags, func, arg));
+<span class="lineNum">     695 </span>                :            : }
+<span class="lineNum">     696 </span>                :            : 
+<span class="lineNum">     697 </span>                :            : /*
+<span class="lineNum">     698 </span>                :            :  * NB: pool must not be changing on-disk (eg, from zdb or sync context).
+<a name="699"><span class="lineNum">     699 </span>                :            :  */</a>
+<span class="lineNum">     700 </span>                :            : int
+<span class="lineNum">     701 </span>                :<span class="lineCov">       1031 : traverse_pool(spa_t *spa, uint64_t txg_start, int flags,</span>
+<span class="lineNum">     702 </span>                :            :     blkptr_cb_t func, void *arg)
+<span class="lineNum">     703 </span>                :            : {
+<span class="lineNum">     704 </span>                :            :         int err;
+<span class="lineNum">     705 </span>                :            :         uint64_t obj;
+<span class="lineNum">     706 </span>                :<span class="lineCov">       1031 :         dsl_pool_t *dp = spa_get_dsl(spa);</span>
+<span class="lineNum">     707 </span>                :<span class="lineCov">       1031 :         objset_t *mos = dp-&gt;dp_meta_objset;</span>
+<span class="lineNum">     708 </span>                :<span class="lineCov">       1031 :         boolean_t hard = (flags &amp; TRAVERSE_HARD);</span>
+<span class="lineNum">     709 </span>                :            : 
+<span class="lineNum">     710 </span>                :            :         /* visit the MOS */
+<span class="lineNum">     711 </span>                :<span class="lineCov">       1031 :         err = traverse_impl(spa, NULL, 0, spa_get_rootblkptr(spa),</span>
+<span class="lineNum">     712 </span>                :            :             txg_start, NULL, flags, func, arg);
+<span class="lineNum">     713 </span>        [<span class="branchCov" title="Branch 0 was taken 1031 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       1031 :         if (err != 0)</span>
+<span class="lineNum">     714 </span>                :            :                 return (err);
+<span class="lineNum">     715 </span>                :            : 
+<span class="lineNum">     716 </span>                :            :         /* visit each dataset */
+<span class="lineNum">     717 </span>        [<span class="branchCov" title="Branch 0 was taken 101250 times"> + </span><span class="branchCov" title="Branch 1 was taken 1031 times"> + </span>]:<span class="lineCov">     102281 :         for (obj = 1; err == 0;</span>
+<span class="lineNum">     718 </span>                :<span class="lineCov">     101250 :             err = dmu_object_next(mos, &amp;obj, B_FALSE, txg_start)) {</span>
+<span class="lineNum">     719 </span>                :            :                 dmu_object_info_t doi;
+<span class="lineNum">     720 </span>                :            : 
+<span class="lineNum">     721 </span>                :<span class="lineCov">     101250 :                 err = dmu_object_info(mos, obj, &amp;doi);</span>
+<span class="lineNum">     722 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 101250 times"> + </span>]:<span class="lineCov">     101250 :                 if (err != 0) {</span>
+<span class="lineNum">     723 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (hard)</span>
+<span class="lineNum">     724 </span>                :<span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     725 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     726 </span>                :            :                 }
+<span class="lineNum">     727 </span>                :            : 
+<span class="lineNum">     728 </span>        [<span class="branchCov" title="Branch 0 was taken 11687 times"> + </span><span class="branchCov" title="Branch 1 was taken 89563 times"> + </span>]:<span class="lineCov">     101250 :                 if (doi.doi_bonus_type == DMU_OT_DSL_DATASET) {</span>
+<span class="lineNum">     729 </span>                :            :                         dsl_dataset_t *ds;
+<span class="lineNum">     730 </span>                :<span class="lineCov">      11687 :                         uint64_t txg = txg_start;</span>
+<span class="lineNum">     731 </span>                :            : 
+<span class="lineNum">     732 </span>                :<span class="lineCov">      11687 :                         dsl_pool_config_enter(dp, FTAG);</span>
+<span class="lineNum">     733 </span>                :<span class="lineCov">      11687 :                         err = dsl_dataset_hold_obj(dp, obj, FTAG, &amp;ds);</span>
+<span class="lineNum">     734 </span>                :<span class="lineCov">      11687 :                         dsl_pool_config_exit(dp, FTAG);</span>
+<span class="lineNum">     735 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 11687 times"> + </span>]:<span class="lineCov">      11687 :                         if (err != 0) {</span>
+<span class="lineNum">     736 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 if (hard)</span>
+<span class="lineNum">     737 </span>                :<span class="lineNoCov">          0 :                                         continue;</span>
+<span class="lineNum">     738 </span>                :<span class="lineCov">     101250 :                                 break;</span>
+<span class="lineNum">     739 </span>                :            :                         }
+<span class="lineNum">     740 </span>        [<span class="branchCov" title="Branch 1 was taken 3173 times"> + </span><span class="branchCov" title="Branch 2 was taken 8514 times"> + </span>]:<span class="lineCov">      11687 :                         if (dsl_dataset_phys(ds)-&gt;ds_prev_snap_txg &gt; txg)</span>
+<span class="lineNum">     741 </span>                :<span class="lineCov">       3173 :                                 txg = dsl_dataset_phys(ds)-&gt;ds_prev_snap_txg;</span>
+<span class="lineNum">     742 </span>                :<span class="lineCov">      11687 :                         err = traverse_dataset(ds, txg, flags, func, arg);</span>
+<span class="lineNum">     743 </span>                :<span class="lineCov">      11687 :                         dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     744 </span>        [<span class="branchCov" title="Branch 0 was taken 11687 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      11687 :                         if (err != 0)</span>
+<span class="lineNum">     745 </span>                :            :                                 break;
+<span class="lineNum">     746 </span>                :            :                 }
+<span class="lineNum">     747 </span>                :            :         }
+<span class="lineNum">     748 </span>        [<span class="branchCov" title="Branch 0 was taken 1031 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       1031 :         if (err == ESRCH)</span>
+<span class="lineNum">     749 </span>                :<span class="lineCov">       1031 :                 err = 0;</span>
+<span class="lineNum">     750 </span>                :            :         return (err);
+<span class="lineNum">     751 </span>                :            : }
+<span class="lineNum">     752 </span>                :            : 
+<span class="lineNum">     753 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     754 </span>                :            : EXPORT_SYMBOL(traverse_dataset);
+<span class="lineNum">     755 </span>                :            : EXPORT_SYMBOL(traverse_pool);
+<span class="lineNum">     756 </span>                :            : 
+<span class="lineNum">     757 </span>                :            : module_param(zfs_pd_bytes_max, int, 0644);
+<span class="lineNum">     758 </span>                :            : MODULE_PARM_DESC(zfs_pd_bytes_max, &quot;Max number of bytes to prefetch&quot;);
+<span class="lineNum">     759 </span>                :            : 
+<span class="lineNum">     760 </span>                :            : module_param_named(ignore_hole_birth, send_holes_without_birth_time, int, 0644);
+<span class="lineNum">     761 </span>                :            : MODULE_PARM_DESC(ignore_hole_birth, &quot;Alias for send_holes_without_birth_time&quot;);
+<span class="lineNum">     762 </span>                :            : 
+<span class="lineNum">     763 </span>                :            : module_param_named(send_holes_without_birth_time,
+<span class="lineNum">     764 </span>                :            :         send_holes_without_birth_time, int, 0644);
+<span class="lineNum">     765 </span>                :            : MODULE_PARM_DESC(send_holes_without_birth_time,
+<span class="lineNum">     766 </span>                :            :         &quot;Ignore hole_birth txg for zfs send&quot;);
+<span class="lineNum">     767 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

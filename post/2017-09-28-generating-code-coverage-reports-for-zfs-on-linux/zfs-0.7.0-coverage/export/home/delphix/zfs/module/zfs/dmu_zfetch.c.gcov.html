@@ -1,0 +1,448 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/dmu_zfetch.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - dmu_zfetch.c<span style="font-size: 80%;"> (source / <a href="dmu_zfetch.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">32</td>
+            <td class="headerCovTableEntry">95</td>
+            <td class="headerCovTableEntryLo">33.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryLo">71.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">42</td>
+            <td class="headerCovTableEntryLo">28.6 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : /*
+<span class="lineNum">      27 </span>                :            :  * Copyright (c) 2013, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      28 </span>                :            :  */
+<span class="lineNum">      29 </span>                :            : 
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/dnode.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/dmu_objset.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/dmu_zfetch.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/dmu.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/dbuf.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;sys/kstat.h&gt;
+<span class="lineNum">      37 </span>                :            : 
+<span class="lineNum">      38 </span>                :            : /*
+<span class="lineNum">      39 </span>                :            :  * This tunable disables predictive prefetch.  Note that it leaves &quot;prescient&quot;
+<span class="lineNum">      40 </span>                :            :  * prefetch (e.g. prefetch for zfs send) intact.  Unlike predictive prefetch,
+<span class="lineNum">      41 </span>                :            :  * prescient prefetch never issues i/os that end up not being needed,
+<span class="lineNum">      42 </span>                :            :  * so it can't hurt performance.
+<span class="lineNum">      43 </span>                :            :  */
+<span class="lineNum">      44 </span>                :            : 
+<span class="lineNum">      45 </span>                :            : int zfs_prefetch_disable = B_FALSE;
+<span class="lineNum">      46 </span>                :            : 
+<span class="lineNum">      47 </span>                :            : /* max # of streams per zfetch */
+<span class="lineNum">      48 </span>                :            : unsigned int    zfetch_max_streams = 8;
+<span class="lineNum">      49 </span>                :            : /* min time before stream reclaim */
+<span class="lineNum">      50 </span>                :            : unsigned int    zfetch_min_sec_reap = 2;
+<span class="lineNum">      51 </span>                :            : /* max bytes to prefetch per stream (default 8MB) */
+<span class="lineNum">      52 </span>                :            : unsigned int    zfetch_max_distance = 8 * 1024 * 1024;
+<span class="lineNum">      53 </span>                :            : /* max bytes to prefetch indirects for per stream (default 64MB) */
+<span class="lineNum">      54 </span>                :            : unsigned int    zfetch_max_idistance = 64 * 1024 * 1024;
+<span class="lineNum">      55 </span>                :            : /* max number of bytes in an array_read in which we allow prefetching (1MB) */
+<span class="lineNum">      56 </span>                :            : unsigned long   zfetch_array_rd_sz = 1024 * 1024;
+<span class="lineNum">      57 </span>                :            : 
+<span class="lineNum">      58 </span>                :            : typedef struct zfetch_stats {
+<span class="lineNum">      59 </span>                :            :         kstat_named_t zfetchstat_hits;
+<span class="lineNum">      60 </span>                :            :         kstat_named_t zfetchstat_misses;
+<span class="lineNum">      61 </span>                :            :         kstat_named_t zfetchstat_max_streams;
+<span class="lineNum">      62 </span>                :            : } zfetch_stats_t;
+<span class="lineNum">      63 </span>                :            : 
+<span class="lineNum">      64 </span>                :            : static zfetch_stats_t zfetch_stats = {
+<span class="lineNum">      65 </span>                :            :         { &quot;hits&quot;,                     KSTAT_DATA_UINT64 },
+<span class="lineNum">      66 </span>                :            :         { &quot;misses&quot;,                   KSTAT_DATA_UINT64 },
+<span class="lineNum">      67 </span>                :            :         { &quot;max_streams&quot;,              KSTAT_DATA_UINT64 },
+<span class="lineNum">      68 </span>                :            : };
+<span class="lineNum">      69 </span>                :            : 
+<span class="lineNum">      70 </span>                :            : #define ZFETCHSTAT_BUMP(stat) \
+<span class="lineNum">      71 </span>                :            :         atomic_inc_64(&amp;zfetch_stats.stat.value.ui64);
+<span class="lineNum">      72 </span>                :            : 
+<span class="lineNum">      73 </span>                :            : kstat_t         *zfetch_ksp;
+<a name="74"><span class="lineNum">      74 </span>                :            : </a>
+<span class="lineNum">      75 </span>                :            : void
+<span class="lineNum">      76 </span>                :<span class="lineCov">       1234 : zfetch_init(void)</span>
+<span class="lineNum">      77 </span>                :            : {
+<span class="lineNum">      78 </span>                :<span class="lineCov">       1234 :         zfetch_ksp = kstat_create(&quot;zfs&quot;, 0, &quot;zfetchstats&quot;, &quot;misc&quot;,</span>
+<span class="lineNum">      79 </span>                :            :             KSTAT_TYPE_NAMED, sizeof (zfetch_stats) / sizeof (kstat_named_t),
+<span class="lineNum">      80 </span>                :            :             KSTAT_FLAG_VIRTUAL);
+<span class="lineNum">      81 </span>                :            : 
+<span class="lineNum">      82 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         if (zfetch_ksp != NULL) {</span>
+<span class="lineNum">      83 </span>                :<span class="lineNoCov">          0 :                 zfetch_ksp-&gt;ks_data = &amp;zfetch_stats;</span>
+<span class="lineNum">      84 </span>                :<span class="lineNoCov">          0 :                 kstat_install(zfetch_ksp);</span>
+<span class="lineNum">      85 </span>                :            :         }
+<span class="lineNum">      86 </span>                :<span class="lineCov">       1234 : }</span>
+<a name="87"><span class="lineNum">      87 </span>                :            : </a>
+<span class="lineNum">      88 </span>                :            : void
+<span class="lineNum">      89 </span>                :<span class="lineCov">        785 : zfetch_fini(void)</span>
+<span class="lineNum">      90 </span>                :            : {
+<span class="lineNum">      91 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 785 times"> + </span>]:<span class="lineCov">        785 :         if (zfetch_ksp != NULL) {</span>
+<span class="lineNum">      92 </span>                :<span class="lineNoCov">          0 :                 kstat_delete(zfetch_ksp);</span>
+<span class="lineNum">      93 </span>                :<span class="lineNoCov">          0 :                 zfetch_ksp = NULL;</span>
+<span class="lineNum">      94 </span>                :            :         }
+<span class="lineNum">      95 </span>                :<span class="lineCov">        785 : }</span>
+<span class="lineNum">      96 </span>                :            : 
+<span class="lineNum">      97 </span>                :            : /*
+<span class="lineNum">      98 </span>                :            :  * This takes a pointer to a zfetch structure and a dnode.  It performs the
+<span class="lineNum">      99 </span>                :            :  * necessary setup for the zfetch structure, grokking data from the
+<span class="lineNum">     100 </span>                :            :  * associated dnode.
+<a name="101"><span class="lineNum">     101 </span>                :            :  */</a>
+<span class="lineNum">     102 </span>                :            : void
+<span class="lineNum">     103 </span>                :<span class="lineCov">     280342 : dmu_zfetch_init(zfetch_t *zf, dnode_t *dno)</span>
+<span class="lineNum">     104 </span>                :            : {
+<span class="lineNum">     105 </span>           [<span class="branchCov" title="Branch 0 was taken 280349 times"> + </span>]:<span class="lineCov">     280342 :         if (zf == NULL)</span>
+<span class="lineNum">     106 </span>                :            :                 return;
+<span class="lineNum">     107 </span>                :            : 
+<span class="lineNum">     108 </span>                :<span class="lineCov">     280349 :         zf-&gt;zf_dnode = dno;</span>
+<span class="lineNum">     109 </span>                :            : 
+<span class="lineNum">     110 </span>                :<span class="lineCov">     280349 :         list_create(&amp;zf-&gt;zf_stream, sizeof (zstream_t),</span>
+<span class="lineNum">     111 </span>                :            :             offsetof(zstream_t, zs_node));
+<span class="lineNum">     112 </span>                :            : 
+<span class="lineNum">     113 </span>                :<span class="lineCov">     280340 :         rw_init(&amp;zf-&gt;zf_rwlock, NULL, RW_DEFAULT, NULL);</span>
+<span class="lineNum">     114 </span>                :            : }
+<a name="115"><span class="lineNum">     115 </span>                :            : </a>
+<span class="lineNum">     116 </span>                :            : static void
+<span class="lineNum">     117 </span>                :<span class="lineNoCov">          0 : dmu_zfetch_stream_remove(zfetch_t *zf, zstream_t *zs)</span>
+<span class="lineNum">     118 </span>                :            : {
+<span class="lineNum">     119 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(RW_WRITE_HELD(&amp;zf-&gt;zf_rwlock));</span>
+<span class="lineNum">     120 </span>                :<span class="lineNoCov">          0 :         list_remove(&amp;zf-&gt;zf_stream, zs);</span>
+<span class="lineNum">     121 </span>                :<span class="lineNoCov">          0 :         mutex_destroy(&amp;zs-&gt;zs_lock);</span>
+<span class="lineNum">     122 </span>                :<span class="lineNoCov">          0 :         kmem_free(zs, sizeof (*zs));</span>
+<span class="lineNum">     123 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     124 </span>                :            : 
+<span class="lineNum">     125 </span>                :            : /*
+<span class="lineNum">     126 </span>                :            :  * Clean-up state associated with a zfetch structure (e.g. destroy the
+<span class="lineNum">     127 </span>                :            :  * streams).  This doesn't free the zfetch_t itself, that's left to the caller.
+<a name="128"><span class="lineNum">     128 </span>                :            :  */</a>
+<span class="lineNum">     129 </span>                :            : void
+<span class="lineNum">     130 </span>                :<span class="lineCov">     280229 : dmu_zfetch_fini(zfetch_t *zf)</span>
+<span class="lineNum">     131 </span>                :            : {
+<span class="lineNum">     132 </span>                :            :         zstream_t *zs;
+<span class="lineNum">     133 </span>                :            : 
+<span class="lineNum">     134 </span>[<span class="branchCov" title="Branch 0 was taken 280229 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 280229 times"> + </span>]:<span class="lineCov">     280229 :         ASSERT(!RW_LOCK_HELD(&amp;zf-&gt;zf_rwlock));</span>
+<span class="lineNum">     135 </span>                :            : 
+<span class="lineNum">     136 </span>                :<span class="lineCov">     280229 :         rw_enter(&amp;zf-&gt;zf_rwlock, RW_WRITER);</span>
+<span class="lineNum">     137 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 280229 times"> + </span>]:<span class="lineCov">     280229 :         while ((zs = list_head(&amp;zf-&gt;zf_stream)) != NULL)</span>
+<span class="lineNum">     138 </span>                :<span class="lineNoCov">          0 :                 dmu_zfetch_stream_remove(zf, zs);</span>
+<span class="lineNum">     139 </span>                :<span class="lineCov">     280229 :         rw_exit(&amp;zf-&gt;zf_rwlock);</span>
+<span class="lineNum">     140 </span>                :<span class="lineCov">     280229 :         list_destroy(&amp;zf-&gt;zf_stream);</span>
+<span class="lineNum">     141 </span>                :<span class="lineCov">     280229 :         rw_destroy(&amp;zf-&gt;zf_rwlock);</span>
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>                :<span class="lineCov">     280229 :         zf-&gt;zf_dnode = NULL;</span>
+<span class="lineNum">     144 </span>                :<span class="lineCov">     280229 : }</span>
+<span class="lineNum">     145 </span>                :            : 
+<span class="lineNum">     146 </span>                :            : /*
+<span class="lineNum">     147 </span>                :            :  * If there aren't too many streams already, create a new stream.
+<span class="lineNum">     148 </span>                :            :  * The &quot;blkid&quot; argument is the next block that we expect this stream to access.
+<span class="lineNum">     149 </span>                :            :  * While we're here, clean up old streams (which haven't been
+<span class="lineNum">     150 </span>                :            :  * accessed for at least zfetch_min_sec_reap seconds).
+<a name="151"><span class="lineNum">     151 </span>                :            :  */</a>
+<span class="lineNum">     152 </span>                :            : static void
+<span class="lineNum">     153 </span>                :<span class="lineNoCov">          0 : dmu_zfetch_stream_create(zfetch_t *zf, uint64_t blkid)</span>
+<span class="lineNum">     154 </span>                :            : {
+<span class="lineNum">     155 </span>                :            :         zstream_t *zs;
+<span class="lineNum">     156 </span>                :            :         zstream_t *zs_next;
+<span class="lineNum">     157 </span>                :<span class="lineNoCov">          0 :         int numstreams = 0;</span>
+<span class="lineNum">     158 </span>                :            :         uint32_t max_streams;
+<span class="lineNum">     159 </span>                :            : 
+<span class="lineNum">     160 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(RW_WRITE_HELD(&amp;zf-&gt;zf_rwlock));</span>
+<span class="lineNum">     161 </span>                :            : 
+<span class="lineNum">     162 </span>                :            :         /*
+<span class="lineNum">     163 </span>                :            :          * Clean up old streams.
+<span class="lineNum">     164 </span>                :            :          */
+<span class="lineNum">     165 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (zs = list_head(&amp;zf-&gt;zf_stream);</span>
+<span class="lineNum">     166 </span>                :            :             zs != NULL; zs = zs_next) {
+<span class="lineNum">     167 </span>                :<span class="lineNoCov">          0 :                 zs_next = list_next(&amp;zf-&gt;zf_stream, zs);</span>
+<span class="lineNum">     168 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (((gethrtime() - zs-&gt;zs_atime) / NANOSEC) &gt;</span>
+<span class="lineNum">     169 </span>                :            :                     zfetch_min_sec_reap)
+<span class="lineNum">     170 </span>                :<span class="lineNoCov">          0 :                         dmu_zfetch_stream_remove(zf, zs);</span>
+<span class="lineNum">     171 </span>                :            :                 else
+<span class="lineNum">     172 </span>                :<span class="lineNoCov">          0 :                         numstreams++;</span>
+<span class="lineNum">     173 </span>                :            :         }
+<span class="lineNum">     174 </span>                :            : 
+<span class="lineNum">     175 </span>                :            :         /*
+<span class="lineNum">     176 </span>                :            :          * The maximum number of streams is normally zfetch_max_streams,
+<span class="lineNum">     177 </span>                :            :          * but for small files we lower it such that it's at least possible
+<span class="lineNum">     178 </span>                :            :          * for all the streams to be non-overlapping.
+<span class="lineNum">     179 </span>                :            :          *
+<span class="lineNum">     180 </span>                :            :          * If we are already at the maximum number of streams for this file,
+<span class="lineNum">     181 </span>                :            :          * even after removing old streams, then don't create this stream.
+<span class="lineNum">     182 </span>                :            :          */
+<span class="lineNum">     183 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         max_streams = MAX(1, MIN(zfetch_max_streams,</span>
+<span class="lineNum">     184 </span>                :            :             zf-&gt;zf_dnode-&gt;dn_maxblkid * zf-&gt;zf_dnode-&gt;dn_datablksz /
+<span class="lineNum">     185 </span>                :            :             zfetch_max_distance));
+<span class="lineNum">     186 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (numstreams &gt;= max_streams) {</span>
+<span class="lineNum">     187 </span>                :<span class="lineNoCov">          0 :                 ZFETCHSTAT_BUMP(zfetchstat_max_streams);</span>
+<span class="lineNum">     188 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     189 </span>                :            :         }
+<span class="lineNum">     190 </span>                :            : 
+<span class="lineNum">     191 </span>                :<span class="lineNoCov">          0 :         zs = kmem_zalloc(sizeof (*zs), KM_SLEEP);</span>
+<span class="lineNum">     192 </span>                :<span class="lineNoCov">          0 :         zs-&gt;zs_blkid = blkid;</span>
+<span class="lineNum">     193 </span>                :<span class="lineNoCov">          0 :         zs-&gt;zs_pf_blkid = blkid;</span>
+<span class="lineNum">     194 </span>                :<span class="lineNoCov">          0 :         zs-&gt;zs_ipf_blkid = blkid;</span>
+<span class="lineNum">     195 </span>                :<span class="lineNoCov">          0 :         zs-&gt;zs_atime = gethrtime();</span>
+<span class="lineNum">     196 </span>                :<span class="lineNoCov">          0 :         mutex_init(&amp;zs-&gt;zs_lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     197 </span>                :            : 
+<span class="lineNum">     198 </span>                :<span class="lineNoCov">          0 :         list_insert_head(&amp;zf-&gt;zf_stream, zs);</span>
+<span class="lineNum">     199 </span>                :            : }
+<span class="lineNum">     200 </span>                :            : 
+<span class="lineNum">     201 </span>                :            : /*
+<span class="lineNum">     202 </span>                :            :  * This is the predictive prefetch entry point.  It associates dnode access
+<span class="lineNum">     203 </span>                :            :  * specified with blkid and nblks arguments with prefetch stream, predicts
+<span class="lineNum">     204 </span>                :            :  * further accesses based on that stats and initiates speculative prefetch.
+<span class="lineNum">     205 </span>                :            :  * fetch_data argument specifies whether actual data blocks should be fetched:
+<span class="lineNum">     206 </span>                :            :  *   FALSE -- prefetch only indirect blocks for predicted data blocks;
+<span class="lineNum">     207 </span>                :            :  *   TRUE -- prefetch predicted data blocks plus following indirect blocks.
+<a name="208"><span class="lineNum">     208 </span>                :            :  */</a>
+<span class="lineNum">     209 </span>                :            : void
+<span class="lineNum">     210 </span>                :<span class="lineCov">    3680980 : dmu_zfetch(zfetch_t *zf, uint64_t blkid, uint64_t nblks, boolean_t fetch_data)</span>
+<span class="lineNum">     211 </span>                :            : {
+<span class="lineNum">     212 </span>                :            :         zstream_t *zs;
+<span class="lineNum">     213 </span>                :            :         int64_t pf_start, ipf_start, ipf_istart, ipf_iend;
+<span class="lineNum">     214 </span>                :            :         int64_t pf_ahead_blks, max_blks, iblk;
+<span class="lineNum">     215 </span>                :            :         int epbs, max_dist_blks, pf_nblks, ipf_nblks, i;
+<span class="lineNum">     216 </span>                :            :         uint64_t end_of_access_blkid;
+<span class="lineNum">     217 </span>                :<span class="lineCov">    3680980 :         end_of_access_blkid = blkid + nblks;</span>
+<span class="lineNum">     218 </span>                :            : 
+<span class="lineNum">     219 </span>           [<span class="branchCov" title="Branch 0 was taken 3681154 times"> + </span>]:<span class="lineCov">    3680980 :         if (zfs_prefetch_disable)</span>
+<span class="lineNum">     220 </span>                :            :                 return;
+<span class="lineNum">     221 </span>                :            : 
+<span class="lineNum">     222 </span>                :            :         /*
+<span class="lineNum">     223 </span>                :            :          * As a fast path for small (single-block) files, ignore access
+<span class="lineNum">     224 </span>                :            :          * to the first block.
+<span class="lineNum">     225 </span>                :            :          */
+<span class="lineNum">     226 </span>        [<span class="branchCov" title="Branch 0 was taken 2716255 times"> + </span><span class="branchCov" title="Branch 1 was taken 964899 times"> + </span>]:<span class="lineCov">    3681154 :         if (blkid == 0)</span>
+<span class="lineNum">     227 </span>                :            :                 return;
+<span class="lineNum">     228 </span>                :            : 
+<span class="lineNum">     229 </span>                :<span class="lineCov">    2716255 :         rw_enter(&amp;zf-&gt;zf_rwlock, RW_READER);</span>
+<span class="lineNum">     230 </span>                :            : 
+<span class="lineNum">     231 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 2716431 times"> + </span>]:<span class="lineCov">    2716493 :         for (zs = list_head(&amp;zf-&gt;zf_stream); zs != NULL;</span>
+<span class="lineNum">     232 </span>                :<span class="lineNoCov">          0 :             zs = list_next(&amp;zf-&gt;zf_stream, zs)) {</span>
+<span class="lineNum">     233 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (blkid == zs-&gt;zs_blkid) {</span>
+<span class="lineNum">     234 </span>                :<span class="lineNoCov">          0 :                         mutex_enter(&amp;zs-&gt;zs_lock);</span>
+<span class="lineNum">     235 </span>                :            :                         /*
+<span class="lineNum">     236 </span>                :            :                          * zs_blkid could have changed before we
+<span class="lineNum">     237 </span>                :            :                          * acquired zs_lock; re-check them here.
+<span class="lineNum">     238 </span>                :            :                          */
+<span class="lineNum">     239 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (blkid != zs-&gt;zs_blkid) {</span>
+<span class="lineNum">     240 </span>                :<span class="lineNoCov">          0 :                                 mutex_exit(&amp;zs-&gt;zs_lock);</span>
+<span class="lineNum">     241 </span>                :<span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     242 </span>                :            :                         }
+<span class="lineNum">     243 </span>                :            :                         break;
+<span class="lineNum">     244 </span>                :            :                 }
+<span class="lineNum">     245 </span>                :            :         }
+<span class="lineNum">     246 </span>                :            : 
+<span class="lineNum">     247 </span>        [<span class="branchCov" title="Branch 0 was taken 2716431 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">    2716431 :         if (zs == NULL) {</span>
+<span class="lineNum">     248 </span>                :            :                 /*
+<span class="lineNum">     249 </span>                :            :                  * This access is not part of any existing stream.  Create
+<span class="lineNum">     250 </span>                :            :                  * a new stream for it.
+<span class="lineNum">     251 </span>                :            :                  */
+<span class="lineNum">     252 </span>                :<span class="lineCov">    2716431 :                 ZFETCHSTAT_BUMP(zfetchstat_misses);</span>
+<span class="lineNum">     253 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 2716462 times"> + </span>]:<span class="lineCov">    2716500 :                 if (rw_tryupgrade(&amp;zf-&gt;zf_rwlock))</span>
+<span class="lineNum">     254 </span>                :<span class="lineNoCov">          0 :                         dmu_zfetch_stream_create(zf, end_of_access_blkid);</span>
+<span class="lineNum">     255 </span>                :<span class="lineCov">    2716462 :                 rw_exit(&amp;zf-&gt;zf_rwlock);</span>
+<span class="lineNum">     256 </span>                :<span class="lineCov">    2716477 :                 return;</span>
+<span class="lineNum">     257 </span>                :            :         }
+<span class="lineNum">     258 </span>                :            : 
+<span class="lineNum">     259 </span>                :            :         /*
+<span class="lineNum">     260 </span>                :            :          * This access was to a block that we issued a prefetch for on
+<span class="lineNum">     261 </span>                :            :          * behalf of this stream. Issue further prefetches for this stream.
+<span class="lineNum">     262 </span>                :            :          *
+<span class="lineNum">     263 </span>                :            :          * Normally, we start prefetching where we stopped
+<span class="lineNum">     264 </span>                :            :          * prefetching last (zs_pf_blkid).  But when we get our first
+<span class="lineNum">     265 </span>                :            :          * hit on this stream, zs_pf_blkid == zs_blkid, we don't
+<span class="lineNum">     266 </span>                :            :          * want to prefetch the block we just accessed.  In this case,
+<span class="lineNum">     267 </span>                :            :          * start just after the block we just accessed.
+<span class="lineNum">     268 </span>                :            :          */
+<span class="lineNum">     269 </span>                :<span class="lineNoCov">          0 :         pf_start = MAX(zs-&gt;zs_pf_blkid, end_of_access_blkid);</span>
+<span class="lineNum">     270 </span>                :            : 
+<span class="lineNum">     271 </span>                :            :         /*
+<span class="lineNum">     272 </span>                :            :          * Double our amount of prefetched data, but don't let the
+<span class="lineNum">     273 </span>                :            :          * prefetch get further ahead than zfetch_max_distance.
+<span class="lineNum">     274 </span>                :            :          */
+<span class="lineNum">     275 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (fetch_data) {</span>
+<span class="lineNum">     276 </span>                :<span class="lineNoCov">          0 :                 max_dist_blks =</span>
+<span class="lineNum">     277 </span>                :<span class="lineNoCov">          0 :                     zfetch_max_distance &gt;&gt; zf-&gt;zf_dnode-&gt;dn_datablkshift;</span>
+<span class="lineNum">     278 </span>                :            :                 /*
+<span class="lineNum">     279 </span>                :            :                  * Previously, we were (zs_pf_blkid - blkid) ahead.  We
+<span class="lineNum">     280 </span>                :            :                  * want to now be double that, so read that amount again,
+<span class="lineNum">     281 </span>                :            :                  * plus the amount we are catching up by (i.e. the amount
+<span class="lineNum">     282 </span>                :            :                  * read just now).
+<span class="lineNum">     283 </span>                :            :                  */
+<span class="lineNum">     284 </span>                :<span class="lineNoCov">          0 :                 pf_ahead_blks = zs-&gt;zs_pf_blkid - blkid + nblks;</span>
+<span class="lineNum">     285 </span>                :<span class="lineNoCov">          0 :                 max_blks = max_dist_blks - (pf_start - end_of_access_blkid);</span>
+<span class="lineNum">     286 </span>                :<span class="lineNoCov">          0 :                 pf_nblks = MIN(pf_ahead_blks, max_blks);</span>
+<span class="lineNum">     287 </span>                :            :         } else {
+<span class="lineNum">     288 </span>                :            :                 pf_nblks = 0;
+<span class="lineNum">     289 </span>                :            :         }
+<span class="lineNum">     290 </span>                :            : 
+<span class="lineNum">     291 </span>                :<span class="lineNoCov">          0 :         zs-&gt;zs_pf_blkid = pf_start + pf_nblks;</span>
+<span class="lineNum">     292 </span>                :            : 
+<span class="lineNum">     293 </span>                :            :         /*
+<span class="lineNum">     294 </span>                :            :          * Do the same for indirects, starting from where we stopped last,
+<span class="lineNum">     295 </span>                :            :          * or where we will stop reading data blocks (and the indirects
+<span class="lineNum">     296 </span>                :            :          * that point to them).
+<span class="lineNum">     297 </span>                :            :          */
+<span class="lineNum">     298 </span>                :<span class="lineNoCov">          0 :         ipf_start = MAX(zs-&gt;zs_ipf_blkid, zs-&gt;zs_pf_blkid);</span>
+<span class="lineNum">     299 </span>                :<span class="lineNoCov">          0 :         max_dist_blks = zfetch_max_idistance &gt;&gt; zf-&gt;zf_dnode-&gt;dn_datablkshift;</span>
+<span class="lineNum">     300 </span>                :            :         /*
+<span class="lineNum">     301 </span>                :            :          * We want to double our distance ahead of the data prefetch
+<span class="lineNum">     302 </span>                :            :          * (or reader, if we are not prefetching data).  Previously, we
+<span class="lineNum">     303 </span>                :            :          * were (zs_ipf_blkid - blkid) ahead.  To double that, we read
+<span class="lineNum">     304 </span>                :            :          * that amount again, plus the amount we are catching up by
+<span class="lineNum">     305 </span>                :            :          * (i.e. the amount read now + the amount of data prefetched now).
+<span class="lineNum">     306 </span>                :            :          */
+<span class="lineNum">     307 </span>                :<span class="lineNoCov">          0 :         pf_ahead_blks = zs-&gt;zs_ipf_blkid - blkid + nblks + pf_nblks;</span>
+<span class="lineNum">     308 </span>                :<span class="lineNoCov">          0 :         max_blks = max_dist_blks - (ipf_start - end_of_access_blkid);</span>
+<span class="lineNum">     309 </span>                :<span class="lineNoCov">          0 :         ipf_nblks = MIN(pf_ahead_blks, max_blks);</span>
+<span class="lineNum">     310 </span>                :<span class="lineNoCov">          0 :         zs-&gt;zs_ipf_blkid = ipf_start + ipf_nblks;</span>
+<span class="lineNum">     311 </span>                :            : 
+<span class="lineNum">     312 </span>                :<span class="lineNoCov">          0 :         epbs = zf-&gt;zf_dnode-&gt;dn_indblkshift - SPA_BLKPTRSHIFT;</span>
+<span class="lineNum">     313 </span>                :<span class="lineNoCov">          0 :         ipf_istart = P2ROUNDUP(ipf_start, 1 &lt;&lt; epbs) &gt;&gt; epbs;</span>
+<span class="lineNum">     314 </span>                :<span class="lineNoCov">          0 :         ipf_iend = P2ROUNDUP(zs-&gt;zs_ipf_blkid, 1 &lt;&lt; epbs) &gt;&gt; epbs;</span>
+<span class="lineNum">     315 </span>                :            : 
+<span class="lineNum">     316 </span>                :<span class="lineNoCov">          0 :         zs-&gt;zs_atime = gethrtime();</span>
+<span class="lineNum">     317 </span>                :<span class="lineNoCov">          0 :         zs-&gt;zs_blkid = end_of_access_blkid;</span>
+<span class="lineNum">     318 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;zs-&gt;zs_lock);</span>
+<span class="lineNum">     319 </span>                :<span class="lineNoCov">          0 :         rw_exit(&amp;zf-&gt;zf_rwlock);</span>
+<span class="lineNum">     320 </span>                :            : 
+<span class="lineNum">     321 </span>                :            :         /*
+<span class="lineNum">     322 </span>                :            :          * dbuf_prefetch() is asynchronous (even when it needs to read
+<span class="lineNum">     323 </span>                :            :          * indirect blocks), but we still prefer to drop our locks before
+<span class="lineNum">     324 </span>                :            :          * calling it to reduce the time we hold them.
+<span class="lineNum">     325 </span>                :            :          */
+<span class="lineNum">     326 </span>                :            : 
+<span class="lineNum">     327 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0; i &lt; pf_nblks; i++) {</span>
+<span class="lineNum">     328 </span>                :<span class="lineNoCov">          0 :                 dbuf_prefetch(zf-&gt;zf_dnode, 0, pf_start + i,</span>
+<span class="lineNum">     329 </span>                :            :                     ZIO_PRIORITY_ASYNC_READ, ARC_FLAG_PREDICTIVE_PREFETCH);
+<span class="lineNum">     330 </span>                :            :         }
+<span class="lineNum">     331 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (iblk = ipf_istart; iblk &lt; ipf_iend; iblk++) {</span>
+<span class="lineNum">     332 </span>                :<span class="lineNoCov">          0 :                 dbuf_prefetch(zf-&gt;zf_dnode, 1, iblk,</span>
+<span class="lineNum">     333 </span>                :            :                     ZIO_PRIORITY_ASYNC_READ, ARC_FLAG_PREDICTIVE_PREFETCH);
+<span class="lineNum">     334 </span>                :            :         }
+<span class="lineNum">     335 </span>                :<span class="lineNoCov">          0 :         ZFETCHSTAT_BUMP(zfetchstat_hits);</span>
+<span class="lineNum">     336 </span>                :            : }
+<span class="lineNum">     337 </span>                :            : 
+<span class="lineNum">     338 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     339 </span>                :            : /* BEGIN CSTYLED */
+<span class="lineNum">     340 </span>                :            : module_param(zfs_prefetch_disable, int, 0644);
+<span class="lineNum">     341 </span>                :            : MODULE_PARM_DESC(zfs_prefetch_disable, &quot;Disable all ZFS prefetching&quot;);
+<span class="lineNum">     342 </span>                :            : 
+<span class="lineNum">     343 </span>                :            : module_param(zfetch_max_streams, uint, 0644);
+<span class="lineNum">     344 </span>                :            : MODULE_PARM_DESC(zfetch_max_streams, &quot;Max number of streams per zfetch&quot;);
+<span class="lineNum">     345 </span>                :            : 
+<span class="lineNum">     346 </span>                :            : module_param(zfetch_min_sec_reap, uint, 0644);
+<span class="lineNum">     347 </span>                :            : MODULE_PARM_DESC(zfetch_min_sec_reap, &quot;Min time before stream reclaim&quot;);
+<span class="lineNum">     348 </span>                :            : 
+<span class="lineNum">     349 </span>                :            : module_param(zfetch_max_distance, uint, 0644);
+<span class="lineNum">     350 </span>                :            : MODULE_PARM_DESC(zfetch_max_distance,
+<span class="lineNum">     351 </span>                :            :         &quot;Max bytes to prefetch per stream (default 8MB)&quot;);
+<span class="lineNum">     352 </span>                :            : 
+<span class="lineNum">     353 </span>                :            : module_param(zfetch_array_rd_sz, ulong, 0644);
+<span class="lineNum">     354 </span>                :            : MODULE_PARM_DESC(zfetch_array_rd_sz, &quot;Number of bytes in a array_read&quot;);
+<span class="lineNum">     355 </span>                :            : /* END CSTYLED */
+<span class="lineNum">     356 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

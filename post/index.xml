@@ -6,8 +6,221 @@
     <description>Recent content in Posts on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 26 Sep 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Thu, 28 Sep 2017 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Generating Code Coverage Reports for ZFS on Linux</title>
+      <link>https://www.prakashsurya.com/post/2017-09-28-generating-code-coverage-reports-for-zfs-on-linux/</link>
+      <pubDate>Thu, 28 Sep 2017 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2017-09-28-generating-code-coverage-reports-for-zfs-on-linux/</guid>
+      <description>
+
+&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
+
+&lt;p&gt;This is another post about collecting code coverage data for the ZFS on
+Linux project. We&amp;rsquo;ve recently added a new make target to the project, so
+I wanted to highlight how easy it is to use this to generate static HTML
+based code coverage reports, and/or to generate a report that can be
+used with other tools and services (e.g. &lt;a href=&#34;https://codecov.io/gh/zfsonlinux/zfs&#34;&gt;codecov.io&lt;/a&gt;).&lt;/p&gt;
+
+&lt;h2 id=&#34;examples&#34;&gt;Examples&lt;/h2&gt;
+
+&lt;p&gt;Before I get into the specifics for how to run the tests and generate
+the coverage report, I want to show off the results. After the tests
+have been run, one can use &lt;code&gt;make code-coverage-capture&lt;/code&gt; to generate the
+code coverage information.&lt;/p&gt;
+
+&lt;p&gt;This generates a directory full of static HTML pages, and a &lt;code&gt;.info&lt;/code&gt;
+file; both of which describe the lines executed for the set of tests
+that were run. The HTML pages are to be consumed by humans, and the
+&lt;code&gt;.info&lt;/code&gt; file consumed by tools.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;See &lt;a href=&#34;zfs-0.7.0-coverage/index.html&#34;&gt;here&lt;/a&gt; to view an example of the
+static HTML pages.&lt;/li&gt;
+&lt;li&gt;See &lt;a href=&#34;zfs-0.7.0-coverage.info&#34;&gt;here&lt;/a&gt; to view/download an example of
+the &lt;code&gt;.info&lt;/code&gt; file.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;I&amp;rsquo;ll go into the details below, but that coverage was generated after
+running &lt;code&gt;zloop&lt;/code&gt; and ZTS, and only contains data for user execution.
+Generating this data for kernel execution isn&amp;rsquo;t difficult, it just
+requires a little more work, and is out of scope for this post (I have
+some notes on this at the end of this post).&lt;/p&gt;
+
+&lt;h2 id=&#34;details&#34;&gt;Details&lt;/h2&gt;
+
+&lt;p&gt;With the end result in mind, lets now dive into the details of how I
+generated those reports.&lt;/p&gt;
+
+&lt;p&gt;As one might expect, we first need to compile the ZFS project, and
+ensure it&amp;rsquo;s configured to correctly generate the needed code coverage
+data. We do this via the new &lt;code&gt;--enable-code-coverage&lt;/code&gt; flag to
+&lt;code&gt;configure&lt;/code&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ ./autogen.sh &amp;amp;&amp;amp; ./configure --enable-code-coverage &amp;amp;&amp;amp; make
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now, before we jump into running the tests, we need to run the following
+commands to setup our environment:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ ./scripts/zfs-tests.sh -c         # create and populate constrained PATH
+$ sudo ./scripts/zfs-helpers.sh -vi # create various symlinks in &amp;quot;/&amp;quot;
+$ sudo ./scripts/zfs.sh -u          # unload kernel modules
+$ sudo ./scripts/zfs.sh             # load kernel modules
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;We need to run the tests completely in-tree, so that the &lt;code&gt;.gcda&lt;/code&gt; files
+will be created within the ZFS repository tree. This enables the make
+target to find these files, which it needs to generate the coverage
+reports. Thus, the above commands are needed to configure the system to
+enable running the tests in-tree vs. installing the various libraries,
+commands, and kernel modules into the root filesystem.&lt;/p&gt;
+
+&lt;p&gt;With that done, we can go ahead and run our first test. This test will
+run &lt;code&gt;ztest&lt;/code&gt; in a loop for an hour:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo ./scripts/zloop.sh -t $((60*60))
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;After that completes, we can run ZTS (ZFS Test Suite):&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ ./scripts/zfs-tests.sh -vx
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And finally, now we can generate the code coverage data for the tests
+that we ran above:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ export CODE_COVERAGE_BRANCH_COVERAGE=1
+$ make code-coverage-capture
+  LCOV   --capture zfs-0.7.0-coverage.info
+  LCOV   --remove /tmp/*
+lcov: WARNING: negative counts found in tracefile zfs-0.7.0-coverage.info.tmp
+  GEN    zfs-0.7.0-coverage
+file:///export/home/delphix/zfs/zfs-0.7.0-coverage/index.html
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;That&amp;rsquo;s it!&lt;/p&gt;
+
+&lt;p&gt;After running that &lt;code&gt;make&lt;/code&gt; command it should emit a &lt;code&gt;.info&lt;/code&gt; file, and a
+directory full of static HTML pages; much like the ones that I linked to
+in the &amp;ldquo;Examples&amp;rdquo; section earlier in this post.&lt;/p&gt;
+
+&lt;h2 id=&#34;more-details&#34;&gt;More Details&lt;/h2&gt;
+
+&lt;p&gt;If you&amp;rsquo;ve read this far, you might be interested in the following
+details as well.&lt;/p&gt;
+
+&lt;h3 id=&#34;branch-coverage&#34;&gt;Branch Coverage&lt;/h3&gt;
+
+&lt;p&gt;We set the &lt;code&gt;CODE_COVERAGE_BRANCH_COVERAGE&lt;/code&gt; environment variable prior to
+running &lt;code&gt;make code-coverage-capture&lt;/code&gt;, so that we&amp;rsquo;ll get coverage data
+for which branches of a conditional are executed, and which branches are
+not. This allows us to see when a conditional is executed, but only a
+subset of all possibilities of the branch are covered.&lt;/p&gt;
+
+&lt;p&gt;By default, &lt;code&gt;lcov&lt;/code&gt; (which is used by the make target) has this feature
+disabled, so branch coverage will not be collected without setting this
+variable.&lt;/p&gt;
+
+&lt;h3 id=&#34;kernel-coverage&#34;&gt;Kernel Coverage&lt;/h3&gt;
+
+&lt;p&gt;I mentioned this before, but it&amp;rsquo;s worth pointing out again. The
+instructions in this post will only produce code coverage data for user
+execution. Generating data for kernel execution isn&amp;rsquo;t much more
+difficult than what&amp;rsquo;s described above, but it requires a couple of
+additional things.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;The kernel must be compiled with &lt;code&gt;gcov&lt;/code&gt; support. If your kernel
+isn&amp;rsquo;t already compiled with this support, than you&amp;rsquo;ll have to build
+a new kernel that&amp;rsquo;s configured to expose the required code coverage
+data. I wrote some notes on this &lt;a href=&#34;http://localhost:1313/post/2017-09-11-using-gcov-with-zfs-on-linux-kernel-modules/&#34;&gt;here&lt;/a&gt;. A more
+authoritative source can be found &lt;a href=&#34;https://kernelnewbies.org/KernelBuild&#34;&gt;here&lt;/a&gt; and
+&lt;a href=&#34;https://www.kernel.org/doc/html/latest/dev-tools/gcov.html&#34;&gt;here&lt;/a&gt;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Once running a kernel that supports exporting gcov data, the
+coverage data for the kernel modules need to be copied into the zfs
+tree prior to generating the reports (i.e. prior to running &lt;code&gt;make
+code-coverage-capture&lt;/code&gt;). The following small script is one way this
+can be done:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# Allow access to gcov files as a non-root user
+$ sudo chmod -R a+rx /sys/kernel/debug/gcov
+$ sudo chmod a+rx /sys/kernel/debug
+
+$ GCOV_KERNEL=&amp;quot;/sys/kernel/debug/gcov&amp;quot;
+$ ZFS_BUILD=&amp;quot;$(readlink -f ~/zfs)&amp;quot;
+$ pushd &amp;quot;$GCOV_KERNEL$ZFS_BUILD&amp;quot; &amp;gt;/dev/null
+$ find . -name &amp;quot;*.gcda&amp;quot; -exec sh -c &#39;cp -v $0 &#39;$ZFS_BUILD&#39;/$0&#39; {} \;
+$ find . -name &amp;quot;*.gcno&amp;quot; -exec sh -c &#39;cp -vdn $0 &#39;$ZFS_BUILD&#39;/$0&#39; {} \;
+$ popd &amp;gt;/dev/null
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The idea here, is to copy the kernel module&amp;rsquo;s &lt;code&gt;.gcda&lt;/code&gt; and &lt;code&gt;.gcno&lt;/code&gt;
+files out of &lt;code&gt;/sys/kernel/debug/gcov&lt;/code&gt; and place them along side the
+&lt;code&gt;.c&lt;/code&gt; file they correspond to. This way, these files can be found by
+&lt;code&gt;make code-coverage-capture&lt;/code&gt; just like the user execution files. See
+&lt;a href=&#34;https://github.com/prakashsurya/zfs-buildbot/blob/master/scripts/bb-test-cleanup.sh&#34;&gt;here&lt;/a&gt; for an example of how we&amp;rsquo;re doing this in
+the ZFS on Linux project&amp;rsquo;s automation.&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;commit-adding-new-make-target&#34;&gt;Commit Adding New Make Target&lt;/h3&gt;
+
+&lt;p&gt;The new &lt;code&gt;code-coverage-capture&lt;/code&gt; make target was added in this commit to
+the ZFS on Linux project:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;commit acf044420b134b022da5c866b19df69934ad3778
+Author: Prakash Surya &amp;lt;prakash.surya@delphix.com&amp;gt;
+Date:   Fri Sep 22 18:49:57 2017 -0700
+
+    Add support for &amp;quot;--enable-code-coverage&amp;quot; option
+
+    This change adds support for a new option that can be passed to the
+    configure script: &amp;quot;--enable-code-coverage&amp;quot;. Further, the &amp;quot;--enable-gcov&amp;quot;
+    option has been removed, as this new option provides the same
+    functionality (plus more).
+
+    When using this new option the following make targets are available:
+
+     * check-code-coverage
+     * code-coverage-capture
+     * code-coverage-clean
+
+    Note: these make targets can only be run from the root of the project.
+
+    Reviewed-by: Brian Behlendorf &amp;lt;behlendorf1@llnl.gov&amp;gt;
+    Signed-off-by: Prakash Surya &amp;lt;prakash.surya@delphix.com&amp;gt;
+    Closes #6670
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Thus, in order to use this new make target, one will need to use a
+version of the project that contains this commit.&lt;/p&gt;
+
+&lt;h3 id=&#34;zfs-commit-tested&#34;&gt;ZFS Commit Tested&lt;/h3&gt;
+
+&lt;p&gt;For the testing and coverage data I showed in the &amp;ldquo;Examples&amp;rdquo; section, I
+used the following commit from the ZFS on Linux&amp;rsquo;s &amp;ldquo;master&amp;rdquo; branch:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;commit 269db7a4b3ef2bc14f3c2cf95f050479cbd69e72
+Author: Simon Guest &amp;lt;simon.guest@tesujimath.org&amp;gt;
+Date:   Thu Sep 28 06:39:47 2017 +1300
+
+    vdev_id: extension for new scsi topology
+
+    On systems with SCSI rather than SAS disk topology, this change enables
+    the vdev_id script to match against the block device path, and therefore
+    create a vdev alias in /dev/disk/by-vdev.
+
+    Reviewed-by: Tony Hutter &amp;lt;hutter2@llnl.gov&amp;gt;
+    Reviewed-by: Brian Behlendorf &amp;lt;behlendorf1@llnl.gov&amp;gt;
+    Signed-off-by: Simon Guest &amp;lt;simon.guest@tesujimath.org&amp;gt;
+    Closes #6592
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
     
     <item>
       <title>ZFS on Linux Code Coverage</title>
@@ -3026,622 +3239,6 @@ distribution onto any machine of our choosing (e.g. a VM, bare metal,
 etc), and the installed operating system will be our custom version of
 illumos, plus all additional packages packages that constitute OI
 Hipster.&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>OpenZFS: Artificial Disk Latency Using zinject</title>
-      <link>https://www.prakashsurya.com/post/2015-12-07-openzfs-artificial-disk-latency-using-zinject/</link>
-      <pubDate>Mon, 07 Dec 2015 00:00:00 -0800</pubDate>
-      
-      <guid>https://www.prakashsurya.com/post/2015-12-07-openzfs-artificial-disk-latency-using-zinject/</guid>
-      <description>
-
-&lt;p&gt;About a year ago I had the opportunity to work on a small extension to
-the &lt;a href=&#34;http://www.open-zfs.org&#34;&gt;OpenZFS&lt;/a&gt; &lt;code&gt;zinject&lt;/code&gt; command with colleagues Matt Ahrens and
-Frank Salzmann, during one of our &lt;a href=&#34;http://www.delphix.com&#34;&gt;Delphix&lt;/a&gt; engineering wide
-hackathon events. Now that it&amp;rsquo;s in the &lt;a href=&#34;https://github.com/openzfs/openzfs/pull/39&#34;&gt;process of landing&lt;/a&gt; in the
-upstream &lt;a href=&#34;https://github.com/openzfs/openzfs&#34;&gt;OpenZFS repository&lt;/a&gt;, I wanted to take a minute to show
-it off.&lt;/p&gt;
-
-&lt;p&gt;To describe the new functionality, I&amp;rsquo;ll defer to the help message:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ zinject -h
-... &amp;lt;snip&amp;gt; ...
-
-zinject -d device -D latency:lanes pool
-
-        Add an artificial delay to IO requests on a particular
-        device, such that the requests take a minimum of &#39;latency&#39;
-        milliseconds to complete. Each delay has an associated
-        number of &#39;lanes&#39; which defines the number of concurrent
-        IO requests that can be processed.
-
-        For example, with a single lane delay of 10 ms (-D 10:1),
-        the device will only be able to service a single IO request
-        at a time with each request taking 10 ms to complete. So,
-        if only a single request is submitted every 10 ms, the
-        average latency will be 10 ms; but if more than one request
-        is submitted every 10 ms, the average latency will be more
-        than 10 ms.
-
-        Similarly, if a delay of 10 ms is specified to have two
-        lanes (-D 10:2), then the device will be able to service
-        two requests at a time, each with a minimum latency of
-        10 ms. So, if two requests are submitted every 10 ms, then
-        the average latency will be 10 ms; but if more than two
-        requests are submitted every 10 ms, the average latency
-        will be more than 10 ms.
-
-        Also note, these delays are additive. So two invocations
-        of &#39;-D 10:1&#39;, is roughly equivalent to a single invocation
-        of &#39;-D 10:2&#39;. This also means, one can specify multiple
-        lanes with differing target latencies. For example, an
-        invocation of &#39;-D 10:1&#39; followed by &#39;-D 25:2&#39; will
-        create 3 lanes on the device; one lane with a latency
-        of 10 ms and two lanes with a 25 ms latency.
-
-... &amp;lt;snip&amp;gt; ...
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Given that explanation, lets dive in and give this a test drive with a
-few examples.&lt;/p&gt;
-
-&lt;h2 id=&#34;setup-and-baseline&#34;&gt;Setup and Baseline&lt;/h2&gt;
-
-&lt;p&gt;First, lets start with a basic example using a pool with a single disk:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# zpool create tank c1t1d0
-# zfs create tank/foo
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Now let&amp;rsquo;s do some IO to the pool and use &lt;code&gt;dtrace&lt;/code&gt; to examine the latency
-of the requests to get a baseline expectation for the IO latency of
-writes to this pool.&lt;/p&gt;
-
-&lt;p&gt;Running in one terminal I have a simple, single threaded write workload
-running in an infinite loop. This will continually copy some random data
-to a file in the pool, remove that file, and repeat.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# dd if=/dev/urandom of=/tmp/urandom-cache bs=1M count=1024 &amp;amp;&amp;gt;/dev/null
-# while true; do
-&amp;gt; cp /tmp/urandom-cache /tank/foo/urandom-cache
-&amp;gt; sync
-&amp;gt; rm /tank/foo/urandom-cache
-&amp;gt; sync
-done
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Now, lets look at the latency of the write requests issued to disk by
-the filesystem, using &lt;code&gt;dtrace&lt;/code&gt; (see &lt;a href=&#34;#zio-latency&#34;&gt;here&lt;/a&gt; for the source
-of this &lt;code&gt;dtrace&lt;/code&gt; script):&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# dtrace -qs zio-rw-latency.d -c &#39;sleep 60&#39; tank write
-
-histogram of latencies (us):
-
-           value  ------------- Distribution ------------- count
-             128 |                                         0
-             256 |                                         248
-             512 |@@@@@                                    6204
-            1024 |@@@@@@@@@@@@@@@@@@@@@@                   26218
-            2048 |@@@@@@@@@@@                              13070
-            4096 |@@                                       2474
-            8192 |                                         416
-           16384 |                                         56
-           32768 |                                         7
-           65536 |                                         0
-
-avg latency (us)   stddev (us)   iops   throughput (KB/s)
-2025               1609          811    99623
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;This is showing us a histogram of the latency of all writes that were
-submitted and completed to our pool during that specific interval.
-Additionally, it&amp;rsquo;s showing us an average and standard deviation of the
-latency over all the requests, number of request issued and completed
-per second, and the throughput achieved by these writes.&lt;/p&gt;
-
-&lt;p&gt;This sets the baseline performance that we expect to get out of this
-storage configuration; most requests take less than 8 ms to be serviced,
-with the average being about 2ms with a standard deviation of roughly
-1.5ms.&lt;/p&gt;
-
-&lt;h2 id=&#34;first-experiment-single-disk-single-lane&#34;&gt;First Experiment: Single Disk, Single Lane&lt;/h2&gt;
-
-&lt;p&gt;Now that we have some baseline numbers to compare against, lets use the
-new &lt;code&gt;zinject&lt;/code&gt; functionality to slow down the requests. Let&amp;rsquo;s say we want
-to delay all requests such that they take a minimum of 10ms to complete.&lt;/p&gt;
-
-&lt;p&gt;Remembering that we created this pool in the previous section using a
-single disk named &lt;code&gt;c1t1d0&lt;/code&gt;, we can set the minimum latency of this disk
-to be our desired 10ms:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# zinject -d c1t1d0 -D 10:1 tank
-Added handler 1 with the following properties:
-  pool: tank
-  vdev: c138fa4fbf3d8f2
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;And to double check that this is the only delay registered on our pool,
-we can run &lt;code&gt;zinject&lt;/code&gt; without any parameters to dump a list of all
-registered delays:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# zinject
- ID  POOL             DELAY (ms)       LANES            GUID
----  ---------------  ---------------  ---------------  ----------------
-  1  tank             10               1                c138fa4fbf3d8f2
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;The &amp;ldquo;lanes&amp;rdquo; column describes the number of requests that can be serviced
-simultaneous by each registered delay; thus this delay specifies that
-only a single request can be serviced at a time, and each request will
-take a minimum of 10ms to complete.&lt;/p&gt;
-
-&lt;p&gt;Now, with that delay in place, and the same write workload from the
-previous section still running, we can again use &lt;code&gt;dtrace&lt;/code&gt; to inspect the
-write request latencies, IOPs, and throughput values. Given this delay,
-we should expect to see no request complete sooner than 10ms, and as a
-result, the IOPs and throughput should take a significant hit:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# dtrace -qs zio-rw-latency.d -c &#39;sleep 60&#39; tank write
-
-histogram of latencies (us):
-
-           value  ------------- Distribution ------------- count
-            4096 |                                         0
-            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@             4177
-           16384 |@@@@@@                                   894
-           32768 |@@@@@                                    807
-           65536 |                                         1
-          131072 |                                         0
-
-avg latency (us)   stddev (us)   iops   throughput (KB/s)
-17080              12448         97     12518
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Great! This matches our expectation.&lt;/p&gt;
-
-&lt;p&gt;Since we&amp;rsquo;re using a logarithmic histogram, we can&amp;rsquo;t actually
-differentiate between requests in the 8-16ms range, but judging by the
-fact that there aren&amp;rsquo;t any request in the 0-8ms range, it&amp;rsquo;s safe to
-assume all the request that landed in the 8-16ms range, actually took
-10-16ms to complete (as they should have).&lt;/p&gt;
-
-&lt;h2 id=&#34;wait-what-about-the-average-latency&#34;&gt;Wait, What About the Average Latency?&lt;/h2&gt;
-
-&lt;p&gt;At this point, you might be looking at the average latency output from
-the previous experiment, and be wondering why it&amp;rsquo;s so much larger than
-our target latency of 10ms. Without the delay, most requests would
-complete in under 8ms, so why isn&amp;rsquo;t the average latency with the delay
-closer to the desired 10ms?&lt;/p&gt;
-
-&lt;p&gt;Remember that when we created the delay we specified it to have a single
-&amp;ldquo;lane&amp;rdquo;. What this means is only a single request can be serviced at a
-time. If more than a single write is submitted every 10ms to the
-underlying disk, then each new write request will get backed up by any
-existing requests.&lt;/p&gt;
-
-&lt;p&gt;In other words, each lane represents a &lt;a href=&#34;https://en.wikipedia.org/wiki/FIFO_(computing_and_electronics)&#34;&gt;FIFO&lt;/a&gt; queue. When a new
-IO request is submitted, the FIFO queue with the shortest wait time will
-be selected (e.g. if there are multiple lanes available to choose from),
-and then the request is placed in the queue and waits its turn until
-it can be processed and eventually completed. Thus, in our example
-above, if a request is submitted while another request is currently
-being processed and still has 7ms to finish, this new request&amp;rsquo;s latency
-will be a minimum of 17ms; 7ms spent waiting for the prior request to be
-processed, and 10ms spent being processed itself. Due to the way OpenZFS
-issues writes, multiple requests will certainly be submitted
-simultaneously, so it&amp;rsquo;s common for this situation to occur and explains
-the average latency in the previous experiment.&lt;/p&gt;
-
-&lt;h2 id=&#34;second-experiment-single-disk-multiple-lanes&#34;&gt;Second Experiment: Single Disk, Multiple Lanes&lt;/h2&gt;
-
-&lt;p&gt;If the previously described behavior isn&amp;rsquo;t actually what is desired, we
-can simulate an implementation where requests pay no attention to prior
-requests by adding a delay with enough lanes such that there will always
-be an open lane to accept new requests. As an example, let&amp;rsquo;s create a
-delay with the same 10ms minimum latency as before, but instead of 1
-lane, we&amp;rsquo;ll create 16 lanes:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# zinject -c all
-removed all registered handlers
-
-# zinject -d c1t1d0 -D 10:16 tank
-Added handler 2 with the following properties:
-  pool: tank
-  vdev: c138fa4fbf3d8f2
-
-# zinject
- ID  POOL             DELAY (ms)       LANES            GUID
----  ---------------  ---------------  ---------------  ----------------
-  2  tank             10               16               c138fa4fbf3d8f2
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Assuming the magic number of 16 is sufficient to prevent new requests
-from piling up behind older, in-progress requests, we should now see the
-average latency trend much closer to the specified 10ms:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# dtrace -qs zio-rw-latency.d -c &#39;sleep 60&#39; tank write
-
-histogram of latencies (us):
-
-           value  ------------- Distribution ------------- count
-            4096 |                                         0
-            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 8836
-           16384 |                                         39
-           32768 |                                         11
-           65536 |                                         1
-          131072 |                                         1
-          262144 |                                         0
-
-avg latency (us)   stddev (us)   iops   throughput (KB/s)
-10261              3022          148    18463
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Perfect! As expected, the average latency is now much closer to our
-desired 10ms. Unfortunately though, there were 52 requests that actually
-took longer than 16ms to be completed by the underlying storage (2 of
-which took longer than 64ms!), which pulls the average slightly above
-the specified target of 10ms.&lt;/p&gt;
-
-&lt;h2 id=&#34;third-experiment-setup-and-baseline&#34;&gt;Third Experiment: Setup and Baseline&lt;/h2&gt;
-
-&lt;p&gt;Another interesting example to demonstrate is simulating a pool with
-disks of different latency characteristics. This can happen for a
-variety of reasons, none of which I&amp;rsquo;ll touch on in this article. To
-simulate this case, we&amp;rsquo;ll need a pool with two disks:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# zpool create tank c1t1d0 c1t2d0
-# zfs create tank/foo
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;We&amp;rsquo;ll use a slightly modified version of the write workload used in
-previous sections; instead of a single thread, we&amp;rsquo;ll use 8 threads to
-increase the amount of data being written and increase the amount of
-simultaneous write requests occurring:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# while true; do
-&amp;gt; PIDS=&amp;quot;&amp;quot;
-&amp;gt; for i in $(seq 1 8); do
-&amp;gt;     cp /tmp/urandom-cache /tank/foo/urandom-cache-$i &amp;amp;&amp;gt;/dev/null &amp;amp;
-&amp;gt;     PIDS=&amp;quot;$PIDS $!&amp;quot;
-&amp;gt; done
-&amp;gt; sync
-&amp;gt; for pid in $PIDS; do
-&amp;gt;     wait $pid
-&amp;gt; done
-&amp;gt;
-&amp;gt; PIDS=&amp;quot;&amp;quot;
-&amp;gt; for i in $(seq 1 8); do
-&amp;gt;     rm /tank/foo/urandom-cache-$i &amp;amp;&amp;gt;/dev/null &amp;amp;
-&amp;gt;     PIDS=&amp;quot;$PIDS $!&amp;quot;
-&amp;gt; done
-&amp;gt; sync
-&amp;gt; for pid in $PIDS; do
-&amp;gt;     wait $pid
-&amp;gt; done
-done
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;And with a slight variation to the previous &lt;code&gt;dtrace&lt;/code&gt; script, we can show
-the same statistics as the prior sections, but individually for each
-vdev in the pool (see &lt;a href=&#34;#vdev-latency&#34;&gt;here&lt;/a&gt; for the source of this
-&lt;code&gt;dtrace&lt;/code&gt; script):&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# dtrace -qs vdev-rw-latency.d -c &#39;sleep 60&#39; tank write
-
-histogram of latencies (us):
-
-f1d32d9b9514d7a3
-           value  ------------- Distribution ------------- count
-             128 |                                         0
-             256 |                                         43
-             512 |                                         665
-            1024 |@@                                       3231
-            2048 |@                                        1848
-            4096 |@@@@@@@@@@@@@                            17886
-            8192 |@@@@@@@@@@@@@@@@@@@@                     26511
-           16384 |@@@                                      3493
-           32768 |                                         310
-           65536 |                                         4
-          131072 |                                         2
-          262144 |                                         0
-
-f4eb4119d7170682
-           value  ------------- Distribution ------------- count
-             128 |                                         0
-             256 |                                         41
-             512 |                                         627
-            1024 |@@                                       3207
-            2048 |@                                        1865
-            4096 |@@@@@@@@@@@@@                            17809
-            8192 |@@@@@@@@@@@@@@@@@@@@                     26416
-           16384 |@@@                                      3570
-           32768 |                                         312
-           65536 |                                         9
-          131072 |                                         1
-          262144 |                                         0
-
-GUID               avg latency (us)   stddev (us)   iops   throughput (KB/s)
-f1d32d9b9514d7a3   9475               5292          899    111305
-f4eb4119d7170682   9496               5298          897    111116
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;As expected, without any delays injected with &lt;code&gt;zinject&lt;/code&gt; each vdev
-performs nearly identically.&lt;/p&gt;
-
-&lt;h2 id=&#34;third-experiment-multiple-disks-different-latencies&#34;&gt;Third Experiment: Multiple Disks, Different Latencies&lt;/h2&gt;
-
-&lt;p&gt;Now that we&amp;rsquo;ve verified the vdevs to be performing similarly in the
-absence of any artificial delays, we can simulate a case where one disk
-performs half as slow as the other by specifying two different &lt;code&gt;zinject&lt;/code&gt;
-delays for the different disks:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# zinject -d c1t1d0 -D 16:16 tank
-Added handler 3 with the following properties:
-  pool: tank
-  vdev: f4eb4119d7170682
-
-# zinject -d c1t2d0 -D 32:16 tank
-Added handler 4 with the following properties:
-  pool: tank
-  vdev: f1d32d9b9514d7a3
-
-# zinject
- ID  POOL             DELAY (ms)       LANES            GUID
----  ---------------  ---------------  ---------------  ----------------
-  3  tank             16               16               f4eb4119d7170682
-  4  tank             32               16               f1d32d9b9514d7a3
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;In this scenario we&amp;rsquo;d expect the total throughput to take a significant
-hit, resulting from the large delays, but we&amp;rsquo;d also expect the faster
-disk to service twice the number of write requests in any given
-interval. Thus, we should see the faster disk demonstrate roughly twice
-the throughput when inspected with &lt;code&gt;dtrace&lt;/code&gt;:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# dtrace -qs vdev-rw-latency.d -c &#39;sleep 60&#39; tank write
-
-histogram of latencies (us):
-
-f4eb4119d7170682
-           value  ------------- Distribution ------------- count
-            4096 |                                         0
-            8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  29964
-           16384 |@                                        1012
-           32768 |                                         117
-           65536 |                                         4
-          131072 |                                         0
-
-f1d32d9b9514d7a3
-           value  ------------- Distribution ------------- count
-            4096 |                                         0
-            8192 |                                         26
-           16384 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 16104
-           32768 |                                         162
-           65536 |                                         5
-          131072 |                                         0
-
-GUID               avg latency (us)   stddev (us)   iops   throughput (KB/s)
-f4eb4119d7170682   16391              2128          518    64651
-f1d32d9b9514d7a3   32310              1680          271    33630
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Which is exactly what I&amp;rsquo;ve measure above! Disk &lt;code&gt;f4eb4119d7170682&lt;/code&gt; was
-given the 16ms delay and was measured as having nearly double the IOPs
-and nearly double the throughput during the measured interval, success!&lt;/p&gt;
-
-&lt;h2 id=&#34;dtrace-scripts&#34;&gt;DTrace Scripts&lt;/h2&gt;
-
-&lt;p&gt;In the spirit of full disclosure, here&amp;rsquo;s the source for the &lt;code&gt;dtrace&lt;/code&gt;
-scripts that I used in the previous sections.&lt;/p&gt;
-
-&lt;h3 id=&#34;zio-latency&#34;&gt;ZIO Latency&lt;/h3&gt;
-
-&lt;p&gt;Here&amp;rsquo;s the script used in the first two experiments which does not break
-down the statistics based on vdev:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# cat zio-rw-latency.d
-BEGIN
-{
-        start = timestamp;
-}
-
-fbt:zfs:vdev_disk_io_start:entry
-/this-&amp;gt;zio = args[0],
- this-&amp;gt;zio-&amp;gt;io_type == ($$2 == &amp;quot;read&amp;quot; ? 1 : 2) &amp;amp;&amp;amp;
- stringof(this-&amp;gt;zio-&amp;gt;io_spa-&amp;gt;spa_name) == $$1/
-{
-        ts[this-&amp;gt;zio] = timestamp;
-}
-
-fbt:zfs:zio_interrupt:entry
-/this-&amp;gt;zio = args[0], ts[this-&amp;gt;zio]/
-{
-        delta = (timestamp - ts[this-&amp;gt;zio])/1000;
-
-        @i = count();
-        @a = avg(delta);
-        @s = stddev(delta);
-        @l = quantize(delta);
-        @t = sum(this-&amp;gt;zio-&amp;gt;io_size);
-
-        ts[this-&amp;gt;zio] = 0;
-}
-
-END
-{
-        printf(&amp;quot;\nhistogram of latencies (us):&amp;quot;);
-        printa(@l);
-
-        normalize(@i, (timestamp - start) / 1000000000);
-        normalize(@t, (timestamp - start) / 1000000000 * 1024);
-
-        printf(&amp;quot;%-16s   %-11s   %-4s   %-17s\n&amp;quot;,
-            &amp;quot;avg latency (us)&amp;quot;, &amp;quot;stddev (us)&amp;quot;, &amp;quot;iops&amp;quot;, &amp;quot;throughput (KB/s)&amp;quot;);
-        printa(&amp;quot;%@-16u   %@-11u   %@-4u   %@-17u\n&amp;quot;, @a, @s, @i, @t);
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;This script is intended to take two parameters: &lt;code&gt;$$1&lt;/code&gt; is the pool name,
-i.e. &lt;code&gt;tank&lt;/code&gt; in our examples, and &lt;code&gt;$$2&lt;/code&gt; is either &lt;code&gt;&amp;quot;read&amp;quot;&lt;/code&gt; or &lt;code&gt;&amp;quot;write&amp;quot;&lt;/code&gt;,
-we only used &lt;code&gt;&amp;quot;write&amp;quot;&lt;/code&gt; in the examples in this article.&lt;/p&gt;
-
-&lt;h3 id=&#34;vdev-latency&#34;&gt;VDEV Latency&lt;/h3&gt;
-
-&lt;p&gt;Here&amp;rsquo;s the script used in the last experiment, which differentiates the
-statistics based on the individual vdevs in the pool:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# cat vdev-rw-latency.d
-BEGIN
-{
-        start = timestamp;
-}
-
-fbt:zfs:vdev_disk_io_start:entry
-/this-&amp;gt;zio = args[0],
- this-&amp;gt;zio-&amp;gt;io_type == ($$2 == &amp;quot;read&amp;quot; ? 1 : 2) &amp;amp;&amp;amp;
- stringof(this-&amp;gt;zio-&amp;gt;io_spa-&amp;gt;spa_name) == $$1/
-{
-        ts[this-&amp;gt;zio] = timestamp;
-}
-
-fbt:zfs:zio_interrupt:entry
-/this-&amp;gt;zio = args[0], ts[this-&amp;gt;zio]/
-{
-        delta = (timestamp - ts[this-&amp;gt;zio])/1000;
-
-        @i[this-&amp;gt;zio-&amp;gt;io_vd-&amp;gt;vdev_guid] = count();
-        @a[this-&amp;gt;zio-&amp;gt;io_vd-&amp;gt;vdev_guid] = avg(delta);
-        @s[this-&amp;gt;zio-&amp;gt;io_vd-&amp;gt;vdev_guid] = stddev(delta);
-        @l[this-&amp;gt;zio-&amp;gt;io_vd-&amp;gt;vdev_guid] = quantize(delta);
-        @t[this-&amp;gt;zio-&amp;gt;io_vd-&amp;gt;vdev_guid] = sum(this-&amp;gt;zio-&amp;gt;io_size);
-
-        ts[this-&amp;gt;zio] = 0;
-}
-
-END
-{
-        printf(&amp;quot;\nhistogram of latencies (us):\n\n&amp;quot;);
-        printa(&amp;quot;%x %@u\n&amp;quot;, @l);
-
-        normalize(@i, (timestamp - start) / 1000000000);
-        normalize(@t, (timestamp - start) / 1000000000 * 1024);
-
-        printf(&amp;quot;%-16s   %-16s   %-11s   %-4s   %-17s\n&amp;quot;, &amp;quot;GUID&amp;quot;,
-            &amp;quot;avg latency (us)&amp;quot;, &amp;quot;stddev (us)&amp;quot;, &amp;quot;iops&amp;quot;, &amp;quot;throughput (KB/s)&amp;quot;);
-        printa(&amp;quot;%-16x   %@-16u   %@-11u   %@-4u   %@-17u\n&amp;quot;, @a, @s, @i, @t);
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;This script takes the same &lt;code&gt;$$1&lt;/code&gt; and &lt;code&gt;$$2&lt;/code&gt; parameters as the previous
-&lt;code&gt;zio-rw-latency.d&lt;/code&gt; script described above.&lt;/p&gt;
-
-&lt;h3 id=&#34;why-not-use-dtrace-s-io-provider&#34;&gt;Why Not Use DTrace&amp;rsquo;s &amp;ldquo;io&amp;rdquo; Provider?&lt;/h3&gt;
-
-&lt;p&gt;Inevitably there will be at least one curious reader that looks at the
-above &lt;code&gt;dtrace&lt;/code&gt; scripts and wonders why I didn&amp;rsquo;t use the &lt;a href=&#34;http://dtrace.org/guide/chp-io.html&#34;&gt;stable &lt;code&gt;io&lt;/code&gt;
-provider&lt;/a&gt; (i.e. &lt;code&gt;io:::start&lt;/code&gt; and &lt;code&gt;io:::done&lt;/code&gt;). This is intentional
-because the delays injected using &lt;code&gt;zinject&lt;/code&gt; occur above the level of
-the &lt;code&gt;io&lt;/code&gt; provider.&lt;/p&gt;
-
-&lt;p&gt;Essentially, what&amp;rsquo;s happening is the underlying storage will complete
-the request as fast as it can, and the &lt;code&gt;io&lt;/code&gt; provider will report on this
-latency. After the storage has completed the request, it will return the
-result back up to OpenZFS, and it is at this point that the request may
-be delayed further if using this new &lt;code&gt;zinject&lt;/code&gt; feature. Once the result
-is passed back to OpenZFS, the latency has already been recorded when
-using the &lt;code&gt;io&lt;/code&gt; provider, so any additional latency introduced by
-&lt;code&gt;zinject&lt;/code&gt; will go unnoticed.&lt;/p&gt;
-
-&lt;p&gt;I can easily demonstrate this with the following example:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# zpool create tank c1t1d0
-# zfs create tank/foo
-
-# while true; do
-&amp;gt; cp /tmp/urandom-cache /tank/foo/urandom-cache
-&amp;gt; sync
-&amp;gt; rm /tank/foo/urandom-cache
-&amp;gt; sync
-&amp;gt; done &amp;amp;
-[1] 9388
-
-# zinject -d c1t1d0 -D 10:1 tank
-Added handler 5 with the following properties:
-  pool: tank
-  vdev: e2503467ad6a2e62
-
-# zinject
- ID  POOL             DELAY (ms)       LANES            GUID
----  ---------------  ---------------  ---------------  ----------------
-  5  tank             10               1                e2503467ad6a2e62
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;So, we have a pool with a single disk and a delay of 10ms with a single
-lane. Lets look at the write request latency on the system as reported
-by the &lt;code&gt;io&lt;/code&gt; provider:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# dtrace -qs io-rw-latency.d -c &#39;sleep 60&#39; write
-
-
-           value  ------------- Distribution ------------- count
-             128 |                                         0
-             256 |                                         26
-             512 |@@                                       266
-            1024 |@@@@@@@@@@@@@@@@@@@@                     2208
-            2048 |@@@@@@@@@@                               1079
-            4096 |@@@@                                     461
-            8192 |@@                                       206
-           16384 |@                                        54
-           32768 |                                         10
-           65536 |                                         1
-          131072 |                                         0
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;It&amp;rsquo;s clear that the latency reported here does not match the 10ms
-minimum latency requested by the &lt;code&gt;zinject&lt;/code&gt; command; and to verify that
-the delay is actually working correctly, let&amp;rsquo;s use the &lt;code&gt;dtrace&lt;/code&gt; script
-from the prior sections (&lt;a href=&#34;#zio-latency&#34;&gt;this one&lt;/a&gt;):&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# dtrace -qs zio-rw-latency.d -c &#39;sleep 60&#39; tank write
-
-histogram of latencies (us):
-
-           value  ------------- Distribution ------------- count
-            4096 |                                         0
-            8192 |@@@@@@@@@@@@@@@@@@                       2606
-           16384 |@@@@@@                                   898
-           32768 |@@@@@@@@@                                1308
-           65536 |@@@@@@@                                  1095
-          131072 |                                         0
-
-avg latency (us)   stddev (us)   iops   throughput (KB/s)
-33768              26629         98     12573
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Clearly, the delay is in place, it&amp;rsquo;s just that the &lt;code&gt;io&lt;/code&gt; provider doesn&amp;rsquo;t
-detect the additional latency introduced by &lt;code&gt;zinject&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;And finally, here&amp;rsquo;s the source for the &lt;code&gt;dtrace&lt;/code&gt; script used above, which
-uses the &lt;code&gt;io&lt;/code&gt; provider:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# cat io-rw-latency.d
-io:::start
-/args[0]-&amp;gt;b_flags &amp;amp; ($$1 == &amp;quot;read&amp;quot; ? B_READ : B_WRITE)/
-{
-        ts[args[0]-&amp;gt;b_edev, args[0]-&amp;gt;b_lblkno] = timestamp;
-}
-
-io:::done
-/ts[args[0]-&amp;gt;b_edev, args[0]-&amp;gt;b_lblkno]/
-{
-        @ = quantize((timestamp -
-            ts[args[0]-&amp;gt;b_edev, args[0]-&amp;gt;b_lblkno]) / 1000);
-        ts[args[0]-&amp;gt;b_edev, args[0]-&amp;gt;b_lblkno] = 0;
-}
-&lt;/code&gt;&lt;/pre&gt;
 </description>
     </item>
     

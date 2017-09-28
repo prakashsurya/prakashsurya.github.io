@@ -1,0 +1,1047 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/txg.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - txg.c<span style="font-size: 80%;"> (source / <a href="txg.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">342</td>
+            <td class="headerCovTableEntry">376</td>
+            <td class="headerCovTableEntryHi">91.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">31</td>
+            <td class="headerCovTableEntry">35</td>
+            <td class="headerCovTableEntryMed">88.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">120</td>
+            <td class="headerCovTableEntry">170</td>
+            <td class="headerCovTableEntryLo">70.6 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Portions Copyright 2011 Martin Matuska
+<span class="lineNum">      24 </span>                :            :  * Copyright (c) 2012, 2017 by Delphix. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  */
+<span class="lineNum">      26 </span>                :            : 
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/txg_impl.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/dmu_impl.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/spa_impl.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/dmu_tx.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/dsl_pool.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/dsl_scan.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/zil.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/callb.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;sys/trace_txg.h&gt;
+<span class="lineNum">      37 </span>                :            : 
+<span class="lineNum">      38 </span>                :            : /*
+<span class="lineNum">      39 </span>                :            :  * ZFS Transaction Groups
+<span class="lineNum">      40 </span>                :            :  * ----------------------
+<span class="lineNum">      41 </span>                :            :  *
+<span class="lineNum">      42 </span>                :            :  * ZFS transaction groups are, as the name implies, groups of transactions
+<span class="lineNum">      43 </span>                :            :  * that act on persistent state. ZFS asserts consistency at the granularity of
+<span class="lineNum">      44 </span>                :            :  * these transaction groups. Each successive transaction group (txg) is
+<span class="lineNum">      45 </span>                :            :  * assigned a 64-bit consecutive identifier. There are three active
+<span class="lineNum">      46 </span>                :            :  * transaction group states: open, quiescing, or syncing. At any given time,
+<span class="lineNum">      47 </span>                :            :  * there may be an active txg associated with each state; each active txg may
+<span class="lineNum">      48 </span>                :            :  * either be processing, or blocked waiting to enter the next state. There may
+<span class="lineNum">      49 </span>                :            :  * be up to three active txgs, and there is always a txg in the open state
+<span class="lineNum">      50 </span>                :            :  * (though it may be blocked waiting to enter the quiescing state). In broad
+<span class="lineNum">      51 </span>                :            :  * strokes, transactions -- operations that change in-memory structures -- are
+<span class="lineNum">      52 </span>                :            :  * accepted into the txg in the open state, and are completed while the txg is
+<span class="lineNum">      53 </span>                :            :  * in the open or quiescing states. The accumulated changes are written to
+<span class="lineNum">      54 </span>                :            :  * disk in the syncing state.
+<span class="lineNum">      55 </span>                :            :  *
+<span class="lineNum">      56 </span>                :            :  * Open
+<span class="lineNum">      57 </span>                :            :  *
+<span class="lineNum">      58 </span>                :            :  * When a new txg becomes active, it first enters the open state. New
+<span class="lineNum">      59 </span>                :            :  * transactions -- updates to in-memory structures -- are assigned to the
+<span class="lineNum">      60 </span>                :            :  * currently open txg. There is always a txg in the open state so that ZFS can
+<span class="lineNum">      61 </span>                :            :  * accept new changes (though the txg may refuse new changes if it has hit
+<span class="lineNum">      62 </span>                :            :  * some limit). ZFS advances the open txg to the next state for a variety of
+<span class="lineNum">      63 </span>                :            :  * reasons such as it hitting a time or size threshold, or the execution of an
+<span class="lineNum">      64 </span>                :            :  * administrative action that must be completed in the syncing state.
+<span class="lineNum">      65 </span>                :            :  *
+<span class="lineNum">      66 </span>                :            :  * Quiescing
+<span class="lineNum">      67 </span>                :            :  *
+<span class="lineNum">      68 </span>                :            :  * After a txg exits the open state, it enters the quiescing state. The
+<span class="lineNum">      69 </span>                :            :  * quiescing state is intended to provide a buffer between accepting new
+<span class="lineNum">      70 </span>                :            :  * transactions in the open state and writing them out to stable storage in
+<span class="lineNum">      71 </span>                :            :  * the syncing state. While quiescing, transactions can continue their
+<span class="lineNum">      72 </span>                :            :  * operation without delaying either of the other states. Typically, a txg is
+<span class="lineNum">      73 </span>                :            :  * in the quiescing state very briefly since the operations are bounded by
+<span class="lineNum">      74 </span>                :            :  * software latencies rather than, say, slower I/O latencies. After all
+<span class="lineNum">      75 </span>                :            :  * transactions complete, the txg is ready to enter the next state.
+<span class="lineNum">      76 </span>                :            :  *
+<span class="lineNum">      77 </span>                :            :  * Syncing
+<span class="lineNum">      78 </span>                :            :  *
+<span class="lineNum">      79 </span>                :            :  * In the syncing state, the in-memory state built up during the open and (to
+<span class="lineNum">      80 </span>                :            :  * a lesser degree) the quiescing states is written to stable storage. The
+<span class="lineNum">      81 </span>                :            :  * process of writing out modified data can, in turn modify more data. For
+<span class="lineNum">      82 </span>                :            :  * example when we write new blocks, we need to allocate space for them; those
+<span class="lineNum">      83 </span>                :            :  * allocations modify metadata (space maps)... which themselves must be
+<span class="lineNum">      84 </span>                :            :  * written to stable storage. During the sync state, ZFS iterates, writing out
+<span class="lineNum">      85 </span>                :            :  * data until it converges and all in-memory changes have been written out.
+<span class="lineNum">      86 </span>                :            :  * The first such pass is the largest as it encompasses all the modified user
+<span class="lineNum">      87 </span>                :            :  * data (as opposed to filesystem metadata). Subsequent passes typically have
+<span class="lineNum">      88 </span>                :            :  * far less data to write as they consist exclusively of filesystem metadata.
+<span class="lineNum">      89 </span>                :            :  *
+<span class="lineNum">      90 </span>                :            :  * To ensure convergence, after a certain number of passes ZFS begins
+<span class="lineNum">      91 </span>                :            :  * overwriting locations on stable storage that had been allocated earlier in
+<span class="lineNum">      92 </span>                :            :  * the syncing state (and subsequently freed). ZFS usually allocates new
+<span class="lineNum">      93 </span>                :            :  * blocks to optimize for large, continuous, writes. For the syncing state to
+<span class="lineNum">      94 </span>                :            :  * converge however it must complete a pass where no new blocks are allocated
+<span class="lineNum">      95 </span>                :            :  * since each allocation requires a modification of persistent metadata.
+<span class="lineNum">      96 </span>                :            :  * Further, to hasten convergence, after a prescribed number of passes, ZFS
+<span class="lineNum">      97 </span>                :            :  * also defers frees, and stops compressing.
+<span class="lineNum">      98 </span>                :            :  *
+<span class="lineNum">      99 </span>                :            :  * In addition to writing out user data, we must also execute synctasks during
+<span class="lineNum">     100 </span>                :            :  * the syncing context. A synctask is the mechanism by which some
+<span class="lineNum">     101 </span>                :            :  * administrative activities work such as creating and destroying snapshots or
+<span class="lineNum">     102 </span>                :            :  * datasets. Note that when a synctask is initiated it enters the open txg,
+<span class="lineNum">     103 </span>                :            :  * and ZFS then pushes that txg as quickly as possible to completion of the
+<span class="lineNum">     104 </span>                :            :  * syncing state in order to reduce the latency of the administrative
+<span class="lineNum">     105 </span>                :            :  * activity. To complete the syncing state, ZFS writes out a new uberblock,
+<span class="lineNum">     106 </span>                :            :  * the root of the tree of blocks that comprise all state stored on the ZFS
+<span class="lineNum">     107 </span>                :            :  * pool. Finally, if there is a quiesced txg waiting, we signal that it can
+<span class="lineNum">     108 </span>                :            :  * now transition to the syncing state.
+<span class="lineNum">     109 </span>                :            :  */
+<span class="lineNum">     110 </span>                :            : 
+<span class="lineNum">     111 </span>                :            : static void txg_sync_thread(void *dp);
+<span class="lineNum">     112 </span>                :            : static void txg_quiesce_thread(void *dp);
+<span class="lineNum">     113 </span>                :            : 
+<span class="lineNum">     114 </span>                :            : int zfs_txg_timeout = 5;        /* max seconds worth of delta per txg */
+<span class="lineNum">     115 </span>                :            : 
+<span class="lineNum">     116 </span>                :            : /*
+<span class="lineNum">     117 </span>                :            :  * Prepare the txg subsystem.
+<a name="118"><span class="lineNum">     118 </span>                :            :  */</a>
+<span class="lineNum">     119 </span>                :            : void
+<span class="lineNum">     120 </span>                :<span class="lineCov">       1615 : txg_init(dsl_pool_t *dp, uint64_t txg)</span>
+<span class="lineNum">     121 </span>                :            : {
+<span class="lineNum">     122 </span>                :<span class="lineCov">       1615 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     123 </span>                :            :         int c;
+<span class="lineNum">     124 </span>                :<span class="lineCov">       1615 :         bzero(tx, sizeof (tx_state_t));</span>
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>                :<span class="lineCov">       1615 :         tx-&gt;tx_cpu = vmem_zalloc(max_ncpus * sizeof (tx_cpu_t), KM_SLEEP);</span>
+<span class="lineNum">     127 </span>                :            : 
+<span class="lineNum">     128 </span>        [<span class="branchCov" title="Branch 0 was taken 103360 times"> + </span><span class="branchCov" title="Branch 1 was taken 1615 times"> + </span>]:<span class="lineCov">     104975 :         for (c = 0; c &lt; max_ncpus; c++) {</span>
+<span class="lineNum">     129 </span>                :            :                 int i;
+<span class="lineNum">     130 </span>                :            : 
+<span class="lineNum">     131 </span>                :<span class="lineCov">     103360 :                 mutex_init(&amp;tx-&gt;tx_cpu[c].tc_lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     132 </span>                :<span class="lineCov">     103360 :                 mutex_init(&amp;tx-&gt;tx_cpu[c].tc_open_lock, NULL, MUTEX_NOLOCKDEP,</span>
+<span class="lineNum">     133 </span>                :            :                     NULL);
+<span class="lineNum">     134 </span>        [<span class="branchCov" title="Branch 1 was taken 413440 times"> + </span><span class="branchCov" title="Branch 2 was taken 103360 times"> + </span>]:<span class="lineCov">     516800 :                 for (i = 0; i &lt; TXG_SIZE; i++) {</span>
+<span class="lineNum">     135 </span>                :<span class="lineCov">     413440 :                         cv_init(&amp;tx-&gt;tx_cpu[c].tc_cv[i], NULL, CV_DEFAULT,</span>
+<span class="lineNum">     136 </span>                :            :                             NULL);
+<span class="lineNum">     137 </span>                :<span class="lineCov">     413440 :                         list_create(&amp;tx-&gt;tx_cpu[c].tc_callbacks[i],</span>
+<span class="lineNum">     138 </span>                :            :                             sizeof (dmu_tx_callback_t),
+<span class="lineNum">     139 </span>                :            :                             offsetof(dmu_tx_callback_t, dcb_node));
+<span class="lineNum">     140 </span>                :            :                 }
+<span class="lineNum">     141 </span>                :            :         }
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>                :<span class="lineCov">       1615 :         mutex_init(&amp;tx-&gt;tx_sync_lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     144 </span>                :            : 
+<span class="lineNum">     145 </span>                :<span class="lineCov">       1615 :         cv_init(&amp;tx-&gt;tx_sync_more_cv, NULL, CV_DEFAULT, NULL);</span>
+<span class="lineNum">     146 </span>                :<span class="lineCov">       1615 :         cv_init(&amp;tx-&gt;tx_sync_done_cv, NULL, CV_DEFAULT, NULL);</span>
+<span class="lineNum">     147 </span>                :<span class="lineCov">       1615 :         cv_init(&amp;tx-&gt;tx_quiesce_more_cv, NULL, CV_DEFAULT, NULL);</span>
+<span class="lineNum">     148 </span>                :<span class="lineCov">       1615 :         cv_init(&amp;tx-&gt;tx_quiesce_done_cv, NULL, CV_DEFAULT, NULL);</span>
+<span class="lineNum">     149 </span>                :<span class="lineCov">       1615 :         cv_init(&amp;tx-&gt;tx_exit_cv, NULL, CV_DEFAULT, NULL);</span>
+<span class="lineNum">     150 </span>                :            : 
+<span class="lineNum">     151 </span>                :<span class="lineCov">       1615 :         tx-&gt;tx_open_txg = txg;</span>
+<span class="lineNum">     152 </span>                :<span class="lineCov">       1615 : }</span>
+<span class="lineNum">     153 </span>                :            : 
+<span class="lineNum">     154 </span>                :            : /*
+<span class="lineNum">     155 </span>                :            :  * Close down the txg subsystem.
+<a name="156"><span class="lineNum">     156 </span>                :            :  */</a>
+<span class="lineNum">     157 </span>                :            : void
+<span class="lineNum">     158 </span>                :<span class="lineCov">       1614 : txg_fini(dsl_pool_t *dp)</span>
+<span class="lineNum">     159 </span>                :            : {
+<span class="lineNum">     160 </span>                :<span class="lineCov">       1614 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     161 </span>                :            :         int c;
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1614 times"> + </span>]:<span class="lineCov">       1614 :         ASSERT(tx-&gt;tx_threads == 0);</span>
+<span class="lineNum">     164 </span>                :            : 
+<span class="lineNum">     165 </span>                :<span class="lineCov">       1614 :         mutex_destroy(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     166 </span>                :            : 
+<span class="lineNum">     167 </span>                :<span class="lineCov">       1614 :         cv_destroy(&amp;tx-&gt;tx_sync_more_cv);</span>
+<span class="lineNum">     168 </span>                :<span class="lineCov">       1614 :         cv_destroy(&amp;tx-&gt;tx_sync_done_cv);</span>
+<span class="lineNum">     169 </span>                :<span class="lineCov">       1614 :         cv_destroy(&amp;tx-&gt;tx_quiesce_more_cv);</span>
+<span class="lineNum">     170 </span>                :<span class="lineCov">       1614 :         cv_destroy(&amp;tx-&gt;tx_quiesce_done_cv);</span>
+<span class="lineNum">     171 </span>                :<span class="lineCov">       1614 :         cv_destroy(&amp;tx-&gt;tx_exit_cv);</span>
+<span class="lineNum">     172 </span>                :            : 
+<span class="lineNum">     173 </span>        [<span class="branchCov" title="Branch 1 was taken 103296 times"> + </span><span class="branchCov" title="Branch 2 was taken 1614 times"> + </span>]:<span class="lineCov">     104910 :         for (c = 0; c &lt; max_ncpus; c++) {</span>
+<span class="lineNum">     174 </span>                :            :                 int i;
+<span class="lineNum">     175 </span>                :            : 
+<span class="lineNum">     176 </span>                :<span class="lineCov">     103296 :                 mutex_destroy(&amp;tx-&gt;tx_cpu[c].tc_open_lock);</span>
+<span class="lineNum">     177 </span>                :<span class="lineCov">     103296 :                 mutex_destroy(&amp;tx-&gt;tx_cpu[c].tc_lock);</span>
+<span class="lineNum">     178 </span>        [<span class="branchCov" title="Branch 1 was taken 413184 times"> + </span><span class="branchCov" title="Branch 2 was taken 103296 times"> + </span>]:<span class="lineCov">     516480 :                 for (i = 0; i &lt; TXG_SIZE; i++) {</span>
+<span class="lineNum">     179 </span>                :<span class="lineCov">     413184 :                         cv_destroy(&amp;tx-&gt;tx_cpu[c].tc_cv[i]);</span>
+<span class="lineNum">     180 </span>                :<span class="lineCov">     413184 :                         list_destroy(&amp;tx-&gt;tx_cpu[c].tc_callbacks[i]);</span>
+<span class="lineNum">     181 </span>                :            :                 }
+<span class="lineNum">     182 </span>                :            :         }
+<span class="lineNum">     183 </span>                :            : 
+<span class="lineNum">     184 </span>        [<span class="branchCov" title="Branch 0 was taken 32 times"> + </span><span class="branchCov" title="Branch 1 was taken 1582 times"> + </span>]:<span class="lineCov">       1614 :         if (tx-&gt;tx_commit_cb_taskq != NULL)</span>
+<span class="lineNum">     185 </span>                :<span class="lineCov">         32 :                 taskq_destroy(tx-&gt;tx_commit_cb_taskq);</span>
+<span class="lineNum">     186 </span>                :            : 
+<span class="lineNum">     187 </span>                :<span class="lineCov">       1614 :         vmem_free(tx-&gt;tx_cpu, max_ncpus * sizeof (tx_cpu_t));</span>
+<span class="lineNum">     188 </span>                :            : 
+<span class="lineNum">     189 </span>                :<span class="lineCov">       1614 :         bzero(tx, sizeof (tx_state_t));</span>
+<span class="lineNum">     190 </span>                :<span class="lineCov">       1614 : }</span>
+<span class="lineNum">     191 </span>                :            : 
+<span class="lineNum">     192 </span>                :            : /*
+<span class="lineNum">     193 </span>                :            :  * Start syncing transaction groups.
+<a name="194"><span class="lineNum">     194 </span>                :            :  */</a>
+<span class="lineNum">     195 </span>                :            : void
+<span class="lineNum">     196 </span>                :<span class="lineCov">        265 : txg_sync_start(dsl_pool_t *dp)</span>
+<span class="lineNum">     197 </span>                :            : {
+<span class="lineNum">     198 </span>                :<span class="lineCov">        265 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     199 </span>                :            : 
+<span class="lineNum">     200 </span>                :<span class="lineCov">        265 :         mutex_enter(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     201 </span>                :            : 
+<span class="lineNum">     202 </span>                :<span class="lineCov">        265 :         dprintf(&quot;pool %p\n&quot;, dp);</span>
+<span class="lineNum">     203 </span>                :            : 
+<span class="lineNum">     204 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 265 times"> + </span>]:<span class="lineCov">        265 :         ASSERT(tx-&gt;tx_threads == 0);</span>
+<span class="lineNum">     205 </span>                :            : 
+<span class="lineNum">     206 </span>                :<span class="lineCov">        265 :         tx-&gt;tx_threads = 2;</span>
+<span class="lineNum">     207 </span>                :            : 
+<span class="lineNum">     208 </span>                :<span class="lineCov">        265 :         tx-&gt;tx_quiesce_thread = thread_create(NULL, 0, txg_quiesce_thread,</span>
+<span class="lineNum">     209 </span>                :            :             dp, 0, &amp;p0, TS_RUN, defclsyspri);
+<span class="lineNum">     210 </span>                :            : 
+<span class="lineNum">     211 </span>                :            :         /*
+<span class="lineNum">     212 </span>                :            :          * The sync thread can need a larger-than-default stack size on
+<span class="lineNum">     213 </span>                :            :          * 32-bit x86.  This is due in part to nested pools and
+<span class="lineNum">     214 </span>                :            :          * scrub_visitbp() recursion.
+<span class="lineNum">     215 </span>                :            :          */
+<span class="lineNum">     216 </span>                :<span class="lineCov">        265 :         tx-&gt;tx_sync_thread = thread_create(NULL, 0, txg_sync_thread,</span>
+<span class="lineNum">     217 </span>                :            :             dp, 0, &amp;p0, TS_RUN, defclsyspri);
+<span class="lineNum">     218 </span>                :            : 
+<span class="lineNum">     219 </span>                :<span class="lineCov">        265 :         mutex_exit(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     220 </span>                :<span class="lineCov">        265 : }</span>
+<a name="221"><span class="lineNum">     221 </span>                :            : </a>
+<span class="lineNum">     222 </span>                :            : static void
+<span class="lineNum">     223 </span>                :<span class="lineCov">        530 : txg_thread_enter(tx_state_t *tx, callb_cpr_t *cpr)</span>
+<span class="lineNum">     224 </span>                :            : {
+<span class="lineNum">     225 </span>                :<span class="lineCov">        530 :         CALLB_CPR_INIT(cpr, &amp;tx-&gt;tx_sync_lock, callb_generic_cpr, FTAG);</span>
+<span class="lineNum">     226 </span>                :<span class="lineCov">        530 :         mutex_enter(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     227 </span>                :<span class="lineCov">        530 : }</span>
+<a name="228"><span class="lineNum">     228 </span>                :            : </a>
+<span class="lineNum">     229 </span>                :            : static void
+<span class="lineNum">     230 </span>                :<span class="lineCov">        528 : txg_thread_exit(tx_state_t *tx, callb_cpr_t *cpr, kthread_t **tpp)</span>
+<span class="lineNum">     231 </span>                :            : {
+<span class="lineNum">     232 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 528 times"> + </span>]:<span class="lineCov">        528 :         ASSERT(*tpp != NULL);</span>
+<span class="lineNum">     233 </span>                :<span class="lineCov">        528 :         *tpp = NULL;</span>
+<span class="lineNum">     234 </span>                :<span class="lineCov">        528 :         tx-&gt;tx_threads--;</span>
+<span class="lineNum">     235 </span>                :<span class="lineCov">        528 :         cv_broadcast(&amp;tx-&gt;tx_exit_cv);</span>
+<span class="lineNum">     236 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 528 times"> + </span>]:<span class="lineCov">        528 :         CALLB_CPR_EXIT(cpr);            /* drops &amp;tx-&gt;tx_sync_lock */</span>
+<span class="lineNum">     237 </span>                :<span class="lineCov">        528 :         thread_exit();</span>
+<span class="lineNum">     238 </span>                :            : }
+<a name="239"><span class="lineNum">     239 </span>                :            : </a>
+<span class="lineNum">     240 </span>                :            : static void
+<span class="lineNum">     241 </span>                :<span class="lineCov">     100970 : txg_thread_wait(tx_state_t *tx, callb_cpr_t *cpr, kcondvar_t *cv, clock_t time)</span>
+<span class="lineNum">     242 </span>                :            : {
+<span class="lineNum">     243 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 100970 times"> + </span>]:<span class="lineCov">     100970 :         CALLB_CPR_SAFE_BEGIN(cpr);</span>
+<span class="lineNum">     244 </span>                :            : 
+<span class="lineNum">     245 </span>        [<span class="branchCov" title="Branch 0 was taken 5134 times"> + </span><span class="branchCov" title="Branch 1 was taken 95836 times"> + </span>]:<span class="lineCov">     100970 :         if (time)</span>
+<span class="lineNum">     246 </span>                :<span class="lineCov">       5134 :                 (void) cv_timedwait_sig(cv, &amp;tx-&gt;tx_sync_lock,</span>
+<span class="lineNum">     247 </span>                :            :                     ddi_get_lbolt() + time);
+<span class="lineNum">     248 </span>                :            :         else
+<span class="lineNum">     249 </span>                :<span class="lineCov">      95836 :                 cv_wait_sig(cv, &amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     250 </span>                :            : 
+<span class="lineNum">     251 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 100969 times"> + </span>]:<span class="lineCov">     100969 :         CALLB_CPR_SAFE_END(cpr, &amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     252 </span>                :<span class="lineCov">     100969 : }</span>
+<span class="lineNum">     253 </span>                :            : 
+<span class="lineNum">     254 </span>                :            : /*
+<span class="lineNum">     255 </span>                :            :  * Stop syncing transaction groups.
+<a name="256"><span class="lineNum">     256 </span>                :            :  */</a>
+<span class="lineNum">     257 </span>                :            : void
+<span class="lineNum">     258 </span>                :<span class="lineCov">        264 : txg_sync_stop(dsl_pool_t *dp)</span>
+<span class="lineNum">     259 </span>                :            : {
+<span class="lineNum">     260 </span>                :<span class="lineCov">        264 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     261 </span>                :            : 
+<span class="lineNum">     262 </span>                :<span class="lineCov">        264 :         dprintf(&quot;pool %p\n&quot;, dp);</span>
+<span class="lineNum">     263 </span>                :            :         /*
+<span class="lineNum">     264 </span>                :            :          * Finish off any work in progress.
+<span class="lineNum">     265 </span>                :            :          */
+<span class="lineNum">     266 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 264 times"> + </span>]:<span class="lineCov">        264 :         ASSERT(tx-&gt;tx_threads == 2);</span>
+<span class="lineNum">     267 </span>                :            : 
+<span class="lineNum">     268 </span>                :            :         /*
+<span class="lineNum">     269 </span>                :            :          * We need to ensure that we've vacated the deferred space_maps.
+<span class="lineNum">     270 </span>                :            :          */
+<span class="lineNum">     271 </span>                :<span class="lineCov">        264 :         txg_wait_synced(dp, tx-&gt;tx_open_txg + TXG_DEFER_SIZE);</span>
+<span class="lineNum">     272 </span>                :            : 
+<span class="lineNum">     273 </span>                :            :         /*
+<span class="lineNum">     274 </span>                :            :          * Wake all sync threads and wait for them to die.
+<span class="lineNum">     275 </span>                :            :          */
+<span class="lineNum">     276 </span>                :<span class="lineCov">        264 :         mutex_enter(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 264 times"> + </span>]:<span class="lineCov">        264 :         ASSERT(tx-&gt;tx_threads == 2);</span>
+<span class="lineNum">     279 </span>                :            : 
+<span class="lineNum">     280 </span>                :<span class="lineCov">        264 :         tx-&gt;tx_exiting = 1;</span>
+<span class="lineNum">     281 </span>                :            : 
+<span class="lineNum">     282 </span>                :<span class="lineCov">        264 :         cv_broadcast(&amp;tx-&gt;tx_quiesce_more_cv);</span>
+<span class="lineNum">     283 </span>                :<span class="lineCov">        264 :         cv_broadcast(&amp;tx-&gt;tx_quiesce_done_cv);</span>
+<span class="lineNum">     284 </span>                :<span class="lineCov">        264 :         cv_broadcast(&amp;tx-&gt;tx_sync_more_cv);</span>
+<span class="lineNum">     285 </span>                :            : 
+<span class="lineNum">     286 </span>        [<span class="branchCov" title="Branch 0 was taken 418 times"> + </span><span class="branchCov" title="Branch 1 was taken 264 times"> + </span>]:<span class="lineCov">        682 :         while (tx-&gt;tx_threads != 0)</span>
+<span class="lineNum">     287 </span>                :<span class="lineCov">        418 :                 cv_wait(&amp;tx-&gt;tx_exit_cv, &amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     288 </span>                :            : 
+<span class="lineNum">     289 </span>                :<span class="lineCov">        264 :         tx-&gt;tx_exiting = 0;</span>
+<span class="lineNum">     290 </span>                :            : 
+<span class="lineNum">     291 </span>                :<span class="lineCov">        264 :         mutex_exit(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     292 </span>                :<span class="lineCov">        264 : }</span>
+<a name="293"><span class="lineNum">     293 </span>                :            : </a>
+<span class="lineNum">     294 </span>                :            : uint64_t
+<span class="lineNum">     295 </span>                :<span class="lineCov">     298638 : txg_hold_open(dsl_pool_t *dp, txg_handle_t *th)</span>
+<span class="lineNum">     296 </span>                :            : {
+<span class="lineNum">     297 </span>                :<span class="lineCov">     298638 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     298 </span>                :            :         tx_cpu_t *tc;
+<span class="lineNum">     299 </span>                :            :         uint64_t txg;
+<span class="lineNum">     300 </span>                :            : 
+<span class="lineNum">     301 </span>                :            :         /*
+<span class="lineNum">     302 </span>                :            :          * It appears the processor id is simply used as a &quot;random&quot;
+<span class="lineNum">     303 </span>                :            :          * number to index into the array, and there isn't any other
+<span class="lineNum">     304 </span>                :            :          * significance to the chosen tx_cpu. Because.. Why not use
+<span class="lineNum">     305 </span>                :            :          * the current cpu to index into the array?
+<span class="lineNum">     306 </span>                :            :          */
+<span class="lineNum">     307 </span>                :            :         kpreempt_disable();
+<span class="lineNum">     308 </span>                :<span class="lineCov">     298638 :         tc = &amp;tx-&gt;tx_cpu[CPU_SEQID];</span>
+<span class="lineNum">     309 </span>                :            :         kpreempt_enable();
+<span class="lineNum">     310 </span>                :            : 
+<span class="lineNum">     311 </span>                :<span class="lineCov">     298642 :         mutex_enter(&amp;tc-&gt;tc_open_lock);</span>
+<span class="lineNum">     312 </span>                :<span class="lineCov">     298654 :         txg = tx-&gt;tx_open_txg;</span>
+<span class="lineNum">     313 </span>                :            : 
+<span class="lineNum">     314 </span>                :<span class="lineCov">     298654 :         mutex_enter(&amp;tc-&gt;tc_lock);</span>
+<span class="lineNum">     315 </span>                :<span class="lineCov">     298654 :         tc-&gt;tc_count[txg &amp; TXG_MASK]++;</span>
+<span class="lineNum">     316 </span>                :<span class="lineCov">     298654 :         mutex_exit(&amp;tc-&gt;tc_lock);</span>
+<span class="lineNum">     317 </span>                :            : 
+<span class="lineNum">     318 </span>                :<span class="lineCov">     298654 :         th-&gt;th_cpu = tc;</span>
+<span class="lineNum">     319 </span>                :<span class="lineCov">     298654 :         th-&gt;th_txg = txg;</span>
+<span class="lineNum">     320 </span>                :            : 
+<span class="lineNum">     321 </span>                :<span class="lineCov">     298654 :         return (txg);</span>
+<span class="lineNum">     322 </span>                :            : }
+<a name="323"><span class="lineNum">     323 </span>                :            : </a>
+<span class="lineNum">     324 </span>                :            : void
+<span class="lineNum">     325 </span>                :<span class="lineCov">     298654 : txg_rele_to_quiesce(txg_handle_t *th)</span>
+<span class="lineNum">     326 </span>                :            : {
+<span class="lineNum">     327 </span>                :<span class="lineCov">     298654 :         tx_cpu_t *tc = th-&gt;th_cpu;</span>
+<span class="lineNum">     328 </span>                :            : 
+<span class="lineNum">     329 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 298654 times"> + </span>]:<span class="lineCov">     298654 :         ASSERT(!MUTEX_HELD(&amp;tc-&gt;tc_lock));</span>
+<span class="lineNum">     330 </span>                :<span class="lineCov">     298654 :         mutex_exit(&amp;tc-&gt;tc_open_lock);</span>
+<span class="lineNum">     331 </span>                :<span class="lineCov">     298617 : }</span>
+<a name="332"><span class="lineNum">     332 </span>                :            : </a>
+<span class="lineNum">     333 </span>                :            : void
+<span class="lineNum">     334 </span>                :<span class="lineCov">        115 : txg_register_callbacks(txg_handle_t *th, list_t *tx_callbacks)</span>
+<span class="lineNum">     335 </span>                :            : {
+<span class="lineNum">     336 </span>                :<span class="lineCov">        115 :         tx_cpu_t *tc = th-&gt;th_cpu;</span>
+<span class="lineNum">     337 </span>                :<span class="lineCov">        115 :         int g = th-&gt;th_txg &amp; TXG_MASK;</span>
+<span class="lineNum">     338 </span>                :            : 
+<span class="lineNum">     339 </span>                :<span class="lineCov">        115 :         mutex_enter(&amp;tc-&gt;tc_lock);</span>
+<span class="lineNum">     340 </span>                :<span class="lineCov">        115 :         list_move_tail(&amp;tc-&gt;tc_callbacks[g], tx_callbacks);</span>
+<span class="lineNum">     341 </span>                :<span class="lineCov">        115 :         mutex_exit(&amp;tc-&gt;tc_lock);</span>
+<span class="lineNum">     342 </span>                :<span class="lineCov">        115 : }</span>
+<a name="343"><span class="lineNum">     343 </span>                :            : </a>
+<span class="lineNum">     344 </span>                :            : void
+<span class="lineNum">     345 </span>                :<span class="lineCov">     298619 : txg_rele_to_sync(txg_handle_t *th)</span>
+<span class="lineNum">     346 </span>                :            : {
+<span class="lineNum">     347 </span>                :<span class="lineCov">     298619 :         tx_cpu_t *tc = th-&gt;th_cpu;</span>
+<span class="lineNum">     348 </span>                :<span class="lineCov">     298619 :         int g = th-&gt;th_txg &amp; TXG_MASK;</span>
+<span class="lineNum">     349 </span>                :            : 
+<span class="lineNum">     350 </span>                :<span class="lineCov">     298619 :         mutex_enter(&amp;tc-&gt;tc_lock);</span>
+<span class="lineNum">     351 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 298654 times"> + </span>]:<span class="lineCov">     298654 :         ASSERT(tc-&gt;tc_count[g] != 0);</span>
+<span class="lineNum">     352 </span>        [<span class="branchCov" title="Branch 0 was taken 193892 times"> + </span><span class="branchCov" title="Branch 1 was taken 104762 times"> + </span>]:<span class="lineCov">     298654 :         if (--tc-&gt;tc_count[g] == 0)</span>
+<span class="lineNum">     353 </span>                :<span class="lineCov">     193892 :                 cv_broadcast(&amp;tc-&gt;tc_cv[g]);</span>
+<span class="lineNum">     354 </span>                :<span class="lineCov">     298654 :         mutex_exit(&amp;tc-&gt;tc_lock);</span>
+<span class="lineNum">     355 </span>                :            : 
+<span class="lineNum">     356 </span>                :<span class="lineCov">     298652 :         th-&gt;th_cpu = NULL;   /* defensive */</span>
+<span class="lineNum">     357 </span>                :<span class="lineCov">     298652 : }</span>
+<span class="lineNum">     358 </span>                :            : 
+<span class="lineNum">     359 </span>                :            : /*
+<span class="lineNum">     360 </span>                :            :  * Blocks until all transactions in the group are committed.
+<span class="lineNum">     361 </span>                :            :  *
+<span class="lineNum">     362 </span>                :            :  * On return, the transaction group has reached a stable state in which it can
+<span class="lineNum">     363 </span>                :            :  * then be passed off to the syncing context.
+<a name="364"><span class="lineNum">     364 </span>                :            :  */</a>
+<span class="lineNum">     365 </span>                :            : static void
+<span class="lineNum">     366 </span>                :<span class="lineCov">      23752 : txg_quiesce(dsl_pool_t *dp, uint64_t txg)</span>
+<span class="lineNum">     367 </span>                :            : {
+<span class="lineNum">     368 </span>                :<span class="lineCov">      23752 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     369 </span>                :            :         uint64_t tx_open_time;
+<span class="lineNum">     370 </span>                :<span class="lineCov">      23752 :         int g = txg &amp; TXG_MASK;</span>
+<span class="lineNum">     371 </span>                :            :         int c;
+<span class="lineNum">     372 </span>                :            : 
+<span class="lineNum">     373 </span>                :            :         /*
+<span class="lineNum">     374 </span>                :            :          * Grab all tc_open_locks so nobody else can get into this txg.
+<span class="lineNum">     375 </span>                :            :          */
+<span class="lineNum">     376 </span>        [<span class="branchCov" title="Branch 0 was taken 1520128 times"> + </span><span class="branchCov" title="Branch 1 was taken 23752 times"> + </span>]:<span class="lineCov">    1543880 :         for (c = 0; c &lt; max_ncpus; c++)</span>
+<span class="lineNum">     377 </span>                :<span class="lineCov">    1520128 :                 mutex_enter(&amp;tx-&gt;tx_cpu[c].tc_open_lock);</span>
+<span class="lineNum">     378 </span>                :            : 
+<span class="lineNum">     379 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 23752 times"> + </span>]:<span class="lineCov">      23752 :         ASSERT(txg == tx-&gt;tx_open_txg);</span>
+<span class="lineNum">     380 </span>                :<span class="lineCov">      23752 :         tx-&gt;tx_open_txg++;</span>
+<span class="lineNum">     381 </span>                :<span class="lineCov">      23752 :         tx-&gt;tx_open_time = tx_open_time = gethrtime();</span>
+<span class="lineNum">     382 </span>                :            : 
+<span class="lineNum">     383 </span>                :            :         DTRACE_PROBE2(txg__quiescing, dsl_pool_t *, dp, uint64_t, txg);
+<span class="lineNum">     384 </span>                :            :         DTRACE_PROBE2(txg__opened, dsl_pool_t *, dp, uint64_t, tx-&gt;tx_open_txg);
+<span class="lineNum">     385 </span>                :            : 
+<span class="lineNum">     386 </span>                :            :         /*
+<span class="lineNum">     387 </span>                :            :          * Now that we've incremented tx_open_txg, we can let threads
+<span class="lineNum">     388 </span>                :            :          * enter the next transaction group.
+<span class="lineNum">     389 </span>                :            :          */
+<span class="lineNum">     390 </span>        [<span class="branchCov" title="Branch 0 was taken 1520128 times"> + </span><span class="branchCov" title="Branch 1 was taken 23752 times"> + </span>]:<span class="lineCov">    1543880 :         for (c = 0; c &lt; max_ncpus; c++)</span>
+<span class="lineNum">     391 </span>                :<span class="lineCov">    1520128 :                 mutex_exit(&amp;tx-&gt;tx_cpu[c].tc_open_lock);</span>
+<span class="lineNum">     392 </span>                :            : 
+<span class="lineNum">     393 </span>                :<span class="lineCov">      23752 :         spa_txg_history_set(dp-&gt;dp_spa, txg, TXG_STATE_OPEN, tx_open_time);</span>
+<span class="lineNum">     394 </span>                :<span class="lineCov">      23752 :         spa_txg_history_add(dp-&gt;dp_spa, txg + 1, tx_open_time);</span>
+<span class="lineNum">     395 </span>                :            : 
+<span class="lineNum">     396 </span>                :            :         /*
+<span class="lineNum">     397 </span>                :            :          * Quiesce the transaction group by waiting for everyone to txg_exit().
+<span class="lineNum">     398 </span>                :            :          */
+<span class="lineNum">     399 </span>        [<span class="branchCov" title="Branch 1 was taken 1520128 times"> + </span><span class="branchCov" title="Branch 2 was taken 23752 times"> + </span>]:<span class="lineCov">    1543880 :         for (c = 0; c &lt; max_ncpus; c++) {</span>
+<span class="lineNum">     400 </span>                :<span class="lineCov">    1520128 :                 tx_cpu_t *tc = &amp;tx-&gt;tx_cpu[c];</span>
+<span class="lineNum">     401 </span>                :<span class="lineCov">    1520128 :                 mutex_enter(&amp;tc-&gt;tc_lock);</span>
+<span class="lineNum">     402 </span>        [<span class="branchCov" title="Branch 0 was taken 2807 times"> + </span><span class="branchCov" title="Branch 1 was taken 1520128 times"> + </span>]:<span class="lineCov">    1522935 :                 while (tc-&gt;tc_count[g] != 0)</span>
+<span class="lineNum">     403 </span>                :<span class="lineCov">       2807 :                         cv_wait(&amp;tc-&gt;tc_cv[g], &amp;tc-&gt;tc_lock);</span>
+<span class="lineNum">     404 </span>                :<span class="lineCov">    1520128 :                 mutex_exit(&amp;tc-&gt;tc_lock);</span>
+<span class="lineNum">     405 </span>                :            :         }
+<span class="lineNum">     406 </span>                :            : 
+<span class="lineNum">     407 </span>                :<span class="lineCov">      23752 :         spa_txg_history_set(dp-&gt;dp_spa, txg, TXG_STATE_QUIESCED, gethrtime());</span>
+<span class="lineNum">     408 </span>                :<span class="lineCov">      23752 : }</span>
+<a name="409"><span class="lineNum">     409 </span>                :            : </a>
+<span class="lineNum">     410 </span>                :            : static void
+<span class="lineNum">     411 </span>                :<span class="lineCov">         93 : txg_do_callbacks(list_t *cb_list)</span>
+<span class="lineNum">     412 </span>                :            : {
+<span class="lineNum">     413 </span>                :<span class="lineCov">         93 :         dmu_tx_do_callbacks(cb_list, 0);</span>
+<span class="lineNum">     414 </span>                :            : 
+<span class="lineNum">     415 </span>                :<span class="lineCov">         93 :         list_destroy(cb_list);</span>
+<span class="lineNum">     416 </span>                :            : 
+<span class="lineNum">     417 </span>                :<span class="lineCov">         93 :         kmem_free(cb_list, sizeof (list_t));</span>
+<span class="lineNum">     418 </span>                :<span class="lineCov">         93 : }</span>
+<span class="lineNum">     419 </span>                :            : 
+<span class="lineNum">     420 </span>                :            : /*
+<span class="lineNum">     421 </span>                :            :  * Dispatch the commit callbacks registered on this txg to worker threads.
+<span class="lineNum">     422 </span>                :            :  *
+<span class="lineNum">     423 </span>                :            :  * If no callbacks are registered for a given TXG, nothing happens.
+<span class="lineNum">     424 </span>                :            :  * This function creates a taskq for the associated pool, if needed.
+<a name="425"><span class="lineNum">     425 </span>                :            :  */</a>
+<span class="lineNum">     426 </span>                :            : static void
+<span class="lineNum">     427 </span>                :<span class="lineCov">      23751 : txg_dispatch_callbacks(dsl_pool_t *dp, uint64_t txg)</span>
+<span class="lineNum">     428 </span>                :            : {
+<span class="lineNum">     429 </span>                :            :         int c;
+<span class="lineNum">     430 </span>                :<span class="lineCov">      23751 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     431 </span>                :            :         list_t *cb_list;
+<span class="lineNum">     432 </span>                :            : 
+<span class="lineNum">     433 </span>        [<span class="branchCov" title="Branch 0 was taken 1520064 times"> + </span><span class="branchCov" title="Branch 1 was taken 23751 times"> + </span>]:<span class="lineCov">    1543815 :         for (c = 0; c &lt; max_ncpus; c++) {</span>
+<span class="lineNum">     434 </span>                :<span class="lineCov">    1520064 :                 tx_cpu_t *tc = &amp;tx-&gt;tx_cpu[c];</span>
+<span class="lineNum">     435 </span>                :            :                 /*
+<span class="lineNum">     436 </span>                :            :                  * No need to lock tx_cpu_t at this point, since this can
+<span class="lineNum">     437 </span>                :            :                  * only be called once a txg has been synced.
+<span class="lineNum">     438 </span>                :            :                  */
+<span class="lineNum">     439 </span>                :            : 
+<span class="lineNum">     440 </span>                :<span class="lineCov">    1520064 :                 int g = txg &amp; TXG_MASK;</span>
+<span class="lineNum">     441 </span>                :            : 
+<span class="lineNum">     442 </span>        [<span class="branchCov" title="Branch 1 was taken 1519971 times"> + </span><span class="branchCov" title="Branch 2 was taken 93 times"> + </span>]:<span class="lineCov">    1520064 :                 if (list_is_empty(&amp;tc-&gt;tc_callbacks[g]))</span>
+<span class="lineNum">     443 </span>                :<span class="lineCov">    1519971 :                         continue;</span>
+<span class="lineNum">     444 </span>                :            : 
+<span class="lineNum">     445 </span>        [<span class="branchCov" title="Branch 0 was taken 32 times"> + </span><span class="branchCov" title="Branch 1 was taken 61 times"> + </span>]:<span class="lineCov">         93 :                 if (tx-&gt;tx_commit_cb_taskq == NULL) {</span>
+<span class="lineNum">     446 </span>                :            :                         /*
+<span class="lineNum">     447 </span>                :            :                          * Commit callback taskq hasn't been created yet.
+<span class="lineNum">     448 </span>                :            :                          */
+<span class="lineNum">     449 </span>                :<span class="lineCov">         32 :                         tx-&gt;tx_commit_cb_taskq = taskq_create(&quot;tx_commit_cb&quot;,</span>
+<span class="lineNum">     450 </span>                :            :                             max_ncpus, defclsyspri, max_ncpus, max_ncpus * 2,
+<span class="lineNum">     451 </span>                :            :                             TASKQ_PREPOPULATE | TASKQ_DYNAMIC);
+<span class="lineNum">     452 </span>                :            :                 }
+<span class="lineNum">     453 </span>                :            : 
+<span class="lineNum">     454 </span>                :<span class="lineCov">         93 :                 cb_list = kmem_alloc(sizeof (list_t), KM_SLEEP);</span>
+<span class="lineNum">     455 </span>                :<span class="lineCov">         93 :                 list_create(cb_list, sizeof (dmu_tx_callback_t),</span>
+<span class="lineNum">     456 </span>                :            :                     offsetof(dmu_tx_callback_t, dcb_node));
+<span class="lineNum">     457 </span>                :            : 
+<span class="lineNum">     458 </span>                :<span class="lineCov">         93 :                 list_move_tail(cb_list, &amp;tc-&gt;tc_callbacks[g]);</span>
+<span class="lineNum">     459 </span>                :            : 
+<span class="lineNum">     460 </span>                :<span class="lineCov">         93 :                 (void) taskq_dispatch(tx-&gt;tx_commit_cb_taskq, (task_func_t *)</span>
+<span class="lineNum">     461 </span>                :            :                     txg_do_callbacks, cb_list, TQ_SLEEP);
+<span class="lineNum">     462 </span>                :            :         }
+<span class="lineNum">     463 </span>                :<span class="lineCov">      23751 : }</span>
+<span class="lineNum">     464 </span>                :            : 
+<span class="lineNum">     465 </span>                :            : /*
+<span class="lineNum">     466 </span>                :            :  * Wait for pending commit callbacks of already-synced transactions to finish
+<span class="lineNum">     467 </span>                :            :  * processing.
+<span class="lineNum">     468 </span>                :            :  * Calling this function from within a commit callback will deadlock.
+<a name="469"><span class="lineNum">     469 </span>                :            :  */</a>
+<span class="lineNum">     470 </span>                :            : void
+<span class="lineNum">     471 </span>                :<span class="lineNoCov">          0 : txg_wait_callbacks(dsl_pool_t *dp)</span>
+<span class="lineNum">     472 </span>                :            : {
+<span class="lineNum">     473 </span>                :<span class="lineNoCov">          0 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     474 </span>                :            : 
+<span class="lineNum">     475 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tx-&gt;tx_commit_cb_taskq != NULL)</span>
+<span class="lineNum">     476 </span>                :<span class="lineNoCov">          0 :                 taskq_wait_outstanding(tx-&gt;tx_commit_cb_taskq, 0);</span>
+<span class="lineNum">     477 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="478"><span class="lineNum">     478 </span>                :            : </a>
+<span class="lineNum">     479 </span>                :            : static void
+<span class="lineNum">     480 </span>                :<span class="lineCov">        265 : txg_sync_thread(void *arg)</span>
+<span class="lineNum">     481 </span>                :            : {
+<span class="lineNum">     482 </span>                :<span class="lineCov">        265 :         dsl_pool_t *dp = (dsl_pool_t *)arg;</span>
+<span class="lineNum">     483 </span>                :<span class="lineCov">        265 :         spa_t *spa = dp-&gt;dp_spa;</span>
+<span class="lineNum">     484 </span>                :<span class="lineCov">        265 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     485 </span>                :            :         callb_cpr_t cpr;
+<span class="lineNum">     486 </span>                :            :         clock_t start, delta;
+<span class="lineNum">     487 </span>                :            : 
+<span class="lineNum">     488 </span>                :<span class="lineCov">        265 :         (void) spl_fstrans_mark();</span>
+<span class="lineNum">     489 </span>                :<span class="lineCov">        265 :         txg_thread_enter(tx, &amp;cpr);</span>
+<span class="lineNum">     490 </span>                :            : 
+<span class="lineNum">     491 </span>                :<span class="lineCov">        265 :         start = delta = 0;</span>
+<span class="lineNum">     492 </span>                :<span class="lineCov">      23751 :         for (;;) {</span>
+<span class="lineNum">     493 </span>                :<span class="lineCov">      24016 :                 clock_t timeout = zfs_txg_timeout * hz;</span>
+<span class="lineNum">     494 </span>                :            :                 clock_t timer;
+<span class="lineNum">     495 </span>                :            :                 uint64_t txg;
+<span class="lineNum">     496 </span>                :            :                 txg_stat_t *ts;
+<span class="lineNum">     497 </span>                :            : 
+<span class="lineNum">     498 </span>                :            :                 /*
+<span class="lineNum">     499 </span>                :            :                  * We sync when we're scanning, there's someone waiting
+<span class="lineNum">     500 </span>                :            :                  * on us, or the quiesce thread has handed off a txg to
+<span class="lineNum">     501 </span>                :            :                  * us, or we have reached our timeout.
+<span class="lineNum">     502 </span>                :            :                  */
+<span class="lineNum">     503 </span>        [<span class="branchCov" title="Branch 0 was taken 23995 times"> + </span><span class="branchCov" title="Branch 1 was taken 21 times"> + </span>]:<span class="lineCov">      24016 :                 timer = (delta &gt;= timeout ? 0 : timeout - delta);</span>
+<span class="lineNum">     504 </span>[<span class="branchCov" title="Branch 1 was taken 29021 times"> + </span><span class="branchCov" title="Branch 2 was taken 129 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 28757 times"> + </span><span class="branchCov" title="Branch 4 was taken 264 times"> + </span>]:<span class="lineCov">      29150 :                 while (!dsl_scan_active(dp-&gt;dp_scan) &amp;&amp;</span>
+<span class="lineNum">     505 </span>[<span class="branchCov" title="Branch 0 was taken 237 times"> + </span><span class="branchCov" title="Branch 1 was taken 28520 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 12151 times"> + </span><span class="branchCov" title="Branch 3 was taken 16369 times"> + </span>]:<span class="lineCov">      40385 :                     !tx-&gt;tx_exiting &amp;&amp; timer &gt; 0 &amp;&amp;</span>
+<span class="lineNum">     506 </span>        [<span class="branchCov" title="Branch 0 was taken 11235 times"> + </span><span class="branchCov" title="Branch 1 was taken 5134 times"> + </span>]:<span class="lineCov">      16369 :                     tx-&gt;tx_synced_txg &gt;= tx-&gt;tx_sync_txg_waiting &amp;&amp;</span>
+<span class="lineNum">     507 </span>        [<span class="branchCov" title="Branch 0 was taken 5134 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       5134 :                     tx-&gt;tx_quiesced_txg == 0 &amp;&amp;</span>
+<span class="lineNum">     508 </span>                :<span class="lineCov">       5134 :                     dp-&gt;dp_dirty_total &lt; zfs_dirty_data_sync) {</span>
+<span class="lineNum">     509 </span>                :<span class="lineCov">       5134 :                         dprintf(&quot;waiting; tx_synced=%llu waiting=%llu dp=%p\n&quot;,</span>
+<span class="lineNum">     510 </span>                :            :                             tx-&gt;tx_synced_txg, tx-&gt;tx_sync_txg_waiting, dp);
+<span class="lineNum">     511 </span>                :<span class="lineCov">       5134 :                         txg_thread_wait(tx, &amp;cpr, &amp;tx-&gt;tx_sync_more_cv, timer);</span>
+<span class="lineNum">     512 </span>                :<span class="lineCov">       5134 :                         delta = ddi_get_lbolt() - start;</span>
+<span class="lineNum">     513 </span>        [<span class="branchCov" title="Branch 0 was taken 4912 times"> + </span><span class="branchCov" title="Branch 1 was taken 222 times"> + </span>]:<span class="lineCov">       5134 :                         timer = (delta &gt; timeout ? 0 : timeout - delta);</span>
+<span class="lineNum">     514 </span>                :            :                 }
+<span class="lineNum">     515 </span>                :            : 
+<span class="lineNum">     516 </span>                :            :                 /*
+<span class="lineNum">     517 </span>                :            :                  * Wait until the quiesce thread hands off a txg to us,
+<span class="lineNum">     518 </span>                :            :                  * prompting it to do so if necessary.
+<span class="lineNum">     519 </span>                :            :                  */
+<span class="lineNum">     520 </span>[<span class="branchCov" title="Branch 0 was taken 30982 times"> + </span><span class="branchCov" title="Branch 1 was taken 264 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 7230 times"> + </span><span class="branchCov" title="Branch 3 was taken 23752 times"> + </span>]:<span class="lineCov">      31246 :                 while (!tx-&gt;tx_exiting &amp;&amp; tx-&gt;tx_quiesced_txg == 0) {</span>
+<span class="lineNum">     521 </span>        [<span class="branchCov" title="Branch 0 was taken 6710 times"> + </span><span class="branchCov" title="Branch 1 was taken 520 times"> + </span>]:<span class="lineCov">       7230 :                         if (tx-&gt;tx_quiesce_txg_waiting &lt; tx-&gt;tx_open_txg+1)</span>
+<span class="lineNum">     522 </span>                :<span class="lineCov">       6710 :                                 tx-&gt;tx_quiesce_txg_waiting = tx-&gt;tx_open_txg+1;</span>
+<span class="lineNum">     523 </span>                :<span class="lineCov">       7230 :                         cv_broadcast(&amp;tx-&gt;tx_quiesce_more_cv);</span>
+<span class="lineNum">     524 </span>                :<span class="lineCov">       7230 :                         txg_thread_wait(tx, &amp;cpr, &amp;tx-&gt;tx_quiesce_done_cv, 0);</span>
+<span class="lineNum">     525 </span>                :            :                 }
+<span class="lineNum">     526 </span>                :            : 
+<span class="lineNum">     527 </span>        [<span class="branchCov" title="Branch 0 was taken 264 times"> + </span><span class="branchCov" title="Branch 1 was taken 23752 times"> + </span>]:<span class="lineCov">      24016 :                 if (tx-&gt;tx_exiting)</span>
+<span class="lineNum">     528 </span>                :<span class="lineCov">        264 :                         txg_thread_exit(tx, &amp;cpr, &amp;tx-&gt;tx_sync_thread);</span>
+<span class="lineNum">     529 </span>                :            : 
+<span class="lineNum">     530 </span>                :            :                 /*
+<span class="lineNum">     531 </span>                :            :                  * Consume the quiesced txg which has been handed off to
+<span class="lineNum">     532 </span>                :            :                  * us.  This may cause the quiescing thread to now be
+<span class="lineNum">     533 </span>                :            :                  * able to quiesce another txg, so we must signal it.
+<span class="lineNum">     534 </span>                :            :                  */
+<span class="lineNum">     535 </span>                :<span class="lineCov">      23752 :                 txg = tx-&gt;tx_quiesced_txg;</span>
+<span class="lineNum">     536 </span>                :<span class="lineCov">      23752 :                 tx-&gt;tx_quiesced_txg = 0;</span>
+<span class="lineNum">     537 </span>                :<span class="lineCov">      23752 :                 tx-&gt;tx_syncing_txg = txg;</span>
+<span class="lineNum">     538 </span>                :            :                 DTRACE_PROBE2(txg__syncing, dsl_pool_t *, dp, uint64_t, txg);
+<span class="lineNum">     539 </span>                :<span class="lineCov">      23752 :                 ts = spa_txg_history_init_io(spa, txg, dp);</span>
+<span class="lineNum">     540 </span>                :<span class="lineCov">      23752 :                 cv_broadcast(&amp;tx-&gt;tx_quiesce_more_cv);</span>
+<span class="lineNum">     541 </span>                :            : 
+<span class="lineNum">     542 </span>                :<span class="lineCov">      23752 :                 dprintf(&quot;txg=%llu quiesce_txg=%llu sync_txg=%llu\n&quot;,</span>
+<span class="lineNum">     543 </span>                :            :                     txg, tx-&gt;tx_quiesce_txg_waiting, tx-&gt;tx_sync_txg_waiting);
+<span class="lineNum">     544 </span>                :<span class="lineCov">      23752 :                 mutex_exit(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     545 </span>                :            : 
+<span class="lineNum">     546 </span>                :<span class="lineCov">      23752 :                 start = ddi_get_lbolt();</span>
+<span class="lineNum">     547 </span>                :<span class="lineCov">      23752 :                 spa_sync(spa, txg);</span>
+<span class="lineNum">     548 </span>                :<span class="lineCov">      23751 :                 delta = ddi_get_lbolt() - start;</span>
+<span class="lineNum">     549 </span>                :            : 
+<span class="lineNum">     550 </span>                :<span class="lineCov">      23751 :                 mutex_enter(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     551 </span>                :<span class="lineCov">      23751 :                 tx-&gt;tx_synced_txg = txg;</span>
+<span class="lineNum">     552 </span>                :<span class="lineCov">      23751 :                 tx-&gt;tx_syncing_txg = 0;</span>
+<span class="lineNum">     553 </span>                :            :                 DTRACE_PROBE2(txg__synced, dsl_pool_t *, dp, uint64_t, txg);
+<span class="lineNum">     554 </span>                :<span class="lineCov">      23751 :                 spa_txg_history_fini_io(spa, ts);</span>
+<span class="lineNum">     555 </span>                :<span class="lineCov">      23751 :                 cv_broadcast(&amp;tx-&gt;tx_sync_done_cv);</span>
+<span class="lineNum">     556 </span>                :            : 
+<span class="lineNum">     557 </span>                :            :                 /*
+<span class="lineNum">     558 </span>                :            :                  * Dispatch commit callbacks to worker threads.
+<span class="lineNum">     559 </span>                :            :                  */
+<span class="lineNum">     560 </span>                :<span class="lineCov">      23751 :                 txg_dispatch_callbacks(dp, txg);</span>
+<span class="lineNum">     561 </span>                :            :         }
+<span class="lineNum">     562 </span>                :            : }
+<a name="563"><span class="lineNum">     563 </span>                :            : </a>
+<span class="lineNum">     564 </span>                :            : static void
+<span class="lineNum">     565 </span>                :<span class="lineCov">        265 : txg_quiesce_thread(void *arg)</span>
+<span class="lineNum">     566 </span>                :            : {
+<span class="lineNum">     567 </span>                :<span class="lineCov">        265 :         dsl_pool_t *dp = (dsl_pool_t *)arg;</span>
+<span class="lineNum">     568 </span>                :<span class="lineCov">        265 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     569 </span>                :            :         callb_cpr_t cpr;
+<span class="lineNum">     570 </span>                :            : 
+<span class="lineNum">     571 </span>                :<span class="lineCov">        265 :         txg_thread_enter(tx, &amp;cpr);</span>
+<span class="lineNum">     572 </span>                :            : 
+<span class="lineNum">     573 </span>                :<span class="lineCov">      23752 :         for (;;) {</span>
+<span class="lineNum">     574 </span>                :            :                 uint64_t txg;
+<span class="lineNum">     575 </span>                :            : 
+<span class="lineNum">     576 </span>                :            :                 /*
+<span class="lineNum">     577 </span>                :            :                  * We quiesce when there's someone waiting on us.
+<span class="lineNum">     578 </span>                :            :                  * However, we can only have one txg in &quot;quiescing&quot; or
+<span class="lineNum">     579 </span>                :            :                  * &quot;quiesced, waiting to sync&quot; state.  So we wait until
+<span class="lineNum">     580 </span>                :            :                  * the &quot;quiesced, waiting to sync&quot; txg has been consumed
+<span class="lineNum">     581 </span>                :            :                  * by the sync thread.
+<span class="lineNum">     582 </span>                :            :                  */
+<span class="lineNum">     583 </span>[<span class="branchCov" title="Branch 0 was taken 112358 times"> + </span><span class="branchCov" title="Branch 1 was taken 264 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 29815 times"> + </span><span class="branchCov" title="Branch 3 was taken 82543 times"> + </span>]:<span class="lineCov">     112622 :                 while (!tx-&gt;tx_exiting &amp;&amp;</span>
+<span class="lineNum">     584 </span>        [<span class="branchCov" title="Branch 0 was taken 58791 times"> + </span><span class="branchCov" title="Branch 1 was taken 23752 times"> + </span>]:<span class="lineCov">      82543 :                     (tx-&gt;tx_open_txg &gt;= tx-&gt;tx_quiesce_txg_waiting ||</span>
+<span class="lineNum">     585 </span>                :<span class="lineCov">      82543 :                     tx-&gt;tx_quiesced_txg != 0))</span>
+<span class="lineNum">     586 </span>                :<span class="lineCov">     112358 :                         txg_thread_wait(tx, &amp;cpr, &amp;tx-&gt;tx_quiesce_more_cv, 0);</span>
+<span class="lineNum">     587 </span>                :            : 
+<span class="lineNum">     588 </span>        [<span class="branchCov" title="Branch 0 was taken 264 times"> + </span><span class="branchCov" title="Branch 1 was taken 23752 times"> + </span>]:<span class="lineCov">      24016 :                 if (tx-&gt;tx_exiting)</span>
+<span class="lineNum">     589 </span>                :<span class="lineCov">        264 :                         txg_thread_exit(tx, &amp;cpr, &amp;tx-&gt;tx_quiesce_thread);</span>
+<span class="lineNum">     590 </span>                :            : 
+<span class="lineNum">     591 </span>                :<span class="lineCov">      23752 :                 txg = tx-&gt;tx_open_txg;</span>
+<span class="lineNum">     592 </span>                :<span class="lineCov">      23752 :                 dprintf(&quot;txg=%llu quiesce_txg=%llu sync_txg=%llu\n&quot;,</span>
+<span class="lineNum">     593 </span>                :            :                     txg, tx-&gt;tx_quiesce_txg_waiting,
+<span class="lineNum">     594 </span>                :            :                     tx-&gt;tx_sync_txg_waiting);
+<span class="lineNum">     595 </span>                :<span class="lineCov">      23752 :                 mutex_exit(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     596 </span>                :<span class="lineCov">      23752 :                 txg_quiesce(dp, txg);</span>
+<span class="lineNum">     597 </span>                :<span class="lineCov">      23752 :                 mutex_enter(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     598 </span>                :            : 
+<span class="lineNum">     599 </span>                :            :                 /*
+<span class="lineNum">     600 </span>                :            :                  * Hand this txg off to the sync thread.
+<span class="lineNum">     601 </span>                :            :                  */
+<span class="lineNum">     602 </span>                :<span class="lineCov">      23752 :                 dprintf(&quot;quiesce done, handing off txg %llu\n&quot;, txg);</span>
+<span class="lineNum">     603 </span>                :<span class="lineCov">      23752 :                 tx-&gt;tx_quiesced_txg = txg;</span>
+<span class="lineNum">     604 </span>                :            :                 DTRACE_PROBE2(txg__quiesced, dsl_pool_t *, dp, uint64_t, txg);
+<span class="lineNum">     605 </span>                :<span class="lineCov">      23752 :                 cv_broadcast(&amp;tx-&gt;tx_sync_more_cv);</span>
+<span class="lineNum">     606 </span>                :<span class="lineCov">      23752 :                 cv_broadcast(&amp;tx-&gt;tx_quiesce_done_cv);</span>
+<span class="lineNum">     607 </span>                :            :         }
+<span class="lineNum">     608 </span>                :            : }
+<span class="lineNum">     609 </span>                :            : 
+<span class="lineNum">     610 </span>                :            : /*
+<span class="lineNum">     611 </span>                :            :  * Delay this thread by delay nanoseconds if we are still in the open
+<span class="lineNum">     612 </span>                :            :  * transaction group and there is already a waiting txg quiesing or quiesced.
+<span class="lineNum">     613 </span>                :            :  * Abort the delay if this txg stalls or enters the quiesing state.
+<a name="614"><span class="lineNum">     614 </span>                :            :  */</a>
+<span class="lineNum">     615 </span>                :            : void
+<span class="lineNum">     616 </span>                :<span class="lineNoCov">          0 : txg_delay(dsl_pool_t *dp, uint64_t txg, hrtime_t delay, hrtime_t resolution)</span>
+<span class="lineNum">     617 </span>                :            : {
+<span class="lineNum">     618 </span>                :<span class="lineNoCov">          0 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     619 </span>                :<span class="lineNoCov">          0 :         hrtime_t start = gethrtime();</span>
+<span class="lineNum">     620 </span>                :            : 
+<span class="lineNum">     621 </span>                :            :         /* don't delay if this txg could transition to quiescing immediately */
+<span class="lineNum">     622 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tx-&gt;tx_open_txg &gt; txg ||</span>
+<span class="lineNum">     623 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :             tx-&gt;tx_syncing_txg == txg-1 || tx-&gt;tx_synced_txg == txg-1)</span>
+<span class="lineNum">     624 </span>                :            :                 return;
+<span class="lineNum">     625 </span>                :            : 
+<span class="lineNum">     626 </span>                :<span class="lineNoCov">          0 :         mutex_enter(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     627 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tx-&gt;tx_open_txg &gt; txg || tx-&gt;tx_synced_txg == txg-1) {</span>
+<span class="lineNum">     628 </span>                :<span class="lineNoCov">          0 :                 mutex_exit(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     629 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     630 </span>                :            :         }
+<span class="lineNum">     631 </span>                :            : 
+<span class="lineNum">     632 </span>[<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         while (gethrtime() - start &lt; delay &amp;&amp;</span>
+<span class="lineNum">     633 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :             tx-&gt;tx_syncing_txg &lt; txg-1 &amp;&amp; !txg_stalled(dp)) {</span>
+<span class="lineNum">     634 </span>                :<span class="lineNoCov">          0 :                 (void) cv_timedwait_hires(&amp;tx-&gt;tx_quiesce_more_cv,</span>
+<span class="lineNum">     635 </span>                :            :                     &amp;tx-&gt;tx_sync_lock, delay, resolution, 0);
+<span class="lineNum">     636 </span>                :            :         }
+<span class="lineNum">     637 </span>                :            : 
+<span class="lineNum">     638 </span>                :<span class="lineNoCov">          0 :         DMU_TX_STAT_BUMP(dmu_tx_delay);</span>
+<span class="lineNum">     639 </span>                :            : 
+<span class="lineNum">     640 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     641 </span>                :            : }
+<a name="642"><span class="lineNum">     642 </span>                :            : </a>
+<span class="lineNum">     643 </span>                :            : void
+<span class="lineNum">     644 </span>                :<span class="lineCov">      11473 : txg_wait_synced(dsl_pool_t *dp, uint64_t txg)</span>
+<span class="lineNum">     645 </span>                :            : {
+<span class="lineNum">     646 </span>                :<span class="lineCov">      11473 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     647 </span>                :            : 
+<span class="lineNum">     648 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 11473 times"> + </span>]:<span class="lineCov">      11473 :         ASSERT(!dsl_pool_config_held(dp));</span>
+<span class="lineNum">     649 </span>                :            : 
+<span class="lineNum">     650 </span>                :<span class="lineCov">      11473 :         mutex_enter(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     651 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 11473 times"> + </span>]:<span class="lineCov">      11473 :         ASSERT(tx-&gt;tx_threads == 2);</span>
+<span class="lineNum">     652 </span>        [<span class="branchCov" title="Branch 0 was taken 914 times"> + </span><span class="branchCov" title="Branch 1 was taken 10559 times"> + </span>]:<span class="lineCov">      11473 :         if (txg == 0)</span>
+<span class="lineNum">     653 </span>                :<span class="lineCov">        914 :                 txg = tx-&gt;tx_open_txg + TXG_DEFER_SIZE;</span>
+<span class="lineNum">     654 </span>        [<span class="branchCov" title="Branch 0 was taken 7055 times"> + </span><span class="branchCov" title="Branch 1 was taken 4418 times"> + </span>]:<span class="lineCov">      11473 :         if (tx-&gt;tx_sync_txg_waiting &lt; txg)</span>
+<span class="lineNum">     655 </span>                :<span class="lineCov">       7055 :                 tx-&gt;tx_sync_txg_waiting = txg;</span>
+<span class="lineNum">     656 </span>                :<span class="lineCov">      11473 :         dprintf(&quot;txg=%llu quiesce_txg=%llu sync_txg=%llu\n&quot;,</span>
+<span class="lineNum">     657 </span>                :            :             txg, tx-&gt;tx_quiesce_txg_waiting, tx-&gt;tx_sync_txg_waiting);
+<span class="lineNum">     658 </span>        [<span class="branchCov" title="Branch 0 was taken 23802 times"> + </span><span class="branchCov" title="Branch 1 was taken 11472 times"> + </span>]:<span class="lineCov">      35274 :         while (tx-&gt;tx_synced_txg &lt; txg) {</span>
+<span class="lineNum">     659 </span>                :<span class="lineCov">      23802 :                 dprintf(&quot;broadcasting sync more &quot;</span>
+<span class="lineNum">     660 </span>                :            :                     &quot;tx_synced=%llu waiting=%llu dp=%p\n&quot;,
+<span class="lineNum">     661 </span>                :            :                     tx-&gt;tx_synced_txg, tx-&gt;tx_sync_txg_waiting, dp);
+<span class="lineNum">     662 </span>                :<span class="lineCov">      23802 :                 cv_broadcast(&amp;tx-&gt;tx_sync_more_cv);</span>
+<span class="lineNum">     663 </span>                :<span class="lineCov">      23802 :                 cv_wait(&amp;tx-&gt;tx_sync_done_cv, &amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     664 </span>                :            :         }
+<span class="lineNum">     665 </span>                :<span class="lineCov">      11472 :         mutex_exit(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     666 </span>                :<span class="lineCov">      11472 : }</span>
+<a name="667"><span class="lineNum">     667 </span>                :            : </a>
+<span class="lineNum">     668 </span>                :            : void
+<span class="lineNum">     669 </span>                :<span class="lineCov">     189346 : txg_wait_open(dsl_pool_t *dp, uint64_t txg)</span>
+<span class="lineNum">     670 </span>                :            : {
+<span class="lineNum">     671 </span>                :<span class="lineCov">     189346 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     672 </span>                :            : 
+<span class="lineNum">     673 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 189361 times"> + </span>]:<span class="lineCov">     189346 :         ASSERT(!dsl_pool_config_held(dp));</span>
+<span class="lineNum">     674 </span>                :            : 
+<span class="lineNum">     675 </span>                :<span class="lineCov">     189361 :         mutex_enter(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     676 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 189361 times"> + </span>]:<span class="lineCov">     189361 :         ASSERT(tx-&gt;tx_threads == 2);</span>
+<span class="lineNum">     677 </span>        [<span class="branchCov" title="Branch 0 was taken 140 times"> + </span><span class="branchCov" title="Branch 1 was taken 189221 times"> + </span>]:<span class="lineCov">     189361 :         if (txg == 0)</span>
+<span class="lineNum">     678 </span>                :<span class="lineCov">        140 :                 txg = tx-&gt;tx_open_txg + 1;</span>
+<span class="lineNum">     679 </span>        [<span class="branchCov" title="Branch 0 was taken 17042 times"> + </span><span class="branchCov" title="Branch 1 was taken 172319 times"> + </span>]:<span class="lineCov">     189361 :         if (tx-&gt;tx_quiesce_txg_waiting &lt; txg)</span>
+<span class="lineNum">     680 </span>                :<span class="lineCov">      17042 :                 tx-&gt;tx_quiesce_txg_waiting = txg;</span>
+<span class="lineNum">     681 </span>                :<span class="lineCov">     189361 :         dprintf(&quot;txg=%llu quiesce_txg=%llu sync_txg=%llu\n&quot;,</span>
+<span class="lineNum">     682 </span>                :            :             txg, tx-&gt;tx_quiesce_txg_waiting, tx-&gt;tx_sync_txg_waiting);
+<span class="lineNum">     683 </span>        [<span class="branchCov" title="Branch 0 was taken 194852 times"> + </span><span class="branchCov" title="Branch 1 was taken 189361 times"> + </span>]:<span class="lineCov">     384213 :         while (tx-&gt;tx_open_txg &lt; txg) {</span>
+<span class="lineNum">     684 </span>                :<span class="lineCov">     194852 :                 cv_broadcast(&amp;tx-&gt;tx_quiesce_more_cv);</span>
+<span class="lineNum">     685 </span>                :<span class="lineCov">     194852 :                 cv_wait(&amp;tx-&gt;tx_quiesce_done_cv, &amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     686 </span>                :            :         }
+<span class="lineNum">     687 </span>                :<span class="lineCov">     189361 :         mutex_exit(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     688 </span>                :<span class="lineCov">     189280 : }</span>
+<span class="lineNum">     689 </span>                :            : 
+<span class="lineNum">     690 </span>                :            : /*
+<span class="lineNum">     691 </span>                :            :  * If there isn't a txg syncing or in the pipeline, push another txg through
+<span class="lineNum">     692 </span>                :            :  * the pipeline by queiscing the open txg.
+<a name="693"><span class="lineNum">     693 </span>                :            :  */</a>
+<span class="lineNum">     694 </span>                :            : void
+<span class="lineNum">     695 </span>                :<span class="lineNoCov">          0 : txg_kick(dsl_pool_t *dp)</span>
+<span class="lineNum">     696 </span>                :            : {
+<span class="lineNum">     697 </span>                :<span class="lineNoCov">          0 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     698 </span>                :            : 
+<span class="lineNum">     699 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(!dsl_pool_config_held(dp));</span>
+<span class="lineNum">     700 </span>                :            : 
+<span class="lineNum">     701 </span>                :<span class="lineNoCov">          0 :         mutex_enter(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     702 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tx-&gt;tx_syncing_txg == 0 &amp;&amp;</span>
+<span class="lineNum">     703 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :             tx-&gt;tx_quiesce_txg_waiting &lt;= tx-&gt;tx_open_txg &amp;&amp;</span>
+<span class="lineNum">     704 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :             tx-&gt;tx_sync_txg_waiting &lt;= tx-&gt;tx_synced_txg &amp;&amp;</span>
+<span class="lineNum">     705 </span>                :<span class="lineNoCov">          0 :             tx-&gt;tx_quiesced_txg &lt;= tx-&gt;tx_synced_txg) {</span>
+<span class="lineNum">     706 </span>                :<span class="lineNoCov">          0 :                 tx-&gt;tx_quiesce_txg_waiting = tx-&gt;tx_open_txg + 1;</span>
+<span class="lineNum">     707 </span>                :<span class="lineNoCov">          0 :                 cv_broadcast(&amp;tx-&gt;tx_quiesce_more_cv);</span>
+<span class="lineNum">     708 </span>                :            :         }
+<span class="lineNum">     709 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;tx-&gt;tx_sync_lock);</span>
+<span class="lineNum">     710 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="711"><span class="lineNum">     711 </span>                :            : </a>
+<span class="lineNum">     712 </span>                :            : boolean_t
+<span class="lineNum">     713 </span>                :<span class="lineNoCov">          0 : txg_stalled(dsl_pool_t *dp)</span>
+<span class="lineNum">     714 </span>                :            : {
+<span class="lineNum">     715 </span>                :<span class="lineNoCov">          0 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     716 </span>                :<span class="lineNoCov">          0 :         return (tx-&gt;tx_quiesce_txg_waiting &gt; tx-&gt;tx_open_txg);</span>
+<span class="lineNum">     717 </span>                :            : }
+<a name="718"><span class="lineNum">     718 </span>                :            : </a>
+<span class="lineNum">     719 </span>                :            : boolean_t
+<span class="lineNum">     720 </span>                :<span class="lineCov">     453197 : txg_sync_waiting(dsl_pool_t *dp)</span>
+<span class="lineNum">     721 </span>                :            : {
+<span class="lineNum">     722 </span>                :<span class="lineCov">     453197 :         tx_state_t *tx = &amp;dp-&gt;dp_tx;</span>
+<span class="lineNum">     723 </span>                :            : 
+<span class="lineNum">     724 </span>[<span class="branchCov" title="Branch 0 was taken 453149 times"> + </span><span class="branchCov" title="Branch 1 was taken 48 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 453149 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">     453197 :         return (tx-&gt;tx_syncing_txg &lt;= tx-&gt;tx_sync_txg_waiting ||</span>
+<span class="lineNum">     725 </span>                :<span class="lineCov">     453149 :             tx-&gt;tx_quiesced_txg != 0);</span>
+<span class="lineNum">     726 </span>                :            : }
+<span class="lineNum">     727 </span>                :            : 
+<span class="lineNum">     728 </span>                :            : /*
+<span class="lineNum">     729 </span>                :            :  * Verify that this txg is active (open, quiescing, syncing).  Non-active
+<span class="lineNum">     730 </span>                :            :  * txg's should not be manipulated.
+<a name="731"><span class="lineNum">     731 </span>                :            :  */</a>
+<span class="lineNum">     732 </span>                :            : void
+<span class="lineNum">     733 </span>                :<span class="lineCov">   15170609 : txg_verify(spa_t *spa, uint64_t txg)</span>
+<span class="lineNum">     734 </span>                :            : {
+<span class="lineNum">     735 </span>                :<span class="lineCov">   15170609 :         ASSERTV(dsl_pool_t *dp = spa_get_dsl(spa));</span>
+<span class="lineNum">     736 </span>        [<span class="branchCov" title="Branch 0 was taken 2653016 times"> + </span><span class="branchCov" title="Branch 1 was taken 12517557 times"> + </span>]:<span class="lineCov">   15170573 :         if (txg &lt;= TXG_INITIAL || txg == ZILTEST_TXG)</span>
+<span class="lineNum">     737 </span>                :            :                 return;
+<span class="lineNum">     738 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2653016 times"> + </span>]:<span class="lineCov">    2653016 :         ASSERT3U(txg, &lt;=, dp-&gt;dp_tx.tx_open_txg);</span>
+<span class="lineNum">     739 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2653016 times"> + </span>]:<span class="lineCov">    2653016 :         ASSERT3U(txg, &gt;=, dp-&gt;dp_tx.tx_synced_txg);</span>
+<span class="lineNum">     740 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2653016 times"> + </span>]:<span class="lineCov">    2653016 :         ASSERT3U(txg, &gt;=, dp-&gt;dp_tx.tx_open_txg - TXG_CONCURRENT_STATES);</span>
+<span class="lineNum">     741 </span>                :            : }
+<span class="lineNum">     742 </span>                :            : 
+<span class="lineNum">     743 </span>                :            : /*
+<span class="lineNum">     744 </span>                :            :  * Per-txg object lists.
+<a name="745"><span class="lineNum">     745 </span>                :            :  */</a>
+<span class="lineNum">     746 </span>                :            : void
+<span class="lineNum">     747 </span>                :<span class="lineCov">      43867 : txg_list_create(txg_list_t *tl, spa_t *spa, size_t offset)</span>
+<span class="lineNum">     748 </span>                :            : {
+<span class="lineNum">     749 </span>                :            :         int t;
+<span class="lineNum">     750 </span>                :            : 
+<span class="lineNum">     751 </span>                :<span class="lineCov">      43867 :         mutex_init(&amp;tl-&gt;tl_lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     752 </span>                :            : 
+<span class="lineNum">     753 </span>                :<span class="lineCov">      43867 :         tl-&gt;tl_offset = offset;</span>
+<span class="lineNum">     754 </span>                :<span class="lineCov">      43867 :         tl-&gt;tl_spa = spa;</span>
+<span class="lineNum">     755 </span>                :            : 
+<span class="lineNum">     756 </span>        [<span class="branchCov" title="Branch 0 was taken 175468 times"> + </span><span class="branchCov" title="Branch 1 was taken 43867 times"> + </span>]:<span class="lineCov">     219335 :         for (t = 0; t &lt; TXG_SIZE; t++)</span>
+<span class="lineNum">     757 </span>                :<span class="lineCov">     175468 :                 tl-&gt;tl_head[t] = NULL;</span>
+<span class="lineNum">     758 </span>                :<span class="lineCov">      43867 : }</span>
+<a name="759"><span class="lineNum">     759 </span>                :            : </a>
+<span class="lineNum">     760 </span>                :            : void
+<span class="lineNum">     761 </span>                :<span class="lineCov">      43854 : txg_list_destroy(txg_list_t *tl)</span>
+<span class="lineNum">     762 </span>                :            : {
+<span class="lineNum">     763 </span>                :            :         int t;
+<span class="lineNum">     764 </span>                :            : 
+<span class="lineNum">     765 </span>        [<span class="branchCov" title="Branch 0 was taken 175416 times"> + </span><span class="branchCov" title="Branch 1 was taken 43854 times"> + </span>]:<span class="lineCov">     219270 :         for (t = 0; t &lt; TXG_SIZE; t++)</span>
+<span class="lineNum">     766 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 175416 times"> + </span>]:<span class="lineCov">     175416 :                 ASSERT(txg_list_empty(tl, t));</span>
+<span class="lineNum">     767 </span>                :            : 
+<span class="lineNum">     768 </span>                :<span class="lineCov">      43854 :         mutex_destroy(&amp;tl-&gt;tl_lock);</span>
+<span class="lineNum">     769 </span>                :<span class="lineCov">      43854 : }</span>
+<a name="770"><span class="lineNum">     770 </span>                :            : </a>
+<span class="lineNum">     771 </span>                :            : boolean_t
+<span class="lineNum">     772 </span>                :<span class="lineCov">   12563176 : txg_list_empty(txg_list_t *tl, uint64_t txg)</span>
+<span class="lineNum">     773 </span>                :            : {
+<span class="lineNum">     774 </span>                :<span class="lineCov">   12563176 :         txg_verify(tl-&gt;tl_spa, txg);</span>
+<span class="lineNum">     775 </span>                :<span class="lineCov">   12563558 :         return (tl-&gt;tl_head[txg &amp; TXG_MASK] == NULL);</span>
+<span class="lineNum">     776 </span>                :            : }
+<span class="lineNum">     777 </span>                :            : 
+<span class="lineNum">     778 </span>                :            : /*
+<span class="lineNum">     779 </span>                :            :  * Returns true if all txg lists are empty.
+<span class="lineNum">     780 </span>                :            :  *
+<span class="lineNum">     781 </span>                :            :  * Warning: this is inherently racy (an item could be added immediately
+<span class="lineNum">     782 </span>                :            :  * after this function returns). We don't bother with the lock because
+<span class="lineNum">     783 </span>                :            :  * it wouldn't change the semantics.
+<a name="784"><span class="lineNum">     784 </span>                :            :  */</a>
+<span class="lineNum">     785 </span>                :            : boolean_t
+<span class="lineNum">     786 </span>                :<span class="lineCov">    3795902 : txg_all_lists_empty(txg_list_t *tl)</span>
+<span class="lineNum">     787 </span>                :            : {
+<span class="lineNum">     788 </span>                :            :         int i;
+<span class="lineNum">     789 </span>                :            : 
+<span class="lineNum">     790 </span>        [<span class="branchCov" title="Branch 0 was taken 12193397 times"> + </span><span class="branchCov" title="Branch 1 was taken 2054164 times"> + </span>]:<span class="lineCov">   14247561 :         for (i = 0; i &lt; TXG_SIZE; i++) {</span>
+<span class="lineNum">     791 </span>        [<span class="branchCov" title="Branch 1 was taken 10451659 times"> + </span><span class="branchCov" title="Branch 2 was taken 1743170 times"> + </span>]:<span class="lineCov">   12193397 :                 if (!txg_list_empty(tl, i)) {</span>
+<span class="lineNum">     792 </span>                :            :                         return (B_FALSE);
+<span class="lineNum">     793 </span>                :            :                 }
+<span class="lineNum">     794 </span>                :            :         }
+<span class="lineNum">     795 </span>                :            :         return (B_TRUE);
+<span class="lineNum">     796 </span>                :            : }
+<span class="lineNum">     797 </span>                :            : 
+<span class="lineNum">     798 </span>                :            : /*
+<span class="lineNum">     799 </span>                :            :  * Add an entry to the list (unless it's already on the list).
+<span class="lineNum">     800 </span>                :            :  * Returns B_TRUE if it was actually added.
+<a name="801"><span class="lineNum">     801 </span>                :            :  */</a>
+<span class="lineNum">     802 </span>                :            : boolean_t
+<span class="lineNum">     803 </span>                :<span class="lineCov">    1455582 : txg_list_add(txg_list_t *tl, void *p, uint64_t txg)</span>
+<span class="lineNum">     804 </span>                :            : {
+<span class="lineNum">     805 </span>                :<span class="lineCov">    1455582 :         int t = txg &amp; TXG_MASK;</span>
+<span class="lineNum">     806 </span>                :<span class="lineCov">    1455582 :         txg_node_t *tn = (txg_node_t *)((char *)p + tl-&gt;tl_offset);</span>
+<span class="lineNum">     807 </span>                :            :         boolean_t add;
+<span class="lineNum">     808 </span>                :            : 
+<span class="lineNum">     809 </span>                :<span class="lineCov">    1455582 :         txg_verify(tl-&gt;tl_spa, txg);</span>
+<span class="lineNum">     810 </span>                :<span class="lineCov">    1455483 :         mutex_enter(&amp;tl-&gt;tl_lock);</span>
+<span class="lineNum">     811 </span>                :<span class="lineCov">    1457039 :         add = (tn-&gt;tn_member[t] == 0);</span>
+<span class="lineNum">     812 </span>        [<span class="branchCov" title="Branch 0 was taken 325729 times"> + </span><span class="branchCov" title="Branch 1 was taken 1131310 times"> + </span>]:<span class="lineCov">    1457039 :         if (add) {</span>
+<span class="lineNum">     813 </span>                :<span class="lineCov">     325729 :                 tn-&gt;tn_member[t] = 1;</span>
+<span class="lineNum">     814 </span>                :<span class="lineCov">     325729 :                 tn-&gt;tn_next[t] = tl-&gt;tl_head[t];</span>
+<span class="lineNum">     815 </span>                :<span class="lineCov">     325729 :                 tl-&gt;tl_head[t] = tn;</span>
+<span class="lineNum">     816 </span>                :            :         }
+<span class="lineNum">     817 </span>                :<span class="lineCov">    1457039 :         mutex_exit(&amp;tl-&gt;tl_lock);</span>
+<span class="lineNum">     818 </span>                :            : 
+<span class="lineNum">     819 </span>                :<span class="lineCov">    1457060 :         return (add);</span>
+<span class="lineNum">     820 </span>                :            : }
+<span class="lineNum">     821 </span>                :            : 
+<span class="lineNum">     822 </span>                :            : /*
+<span class="lineNum">     823 </span>                :            :  * Add an entry to the end of the list, unless it's already on the list.
+<span class="lineNum">     824 </span>                :            :  * (walks list to find end)
+<span class="lineNum">     825 </span>                :            :  * Returns B_TRUE if it was actually added.
+<a name="826"><span class="lineNum">     826 </span>                :            :  */</a>
+<span class="lineNum">     827 </span>                :            : boolean_t
+<span class="lineNum">     828 </span>                :<span class="lineCov">       8297 : txg_list_add_tail(txg_list_t *tl, void *p, uint64_t txg)</span>
+<span class="lineNum">     829 </span>                :            : {
+<span class="lineNum">     830 </span>                :<span class="lineCov">       8297 :         int t = txg &amp; TXG_MASK;</span>
+<span class="lineNum">     831 </span>                :<span class="lineCov">       8297 :         txg_node_t *tn = (txg_node_t *)((char *)p + tl-&gt;tl_offset);</span>
+<span class="lineNum">     832 </span>                :            :         boolean_t add;
+<span class="lineNum">     833 </span>                :            : 
+<span class="lineNum">     834 </span>                :<span class="lineCov">       8297 :         txg_verify(tl-&gt;tl_spa, txg);</span>
+<span class="lineNum">     835 </span>                :<span class="lineCov">       8297 :         mutex_enter(&amp;tl-&gt;tl_lock);</span>
+<span class="lineNum">     836 </span>                :<span class="lineCov">       8297 :         add = (tn-&gt;tn_member[t] == 0);</span>
+<span class="lineNum">     837 </span>        [<span class="branchCov" title="Branch 0 was taken 8297 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       8297 :         if (add) {</span>
+<span class="lineNum">     838 </span>                :            :                 txg_node_t **tp;
+<span class="lineNum">     839 </span>                :            : 
+<span class="lineNum">     840 </span>        [<span class="branchCov" title="Branch 0 was taken 9148 times"> + </span><span class="branchCov" title="Branch 1 was taken 8297 times"> + </span>]:<span class="lineCov">      17445 :                 for (tp = &amp;tl-&gt;tl_head[t]; *tp != NULL; tp = &amp;(*tp)-&gt;tn_next[t])</span>
+<span class="lineNum">     841 </span>                :<span class="lineCov">       9148 :                         continue;</span>
+<span class="lineNum">     842 </span>                :            : 
+<span class="lineNum">     843 </span>                :<span class="lineCov">       8297 :                 tn-&gt;tn_member[t] = 1;</span>
+<span class="lineNum">     844 </span>                :<span class="lineCov">       8297 :                 tn-&gt;tn_next[t] = NULL;</span>
+<span class="lineNum">     845 </span>                :<span class="lineCov">       8297 :                 *tp = tn;</span>
+<span class="lineNum">     846 </span>                :            :         }
+<span class="lineNum">     847 </span>                :<span class="lineCov">       8297 :         mutex_exit(&amp;tl-&gt;tl_lock);</span>
+<span class="lineNum">     848 </span>                :            : 
+<span class="lineNum">     849 </span>                :<span class="lineCov">       8297 :         return (add);</span>
+<span class="lineNum">     850 </span>                :            : }
+<span class="lineNum">     851 </span>                :            : 
+<span class="lineNum">     852 </span>                :            : /*
+<span class="lineNum">     853 </span>                :            :  * Remove the head of the list and return it.
+<a name="854"><span class="lineNum">     854 </span>                :            :  */</a>
+<span class="lineNum">     855 </span>                :            : void *
+<span class="lineNum">     856 </span>                :<span class="lineCov">     713048 : txg_list_remove(txg_list_t *tl, uint64_t txg)</span>
+<span class="lineNum">     857 </span>                :            : {
+<span class="lineNum">     858 </span>                :<span class="lineCov">     713048 :         int t = txg &amp; TXG_MASK;</span>
+<span class="lineNum">     859 </span>                :            :         txg_node_t *tn;
+<span class="lineNum">     860 </span>                :<span class="lineCov">     713048 :         void *p = NULL;</span>
+<span class="lineNum">     861 </span>                :            : 
+<span class="lineNum">     862 </span>                :<span class="lineCov">     713048 :         txg_verify(tl-&gt;tl_spa, txg);</span>
+<span class="lineNum">     863 </span>                :<span class="lineCov">     713048 :         mutex_enter(&amp;tl-&gt;tl_lock);</span>
+<span class="lineNum">     864 </span>        [<span class="branchCov" title="Branch 0 was taken 315580 times"> + </span><span class="branchCov" title="Branch 1 was taken 397468 times"> + </span>]:<span class="lineCov">     713048 :         if ((tn = tl-&gt;tl_head[t]) != NULL) {</span>
+<span class="lineNum">     865 </span>                :<span class="lineCov">     315580 :                 p = (char *)tn - tl-&gt;tl_offset;</span>
+<span class="lineNum">     866 </span>                :<span class="lineCov">     315580 :                 tl-&gt;tl_head[t] = tn-&gt;tn_next[t];</span>
+<span class="lineNum">     867 </span>                :<span class="lineCov">     315580 :                 tn-&gt;tn_next[t] = NULL;</span>
+<span class="lineNum">     868 </span>                :<span class="lineCov">     315580 :                 tn-&gt;tn_member[t] = 0;</span>
+<span class="lineNum">     869 </span>                :            :         }
+<span class="lineNum">     870 </span>                :<span class="lineCov">     713048 :         mutex_exit(&amp;tl-&gt;tl_lock);</span>
+<span class="lineNum">     871 </span>                :            : 
+<span class="lineNum">     872 </span>                :<span class="lineCov">     713048 :         return (p);</span>
+<span class="lineNum">     873 </span>                :            : }
+<span class="lineNum">     874 </span>                :            : 
+<span class="lineNum">     875 </span>                :            : /*
+<span class="lineNum">     876 </span>                :            :  * Remove a specific item from the list and return it.
+<a name="877"><span class="lineNum">     877 </span>                :            :  */</a>
+<span class="lineNum">     878 </span>                :            : void *
+<span class="lineNum">     879 </span>                :<span class="lineCov">      18480 : txg_list_remove_this(txg_list_t *tl, void *p, uint64_t txg)</span>
+<span class="lineNum">     880 </span>                :            : {
+<span class="lineNum">     881 </span>                :<span class="lineCov">      18480 :         int t = txg &amp; TXG_MASK;</span>
+<span class="lineNum">     882 </span>                :            :         txg_node_t *tn, **tp;
+<span class="lineNum">     883 </span>                :            : 
+<span class="lineNum">     884 </span>                :<span class="lineCov">      18480 :         txg_verify(tl-&gt;tl_spa, txg);</span>
+<span class="lineNum">     885 </span>                :<span class="lineCov">      18480 :         mutex_enter(&amp;tl-&gt;tl_lock);</span>
+<span class="lineNum">     886 </span>                :            : 
+<span class="lineNum">     887 </span>        [<span class="branchCov" title="Branch 0 was taken 18457 times"> + </span><span class="branchCov" title="Branch 1 was taken 26 times"> + </span>]:<span class="lineCov">      18483 :         for (tp = &amp;tl-&gt;tl_head[t]; (tn = *tp) != NULL; tp = &amp;tn-&gt;tn_next[t]) {</span>
+<span class="lineNum">     888 </span>        [<span class="branchCov" title="Branch 0 was taken 18454 times"> + </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">      18457 :                 if ((char *)tn - tl-&gt;tl_offset == p) {</span>
+<span class="lineNum">     889 </span>                :<span class="lineCov">      18454 :                         *tp = tn-&gt;tn_next[t];</span>
+<span class="lineNum">     890 </span>                :<span class="lineCov">      18454 :                         tn-&gt;tn_next[t] = NULL;</span>
+<span class="lineNum">     891 </span>                :<span class="lineCov">      18454 :                         tn-&gt;tn_member[t] = 0;</span>
+<span class="lineNum">     892 </span>                :<span class="lineCov">      18454 :                         mutex_exit(&amp;tl-&gt;tl_lock);</span>
+<span class="lineNum">     893 </span>                :<span class="lineCov">      18454 :                         return (p);</span>
+<span class="lineNum">     894 </span>                :            :                 }
+<span class="lineNum">     895 </span>                :            :         }
+<span class="lineNum">     896 </span>                :            : 
+<span class="lineNum">     897 </span>                :<span class="lineCov">         26 :         mutex_exit(&amp;tl-&gt;tl_lock);</span>
+<span class="lineNum">     898 </span>                :            : 
+<span class="lineNum">     899 </span>                :<span class="lineCov">         26 :         return (NULL);</span>
+<span class="lineNum">     900 </span>                :            : }
+<a name="901"><span class="lineNum">     901 </span>                :            : </a>
+<span class="lineNum">     902 </span>                :            : boolean_t
+<span class="lineNum">     903 </span>                :<span class="lineCov">     138315 : txg_list_member(txg_list_t *tl, void *p, uint64_t txg)</span>
+<span class="lineNum">     904 </span>                :            : {
+<span class="lineNum">     905 </span>                :<span class="lineCov">     138315 :         int t = txg &amp; TXG_MASK;</span>
+<span class="lineNum">     906 </span>                :<span class="lineCov">     138315 :         txg_node_t *tn = (txg_node_t *)((char *)p + tl-&gt;tl_offset);</span>
+<span class="lineNum">     907 </span>                :            : 
+<span class="lineNum">     908 </span>                :<span class="lineCov">     138315 :         txg_verify(tl-&gt;tl_spa, txg);</span>
+<span class="lineNum">     909 </span>                :<span class="lineCov">     138315 :         return (tn-&gt;tn_member[t] != 0);</span>
+<span class="lineNum">     910 </span>                :            : }
+<span class="lineNum">     911 </span>                :            : 
+<span class="lineNum">     912 </span>                :            : /*
+<span class="lineNum">     913 </span>                :            :  * Walk a txg list -- only safe if you know it's not changing.
+<a name="914"><span class="lineNum">     914 </span>                :            :  */</a>
+<span class="lineNum">     915 </span>                :            : void *
+<span class="lineNum">     916 </span>                :<span class="lineCov">      52673 : txg_list_head(txg_list_t *tl, uint64_t txg)</span>
+<span class="lineNum">     917 </span>                :            : {
+<span class="lineNum">     918 </span>                :<span class="lineCov">      52673 :         int t = txg &amp; TXG_MASK;</span>
+<span class="lineNum">     919 </span>                :<span class="lineCov">      52673 :         txg_node_t *tn = tl-&gt;tl_head[t];</span>
+<span class="lineNum">     920 </span>                :            : 
+<span class="lineNum">     921 </span>                :<span class="lineCov">      52673 :         txg_verify(tl-&gt;tl_spa, txg);</span>
+<span class="lineNum">     922 </span>        [<span class="branchCov" title="Branch 0 was taken 28922 times"> + </span><span class="branchCov" title="Branch 1 was taken 23751 times"> + </span>]:<span class="lineCov">      52673 :         return (tn == NULL ? NULL : (char *)tn - tl-&gt;tl_offset);</span>
+<span class="lineNum">     923 </span>                :            : }
+<a name="924"><span class="lineNum">     924 </span>                :            : </a>
+<span class="lineNum">     925 </span>                :            : void *
+<span class="lineNum">     926 </span>                :<span class="lineCov">      13991 : txg_list_next(txg_list_t *tl, void *p, uint64_t txg)</span>
+<span class="lineNum">     927 </span>                :            : {
+<span class="lineNum">     928 </span>                :<span class="lineCov">      13991 :         int t = txg &amp; TXG_MASK;</span>
+<span class="lineNum">     929 </span>                :<span class="lineCov">      13991 :         txg_node_t *tn = (txg_node_t *)((char *)p + tl-&gt;tl_offset);</span>
+<span class="lineNum">     930 </span>                :            : 
+<span class="lineNum">     931 </span>                :<span class="lineCov">      13991 :         txg_verify(tl-&gt;tl_spa, txg);</span>
+<span class="lineNum">     932 </span>                :<span class="lineCov">      13991 :         tn = tn-&gt;tn_next[t];</span>
+<span class="lineNum">     933 </span>                :            : 
+<span class="lineNum">     934 </span>        [<span class="branchCov" title="Branch 0 was taken 3521 times"> + </span><span class="branchCov" title="Branch 1 was taken 10470 times"> + </span>]:<span class="lineCov">      13991 :         return (tn == NULL ? NULL : (char *)tn - tl-&gt;tl_offset);</span>
+<span class="lineNum">     935 </span>                :            : }
+<span class="lineNum">     936 </span>                :            : 
+<span class="lineNum">     937 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     938 </span>                :            : EXPORT_SYMBOL(txg_init);
+<span class="lineNum">     939 </span>                :            : EXPORT_SYMBOL(txg_fini);
+<span class="lineNum">     940 </span>                :            : EXPORT_SYMBOL(txg_sync_start);
+<span class="lineNum">     941 </span>                :            : EXPORT_SYMBOL(txg_sync_stop);
+<span class="lineNum">     942 </span>                :            : EXPORT_SYMBOL(txg_hold_open);
+<span class="lineNum">     943 </span>                :            : EXPORT_SYMBOL(txg_rele_to_quiesce);
+<span class="lineNum">     944 </span>                :            : EXPORT_SYMBOL(txg_rele_to_sync);
+<span class="lineNum">     945 </span>                :            : EXPORT_SYMBOL(txg_register_callbacks);
+<span class="lineNum">     946 </span>                :            : EXPORT_SYMBOL(txg_delay);
+<span class="lineNum">     947 </span>                :            : EXPORT_SYMBOL(txg_wait_synced);
+<span class="lineNum">     948 </span>                :            : EXPORT_SYMBOL(txg_wait_open);
+<span class="lineNum">     949 </span>                :            : EXPORT_SYMBOL(txg_wait_callbacks);
+<span class="lineNum">     950 </span>                :            : EXPORT_SYMBOL(txg_stalled);
+<span class="lineNum">     951 </span>                :            : EXPORT_SYMBOL(txg_sync_waiting);
+<span class="lineNum">     952 </span>                :            : 
+<span class="lineNum">     953 </span>                :            : module_param(zfs_txg_timeout, int, 0644);
+<span class="lineNum">     954 </span>                :            : MODULE_PARM_DESC(zfs_txg_timeout, &quot;Max seconds worth of delta per txg&quot;);
+<span class="lineNum">     955 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

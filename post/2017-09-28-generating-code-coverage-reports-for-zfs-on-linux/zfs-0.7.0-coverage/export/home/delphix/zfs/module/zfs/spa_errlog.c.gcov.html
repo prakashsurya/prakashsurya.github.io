@@ -1,0 +1,509 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/spa_errlog.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - spa_errlog.c<span style="font-size: 80%;"> (source / <a href="spa_errlog.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">86</td>
+            <td class="headerCovTableEntry">91</td>
+            <td class="headerCovTableEntryHi">94.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntryMed">87.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">34</td>
+            <td class="headerCovTableEntry">42</td>
+            <td class="headerCovTableEntryMed">81.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2006, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2013, 2014 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : /*
+<span class="lineNum">      27 </span>                :            :  * Routines to manage the on-disk persistent error log.
+<span class="lineNum">      28 </span>                :            :  *
+<span class="lineNum">      29 </span>                :            :  * Each pool stores a log of all logical data errors seen during normal
+<span class="lineNum">      30 </span>                :            :  * operation.  This is actually the union of two distinct logs: the last log,
+<span class="lineNum">      31 </span>                :            :  * and the current log.  All errors seen are logged to the current log.  When a
+<span class="lineNum">      32 </span>                :            :  * scrub completes, the current log becomes the last log, the last log is thrown
+<span class="lineNum">      33 </span>                :            :  * out, and the current log is reinitialized.  This way, if an error is somehow
+<span class="lineNum">      34 </span>                :            :  * corrected, a new scrub will show that that it no longer exists, and will be
+<span class="lineNum">      35 </span>                :            :  * deleted from the log when the scrub completes.
+<span class="lineNum">      36 </span>                :            :  *
+<span class="lineNum">      37 </span>                :            :  * The log is stored using a ZAP object whose key is a string form of the
+<span class="lineNum">      38 </span>                :            :  * zbookmark_phys tuple (objset, object, level, blkid), and whose contents is an
+<span class="lineNum">      39 </span>                :            :  * optional 'objset:object' human-readable string describing the data.  When an
+<span class="lineNum">      40 </span>                :            :  * error is first logged, this string will be empty, indicating that no name is
+<span class="lineNum">      41 </span>                :            :  * known.  This prevents us from having to issue a potentially large amount of
+<span class="lineNum">      42 </span>                :            :  * I/O to discover the object name during an error path.  Instead, we do the
+<span class="lineNum">      43 </span>                :            :  * calculation when the data is requested, storing the result so future queries
+<span class="lineNum">      44 </span>                :            :  * will be faster.
+<span class="lineNum">      45 </span>                :            :  *
+<span class="lineNum">      46 </span>                :            :  * This log is then shipped into an nvlist where the key is the dataset name and
+<span class="lineNum">      47 </span>                :            :  * the value is the object name.  Userland is then responsible for uniquifying
+<span class="lineNum">      48 </span>                :            :  * this list and displaying it to the user.
+<span class="lineNum">      49 </span>                :            :  */
+<span class="lineNum">      50 </span>                :            : 
+<span class="lineNum">      51 </span>                :            : #include &lt;sys/dmu_tx.h&gt;
+<span class="lineNum">      52 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      53 </span>                :            : #include &lt;sys/spa_impl.h&gt;
+<span class="lineNum">      54 </span>                :            : #include &lt;sys/zap.h&gt;
+<span class="lineNum">      55 </span>                :            : #include &lt;sys/zio.h&gt;
+<span class="lineNum">      56 </span>                :            : 
+<span class="lineNum">      57 </span>                :            : 
+<span class="lineNum">      58 </span>                :            : /*
+<span class="lineNum">      59 </span>                :            :  * Convert a bookmark to a string.
+<a name="60"><span class="lineNum">      60 </span>                :            :  */</a>
+<span class="lineNum">      61 </span>                :            : static void
+<span class="lineNum">      62 </span>                :<span class="lineCov">         84 : bookmark_to_name(zbookmark_phys_t *zb, char *buf, size_t len)</span>
+<span class="lineNum">      63 </span>                :            : {
+<span class="lineNum">      64 </span>                :<span class="lineCov">         84 :         (void) snprintf(buf, len, &quot;%llx:%llx:%llx:%llx&quot;,</span>
+<span class="lineNum">      65 </span>                :<span class="lineCov">         84 :             (u_longlong_t)zb-&gt;zb_objset, (u_longlong_t)zb-&gt;zb_object,</span>
+<span class="lineNum">      66 </span>                :<span class="lineCov">         84 :             (u_longlong_t)zb-&gt;zb_level, (u_longlong_t)zb-&gt;zb_blkid);</span>
+<span class="lineNum">      67 </span>                :<span class="lineCov">         84 : }</span>
+<span class="lineNum">      68 </span>                :            : 
+<span class="lineNum">      69 </span>                :            : /*
+<span class="lineNum">      70 </span>                :            :  * Convert a string to a bookmark
+<span class="lineNum">      71 </span>                :            :  */
+<span class="lineNum">      72 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">      73 </span>                :            : static void
+<span class="lineNum">      74 </span>                :            : name_to_bookmark(char *buf, zbookmark_phys_t *zb)
+<span class="lineNum">      75 </span>                :            : {
+<span class="lineNum">      76 </span>                :            :         zb-&gt;zb_objset = zfs_strtonum(buf, &amp;buf);
+<span class="lineNum">      77 </span>                :            :         ASSERT(*buf == ':');
+<span class="lineNum">      78 </span>                :            :         zb-&gt;zb_object = zfs_strtonum(buf + 1, &amp;buf);
+<span class="lineNum">      79 </span>                :            :         ASSERT(*buf == ':');
+<span class="lineNum">      80 </span>                :            :         zb-&gt;zb_level = (int)zfs_strtonum(buf + 1, &amp;buf);
+<span class="lineNum">      81 </span>                :            :         ASSERT(*buf == ':');
+<span class="lineNum">      82 </span>                :            :         zb-&gt;zb_blkid = zfs_strtonum(buf + 1, &amp;buf);
+<span class="lineNum">      83 </span>                :            :         ASSERT(*buf == '\0');
+<span class="lineNum">      84 </span>                :            : }
+<span class="lineNum">      85 </span>                :            : #endif
+<span class="lineNum">      86 </span>                :            : 
+<span class="lineNum">      87 </span>                :            : /*
+<span class="lineNum">      88 </span>                :            :  * Log an uncorrectable error to the persistent error log.  We add it to the
+<span class="lineNum">      89 </span>                :            :  * spa's list of pending errors.  The changes are actually synced out to disk
+<span class="lineNum">      90 </span>                :            :  * during spa_errlog_sync().
+<a name="91"><span class="lineNum">      91 </span>                :            :  */</a>
+<span class="lineNum">      92 </span>                :            : void
+<span class="lineNum">      93 </span>                :<span class="lineCov">        116 : spa_log_error(spa_t *spa, const zbookmark_phys_t *zb)</span>
+<span class="lineNum">      94 </span>                :            : {
+<span class="lineNum">      95 </span>                :            :         spa_error_entry_t search;
+<span class="lineNum">      96 </span>                :            :         spa_error_entry_t *new;
+<span class="lineNum">      97 </span>                :            :         avl_tree_t *tree;
+<span class="lineNum">      98 </span>                :            :         avl_index_t where;
+<span class="lineNum">      99 </span>                :            : 
+<span class="lineNum">     100 </span>                :            :         /*
+<span class="lineNum">     101 </span>                :            :          * If we are trying to import a pool, ignore any errors, as we won't be
+<span class="lineNum">     102 </span>                :            :          * writing to the pool any time soon.
+<span class="lineNum">     103 </span>                :            :          */
+<span class="lineNum">     104 </span>        [<span class="branchCov" title="Branch 1 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        116 :         if (spa_load_state(spa) == SPA_LOAD_TRYIMPORT)</span>
+<span class="lineNum">     105 </span>                :<span class="lineCov">         32 :                 return;</span>
+<span class="lineNum">     106 </span>                :            : 
+<span class="lineNum">     107 </span>                :<span class="lineCov">        116 :         mutex_enter(&amp;spa-&gt;spa_errlist_lock);</span>
+<span class="lineNum">     108 </span>                :            : 
+<span class="lineNum">     109 </span>                :            :         /*
+<span class="lineNum">     110 </span>                :            :          * If we have had a request to rotate the log, log it to the next list
+<span class="lineNum">     111 </span>                :            :          * instead of the current one.
+<span class="lineNum">     112 </span>                :            :          */
+<span class="lineNum">     113 </span>        [<span class="branchCov" title="Branch 0 was taken 71 times"> + </span><span class="branchCov" title="Branch 1 was taken 45 times"> + </span>]:<span class="lineCov">        116 :         if (spa-&gt;spa_scrub_active || spa-&gt;spa_scrub_finished)</span>
+<span class="lineNum">     114 </span>                :<span class="lineCov">         71 :                 tree = &amp;spa-&gt;spa_errlist_scrub;</span>
+<span class="lineNum">     115 </span>                :            :         else
+<span class="lineNum">     116 </span>                :<span class="lineCov">         45 :                 tree = &amp;spa-&gt;spa_errlist_last;</span>
+<span class="lineNum">     117 </span>                :            : 
+<span class="lineNum">     118 </span>                :<span class="lineCov">        116 :         search.se_bookmark = *zb;</span>
+<span class="lineNum">     119 </span>        [<span class="branchCov" title="Branch 1 was taken 32 times"> + </span><span class="branchCov" title="Branch 2 was taken 84 times"> + </span>]:<span class="lineCov">        116 :         if (avl_find(tree, &amp;search, &amp;where) != NULL) {</span>
+<span class="lineNum">     120 </span>                :<span class="lineCov">         32 :                 mutex_exit(&amp;spa-&gt;spa_errlist_lock);</span>
+<span class="lineNum">     121 </span>                :<span class="lineCov">         32 :                 return;</span>
+<span class="lineNum">     122 </span>                :            :         }
+<span class="lineNum">     123 </span>                :            : 
+<span class="lineNum">     124 </span>                :<span class="lineCov">         84 :         new = kmem_zalloc(sizeof (spa_error_entry_t), KM_SLEEP);</span>
+<span class="lineNum">     125 </span>                :<span class="lineCov">         84 :         new-&gt;se_bookmark = *zb;</span>
+<span class="lineNum">     126 </span>                :<span class="lineCov">         84 :         avl_insert(tree, new, where);</span>
+<span class="lineNum">     127 </span>                :            : 
+<span class="lineNum">     128 </span>                :<span class="lineCov">         84 :         mutex_exit(&amp;spa-&gt;spa_errlist_lock);</span>
+<span class="lineNum">     129 </span>                :            : }
+<span class="lineNum">     130 </span>                :            : 
+<span class="lineNum">     131 </span>                :            : /*
+<span class="lineNum">     132 </span>                :            :  * Return the number of errors currently in the error log.  This is actually the
+<span class="lineNum">     133 </span>                :            :  * sum of both the last log and the current log, since we don't know the union
+<span class="lineNum">     134 </span>                :            :  * of these logs until we reach userland.
+<a name="135"><span class="lineNum">     135 </span>                :            :  */</a>
+<span class="lineNum">     136 </span>                :            : uint64_t
+<span class="lineNum">     137 </span>                :<span class="lineCov">        290 : spa_get_errlog_size(spa_t *spa)</span>
+<span class="lineNum">     138 </span>                :            : {
+<span class="lineNum">     139 </span>                :<span class="lineCov">        290 :         uint64_t total = 0, count;</span>
+<span class="lineNum">     140 </span>                :            : 
+<span class="lineNum">     141 </span>                :<span class="lineCov">        290 :         mutex_enter(&amp;spa-&gt;spa_errlog_lock);</span>
+<span class="lineNum">     142 </span>  [<span class="branchCov" title="Branch 0 was taken 33 times"> + </span><span class="branchCov" title="Branch 1 was taken 257 times"> + </span><span class="branchCov" title="Branch 2 was taken 33 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">        323 :         if (spa-&gt;spa_errlog_scrub != 0 &amp;&amp;</span>
+<span class="lineNum">     143 </span>                :<span class="lineCov">         33 :             zap_count(spa-&gt;spa_meta_objset, spa-&gt;spa_errlog_scrub,</span>
+<span class="lineNum">     144 </span>                :            :             &amp;count) == 0)
+<span class="lineNum">     145 </span>                :<span class="lineCov">         33 :                 total += count;</span>
+<span class="lineNum">     146 </span>                :            : 
+<span class="lineNum">     147 </span>        [<span class="branchCov" title="Branch 0 was taken 50 times"> + </span><span class="branchCov" title="Branch 1 was taken 240 times"> + </span>]:<span class="lineCov">        340 :         if (spa-&gt;spa_errlog_last != 0 &amp;&amp; !spa-&gt;spa_scrub_finished &amp;&amp;</span>
+<span class="lineNum">         </span>  [<span class="branchCov" title="Branch 2 was taken 50 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 50 times"> + </span><span class="branchNoCov" title="Branch 5 was not taken"> - </span>]
+<span class="lineNum">     148 </span>                :<span class="lineCov">         50 :             zap_count(spa-&gt;spa_meta_objset, spa-&gt;spa_errlog_last,</span>
+<span class="lineNum">     149 </span>                :            :             &amp;count) == 0)
+<span class="lineNum">     150 </span>                :<span class="lineCov">         50 :                 total += count;</span>
+<span class="lineNum">     151 </span>                :<span class="lineCov">        290 :         mutex_exit(&amp;spa-&gt;spa_errlog_lock);</span>
+<span class="lineNum">     152 </span>                :            : 
+<span class="lineNum">     153 </span>                :<span class="lineCov">        290 :         mutex_enter(&amp;spa-&gt;spa_errlist_lock);</span>
+<span class="lineNum">     154 </span>                :<span class="lineCov">        290 :         total += avl_numnodes(&amp;spa-&gt;spa_errlist_last);</span>
+<span class="lineNum">     155 </span>                :<span class="lineCov">        290 :         total += avl_numnodes(&amp;spa-&gt;spa_errlist_scrub);</span>
+<span class="lineNum">     156 </span>                :<span class="lineCov">        290 :         mutex_exit(&amp;spa-&gt;spa_errlist_lock);</span>
+<span class="lineNum">     157 </span>                :            : 
+<span class="lineNum">     158 </span>                :<span class="lineCov">        290 :         return (total);</span>
+<span class="lineNum">     159 </span>                :            : }
+<span class="lineNum">     160 </span>                :            : 
+<span class="lineNum">     161 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">     162 </span>                :            : static int
+<span class="lineNum">     163 </span>                :            : process_error_log(spa_t *spa, uint64_t obj, void *addr, size_t *count)
+<span class="lineNum">     164 </span>                :            : {
+<span class="lineNum">     165 </span>                :            :         zap_cursor_t zc;
+<span class="lineNum">     166 </span>                :            :         zap_attribute_t za;
+<span class="lineNum">     167 </span>                :            :         zbookmark_phys_t zb;
+<span class="lineNum">     168 </span>                :            : 
+<span class="lineNum">     169 </span>                :            :         if (obj == 0)
+<span class="lineNum">     170 </span>                :            :                 return (0);
+<span class="lineNum">     171 </span>                :            : 
+<span class="lineNum">     172 </span>                :            :         for (zap_cursor_init(&amp;zc, spa-&gt;spa_meta_objset, obj);
+<span class="lineNum">     173 </span>                :            :             zap_cursor_retrieve(&amp;zc, &amp;za) == 0;
+<span class="lineNum">     174 </span>                :            :             zap_cursor_advance(&amp;zc)) {
+<span class="lineNum">     175 </span>                :            : 
+<span class="lineNum">     176 </span>                :            :                 if (*count == 0) {
+<span class="lineNum">     177 </span>                :            :                         zap_cursor_fini(&amp;zc);
+<span class="lineNum">     178 </span>                :            :                         return (SET_ERROR(ENOMEM));
+<span class="lineNum">     179 </span>                :            :                 }
+<span class="lineNum">     180 </span>                :            : 
+<span class="lineNum">     181 </span>                :            :                 name_to_bookmark(za.za_name, &amp;zb);
+<span class="lineNum">     182 </span>                :            : 
+<span class="lineNum">     183 </span>                :            :                 if (copyout(&amp;zb, (char *)addr +
+<span class="lineNum">     184 </span>                :            :                     (*count - 1) * sizeof (zbookmark_phys_t),
+<span class="lineNum">     185 </span>                :            :                     sizeof (zbookmark_phys_t)) != 0) {
+<span class="lineNum">     186 </span>                :            :                         zap_cursor_fini(&amp;zc);
+<span class="lineNum">     187 </span>                :            :                         return (SET_ERROR(EFAULT));
+<span class="lineNum">     188 </span>                :            :                 }
+<span class="lineNum">     189 </span>                :            : 
+<span class="lineNum">     190 </span>                :            :                 *count -= 1;
+<span class="lineNum">     191 </span>                :            :         }
+<span class="lineNum">     192 </span>                :            : 
+<span class="lineNum">     193 </span>                :            :         zap_cursor_fini(&amp;zc);
+<span class="lineNum">     194 </span>                :            : 
+<span class="lineNum">     195 </span>                :            :         return (0);
+<span class="lineNum">     196 </span>                :            : }
+<span class="lineNum">     197 </span>                :            : 
+<span class="lineNum">     198 </span>                :            : static int
+<span class="lineNum">     199 </span>                :            : process_error_list(avl_tree_t *list, void *addr, size_t *count)
+<span class="lineNum">     200 </span>                :            : {
+<span class="lineNum">     201 </span>                :            :         spa_error_entry_t *se;
+<span class="lineNum">     202 </span>                :            : 
+<span class="lineNum">     203 </span>                :            :         for (se = avl_first(list); se != NULL; se = AVL_NEXT(list, se)) {
+<span class="lineNum">     204 </span>                :            : 
+<span class="lineNum">     205 </span>                :            :                 if (*count == 0)
+<span class="lineNum">     206 </span>                :            :                         return (SET_ERROR(ENOMEM));
+<span class="lineNum">     207 </span>                :            : 
+<span class="lineNum">     208 </span>                :            :                 if (copyout(&amp;se-&gt;se_bookmark, (char *)addr +
+<span class="lineNum">     209 </span>                :            :                     (*count - 1) * sizeof (zbookmark_phys_t),
+<span class="lineNum">     210 </span>                :            :                     sizeof (zbookmark_phys_t)) != 0)
+<span class="lineNum">     211 </span>                :            :                         return (SET_ERROR(EFAULT));
+<span class="lineNum">     212 </span>                :            : 
+<span class="lineNum">     213 </span>                :            :                 *count -= 1;
+<span class="lineNum">     214 </span>                :            :         }
+<span class="lineNum">     215 </span>                :            : 
+<span class="lineNum">     216 </span>                :            :         return (0);
+<span class="lineNum">     217 </span>                :            : }
+<span class="lineNum">     218 </span>                :            : #endif
+<span class="lineNum">     219 </span>                :            : 
+<span class="lineNum">     220 </span>                :            : /*
+<span class="lineNum">     221 </span>                :            :  * Copy all known errors to userland as an array of bookmarks.  This is
+<span class="lineNum">     222 </span>                :            :  * actually a union of the on-disk last log and current log, as well as any
+<span class="lineNum">     223 </span>                :            :  * pending error requests.
+<span class="lineNum">     224 </span>                :            :  *
+<span class="lineNum">     225 </span>                :            :  * Because the act of reading the on-disk log could cause errors to be
+<span class="lineNum">     226 </span>                :            :  * generated, we have two separate locks: one for the error log and one for the
+<span class="lineNum">     227 </span>                :            :  * in-core error lists.  We only need the error list lock to log and error, so
+<span class="lineNum">     228 </span>                :            :  * we grab the error log lock while we read the on-disk logs, and only pick up
+<span class="lineNum">     229 </span>                :            :  * the error list lock when we are finished.
+<a name="230"><span class="lineNum">     230 </span>                :            :  */</a>
+<span class="lineNum">     231 </span>                :            : int
+<span class="lineNum">     232 </span>                :<span class="lineNoCov">          0 : spa_get_errlog(spa_t *spa, void *uaddr, size_t *count)</span>
+<span class="lineNum">     233 </span>                :            : {
+<span class="lineNum">     234 </span>                :<span class="lineNoCov">          0 :         int ret = 0;</span>
+<span class="lineNum">     235 </span>                :            : 
+<span class="lineNum">     236 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">     237 </span>                :            :         mutex_enter(&amp;spa-&gt;spa_errlog_lock);
+<span class="lineNum">     238 </span>                :            : 
+<span class="lineNum">     239 </span>                :            :         ret = process_error_log(spa, spa-&gt;spa_errlog_scrub, uaddr, count);
+<span class="lineNum">     240 </span>                :            : 
+<span class="lineNum">     241 </span>                :            :         if (!ret &amp;&amp; !spa-&gt;spa_scrub_finished)
+<span class="lineNum">     242 </span>                :            :                 ret = process_error_log(spa, spa-&gt;spa_errlog_last, uaddr,
+<span class="lineNum">     243 </span>                :            :                     count);
+<span class="lineNum">     244 </span>                :            : 
+<span class="lineNum">     245 </span>                :            :         mutex_enter(&amp;spa-&gt;spa_errlist_lock);
+<span class="lineNum">     246 </span>                :            :         if (!ret)
+<span class="lineNum">     247 </span>                :            :                 ret = process_error_list(&amp;spa-&gt;spa_errlist_scrub, uaddr,
+<span class="lineNum">     248 </span>                :            :                     count);
+<span class="lineNum">     249 </span>                :            :         if (!ret)
+<span class="lineNum">     250 </span>                :            :                 ret = process_error_list(&amp;spa-&gt;spa_errlist_last, uaddr,
+<span class="lineNum">     251 </span>                :            :                     count);
+<span class="lineNum">     252 </span>                :            :         mutex_exit(&amp;spa-&gt;spa_errlist_lock);
+<span class="lineNum">     253 </span>                :            : 
+<span class="lineNum">     254 </span>                :            :         mutex_exit(&amp;spa-&gt;spa_errlog_lock);
+<span class="lineNum">     255 </span>                :            : #endif
+<span class="lineNum">     256 </span>                :            : 
+<span class="lineNum">     257 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">     258 </span>                :            : }
+<span class="lineNum">     259 </span>                :            : 
+<span class="lineNum">     260 </span>                :            : /*
+<span class="lineNum">     261 </span>                :            :  * Called when a scrub completes.  This simply set a bit which tells which AVL
+<span class="lineNum">     262 </span>                :            :  * tree to add new errors.  spa_errlog_sync() is responsible for actually
+<span class="lineNum">     263 </span>                :            :  * syncing the changes to the underlying objects.
+<a name="264"><span class="lineNum">     264 </span>                :            :  */</a>
+<span class="lineNum">     265 </span>                :            : void
+<span class="lineNum">     266 </span>                :<span class="lineCov">         49 : spa_errlog_rotate(spa_t *spa)</span>
+<span class="lineNum">     267 </span>                :            : {
+<span class="lineNum">     268 </span>                :<span class="lineCov">         49 :         mutex_enter(&amp;spa-&gt;spa_errlist_lock);</span>
+<span class="lineNum">     269 </span>                :<span class="lineCov">         49 :         spa-&gt;spa_scrub_finished = B_TRUE;</span>
+<span class="lineNum">     270 </span>                :<span class="lineCov">         49 :         mutex_exit(&amp;spa-&gt;spa_errlist_lock);</span>
+<span class="lineNum">     271 </span>                :<span class="lineCov">         49 : }</span>
+<span class="lineNum">     272 </span>                :            : 
+<span class="lineNum">     273 </span>                :            : /*
+<span class="lineNum">     274 </span>                :            :  * Discard any pending errors from the spa_t.  Called when unloading a faulted
+<span class="lineNum">     275 </span>                :            :  * pool, as the errors encountered during the open cannot be synced to disk.
+<a name="276"><span class="lineNum">     276 </span>                :            :  */</a>
+<span class="lineNum">     277 </span>                :            : void
+<span class="lineNum">     278 </span>                :<span class="lineCov">       1760 : spa_errlog_drain(spa_t *spa)</span>
+<span class="lineNum">     279 </span>                :            : {
+<span class="lineNum">     280 </span>                :            :         spa_error_entry_t *se;
+<span class="lineNum">     281 </span>                :            :         void *cookie;
+<span class="lineNum">     282 </span>                :            : 
+<span class="lineNum">     283 </span>                :<span class="lineCov">       1760 :         mutex_enter(&amp;spa-&gt;spa_errlist_lock);</span>
+<span class="lineNum">     284 </span>                :            : 
+<span class="lineNum">     285 </span>                :<span class="lineCov">       1760 :         cookie = NULL;</span>
+<span class="lineNum">     286 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1760 times"> + </span>]:<span class="lineCov">       1760 :         while ((se = avl_destroy_nodes(&amp;spa-&gt;spa_errlist_last,</span>
+<span class="lineNum">     287 </span>                :            :             &amp;cookie)) != NULL)
+<span class="lineNum">     288 </span>                :<span class="lineNoCov">          0 :                 kmem_free(se, sizeof (spa_error_entry_t));</span>
+<span class="lineNum">     289 </span>                :<span class="lineCov">       1760 :         cookie = NULL;</span>
+<span class="lineNum">     290 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1760 times"> + </span>]:<span class="lineCov">       1760 :         while ((se = avl_destroy_nodes(&amp;spa-&gt;spa_errlist_scrub,</span>
+<span class="lineNum">     291 </span>                :            :             &amp;cookie)) != NULL)
+<span class="lineNum">     292 </span>                :<span class="lineNoCov">          0 :                 kmem_free(se, sizeof (spa_error_entry_t));</span>
+<span class="lineNum">     293 </span>                :            : 
+<span class="lineNum">     294 </span>                :<span class="lineCov">       1760 :         mutex_exit(&amp;spa-&gt;spa_errlist_lock);</span>
+<span class="lineNum">     295 </span>                :<span class="lineCov">       1760 : }</span>
+<span class="lineNum">     296 </span>                :            : 
+<span class="lineNum">     297 </span>                :            : /*
+<span class="lineNum">     298 </span>                :            :  * Process a list of errors into the current on-disk log.
+<a name="299"><span class="lineNum">     299 </span>                :            :  */</a>
+<span class="lineNum">     300 </span>                :            : static void
+<span class="lineNum">     301 </span>                :<span class="lineCov">        223 : sync_error_list(spa_t *spa, avl_tree_t *t, uint64_t *obj, dmu_tx_t *tx)</span>
+<span class="lineNum">     302 </span>                :            : {
+<span class="lineNum">     303 </span>                :            :         spa_error_entry_t *se;
+<span class="lineNum">     304 </span>                :            :         char buf[64];
+<span class="lineNum">     305 </span>                :            :         void *cookie;
+<span class="lineNum">     306 </span>                :            : 
+<span class="lineNum">     307 </span>        [<span class="branchCov" title="Branch 1 was taken 38 times"> + </span><span class="branchCov" title="Branch 2 was taken 185 times"> + </span>]:<span class="lineCov">        223 :         if (avl_numnodes(t) != 0) {</span>
+<span class="lineNum">     308 </span>                :            :                 /* create log if necessary */
+<span class="lineNum">     309 </span>        [<span class="branchCov" title="Branch 0 was taken 36 times"> + </span><span class="branchCov" title="Branch 1 was taken 2 times"> + </span>]:<span class="lineCov">         38 :                 if (*obj == 0)</span>
+<span class="lineNum">     310 </span>                :<span class="lineCov">         36 :                         *obj = zap_create(spa-&gt;spa_meta_objset,</span>
+<span class="lineNum">     311 </span>                :            :                             DMU_OT_ERROR_LOG, DMU_OT_NONE,
+<span class="lineNum">     312 </span>                :            :                             0, tx);
+<span class="lineNum">     313 </span>                :            : 
+<span class="lineNum">     314 </span>                :            :                 /* add errors to the current log */
+<span class="lineNum">     315 </span>        [<span class="branchCov" title="Branch 2 was taken 84 times"> + </span><span class="branchCov" title="Branch 3 was taken 38 times"> + </span>]:<span class="lineCov">        122 :                 for (se = avl_first(t); se != NULL; se = AVL_NEXT(t, se)) {</span>
+<span class="lineNum">     316 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 84 times"> + </span>]:<span class="lineCov">         84 :                         char *name = se-&gt;se_name ? se-&gt;se_name : &quot;&quot;;</span>
+<span class="lineNum">     317 </span>                :            : 
+<span class="lineNum">     318 </span>                :<span class="lineCov">         84 :                         bookmark_to_name(&amp;se-&gt;se_bookmark, buf, sizeof (buf));</span>
+<span class="lineNum">     319 </span>                :            : 
+<span class="lineNum">     320 </span>                :<span class="lineCov">         84 :                         (void) zap_update(spa-&gt;spa_meta_objset,</span>
+<span class="lineNum">     321 </span>                :<span class="lineCov">         84 :                             *obj, buf, 1, strlen(name) + 1, name, tx);</span>
+<span class="lineNum">     322 </span>                :            :                 }
+<span class="lineNum">     323 </span>                :            : 
+<span class="lineNum">     324 </span>                :            :                 /* purge the error list */
+<span class="lineNum">     325 </span>                :<span class="lineCov">         38 :                 cookie = NULL;</span>
+<span class="lineNum">     326 </span>        [<span class="branchCov" title="Branch 1 was taken 84 times"> + </span><span class="branchCov" title="Branch 2 was taken 38 times"> + </span>]:<span class="lineCov">        122 :                 while ((se = avl_destroy_nodes(t, &amp;cookie)) != NULL)</span>
+<span class="lineNum">     327 </span>                :<span class="lineCov">         84 :                         kmem_free(se, sizeof (spa_error_entry_t));</span>
+<span class="lineNum">     328 </span>                :            :         }
+<span class="lineNum">     329 </span>                :<span class="lineCov">        223 : }</span>
+<span class="lineNum">     330 </span>                :            : 
+<span class="lineNum">     331 </span>                :            : /*
+<span class="lineNum">     332 </span>                :            :  * Sync the error log out to disk.  This is a little tricky because the act of
+<span class="lineNum">     333 </span>                :            :  * writing the error log requires the spa_errlist_lock.  So, we need to lock the
+<span class="lineNum">     334 </span>                :            :  * error lists, take a copy of the lists, and then reinitialize them.  Then, we
+<span class="lineNum">     335 </span>                :            :  * drop the error list lock and take the error log lock, at which point we
+<span class="lineNum">     336 </span>                :            :  * do the errlog processing.  Then, if we encounter an I/O error during this
+<span class="lineNum">     337 </span>                :            :  * process, we can successfully add the error to the list.  Note that this will
+<span class="lineNum">     338 </span>                :            :  * result in the perpetual recycling of errors, but it is an unlikely situation
+<span class="lineNum">     339 </span>                :            :  * and not a performance critical operation.
+<a name="340"><span class="lineNum">     340 </span>                :            :  */</a>
+<span class="lineNum">     341 </span>                :            : void
+<span class="lineNum">     342 </span>                :<span class="lineCov">      57468 : spa_errlog_sync(spa_t *spa, uint64_t txg)</span>
+<span class="lineNum">     343 </span>                :            : {
+<span class="lineNum">     344 </span>                :            :         dmu_tx_t *tx;
+<span class="lineNum">     345 </span>                :            :         avl_tree_t scrub, last;
+<span class="lineNum">     346 </span>                :            :         int scrub_finished;
+<span class="lineNum">     347 </span>                :            : 
+<span class="lineNum">     348 </span>                :<span class="lineCov">      57468 :         mutex_enter(&amp;spa-&gt;spa_errlist_lock);</span>
+<span class="lineNum">     349 </span>                :            : 
+<span class="lineNum">     350 </span>                :            :         /*
+<span class="lineNum">     351 </span>                :            :          * Bail out early under normal circumstances.
+<span class="lineNum">     352 </span>                :            :          */
+<span class="lineNum">     353 </span>  [<span class="branchCov" title="Branch 1 was taken 57433 times"> + </span><span class="branchCov" title="Branch 2 was taken 35 times"> + </span><span class="branchCov" title="Branch 3 was taken 57430 times"> + </span><span class="branchCov" title="Branch 4 was taken 3 times"> + </span>]:<span class="lineCov">     114901 :         if (avl_numnodes(&amp;spa-&gt;spa_errlist_scrub) == 0 &amp;&amp;</span>
+<span class="lineNum">     354 </span>        [<span class="branchCov" title="Branch 1 was taken 57381 times"> + </span><span class="branchCov" title="Branch 2 was taken 49 times"> + </span>]:<span class="lineCov">     114863 :             avl_numnodes(&amp;spa-&gt;spa_errlist_last) == 0 &amp;&amp;</span>
+<span class="lineNum">     355 </span>                :<span class="lineCov">      57430 :             !spa-&gt;spa_scrub_finished) {</span>
+<span class="lineNum">     356 </span>                :<span class="lineCov">      57381 :                 mutex_exit(&amp;spa-&gt;spa_errlist_lock);</span>
+<span class="lineNum">     357 </span>                :<span class="lineCov">      57381 :                 return;</span>
+<span class="lineNum">     358 </span>                :            :         }
+<span class="lineNum">     359 </span>                :            : 
+<span class="lineNum">     360 </span>                :<span class="lineCov">         87 :         spa_get_errlists(spa, &amp;last, &amp;scrub);</span>
+<span class="lineNum">     361 </span>                :<span class="lineCov">         87 :         scrub_finished = spa-&gt;spa_scrub_finished;</span>
+<span class="lineNum">     362 </span>                :<span class="lineCov">         87 :         spa-&gt;spa_scrub_finished = B_FALSE;</span>
+<span class="lineNum">     363 </span>                :            : 
+<span class="lineNum">     364 </span>                :<span class="lineCov">         87 :         mutex_exit(&amp;spa-&gt;spa_errlist_lock);</span>
+<span class="lineNum">     365 </span>                :<span class="lineCov">         87 :         mutex_enter(&amp;spa-&gt;spa_errlog_lock);</span>
+<span class="lineNum">     366 </span>                :            : 
+<span class="lineNum">     367 </span>                :<span class="lineCov">         87 :         tx = dmu_tx_create_assigned(spa-&gt;spa_dsl_pool, txg);</span>
+<span class="lineNum">     368 </span>                :            : 
+<span class="lineNum">     369 </span>                :            :         /*
+<span class="lineNum">     370 </span>                :            :          * Sync out the current list of errors.
+<span class="lineNum">     371 </span>                :            :          */
+<span class="lineNum">     372 </span>                :<span class="lineCov">         87 :         sync_error_list(spa, &amp;last, &amp;spa-&gt;spa_errlog_last, tx);</span>
+<span class="lineNum">     373 </span>                :            : 
+<span class="lineNum">     374 </span>                :            :         /*
+<span class="lineNum">     375 </span>                :            :          * Rotate the log if necessary.
+<span class="lineNum">     376 </span>                :            :          */
+<span class="lineNum">     377 </span>        [<span class="branchCov" title="Branch 0 was taken 49 times"> + </span><span class="branchCov" title="Branch 1 was taken 38 times"> + </span>]:<span class="lineCov">         87 :         if (scrub_finished) {</span>
+<span class="lineNum">     378 </span>        [<span class="branchCov" title="Branch 0 was taken 21 times"> + </span><span class="branchCov" title="Branch 1 was taken 28 times"> + </span>]:<span class="lineCov">         49 :                 if (spa-&gt;spa_errlog_last != 0)</span>
+<span class="lineNum">     379 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 21 times"> + </span>]:<span class="lineCov">         21 :                         VERIFY(dmu_object_free(spa-&gt;spa_meta_objset,</span>
+<span class="lineNum">     380 </span>                :            :                             spa-&gt;spa_errlog_last, tx) == 0);
+<span class="lineNum">     381 </span>                :<span class="lineCov">         49 :                 spa-&gt;spa_errlog_last = spa-&gt;spa_errlog_scrub;</span>
+<span class="lineNum">     382 </span>                :<span class="lineCov">         49 :                 spa-&gt;spa_errlog_scrub = 0;</span>
+<span class="lineNum">     383 </span>                :            : 
+<span class="lineNum">     384 </span>                :<span class="lineCov">         49 :                 sync_error_list(spa, &amp;scrub, &amp;spa-&gt;spa_errlog_last, tx);</span>
+<span class="lineNum">     385 </span>                :            :         }
+<span class="lineNum">     386 </span>                :            : 
+<span class="lineNum">     387 </span>                :            :         /*
+<span class="lineNum">     388 </span>                :            :          * Sync out any pending scrub errors.
+<span class="lineNum">     389 </span>                :            :          */
+<span class="lineNum">     390 </span>                :<span class="lineCov">         87 :         sync_error_list(spa, &amp;scrub, &amp;spa-&gt;spa_errlog_scrub, tx);</span>
+<span class="lineNum">     391 </span>                :            : 
+<span class="lineNum">     392 </span>                :            :         /*
+<span class="lineNum">     393 </span>                :            :          * Update the MOS to reflect the new values.
+<span class="lineNum">     394 </span>                :            :          */
+<span class="lineNum">     395 </span>                :<span class="lineCov">         87 :         (void) zap_update(spa-&gt;spa_meta_objset, DMU_POOL_DIRECTORY_OBJECT,</span>
+<span class="lineNum">     396 </span>                :            :             DMU_POOL_ERRLOG_LAST, sizeof (uint64_t), 1,
+<span class="lineNum">     397 </span>                :            :             &amp;spa-&gt;spa_errlog_last, tx);
+<span class="lineNum">     398 </span>                :<span class="lineCov">         87 :         (void) zap_update(spa-&gt;spa_meta_objset, DMU_POOL_DIRECTORY_OBJECT,</span>
+<span class="lineNum">     399 </span>                :            :             DMU_POOL_ERRLOG_SCRUB, sizeof (uint64_t), 1,
+<span class="lineNum">     400 </span>                :            :             &amp;spa-&gt;spa_errlog_scrub, tx);
+<span class="lineNum">     401 </span>                :            : 
+<span class="lineNum">     402 </span>                :<span class="lineCov">         87 :         dmu_tx_commit(tx);</span>
+<span class="lineNum">     403 </span>                :            : 
+<span class="lineNum">     404 </span>                :<span class="lineCov">         87 :         mutex_exit(&amp;spa-&gt;spa_errlog_lock);</span>
+<span class="lineNum">     405 </span>                :            : }
+<span class="lineNum">     406 </span>                :            : 
+<span class="lineNum">     407 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     408 </span>                :            : /* error handling */
+<span class="lineNum">     409 </span>                :            : EXPORT_SYMBOL(spa_log_error);
+<span class="lineNum">     410 </span>                :            : EXPORT_SYMBOL(spa_get_errlog_size);
+<span class="lineNum">     411 </span>                :            : EXPORT_SYMBOL(spa_get_errlog);
+<span class="lineNum">     412 </span>                :            : EXPORT_SYMBOL(spa_errlog_rotate);
+<span class="lineNum">     413 </span>                :            : EXPORT_SYMBOL(spa_errlog_drain);
+<span class="lineNum">     414 </span>                :            : EXPORT_SYMBOL(spa_errlog_sync);
+<span class="lineNum">     415 </span>                :            : EXPORT_SYMBOL(spa_get_errlists);
+<span class="lineNum">     416 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,498 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/range_tree.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - range_tree.c<span style="font-size: 80%;"> (source / <a href="range_tree.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">182</td>
+            <td class="headerCovTableEntry">200</td>
+            <td class="headerCovTableEntryHi">91.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntry">19</td>
+            <td class="headerCovTableEntryHi">94.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">86</td>
+            <td class="headerCovTableEntry">130</td>
+            <td class="headerCovTableEntryLo">66.2 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : /*
+<span class="lineNum">      26 </span>                :            :  * Copyright (c) 2013, 2014 by Delphix. All rights reserved.
+<span class="lineNum">      27 </span>                :            :  */
+<span class="lineNum">      28 </span>                :            : 
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/dmu.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/dnode.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/zio.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/range_tree.h&gt;
+<span class="lineNum">      35 </span>                :            : 
+<span class="lineNum">      36 </span>                :            : kmem_cache_t *range_seg_cache;
+<a name="37"><span class="lineNum">      37 </span>                :            : </a>
+<span class="lineNum">      38 </span>                :            : void
+<span class="lineNum">      39 </span>                :<span class="lineCov">       1234 : range_tree_init(void)</span>
+<span class="lineNum">      40 </span>                :            : {
+<span class="lineNum">      41 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         ASSERT(range_seg_cache == NULL);</span>
+<span class="lineNum">      42 </span>                :<span class="lineCov">       1234 :         range_seg_cache = kmem_cache_create(&quot;range_seg_cache&quot;,</span>
+<span class="lineNum">      43 </span>                :            :             sizeof (range_seg_t), 0, NULL, NULL, NULL, NULL, NULL, 0);
+<span class="lineNum">      44 </span>                :<span class="lineCov">       1234 : }</span>
+<a name="45"><span class="lineNum">      45 </span>                :            : </a>
+<span class="lineNum">      46 </span>                :            : void
+<span class="lineNum">      47 </span>                :<span class="lineCov">        785 : range_tree_fini(void)</span>
+<span class="lineNum">      48 </span>                :            : {
+<span class="lineNum">      49 </span>                :<span class="lineCov">        785 :         kmem_cache_destroy(range_seg_cache);</span>
+<span class="lineNum">      50 </span>                :<span class="lineCov">        785 :         range_seg_cache = NULL;</span>
+<span class="lineNum">      51 </span>                :<span class="lineCov">        785 : }</span>
+<a name="52"><span class="lineNum">      52 </span>                :            : </a>
+<span class="lineNum">      53 </span>                :            : void
+<span class="lineNum">      54 </span>                :<span class="lineNoCov">          0 : range_tree_stat_verify(range_tree_t *rt)</span>
+<span class="lineNum">      55 </span>                :            : {
+<span class="lineNum">      56 </span>                :            :         range_seg_t *rs;
+<span class="lineNum">      57 </span>                :<span class="lineNoCov">          0 :         uint64_t hist[RANGE_TREE_HISTOGRAM_SIZE] = { 0 };</span>
+<span class="lineNum">      58 </span>                :            :         int i;
+<span class="lineNum">      59 </span>                :            : 
+<span class="lineNum">      60 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (rs = avl_first(&amp;rt-&gt;rt_root); rs != NULL;</span>
+<span class="lineNum">      61 </span>                :<span class="lineNoCov">          0 :             rs = AVL_NEXT(&amp;rt-&gt;rt_root, rs)) {</span>
+<span class="lineNum">      62 </span>                :<span class="lineNoCov">          0 :                 uint64_t size = rs-&gt;rs_end - rs-&gt;rs_start;</span>
+<span class="lineNum">      63 </span>                :<span class="lineNoCov">          0 :                 int idx = highbit64(size) - 1;</span>
+<span class="lineNum">      64 </span>                :            : 
+<span class="lineNum">      65 </span>                :<span class="lineNoCov">          0 :                 hist[idx]++;</span>
+<span class="lineNum">      66 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT3U(hist[idx], !=, 0);</span>
+<span class="lineNum">      67 </span>                :            :         }
+<span class="lineNum">      68 </span>                :            : 
+<span class="lineNum">      69 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0; i &lt; RANGE_TREE_HISTOGRAM_SIZE; i++) {</span>
+<span class="lineNum">      70 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (hist[i] != rt-&gt;rt_histogram[i]) {</span>
+<span class="lineNum">      71 </span>                :<span class="lineNoCov">          0 :                         zfs_dbgmsg(&quot;i=%d, hist=%p, hist=%llu, rt_hist=%llu&quot;,</span>
+<span class="lineNum">      72 </span>                :            :                             i, hist, hist[i], rt-&gt;rt_histogram[i]);
+<span class="lineNum">      73 </span>                :            :                 }
+<span class="lineNum">      74 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY3U(hist[i], ==, rt-&gt;rt_histogram[i]);</span>
+<span class="lineNum">      75 </span>                :            :         }
+<span class="lineNum">      76 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="77"><span class="lineNum">      77 </span>                :            : </a>
+<span class="lineNum">      78 </span>                :            : static void
+<span class="lineNum">      79 </span>                :<span class="lineCov">    5303826 : range_tree_stat_incr(range_tree_t *rt, range_seg_t *rs)</span>
+<span class="lineNum">      80 </span>                :            : {
+<span class="lineNum">      81 </span>                :<span class="lineCov">    5303826 :         uint64_t size = rs-&gt;rs_end - rs-&gt;rs_start;</span>
+<span class="lineNum">      82 </span>                :<span class="lineCov">    5303826 :         int idx = highbit64(size) - 1;</span>
+<span class="lineNum">      83 </span>                :            : 
+<span class="lineNum">      84 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5303682 times"> + </span>]:<span class="lineCov">    5303682 :         ASSERT(size != 0);</span>
+<span class="lineNum">      85 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5303682 times"> + </span>]:<span class="lineCov">    5303682 :         ASSERT3U(idx, &lt;,</span>
+<span class="lineNum">      86 </span>                :            :             sizeof (rt-&gt;rt_histogram) / sizeof (*rt-&gt;rt_histogram));
+<span class="lineNum">      87 </span>                :            : 
+<span class="lineNum">      88 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 5303922 times"> + </span>]:<span class="lineCov">    5303682 :         ASSERT(MUTEX_HELD(rt-&gt;rt_lock));</span>
+<span class="lineNum">      89 </span>                :<span class="lineCov">    5303922 :         rt-&gt;rt_histogram[idx]++;</span>
+<span class="lineNum">      90 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5303922 times"> + </span>]:<span class="lineCov">    5303922 :         ASSERT3U(rt-&gt;rt_histogram[idx], !=, 0);</span>
+<span class="lineNum">      91 </span>                :<span class="lineCov">    5303922 : }</span>
+<a name="92"><span class="lineNum">      92 </span>                :            : </a>
+<span class="lineNum">      93 </span>                :            : static void
+<span class="lineNum">      94 </span>                :<span class="lineCov">    4660759 : range_tree_stat_decr(range_tree_t *rt, range_seg_t *rs)</span>
+<span class="lineNum">      95 </span>                :            : {
+<span class="lineNum">      96 </span>                :<span class="lineCov">    4660759 :         uint64_t size = rs-&gt;rs_end - rs-&gt;rs_start;</span>
+<span class="lineNum">      97 </span>                :<span class="lineCov">    4660759 :         int idx = highbit64(size) - 1;</span>
+<span class="lineNum">      98 </span>                :            : 
+<span class="lineNum">      99 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4660829 times"> + </span>]:<span class="lineCov">    4660829 :         ASSERT(size != 0);</span>
+<span class="lineNum">     100 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4660829 times"> + </span>]:<span class="lineCov">    4660829 :         ASSERT3U(idx, &lt;,</span>
+<span class="lineNum">     101 </span>                :            :             sizeof (rt-&gt;rt_histogram) / sizeof (*rt-&gt;rt_histogram));
+<span class="lineNum">     102 </span>                :            : 
+<span class="lineNum">     103 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 4660982 times"> + </span>]:<span class="lineCov">    4660829 :         ASSERT(MUTEX_HELD(rt-&gt;rt_lock));</span>
+<span class="lineNum">     104 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4660982 times"> + </span>]:<span class="lineCov">    4660982 :         ASSERT3U(rt-&gt;rt_histogram[idx], !=, 0);</span>
+<span class="lineNum">     105 </span>                :<span class="lineCov">    4660982 :         rt-&gt;rt_histogram[idx]--;</span>
+<span class="lineNum">     106 </span>                :<span class="lineCov">    4660982 : }</span>
+<span class="lineNum">     107 </span>                :            : 
+<span class="lineNum">     108 </span>                :            : /*
+<span class="lineNum">     109 </span>                :            :  * NOTE: caller is responsible for all locking.
+<a name="110"><span class="lineNum">     110 </span>                :            :  */</a>
+<span class="lineNum">     111 </span>                :            : static int
+<span class="lineNum">     112 </span>                :<span class="lineCov">   55435457 : range_tree_seg_compare(const void *x1, const void *x2)</span>
+<span class="lineNum">     113 </span>                :            : {
+<span class="lineNum">     114 </span>                :<span class="lineCov">   55435457 :         const range_seg_t *r1 = (const range_seg_t *)x1;</span>
+<span class="lineNum">     115 </span>                :<span class="lineCov">   55435457 :         const range_seg_t *r2 = (const range_seg_t *)x2;</span>
+<span class="lineNum">     116 </span>                :            : 
+<span class="lineNum">     117 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 55435457 times"> + </span>]:<span class="lineCov">   55435457 :         ASSERT3U(r1-&gt;rs_start, &lt;=, r1-&gt;rs_end);</span>
+<span class="lineNum">     118 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 55435457 times"> + </span>]:<span class="lineCov">   55435457 :         ASSERT3U(r2-&gt;rs_start, &lt;=, r2-&gt;rs_end);</span>
+<span class="lineNum">     119 </span>                :            : 
+<span class="lineNum">     120 </span>                :<span class="lineCov">   55435457 :         return ((r1-&gt;rs_start &gt;= r2-&gt;rs_end) - (r1-&gt;rs_end &lt;= r2-&gt;rs_start));</span>
+<span class="lineNum">     121 </span>                :            : }
+<a name="122"><span class="lineNum">     122 </span>                :            : </a>
+<span class="lineNum">     123 </span>                :            : range_tree_t *
+<span class="lineNum">     124 </span>                :<span class="lineCov">     451247 : range_tree_create(range_tree_ops_t *ops, void *arg, kmutex_t *lp)</span>
+<span class="lineNum">     125 </span>                :            : {
+<span class="lineNum">     126 </span>                :            :         range_tree_t *rt;
+<span class="lineNum">     127 </span>                :            : 
+<span class="lineNum">     128 </span>                :<span class="lineCov">     451247 :         rt = kmem_zalloc(sizeof (range_tree_t), KM_SLEEP);</span>
+<span class="lineNum">     129 </span>                :            : 
+<span class="lineNum">     130 </span>                :<span class="lineCov">     451247 :         avl_create(&amp;rt-&gt;rt_root, range_tree_seg_compare,</span>
+<span class="lineNum">     131 </span>                :            :             sizeof (range_seg_t), offsetof(range_seg_t, rs_node));
+<span class="lineNum">     132 </span>                :            : 
+<span class="lineNum">     133 </span>                :<span class="lineCov">     451247 :         rt-&gt;rt_lock = lp;</span>
+<span class="lineNum">     134 </span>                :<span class="lineCov">     451247 :         rt-&gt;rt_ops = ops;</span>
+<span class="lineNum">     135 </span>                :<span class="lineCov">     451247 :         rt-&gt;rt_arg = arg;</span>
+<span class="lineNum">     136 </span>                :            : 
+<span class="lineNum">     137 </span>        [<span class="branchCov" title="Branch 0 was taken 39934 times"> + </span><span class="branchCov" title="Branch 1 was taken 411313 times"> + </span>]:<span class="lineCov">     451247 :         if (rt-&gt;rt_ops != NULL)</span>
+<span class="lineNum">     138 </span>                :<span class="lineCov">      39934 :                 rt-&gt;rt_ops-&gt;rtop_create(rt, rt-&gt;rt_arg);</span>
+<span class="lineNum">     139 </span>                :            : 
+<span class="lineNum">     140 </span>                :<span class="lineCov">     451247 :         return (rt);</span>
+<span class="lineNum">     141 </span>                :            : }
+<a name="142"><span class="lineNum">     142 </span>                :            : </a>
+<span class="lineNum">     143 </span>                :            : void
+<span class="lineNum">     144 </span>                :<span class="lineCov">     451101 : range_tree_destroy(range_tree_t *rt)</span>
+<span class="lineNum">     145 </span>                :            : {
+<span class="lineNum">     146 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 451101 times"> + </span>]:<span class="lineCov">     451101 :         VERIFY0(rt-&gt;rt_space);</span>
+<span class="lineNum">     147 </span>                :            : 
+<span class="lineNum">     148 </span>        [<span class="branchCov" title="Branch 0 was taken 37228 times"> + </span><span class="branchCov" title="Branch 1 was taken 413873 times"> + </span>]:<span class="lineCov">     451101 :         if (rt-&gt;rt_ops != NULL)</span>
+<span class="lineNum">     149 </span>                :<span class="lineCov">      37228 :                 rt-&gt;rt_ops-&gt;rtop_destroy(rt, rt-&gt;rt_arg);</span>
+<span class="lineNum">     150 </span>                :            : 
+<span class="lineNum">     151 </span>                :<span class="lineCov">     451101 :         avl_destroy(&amp;rt-&gt;rt_root);</span>
+<span class="lineNum">     152 </span>                :<span class="lineCov">     451100 :         kmem_free(rt, sizeof (*rt));</span>
+<span class="lineNum">     153 </span>                :<span class="lineCov">     451105 : }</span>
+<a name="154"><span class="lineNum">     154 </span>                :            : </a>
+<span class="lineNum">     155 </span>                :            : void
+<span class="lineNum">     156 </span>                :<span class="lineCov">    3075632 : range_tree_add(void *arg, uint64_t start, uint64_t size)</span>
+<span class="lineNum">     157 </span>                :            : {
+<span class="lineNum">     158 </span>                :<span class="lineCov">    3075632 :         range_tree_t *rt = arg;</span>
+<span class="lineNum">     159 </span>                :            :         avl_index_t where;
+<span class="lineNum">     160 </span>                :            :         range_seg_t rsearch, *rs_before, *rs_after, *rs;
+<span class="lineNum">     161 </span>                :<span class="lineCov">    3075632 :         uint64_t end = start + size;</span>
+<span class="lineNum">     162 </span>                :            :         boolean_t merge_before, merge_after;
+<span class="lineNum">     163 </span>                :            : 
+<span class="lineNum">     164 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 3075802 times"> + </span>]:<span class="lineCov">    3075632 :         ASSERT(MUTEX_HELD(rt-&gt;rt_lock));</span>
+<span class="lineNum">     165 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3075802 times"> + </span>]:<span class="lineCov">    3075802 :         VERIFY(size != 0);</span>
+<span class="lineNum">     166 </span>                :            : 
+<span class="lineNum">     167 </span>                :<span class="lineCov">    3075802 :         rsearch.rs_start = start;</span>
+<span class="lineNum">     168 </span>                :<span class="lineCov">    3075802 :         rsearch.rs_end = end;</span>
+<span class="lineNum">     169 </span>                :<span class="lineCov">    3075802 :         rs = avl_find(&amp;rt-&gt;rt_root, &amp;rsearch, &amp;where);</span>
+<span class="lineNum">     170 </span>                :            : 
+<span class="lineNum">     171 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3074149 times"> + </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineCov">    3074149 :         if (rs != NULL &amp;&amp; rs-&gt;rs_start &lt;= start &amp;&amp; rs-&gt;rs_end &gt;= end) {</span>
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">     172 </span>                :<span class="lineNoCov">          0 :                 zfs_panic_recover(&quot;zfs: allocating allocated segment&quot;</span>
+<span class="lineNum">     173 </span>                :            :                     &quot;(offset=%llu size=%llu)\n&quot;,
+<span class="lineNum">     174 </span>                :            :                     (longlong_t)start, (longlong_t)size);
+<span class="lineNum">     175 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     176 </span>                :            :         }
+<span class="lineNum">     177 </span>                :            : 
+<span class="lineNum">     178 </span>                :            :         /* Make sure we don't overlap with either of our neighbors */
+<span class="lineNum">     179 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3074149 times"> + </span>]:<span class="lineCov">    3074149 :         VERIFY(rs == NULL);</span>
+<span class="lineNum">     180 </span>                :            : 
+<span class="lineNum">     181 </span>                :<span class="lineCov">    3074149 :         rs_before = avl_nearest(&amp;rt-&gt;rt_root, where, AVL_BEFORE);</span>
+<span class="lineNum">     182 </span>                :<span class="lineCov">    3074275 :         rs_after = avl_nearest(&amp;rt-&gt;rt_root, where, AVL_AFTER);</span>
+<span class="lineNum">     183 </span>                :            : 
+<span class="lineNum">     184 </span>[<span class="branchCov" title="Branch 0 was taken 2849792 times"> + </span><span class="branchCov" title="Branch 1 was taken 228555 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 848799 times"> + </span><span class="branchCov" title="Branch 3 was taken 2000993 times"> + </span>]:<span class="lineCov">    3078347 :         merge_before = (rs_before != NULL &amp;&amp; rs_before-&gt;rs_end == start);</span>
+<span class="lineNum">     185 </span>[<span class="branchCov" title="Branch 0 was taken 1514620 times"> + </span><span class="branchCov" title="Branch 1 was taken 1563727 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 1125360 times"> + </span><span class="branchCov" title="Branch 3 was taken 389260 times"> + </span>]:<span class="lineCov">    3078347 :         merge_after = (rs_after != NULL &amp;&amp; rs_after-&gt;rs_start == end);</span>
+<span class="lineNum">     186 </span>                :            : 
+<span class="lineNum">     187 </span>        [<span class="branchCov" title="Branch 0 was taken 272241 times"> + </span><span class="branchCov" title="Branch 1 was taken 2806106 times"> + </span>]:<span class="lineCov">    3078347 :         if (merge_before &amp;&amp; merge_after) {</span>
+<span class="lineNum">     188 </span>                :<span class="lineCov">     272241 :                 avl_remove(&amp;rt-&gt;rt_root, rs_before);</span>
+<span class="lineNum">     189 </span>        [<span class="branchCov" title="Branch 0 was taken 187185 times"> + </span><span class="branchCov" title="Branch 1 was taken 85196 times"> + </span>]:<span class="lineCov">     272381 :                 if (rt-&gt;rt_ops != NULL) {</span>
+<span class="lineNum">     190 </span>                :<span class="lineCov">     187185 :                         rt-&gt;rt_ops-&gt;rtop_remove(rt, rs_before, rt-&gt;rt_arg);</span>
+<span class="lineNum">     191 </span>                :<span class="lineCov">     187220 :                         rt-&gt;rt_ops-&gt;rtop_remove(rt, rs_after, rt-&gt;rt_arg);</span>
+<span class="lineNum">     192 </span>                :            :                 }
+<span class="lineNum">     193 </span>                :            : 
+<span class="lineNum">     194 </span>                :<span class="lineCov">     272415 :                 range_tree_stat_decr(rt, rs_before);</span>
+<span class="lineNum">     195 </span>                :<span class="lineCov">     272431 :                 range_tree_stat_decr(rt, rs_after);</span>
+<span class="lineNum">     196 </span>                :            : 
+<span class="lineNum">     197 </span>                :<span class="lineCov">     272306 :                 rs_after-&gt;rs_start = rs_before-&gt;rs_start;</span>
+<span class="lineNum">     198 </span>                :<span class="lineCov">     272306 :                 kmem_cache_free(range_seg_cache, rs_before);</span>
+<span class="lineNum">     199 </span>                :<span class="lineCov">     272306 :                 rs = rs_after;</span>
+<span class="lineNum">     200 </span>        [<span class="branchCov" title="Branch 0 was taken 1728146 times"> + </span><span class="branchCov" title="Branch 1 was taken 1077960 times"> + </span>]:<span class="lineCov">    2806106 :         } else if (merge_before) {</span>
+<span class="lineNum">     201 </span>        [<span class="branchCov" title="Branch 0 was taken 66970 times"> + </span><span class="branchCov" title="Branch 1 was taken 1661176 times"> + </span>]:<span class="lineCov">    1728146 :                 if (rt-&gt;rt_ops != NULL)</span>
+<span class="lineNum">     202 </span>                :<span class="lineCov">      66970 :                         rt-&gt;rt_ops-&gt;rtop_remove(rt, rs_before, rt-&gt;rt_arg);</span>
+<span class="lineNum">     203 </span>                :            : 
+<span class="lineNum">     204 </span>                :<span class="lineCov">    1728160 :                 range_tree_stat_decr(rt, rs_before);</span>
+<span class="lineNum">     205 </span>                :            : 
+<span class="lineNum">     206 </span>                :<span class="lineCov">    1728158 :                 rs_before-&gt;rs_end = end;</span>
+<span class="lineNum">     207 </span>                :<span class="lineCov">    1728158 :                 rs = rs_before;</span>
+<span class="lineNum">     208 </span>        [<span class="branchCov" title="Branch 0 was taken 116402 times"> + </span><span class="branchCov" title="Branch 1 was taken 961558 times"> + </span>]:<span class="lineCov">    1077960 :         } else if (merge_after) {</span>
+<span class="lineNum">     209 </span>        [<span class="branchCov" title="Branch 0 was taken 65306 times"> + </span><span class="branchCov" title="Branch 1 was taken 51096 times"> + </span>]:<span class="lineCov">     116402 :                 if (rt-&gt;rt_ops != NULL)</span>
+<span class="lineNum">     210 </span>                :<span class="lineCov">      65306 :                         rt-&gt;rt_ops-&gt;rtop_remove(rt, rs_after, rt-&gt;rt_arg);</span>
+<span class="lineNum">     211 </span>                :            : 
+<span class="lineNum">     212 </span>                :<span class="lineCov">     116407 :                 range_tree_stat_decr(rt, rs_after);</span>
+<span class="lineNum">     213 </span>                :            : 
+<span class="lineNum">     214 </span>                :<span class="lineCov">     116410 :                 rs_after-&gt;rs_start = start;</span>
+<span class="lineNum">     215 </span>                :<span class="lineCov">     116410 :                 rs = rs_after;</span>
+<span class="lineNum">     216 </span>                :            :         } else {
+<span class="lineNum">     217 </span>                :<span class="lineCov">     961558 :                 rs = kmem_cache_alloc(range_seg_cache, KM_SLEEP);</span>
+<span class="lineNum">     218 </span>                :<span class="lineCov">     962382 :                 rs-&gt;rs_start = start;</span>
+<span class="lineNum">     219 </span>                :<span class="lineCov">     962382 :                 rs-&gt;rs_end = end;</span>
+<span class="lineNum">     220 </span>                :<span class="lineCov">     962382 :                 avl_insert(&amp;rt-&gt;rt_root, rs, where);</span>
+<span class="lineNum">     221 </span>                :            :         }
+<span class="lineNum">     222 </span>                :            : 
+<span class="lineNum">     223 </span>        [<span class="branchCov" title="Branch 0 was taken 629544 times"> + </span><span class="branchCov" title="Branch 1 was taken 2447534 times"> + </span>]:<span class="lineCov">    3077078 :         if (rt-&gt;rt_ops != NULL)</span>
+<span class="lineNum">     224 </span>                :<span class="lineCov">     629544 :                 rt-&gt;rt_ops-&gt;rtop_add(rt, rs, rt-&gt;rt_arg);</span>
+<span class="lineNum">     225 </span>                :            : 
+<span class="lineNum">     226 </span>                :<span class="lineCov">    3075947 :         range_tree_stat_incr(rt, rs);</span>
+<span class="lineNum">     227 </span>                :<span class="lineCov">    3075830 :         rt-&gt;rt_space += size;</span>
+<span class="lineNum">     228 </span>                :            : }
+<a name="229"><span class="lineNum">     229 </span>                :            : </a>
+<span class="lineNum">     230 </span>                :            : void
+<span class="lineNum">     231 </span>                :<span class="lineCov">    2274400 : range_tree_remove(void *arg, uint64_t start, uint64_t size)</span>
+<span class="lineNum">     232 </span>                :            : {
+<span class="lineNum">     233 </span>                :<span class="lineCov">    2274400 :         range_tree_t *rt = arg;</span>
+<span class="lineNum">     234 </span>                :            :         avl_index_t where;
+<span class="lineNum">     235 </span>                :            :         range_seg_t rsearch, *rs, *newseg;
+<span class="lineNum">     236 </span>                :<span class="lineCov">    2274400 :         uint64_t end = start + size;</span>
+<span class="lineNum">     237 </span>                :            :         boolean_t left_over, right_over;
+<span class="lineNum">     238 </span>                :            : 
+<span class="lineNum">     239 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 2274425 times"> + </span>]:<span class="lineCov">    2274400 :         ASSERT(MUTEX_HELD(rt-&gt;rt_lock));</span>
+<span class="lineNum">     240 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2274425 times"> + </span>]:<span class="lineCov">    2274425 :         VERIFY3U(size, !=, 0);</span>
+<span class="lineNum">     241 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2274425 times"> + </span>]:<span class="lineCov">    2274425 :         VERIFY3U(size, &lt;=, rt-&gt;rt_space);</span>
+<span class="lineNum">     242 </span>                :            : 
+<span class="lineNum">     243 </span>                :<span class="lineCov">    2274425 :         rsearch.rs_start = start;</span>
+<span class="lineNum">     244 </span>                :<span class="lineCov">    2274425 :         rsearch.rs_end = end;</span>
+<span class="lineNum">     245 </span>                :<span class="lineCov">    2274425 :         rs = avl_find(&amp;rt-&gt;rt_root, &amp;rsearch, &amp;where);</span>
+<span class="lineNum">     246 </span>                :            : 
+<span class="lineNum">     247 </span>                :            :         /* Make sure we completely overlap with someone */
+<span class="lineNum">     248 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2274308 times"> + </span>]:<span class="lineCov">    2274308 :         if (rs == NULL) {</span>
+<span class="lineNum">     249 </span>                :<span class="lineNoCov">          0 :                 zfs_panic_recover(&quot;zfs: freeing free segment &quot;</span>
+<span class="lineNum">     250 </span>                :            :                     &quot;(offset=%llu size=%llu)&quot;,
+<span class="lineNum">     251 </span>                :            :                     (longlong_t)start, (longlong_t)size);
+<span class="lineNum">     252 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     253 </span>                :            :         }
+<span class="lineNum">     254 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2274308 times"> + </span>]:<span class="lineCov">    2274308 :         VERIFY3U(rs-&gt;rs_start, &lt;=, start);</span>
+<span class="lineNum">     255 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2274308 times"> + </span>]:<span class="lineCov">    2274308 :         VERIFY3U(rs-&gt;rs_end, &gt;=, end);</span>
+<span class="lineNum">     256 </span>                :            : 
+<span class="lineNum">     257 </span>                :<span class="lineCov">    2274308 :         left_over = (rs-&gt;rs_start != start);</span>
+<span class="lineNum">     258 </span>                :<span class="lineCov">    2274308 :         right_over = (rs-&gt;rs_end != end);</span>
+<span class="lineNum">     259 </span>                :            : 
+<span class="lineNum">     260 </span>                :<span class="lineCov">    2274308 :         range_tree_stat_decr(rt, rs);</span>
+<span class="lineNum">     261 </span>                :            : 
+<span class="lineNum">     262 </span>        [<span class="branchCov" title="Branch 0 was taken 1181281 times"> + </span><span class="branchCov" title="Branch 1 was taken 1093110 times"> + </span>]:<span class="lineCov">    2274391 :         if (rt-&gt;rt_ops != NULL)</span>
+<span class="lineNum">     263 </span>                :<span class="lineCov">    1181281 :                 rt-&gt;rt_ops-&gt;rtop_remove(rt, rs, rt-&gt;rt_arg);</span>
+<span class="lineNum">     264 </span>                :            : 
+<span class="lineNum">     265 </span>        [<span class="branchCov" title="Branch 0 was taken 402896 times"> + </span><span class="branchCov" title="Branch 1 was taken 1871542 times"> + </span>]:<span class="lineCov">    2274438 :         if (left_over &amp;&amp; right_over) {</span>
+<span class="lineNum">     266 </span>                :<span class="lineCov">     402896 :                 newseg = kmem_cache_alloc(range_seg_cache, KM_SLEEP);</span>
+<span class="lineNum">     267 </span>                :<span class="lineCov">     402896 :                 newseg-&gt;rs_start = end;</span>
+<span class="lineNum">     268 </span>                :<span class="lineCov">     402896 :                 newseg-&gt;rs_end = rs-&gt;rs_end;</span>
+<span class="lineNum">     269 </span>                :<span class="lineCov">     402896 :                 range_tree_stat_incr(rt, newseg);</span>
+<span class="lineNum">     270 </span>                :            : 
+<span class="lineNum">     271 </span>                :<span class="lineCov">     402896 :                 rs-&gt;rs_end = start;</span>
+<span class="lineNum">     272 </span>                :            : 
+<span class="lineNum">     273 </span>                :<span class="lineCov">     402896 :                 avl_insert_here(&amp;rt-&gt;rt_root, newseg, rs, AVL_AFTER);</span>
+<span class="lineNum">     274 </span>        [<span class="branchCov" title="Branch 0 was taken 2414 times"> + </span><span class="branchCov" title="Branch 1 was taken 400482 times"> + </span>]:<span class="lineCov">     402896 :                 if (rt-&gt;rt_ops != NULL)</span>
+<span class="lineNum">     275 </span>                :<span class="lineCov">       2414 :                         rt-&gt;rt_ops-&gt;rtop_add(rt, newseg, rt-&gt;rt_arg);</span>
+<span class="lineNum">     276 </span>        [<span class="branchCov" title="Branch 0 was taken 149416 times"> + </span><span class="branchCov" title="Branch 1 was taken 1722126 times"> + </span>]:<span class="lineCov">    1871542 :         } else if (left_over) {</span>
+<span class="lineNum">     277 </span>                :<span class="lineCov">     149416 :                 rs-&gt;rs_end = start;</span>
+<span class="lineNum">     278 </span>        [<span class="branchCov" title="Branch 0 was taken 1275156 times"> + </span><span class="branchCov" title="Branch 1 was taken 446970 times"> + </span>]:<span class="lineCov">    1722126 :         } else if (right_over) {</span>
+<span class="lineNum">     279 </span>                :<span class="lineCov">    1275156 :                 rs-&gt;rs_start = end;</span>
+<span class="lineNum">     280 </span>                :            :         } else {
+<span class="lineNum">     281 </span>                :<span class="lineCov">     446970 :                 avl_remove(&amp;rt-&gt;rt_root, rs);</span>
+<span class="lineNum">     282 </span>                :<span class="lineCov">     446969 :                 kmem_cache_free(range_seg_cache, rs);</span>
+<span class="lineNum">     283 </span>                :<span class="lineCov">     446969 :                 rs = NULL;</span>
+<span class="lineNum">     284 </span>                :            :         }
+<span class="lineNum">     285 </span>                :            : 
+<span class="lineNum">     286 </span>        [<span class="branchCov" title="Branch 0 was taken 1827451 times"> + </span><span class="branchCov" title="Branch 1 was taken 446932 times"> + </span>]:<span class="lineCov">    2274383 :         if (rs != NULL) {</span>
+<span class="lineNum">     287 </span>                :<span class="lineCov">    1827451 :                 range_tree_stat_incr(rt, rs);</span>
+<span class="lineNum">     288 </span>                :            : 
+<span class="lineNum">     289 </span>        [<span class="branchCov" title="Branch 0 was taken 1118802 times"> + </span><span class="branchCov" title="Branch 1 was taken 708651 times"> + </span>]:<span class="lineCov">    1827453 :                 if (rt-&gt;rt_ops != NULL)</span>
+<span class="lineNum">     290 </span>                :<span class="lineCov">    1118802 :                         rt-&gt;rt_ops-&gt;rtop_add(rt, rs, rt-&gt;rt_arg);</span>
+<span class="lineNum">     291 </span>                :            :         }
+<span class="lineNum">     292 </span>                :            : 
+<span class="lineNum">     293 </span>                :<span class="lineCov">    2274328 :         rt-&gt;rt_space -= size;</span>
+<span class="lineNum">     294 </span>                :            : }
+<a name="295"><span class="lineNum">     295 </span>                :            : </a>
+<span class="lineNum">     296 </span>                :            : static range_seg_t *
+<span class="lineNum">     297 </span>                :<span class="lineCov">   11150097 : range_tree_find_impl(range_tree_t *rt, uint64_t start, uint64_t size)</span>
+<span class="lineNum">     298 </span>                :            : {
+<span class="lineNum">     299 </span>                :            :         avl_index_t where;
+<span class="lineNum">     300 </span>                :            :         range_seg_t rsearch;
+<span class="lineNum">     301 </span>                :<span class="lineCov">   11150097 :         uint64_t end = start + size;</span>
+<span class="lineNum">     302 </span>                :            : 
+<span class="lineNum">     303 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 11150016 times"> + </span>]:<span class="lineCov">   11150097 :         ASSERT(MUTEX_HELD(rt-&gt;rt_lock));</span>
+<span class="lineNum">     304 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 11150016 times"> + </span>]:<span class="lineCov">   11150016 :         VERIFY(size != 0);</span>
+<span class="lineNum">     305 </span>                :            : 
+<span class="lineNum">     306 </span>                :<span class="lineCov">   11150016 :         rsearch.rs_start = start;</span>
+<span class="lineNum">     307 </span>                :<span class="lineCov">   11150016 :         rsearch.rs_end = end;</span>
+<span class="lineNum">     308 </span>                :<span class="lineCov">   11150016 :         return (avl_find(&amp;rt-&gt;rt_root, &amp;rsearch, &amp;where));</span>
+<span class="lineNum">     309 </span>                :            : }
+<a name="310"><span class="lineNum">     310 </span>                :            : </a>
+<span class="lineNum">     311 </span>                :            : static range_seg_t *
+<span class="lineNum">     312 </span>                :<span class="lineCov">   11126749 : range_tree_find(range_tree_t *rt, uint64_t start, uint64_t size)</span>
+<span class="lineNum">     313 </span>                :            : {
+<span class="lineNum">     314 </span>                :<span class="lineCov">   11126749 :         range_seg_t *rs = range_tree_find_impl(rt, start, size);</span>
+<span class="lineNum">     315 </span>[<span class="branchCov" title="Branch 0 was taken 960792 times"> + </span><span class="branchCov" title="Branch 1 was taken 10164620 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 955708 times"> + </span><span class="branchCov" title="Branch 3 was taken 5084 times"> + </span>]:<span class="lineCov">   11125412 :         if (rs != NULL &amp;&amp; rs-&gt;rs_start &lt;= start &amp;&amp; rs-&gt;rs_end &gt;= start + size)</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 52 times"> + </span><span class="branchCov" title="Branch 5 was taken 955656 times"> + </span>]
+<span class="lineNum">     316 </span>                :            :                 return (rs);
+<span class="lineNum">     317 </span>                :<span class="lineCov">   10169756 :         return (NULL);</span>
+<span class="lineNum">     318 </span>                :            : }
+<a name="319"><span class="lineNum">     319 </span>                :            : </a>
+<span class="lineNum">     320 </span>                :            : void
+<span class="lineNum">     321 </span>                :<span class="lineCov">   10161293 : range_tree_verify(range_tree_t *rt, uint64_t off, uint64_t size)</span>
+<span class="lineNum">     322 </span>                :            : {
+<span class="lineNum">     323 </span>                :            :         range_seg_t *rs;
+<span class="lineNum">     324 </span>                :            : 
+<span class="lineNum">     325 </span>                :<span class="lineCov">   10161293 :         mutex_enter(rt-&gt;rt_lock);</span>
+<span class="lineNum">     326 </span>                :<span class="lineCov">   10162743 :         rs = range_tree_find(rt, off, size);</span>
+<span class="lineNum">     327 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 10161372 times"> + </span>]:<span class="lineCov">   10161372 :         if (rs != NULL)</span>
+<span class="lineNum">     328 </span>                :<span class="lineNoCov">          0 :                 panic(&quot;freeing free block; rs=%p&quot;, (void *)rs);</span>
+<span class="lineNum">     329 </span>                :<span class="lineCov">   10161372 :         mutex_exit(rt-&gt;rt_lock);</span>
+<span class="lineNum">     330 </span>                :<span class="lineCov">   10162034 : }</span>
+<a name="331"><span class="lineNum">     331 </span>                :            : </a>
+<span class="lineNum">     332 </span>                :            : boolean_t
+<span class="lineNum">     333 </span>                :<span class="lineCov">     964174 : range_tree_contains(range_tree_t *rt, uint64_t start, uint64_t size)</span>
+<span class="lineNum">     334 </span>                :            : {
+<span class="lineNum">     335 </span>                :<span class="lineCov">     964174 :         return (range_tree_find(rt, start, size) != NULL);</span>
+<span class="lineNum">     336 </span>                :            : }
+<span class="lineNum">     337 </span>                :            : 
+<span class="lineNum">     338 </span>                :            : /*
+<span class="lineNum">     339 </span>                :            :  * Ensure that this range is not in the tree, regardless of whether
+<span class="lineNum">     340 </span>                :            :  * it is currently in the tree.
+<a name="341"><span class="lineNum">     341 </span>                :            :  */</a>
+<span class="lineNum">     342 </span>                :            : void
+<span class="lineNum">     343 </span>                :<span class="lineCov">      22043 : range_tree_clear(range_tree_t *rt, uint64_t start, uint64_t size)</span>
+<span class="lineNum">     344 </span>                :            : {
+<span class="lineNum">     345 </span>                :            :         range_seg_t *rs;
+<span class="lineNum">     346 </span>                :            : 
+<span class="lineNum">     347 </span>        [<span class="branchCov" title="Branch 1 was taken 1455 times"> + </span><span class="branchCov" title="Branch 2 was taken 22043 times"> + </span>]:<span class="lineCov">      23498 :         while ((rs = range_tree_find_impl(rt, start, size)) != NULL) {</span>
+<span class="lineNum">     348 </span>                :<span class="lineCov">       1455 :                 uint64_t free_start = MAX(rs-&gt;rs_start, start);</span>
+<span class="lineNum">     349 </span>                :<span class="lineCov">       1455 :                 uint64_t free_end = MIN(rs-&gt;rs_end, start + size);</span>
+<span class="lineNum">     350 </span>                :<span class="lineCov">       1455 :                 range_tree_remove(rt, free_start, free_end - free_start);</span>
+<span class="lineNum">     351 </span>                :            :         }
+<span class="lineNum">     352 </span>                :<span class="lineCov">      22043 : }</span>
+<a name="353"><span class="lineNum">     353 </span>                :            : </a>
+<span class="lineNum">     354 </span>                :            : void
+<span class="lineNum">     355 </span>                :<span class="lineCov">     121190 : range_tree_swap(range_tree_t **rtsrc, range_tree_t **rtdst)</span>
+<span class="lineNum">     356 </span>                :            : {
+<span class="lineNum">     357 </span>                :            :         range_tree_t *rt;
+<span class="lineNum">     358 </span>                :            : 
+<span class="lineNum">     359 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 121190 times"> + </span>]:<span class="lineCov">     121190 :         ASSERT(MUTEX_HELD((*rtsrc)-&gt;rt_lock));</span>
+<span class="lineNum">     360 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 121190 times"> + </span>]:<span class="lineCov">     121190 :         ASSERT0(range_tree_space(*rtdst));</span>
+<span class="lineNum">     361 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 121190 times"> + </span>]:<span class="lineCov">     121190 :         ASSERT0(avl_numnodes(&amp;(*rtdst)-&gt;rt_root));</span>
+<span class="lineNum">     362 </span>                :            : 
+<span class="lineNum">     363 </span>                :<span class="lineCov">     121190 :         rt = *rtsrc;</span>
+<span class="lineNum">     364 </span>                :<span class="lineCov">     121190 :         *rtsrc = *rtdst;</span>
+<span class="lineNum">     365 </span>                :<span class="lineCov">     121190 :         *rtdst = rt;</span>
+<span class="lineNum">     366 </span>                :<span class="lineCov">     121190 : }</span>
+<a name="367"><span class="lineNum">     367 </span>                :            : </a>
+<span class="lineNum">     368 </span>                :            : void
+<span class="lineNum">     369 </span>                :<span class="lineCov">     375715 : range_tree_vacate(range_tree_t *rt, range_tree_func_t *func, void *arg)</span>
+<span class="lineNum">     370 </span>                :            : {
+<span class="lineNum">     371 </span>                :            :         range_seg_t *rs;
+<span class="lineNum">     372 </span>                :<span class="lineCov">     375715 :         void *cookie = NULL;</span>
+<span class="lineNum">     373 </span>                :            : 
+<span class="lineNum">     374 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 375717 times"> + </span>]:<span class="lineCov">     375715 :         ASSERT(MUTEX_HELD(rt-&gt;rt_lock));</span>
+<span class="lineNum">     375 </span>                :            : 
+<span class="lineNum">     376 </span>        [<span class="branchCov" title="Branch 0 was taken 48609 times"> + </span><span class="branchCov" title="Branch 1 was taken 327108 times"> + </span>]:<span class="lineCov">     375717 :         if (rt-&gt;rt_ops != NULL)</span>
+<span class="lineNum">     377 </span>                :<span class="lineCov">     375717 :                 rt-&gt;rt_ops-&gt;rtop_vacate(rt, rt-&gt;rt_arg);</span>
+<span class="lineNum">     378 </span>                :            : 
+<span class="lineNum">     379 </span>        [<span class="branchCov" title="Branch 1 was taken 645227 times"> + </span><span class="branchCov" title="Branch 2 was taken 375715 times"> + </span>]:<span class="lineCov">    1020946 :         while ((rs = avl_destroy_nodes(&amp;rt-&gt;rt_root, &amp;cookie)) != NULL) {</span>
+<span class="lineNum">     380 </span>        [<span class="branchCov" title="Branch 0 was taken 415223 times"> + </span><span class="branchCov" title="Branch 1 was taken 230004 times"> + </span>]:<span class="lineCov">     645227 :                 if (func != NULL)</span>
+<span class="lineNum">     381 </span>                :<span class="lineCov">     415223 :                         func(arg, rs-&gt;rs_start, rs-&gt;rs_end - rs-&gt;rs_start);</span>
+<span class="lineNum">     382 </span>                :<span class="lineCov">     645228 :                 kmem_cache_free(range_seg_cache, rs);</span>
+<span class="lineNum">     383 </span>                :            :         }
+<span class="lineNum">     384 </span>                :            : 
+<span class="lineNum">     385 </span>                :<span class="lineCov">     751430 :         bzero(rt-&gt;rt_histogram, sizeof (rt-&gt;rt_histogram));</span>
+<span class="lineNum">     386 </span>                :<span class="lineCov">     375715 :         rt-&gt;rt_space = 0;</span>
+<span class="lineNum">     387 </span>                :<span class="lineCov">     375715 : }</span>
+<a name="388"><span class="lineNum">     388 </span>                :            : </a>
+<span class="lineNum">     389 </span>                :            : void
+<span class="lineNum">     390 </span>                :<span class="lineCov">      17347 : range_tree_walk(range_tree_t *rt, range_tree_func_t *func, void *arg)</span>
+<span class="lineNum">     391 </span>                :            : {
+<span class="lineNum">     392 </span>                :            :         range_seg_t *rs;
+<span class="lineNum">     393 </span>                :            : 
+<span class="lineNum">     394 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 17346 times"> + </span>]:<span class="lineCov">      17347 :         ASSERT(MUTEX_HELD(rt-&gt;rt_lock));</span>
+<span class="lineNum">     395 </span>                :            : 
+<span class="lineNum">     396 </span>        [<span class="branchCov" title="Branch 2 was taken 28864 times"> + </span><span class="branchCov" title="Branch 3 was taken 17344 times"> + </span>]:<span class="lineCov">      46210 :         for (rs = avl_first(&amp;rt-&gt;rt_root); rs; rs = AVL_NEXT(&amp;rt-&gt;rt_root, rs))</span>
+<span class="lineNum">     397 </span>                :<span class="lineCov">      28864 :                 func(arg, rs-&gt;rs_start, rs-&gt;rs_end - rs-&gt;rs_start);</span>
+<span class="lineNum">     398 </span>                :<span class="lineCov">      17344 : }</span>
+<a name="399"><span class="lineNum">     399 </span>                :            : </a>
+<span class="lineNum">     400 </span>                :            : uint64_t
+<span class="lineNum">     401 </span>                :<span class="lineCov">   14060658 : range_tree_space(range_tree_t *rt)</span>
+<span class="lineNum">     402 </span>                :            : {
+<span class="lineNum">     403 </span>                :<span class="lineCov">   14060658 :         return (rt-&gt;rt_space);</span>
+<span class="lineNum">     404 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

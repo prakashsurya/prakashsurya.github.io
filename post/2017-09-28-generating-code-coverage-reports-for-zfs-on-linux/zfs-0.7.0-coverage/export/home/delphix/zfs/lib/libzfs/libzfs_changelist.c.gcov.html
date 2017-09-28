@@ -1,0 +1,798 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/lib/libzfs/libzfs_changelist.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/lib/libzfs</a> - libzfs_changelist.c<span style="font-size: 80%;"> (source / <a href="libzfs_changelist.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">199</td>
+            <td class="headerCovTableEntry">225</td>
+            <td class="headerCovTableEntryMed">88.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">170</td>
+            <td class="headerCovTableEntry">207</td>
+            <td class="headerCovTableEntryMed">82.1 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : /*
+<span class="lineNum">      23 </span>                :            :  * Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      25 </span>                :            :  *
+<span class="lineNum">      26 </span>                :            :  * Portions Copyright 2007 Ramprakash Jelari
+<span class="lineNum">      27 </span>                :            :  * Copyright (c) 2014, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      28 </span>                :            :  * Copyright 2016 Igor Kozhukhov &lt;ikozhukhov@gmail.com&gt;
+<span class="lineNum">      29 </span>                :            :  */
+<span class="lineNum">      30 </span>                :            : 
+<span class="lineNum">      31 </span>                :            : #include &lt;libintl.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;libuutil.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;stddef.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;string.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;unistd.h&gt;
+<span class="lineNum">      37 </span>                :            : #include &lt;zone.h&gt;
+<span class="lineNum">      38 </span>                :            : 
+<span class="lineNum">      39 </span>                :            : #include &lt;libzfs.h&gt;
+<span class="lineNum">      40 </span>                :            : 
+<span class="lineNum">      41 </span>                :            : #include &quot;libzfs_impl.h&quot;
+<span class="lineNum">      42 </span>                :            : 
+<span class="lineNum">      43 </span>                :            : /*
+<span class="lineNum">      44 </span>                :            :  * Structure to keep track of dataset state.  Before changing the 'sharenfs' or
+<span class="lineNum">      45 </span>                :            :  * 'mountpoint' property, we record whether the filesystem was previously
+<span class="lineNum">      46 </span>                :            :  * mounted/shared.  This prior state dictates whether we remount/reshare the
+<span class="lineNum">      47 </span>                :            :  * dataset after the property has been changed.
+<span class="lineNum">      48 </span>                :            :  *
+<span class="lineNum">      49 </span>                :            :  * The interface consists of the following sequence of functions:
+<span class="lineNum">      50 </span>                :            :  *
+<span class="lineNum">      51 </span>                :            :  *      changelist_gather()
+<span class="lineNum">      52 </span>                :            :  *      changelist_prefix()
+<span class="lineNum">      53 </span>                :            :  *      &lt; change property &gt;
+<span class="lineNum">      54 </span>                :            :  *      changelist_postfix()
+<span class="lineNum">      55 </span>                :            :  *      changelist_free()
+<span class="lineNum">      56 </span>                :            :  *
+<span class="lineNum">      57 </span>                :            :  * Other interfaces:
+<span class="lineNum">      58 </span>                :            :  *
+<span class="lineNum">      59 </span>                :            :  * changelist_remove() - remove a node from a gathered list
+<span class="lineNum">      60 </span>                :            :  * changelist_rename() - renames all datasets appropriately when doing a rename
+<span class="lineNum">      61 </span>                :            :  * changelist_unshare() - unshares all the nodes in a given changelist
+<span class="lineNum">      62 </span>                :            :  * changelist_haszonedchild() - check if there is any child exported to
+<span class="lineNum">      63 </span>                :            :  *                              a local zone
+<span class="lineNum">      64 </span>                :            :  */
+<span class="lineNum">      65 </span>                :            : typedef struct prop_changenode {
+<span class="lineNum">      66 </span>                :            :         zfs_handle_t            *cn_handle;
+<span class="lineNum">      67 </span>                :            :         int                     cn_shared;
+<span class="lineNum">      68 </span>                :            :         int                     cn_mounted;
+<span class="lineNum">      69 </span>                :            :         int                     cn_zoned;
+<span class="lineNum">      70 </span>                :            :         boolean_t               cn_needpost;    /* is postfix() needed? */
+<span class="lineNum">      71 </span>                :            :         uu_list_node_t          cn_listnode;
+<span class="lineNum">      72 </span>                :            : } prop_changenode_t;
+<span class="lineNum">      73 </span>                :            : 
+<span class="lineNum">      74 </span>                :            : struct prop_changelist {
+<span class="lineNum">      75 </span>                :            :         zfs_prop_t              cl_prop;
+<span class="lineNum">      76 </span>                :            :         zfs_prop_t              cl_realprop;
+<span class="lineNum">      77 </span>                :            :         zfs_prop_t              cl_shareprop;  /* used with sharenfs/sharesmb */
+<span class="lineNum">      78 </span>                :            :         uu_list_pool_t          *cl_pool;
+<span class="lineNum">      79 </span>                :            :         uu_list_t               *cl_list;
+<span class="lineNum">      80 </span>                :            :         boolean_t               cl_waslegacy;
+<span class="lineNum">      81 </span>                :            :         boolean_t               cl_allchildren;
+<span class="lineNum">      82 </span>                :            :         boolean_t               cl_alldependents;
+<span class="lineNum">      83 </span>                :            :         int                     cl_mflags;      /* Mount flags */
+<span class="lineNum">      84 </span>                :            :         int                     cl_gflags;      /* Gather request flags */
+<span class="lineNum">      85 </span>                :            :         boolean_t               cl_haszonedchild;
+<span class="lineNum">      86 </span>                :            :         boolean_t               cl_sorted;
+<span class="lineNum">      87 </span>                :            : };
+<span class="lineNum">      88 </span>                :            : 
+<span class="lineNum">      89 </span>                :            : /*
+<span class="lineNum">      90 </span>                :            :  * If the property is 'mountpoint', go through and unmount filesystems as
+<span class="lineNum">      91 </span>                :            :  * necessary.  We don't do the same for 'sharenfs', because we can just re-share
+<span class="lineNum">      92 </span>                :            :  * with different options without interrupting service. We do handle 'sharesmb'
+<span class="lineNum">      93 </span>                :            :  * since there may be old resource names that need to be removed.
+<a name="94"><span class="lineNum">      94 </span>                :            :  */</a>
+<span class="lineNum">      95 </span>                :            : int
+<span class="lineNum">      96 </span>                :<span class="lineCov">       5263 : changelist_prefix(prop_changelist_t *clp)</span>
+<span class="lineNum">      97 </span>                :            : {
+<span class="lineNum">      98 </span>                :            :         prop_changenode_t *cn;
+<span class="lineNum">      99 </span>                :<span class="lineCov">       5263 :         int ret = 0;</span>
+<span class="lineNum">     100 </span>                :            : 
+<span class="lineNum">     101 </span>        [<span class="branchCov" title="Branch 0 was taken 785 times"> + </span><span class="branchCov" title="Branch 1 was taken 4478 times"> + </span>]:<span class="lineCov">       5263 :         if (clp-&gt;cl_prop != ZFS_PROP_MOUNTPOINT &amp;&amp;</span>
+<span class="lineNum">     102 </span>                :            :             clp-&gt;cl_prop != ZFS_PROP_SHARESMB)
+<span class="lineNum">     103 </span>                :            :                 return (0);
+<span class="lineNum">     104 </span>                :            : 
+<span class="lineNum">     105 </span>        [<span class="branchCov" title="Branch 1 was taken 969 times"> + </span><span class="branchCov" title="Branch 2 was taken 784 times"> + </span>]:<span class="lineCov">       1753 :         for (cn = uu_list_first(clp-&gt;cl_list); cn != NULL;</span>
+<span class="lineNum">     106 </span>                :<span class="lineCov">        968 :             cn = uu_list_next(clp-&gt;cl_list, cn)) {</span>
+<span class="lineNum">     107 </span>                :            : 
+<span class="lineNum">     108 </span>                :            :                 /* if a previous loop failed, set the remaining to false */
+<span class="lineNum">     109 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 969 times"> + </span>]:<span class="lineCov">        969 :                 if (ret == -1) {</span>
+<span class="lineNum">     110 </span>                :<span class="lineNoCov">          0 :                         cn-&gt;cn_needpost = B_FALSE;</span>
+<span class="lineNum">     111 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     112 </span>                :            :                 }
+<span class="lineNum">     113 </span>                :            : 
+<span class="lineNum">     114 </span>                :            :                 /*
+<span class="lineNum">     115 </span>                :            :                  * If we are in the global zone, but this dataset is exported
+<span class="lineNum">     116 </span>                :            :                  * to a local zone, do nothing.
+<span class="lineNum">     117 </span>                :            :                  */
+<span class="lineNum">     118 </span>[<span class="branchCov" title="Branch 1 was taken 969 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchCov" title="Branch 3 was taken 10 times"> + </span><span class="branchCov" title="Branch 4 was taken 959 times"> + </span>]:<span class="lineCov">        969 :                 if (getzoneid() == GLOBAL_ZONEID &amp;&amp; cn-&gt;cn_zoned)</span>
+<span class="lineNum">     119 </span>                :<span class="lineCov">         10 :                         continue;</span>
+<span class="lineNum">     120 </span>                :            : 
+<span class="lineNum">     121 </span>        [<span class="branchCov" title="Branch 0 was taken 864 times"> + </span><span class="branchCov" title="Branch 1 was taken 95 times"> + </span>]:<span class="lineCov">        959 :                 if (!ZFS_IS_VOLUME(cn-&gt;cn_handle)) {</span>
+<span class="lineNum">     122 </span>                :            :                         /*
+<span class="lineNum">     123 </span>                :            :                          * Do the property specific processing.
+<span class="lineNum">     124 </span>                :            :                          */
+<span class="lineNum">     125 </span>     [<span class="branchCov" title="Branch 0 was taken 856 times"> + </span><span class="branchCov" title="Branch 1 was taken 8 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        864 :                         switch (clp-&gt;cl_prop) {</span>
+<span class="lineNum">     126 </span>                :            :                         case ZFS_PROP_MOUNTPOINT:
+<span class="lineNum">     127 </span>        [<span class="branchCov" title="Branch 1 was taken 9 times"> + </span><span class="branchCov" title="Branch 2 was taken 846 times"> + </span>]:<span class="lineCov">        856 :                                 if (zfs_unmount(cn-&gt;cn_handle, NULL,</span>
+<span class="lineNum">     128 </span>                :            :                                     clp-&gt;cl_mflags) != 0) {
+<span class="lineNum">     129 </span>                :<span class="lineCov">          9 :                                         ret = -1;</span>
+<span class="lineNum">     130 </span>                :<span class="lineCov">          9 :                                         cn-&gt;cn_needpost = B_FALSE;</span>
+<span class="lineNum">     131 </span>                :            :                                 }
+<span class="lineNum">     132 </span>                :            :                                 break;
+<span class="lineNum">     133 </span>                :            :                         case ZFS_PROP_SHARESMB:
+<span class="lineNum">     134 </span>                :<span class="lineCov">          8 :                                 (void) zfs_unshare_smb(cn-&gt;cn_handle, NULL);</span>
+<span class="lineNum">     135 </span>                :<span class="lineCov">          8 :                                 break;</span>
+<span class="lineNum">     136 </span>                :            : 
+<span class="lineNum">     137 </span>                :            :                         default:
+<span class="lineNum">     138 </span>                :            :                                 break;
+<span class="lineNum">     139 </span>                :            :                         }
+<span class="lineNum">     140 </span>                :            :                 }
+<span class="lineNum">     141 </span>                :            :         }
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>        [<span class="branchCov" title="Branch 0 was taken 9 times"> + </span><span class="branchCov" title="Branch 1 was taken 775 times"> + </span>]:<span class="lineCov">        784 :         if (ret == -1)</span>
+<span class="lineNum">     144 </span>                :<span class="lineCov">          9 :                 (void) changelist_postfix(clp);</span>
+<span class="lineNum">     145 </span>                :            : 
+<span class="lineNum">     146 </span>                :            :         return (ret);
+<span class="lineNum">     147 </span>                :            : }
+<span class="lineNum">     148 </span>                :            : 
+<span class="lineNum">     149 </span>                :            : /*
+<span class="lineNum">     150 </span>                :            :  * If the property is 'mountpoint' or 'sharenfs', go through and remount and/or
+<span class="lineNum">     151 </span>                :            :  * reshare the filesystems as necessary.  In changelist_gather() we recorded
+<span class="lineNum">     152 </span>                :            :  * whether the filesystem was previously shared or mounted.  The action we take
+<span class="lineNum">     153 </span>                :            :  * depends on the previous state, and whether the value was previously 'legacy'.
+<span class="lineNum">     154 </span>                :            :  * For non-legacy properties, we only remount/reshare the filesystem if it was
+<span class="lineNum">     155 </span>                :            :  * previously mounted/shared.  Otherwise, we always remount/reshare the
+<span class="lineNum">     156 </span>                :            :  * filesystem.
+<a name="157"><span class="lineNum">     157 </span>                :            :  */</a>
+<span class="lineNum">     158 </span>                :            : int
+<span class="lineNum">     159 </span>                :<span class="lineCov">       5133 : changelist_postfix(prop_changelist_t *clp)</span>
+<span class="lineNum">     160 </span>                :            : {
+<span class="lineNum">     161 </span>                :            :         prop_changenode_t *cn;
+<span class="lineNum">     162 </span>                :            :         char shareopts[ZFS_MAXPROPLEN];
+<span class="lineNum">     163 </span>                :<span class="lineCov">       5133 :         int errors = 0;</span>
+<span class="lineNum">     164 </span>                :            :         libzfs_handle_t *hdl;
+<span class="lineNum">     165 </span>                :            : 
+<span class="lineNum">     166 </span>                :            :         /*
+<span class="lineNum">     167 </span>                :            :          * If we're changing the mountpoint, attempt to destroy the underlying
+<span class="lineNum">     168 </span>                :            :          * mountpoint.  All other datasets will have inherited from this dataset
+<span class="lineNum">     169 </span>                :            :          * (in which case their mountpoints exist in the filesystem in the new
+<span class="lineNum">     170 </span>                :            :          * location), or have explicit mountpoints set (in which case they won't
+<span class="lineNum">     171 </span>                :            :          * be in the changelist).
+<span class="lineNum">     172 </span>                :            :          */
+<span class="lineNum">     173 </span>        [<span class="branchCov" title="Branch 1 was taken 881 times"> + </span><span class="branchCov" title="Branch 2 was taken 4252 times"> + </span>]:<span class="lineCov">       5133 :         if ((cn = uu_list_last(clp-&gt;cl_list)) == NULL)</span>
+<span class="lineNum">     174 </span>                :            :                 return (0);
+<span class="lineNum">     175 </span>                :            : 
+<span class="lineNum">     176 </span>        [<span class="branchCov" title="Branch 0 was taken 688 times"> + </span><span class="branchCov" title="Branch 1 was taken 193 times"> + </span>]:<span class="lineCov">        881 :         if (clp-&gt;cl_prop == ZFS_PROP_MOUNTPOINT)</span>
+<span class="lineNum">     177 </span>                :<span class="lineCov">        688 :                 remove_mountpoint(cn-&gt;cn_handle);</span>
+<span class="lineNum">     178 </span>                :            : 
+<span class="lineNum">     179 </span>                :            :         /*
+<span class="lineNum">     180 </span>                :            :          * It is possible that the changelist_prefix() used libshare
+<span class="lineNum">     181 </span>                :            :          * to unshare some entries. Since libshare caches data, an
+<span class="lineNum">     182 </span>                :            :          * attempt to reshare during postfix can fail unless libshare
+<span class="lineNum">     183 </span>                :            :          * is uninitialized here so that it will reinitialize later.
+<span class="lineNum">     184 </span>                :            :          */
+<span class="lineNum">     185 </span>        [<span class="branchCov" title="Branch 0 was taken 881 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        881 :         if (cn-&gt;cn_handle != NULL) {</span>
+<span class="lineNum">     186 </span>                :<span class="lineCov">        881 :                 hdl = cn-&gt;cn_handle-&gt;zfs_hdl;</span>
+<span class="lineNum">     187 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 881 times"> + </span>]:<span class="lineCov">        881 :                 assert(hdl != NULL);</span>
+<span class="lineNum">     188 </span>                :<span class="lineCov">        881 :                 zfs_uninit_libshare(hdl);</span>
+<span class="lineNum">     189 </span>                :            :         }
+<span class="lineNum">     190 </span>                :            : 
+<span class="lineNum">     191 </span>                :            :         /*
+<span class="lineNum">     192 </span>                :            :          * We walk the datasets in reverse, because we want to mount any parent
+<span class="lineNum">     193 </span>                :            :          * datasets before mounting the children.  We walk all datasets even if
+<span class="lineNum">     194 </span>                :            :          * there are errors.
+<span class="lineNum">     195 </span>                :            :          */
+<span class="lineNum">     196 </span>        [<span class="branchCov" title="Branch 1 was taken 1356 times"> + </span><span class="branchCov" title="Branch 2 was taken 879 times"> + </span>]:<span class="lineCov">       2235 :         for (cn = uu_list_last(clp-&gt;cl_list); cn != NULL;</span>
+<span class="lineNum">     197 </span>                :<span class="lineCov">       1354 :             cn = uu_list_prev(clp-&gt;cl_list, cn)) {</span>
+<span class="lineNum">     198 </span>                :            : 
+<span class="lineNum">     199 </span>                :            :                 boolean_t sharenfs;
+<span class="lineNum">     200 </span>                :            :                 boolean_t sharesmb;
+<span class="lineNum">     201 </span>                :            :                 boolean_t mounted;
+<span class="lineNum">     202 </span>                :            :                 boolean_t needs_key;
+<span class="lineNum">     203 </span>                :            : 
+<span class="lineNum">     204 </span>                :            :                 /*
+<span class="lineNum">     205 </span>                :            :                  * If we are in the global zone, but this dataset is exported
+<span class="lineNum">     206 </span>                :            :                  * to a local zone, do nothing.
+<span class="lineNum">     207 </span>                :            :                  */
+<span class="lineNum">     208 </span>[<span class="branchCov" title="Branch 1 was taken 1356 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchCov" title="Branch 3 was taken 14 times"> + </span><span class="branchCov" title="Branch 4 was taken 1342 times"> + </span>]:<span class="lineCov">       1356 :                 if (getzoneid() == GLOBAL_ZONEID &amp;&amp; cn-&gt;cn_zoned)</span>
+<span class="lineNum">     209 </span>                :<span class="lineCov">         14 :                         continue;</span>
+<span class="lineNum">     210 </span>                :            : 
+<span class="lineNum">     211 </span>                :            :                 /* Only do post-processing if it's required */
+<span class="lineNum">     212 </span>        [<span class="branchCov" title="Branch 0 was taken 9 times"> + </span><span class="branchCov" title="Branch 1 was taken 1333 times"> + </span>]:<span class="lineCov">       1342 :                 if (!cn-&gt;cn_needpost)</span>
+<span class="lineNum">     213 </span>                :<span class="lineCov">          9 :                         continue;</span>
+<span class="lineNum">     214 </span>                :<span class="lineCov">       1333 :                 cn-&gt;cn_needpost = B_FALSE;</span>
+<span class="lineNum">     215 </span>                :            : 
+<span class="lineNum">     216 </span>                :<span class="lineCov">       1333 :                 zfs_refresh_properties(cn-&gt;cn_handle);</span>
+<span class="lineNum">     217 </span>                :            : 
+<span class="lineNum">     218 </span>        [<span class="branchCov" title="Branch 0 was taken 81 times"> + </span><span class="branchCov" title="Branch 1 was taken 1252 times"> + </span>]:<span class="lineCov">       1333 :                 if (ZFS_IS_VOLUME(cn-&gt;cn_handle))</span>
+<span class="lineNum">     219 </span>                :<span class="lineCov">         81 :                         continue;</span>
+<span class="lineNum">     220 </span>                :            : 
+<span class="lineNum">     221 </span>                :            :                 /*
+<span class="lineNum">     222 </span>                :            :                  * Remount if previously mounted or mountpoint was legacy,
+<span class="lineNum">     223 </span>                :            :                  * or sharenfs or sharesmb  property is set.
+<span class="lineNum">     224 </span>                :            :                  */
+<span class="lineNum">     225 </span>                :<span class="lineCov">       1252 :                 sharenfs = ((zfs_prop_get(cn-&gt;cn_handle, ZFS_PROP_SHARENFS,</span>
+<span class="lineNum">     226 </span>                :            :                     shareopts, sizeof (shareopts), NULL, NULL, 0,
+<span class="lineNum">     227 </span>[<span class="branchCov" title="Branch 0 was taken 1252 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 1081 times"> + </span><span class="branchCov" title="Branch 3 was taken 171 times"> + </span>]:<span class="lineCov">       1252 :                     B_FALSE) == 0) &amp;&amp; (strcmp(shareopts, &quot;off&quot;) != 0));</span>
+<span class="lineNum">     228 </span>                :            : 
+<span class="lineNum">     229 </span>                :<span class="lineCov">       1252 :                 sharesmb = ((zfs_prop_get(cn-&gt;cn_handle, ZFS_PROP_SHARESMB,</span>
+<span class="lineNum">     230 </span>                :            :                     shareopts, sizeof (shareopts), NULL, NULL, 0,
+<span class="lineNum">     231 </span>[<span class="branchCov" title="Branch 0 was taken 1252 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 1244 times"> + </span><span class="branchCov" title="Branch 3 was taken 8 times"> + </span>]:<span class="lineCov">       1252 :                     B_FALSE) == 0) &amp;&amp; (strcmp(shareopts, &quot;off&quot;) != 0));</span>
+<span class="lineNum">     232 </span>                :            : 
+<span class="lineNum">     233 </span>                :<span class="lineCov">       1252 :                 needs_key = (zfs_prop_get_int(cn-&gt;cn_handle,</span>
+<span class="lineNum">     234 </span>                :<span class="lineCov">       1252 :                     ZFS_PROP_KEYSTATUS) == ZFS_KEYSTATUS_UNAVAILABLE);</span>
+<span class="lineNum">     235 </span>                :            : 
+<span class="lineNum">     236 </span>                :<span class="lineCov">       1252 :                 mounted = zfs_is_mounted(cn-&gt;cn_handle, NULL);</span>
+<span class="lineNum">     237 </span>                :            : 
+<span class="lineNum">     238 </span>[<span class="branchCov" title="Branch 0 was taken 978 times"> + </span><span class="branchCov" title="Branch 1 was taken 274 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 246 times"> + </span><span class="branchCov" title="Branch 3 was taken 732 times"> + </span>]:<span class="lineCov">       1252 :                 if (!mounted &amp;&amp; !needs_key &amp;&amp; (cn-&gt;cn_mounted ||</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 179 times"> + </span><span class="branchCov" title="Branch 5 was taken 67 times"> + </span>]
+<span class="lineNum">     239 </span>  [<span class="branchCov" title="Branch 0 was taken 28 times"> + </span><span class="branchCov" title="Branch 1 was taken 151 times"> + </span><span class="branchCov" title="Branch 2 was taken 44 times"> + </span><span class="branchCov" title="Branch 3 was taken 51 times"> + </span>]:<span class="lineCov">        274 :                     ((sharenfs || sharesmb || clp-&gt;cl_waslegacy) &amp;&amp;</span>
+<span class="lineNum">     240 </span>                :<span class="lineCov">         95 :                     (zfs_prop_get_int(cn-&gt;cn_handle,</span>
+<span class="lineNum">     241 </span>                :            :                     ZFS_PROP_CANMOUNT) == ZFS_CANMOUNT_ON)))) {
+<span class="lineNum">     242 </span>                :            : 
+<span class="lineNum">     243 </span>        [<span class="branchCov" title="Branch 1 was taken 3 times"> + </span><span class="branchCov" title="Branch 2 was taken 771 times"> + </span>]:<span class="lineCov">        776 :                         if (zfs_mount(cn-&gt;cn_handle, NULL, 0) != 0)</span>
+<span class="lineNum">     244 </span>                :<span class="lineCov">          3 :                                 errors++;</span>
+<span class="lineNum">     245 </span>                :            :                         else
+<span class="lineNum">     246 </span>                :            :                                 mounted = TRUE;
+<span class="lineNum">     247 </span>                :            :                 }
+<span class="lineNum">     248 </span>                :            : 
+<span class="lineNum">     249 </span>                :            :                 /*
+<span class="lineNum">     250 </span>                :            :                  * If the file system is mounted we always re-share even
+<span class="lineNum">     251 </span>                :            :                  * if the filesystem is currently shared, so that we can
+<span class="lineNum">     252 </span>                :            :                  * adopt any new options.
+<span class="lineNum">     253 </span>                :            :                  */
+<span class="lineNum">     254 </span>        [<span class="branchCov" title="Branch 0 was taken 122 times"> + </span><span class="branchCov" title="Branch 1 was taken 1128 times"> + </span>]:<span class="lineCov">       1250 :                 if (sharenfs &amp;&amp; mounted)</span>
+<span class="lineNum">     255 </span>                :<span class="lineCov">        122 :                         errors += zfs_share_nfs(cn-&gt;cn_handle);</span>
+<span class="lineNum">     256 </span>[<span class="branchCov" title="Branch 0 was taken 1063 times"> + </span><span class="branchCov" title="Branch 1 was taken 65 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 28 times"> + </span><span class="branchCov" title="Branch 3 was taken 1035 times"> + </span>]:<span class="lineCov">       1128 :                 else if (cn-&gt;cn_shared || clp-&gt;cl_waslegacy)</span>
+<span class="lineNum">     257 </span>                :<span class="lineCov">         93 :                         errors += zfs_unshare_nfs(cn-&gt;cn_handle, NULL);</span>
+<span class="lineNum">     258 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1250 times"> + </span>]:<span class="lineCov">       1250 :                 if (sharesmb &amp;&amp; mounted)</span>
+<span class="lineNum">     259 </span>                :<span class="lineNoCov">          0 :                         errors += zfs_share_smb(cn-&gt;cn_handle);</span>
+<span class="lineNum">     260 </span>[<span class="branchCov" title="Branch 0 was taken 1148 times"> + </span><span class="branchCov" title="Branch 1 was taken 102 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 28 times"> + </span><span class="branchCov" title="Branch 3 was taken 1120 times"> + </span>]:<span class="lineCov">       1250 :                 else if (cn-&gt;cn_shared || clp-&gt;cl_waslegacy)</span>
+<span class="lineNum">     261 </span>                :<span class="lineCov">        130 :                         errors += zfs_unshare_smb(cn-&gt;cn_handle, NULL);</span>
+<span class="lineNum">     262 </span>                :            :         }
+<span class="lineNum">     263 </span>                :            : 
+<span class="lineNum">     264 </span>        [<span class="branchCov" title="Branch 0 was taken 876 times"> + </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">        879 :         return (errors ? -1 : 0);</span>
+<span class="lineNum">     265 </span>                :            : }
+<span class="lineNum">     266 </span>                :            : 
+<span class="lineNum">     267 </span>                :            : /*
+<span class="lineNum">     268 </span>                :            :  * Is this &quot;dataset&quot; a child of &quot;parent&quot;?
+<a name="269"><span class="lineNum">     269 </span>                :            :  */</a>
+<span class="lineNum">     270 </span>                :            : boolean_t
+<span class="lineNum">     271 </span>                :<span class="lineCov">         29 : isa_child_of(const char *dataset, const char *parent)</span>
+<span class="lineNum">     272 </span>                :            : {
+<span class="lineNum">     273 </span>                :            :         int len;
+<span class="lineNum">     274 </span>                :            : 
+<span class="lineNum">     275 </span>                :<span class="lineCov">         29 :         len = strlen(parent);</span>
+<span class="lineNum">     276 </span>                :            : 
+<span class="lineNum">     277 </span>[<span class="branchCov" title="Branch 0 was taken 24 times"> + </span><span class="branchCov" title="Branch 1 was taken 5 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 19 times"> + </span><span class="branchCov" title="Branch 3 was taken 5 times"> + </span>]:<span class="lineCov">         29 :         if (strncmp(dataset, parent, len) == 0 &amp;&amp;</span>
+<span class="lineNum">     278 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 19 times"> + </span>]:<span class="lineCov">         19 :             (dataset[len] == '@' || dataset[len] == '/' ||</span>
+<span class="lineNum">     279 </span>                :            :             dataset[len] == '\0'))
+<span class="lineNum">     280 </span>                :            :                 return (B_TRUE);
+<span class="lineNum">     281 </span>                :            :         else
+<span class="lineNum">     282 </span>                :<span class="lineCov">          5 :                 return (B_FALSE);</span>
+<span class="lineNum">     283 </span>                :            : 
+<span class="lineNum">     284 </span>                :            : }
+<span class="lineNum">     285 </span>                :            : 
+<span class="lineNum">     286 </span>                :            : /*
+<span class="lineNum">     287 </span>                :            :  * If we rename a filesystem, child filesystem handles are no longer valid
+<span class="lineNum">     288 </span>                :            :  * since we identify each dataset by its name in the ZFS namespace.  As a
+<span class="lineNum">     289 </span>                :            :  * result, we have to go through and fix up all the names appropriately.  We
+<span class="lineNum">     290 </span>                :            :  * could do this automatically if libzfs kept track of all open handles, but
+<span class="lineNum">     291 </span>                :            :  * this is a lot less work.
+<a name="292"><span class="lineNum">     292 </span>                :            :  */</a>
+<span class="lineNum">     293 </span>                :            : void
+<span class="lineNum">     294 </span>                :<span class="lineCov">         19 : changelist_rename(prop_changelist_t *clp, const char *src, const char *dst)</span>
+<span class="lineNum">     295 </span>                :            : {
+<span class="lineNum">     296 </span>                :            :         prop_changenode_t *cn;
+<span class="lineNum">     297 </span>                :            :         char newname[ZFS_MAX_DATASET_NAME_LEN];
+<span class="lineNum">     298 </span>                :            : 
+<span class="lineNum">     299 </span>        [<span class="branchCov" title="Branch 1 was taken 29 times"> + </span><span class="branchCov" title="Branch 2 was taken 19 times"> + </span>]:<span class="lineCov">         48 :         for (cn = uu_list_first(clp-&gt;cl_list); cn != NULL;</span>
+<span class="lineNum">     300 </span>                :<span class="lineCov">         29 :             cn = uu_list_next(clp-&gt;cl_list, cn)) {</span>
+<span class="lineNum">     301 </span>                :            :                 /*
+<span class="lineNum">     302 </span>                :            :                  * Do not rename a clone that's not in the source hierarchy.
+<span class="lineNum">     303 </span>                :            :                  */
+<span class="lineNum">     304 </span>        [<span class="branchCov" title="Branch 1 was taken 5 times"> + </span><span class="branchCov" title="Branch 2 was taken 24 times"> + </span>]:<span class="lineCov">         29 :                 if (!isa_child_of(cn-&gt;cn_handle-&gt;zfs_name, src))</span>
+<span class="lineNum">     305 </span>                :<span class="lineCov">          5 :                         continue;</span>
+<span class="lineNum">     306 </span>                :            : 
+<span class="lineNum">     307 </span>                :            :                 /*
+<span class="lineNum">     308 </span>                :            :                  * Destroy the previous mountpoint if needed.
+<span class="lineNum">     309 </span>                :            :                  */
+<span class="lineNum">     310 </span>                :<span class="lineCov">         24 :                 remove_mountpoint(cn-&gt;cn_handle);</span>
+<span class="lineNum">     311 </span>                :            : 
+<span class="lineNum">     312 </span>                :<span class="lineCov">         24 :                 (void) strlcpy(newname, dst, sizeof (newname));</span>
+<span class="lineNum">     313 </span>                :<span class="lineCov">         24 :                 (void) strlcat(newname, cn-&gt;cn_handle-&gt;zfs_name + strlen(src),</span>
+<span class="lineNum">     314 </span>                :            :                     sizeof (newname));
+<span class="lineNum">     315 </span>                :            : 
+<span class="lineNum">     316 </span>                :<span class="lineCov">         24 :                 (void) strlcpy(cn-&gt;cn_handle-&gt;zfs_name, newname,</span>
+<span class="lineNum">     317 </span>                :            :                     sizeof (cn-&gt;cn_handle-&gt;zfs_name));
+<span class="lineNum">     318 </span>                :            :         }
+<span class="lineNum">     319 </span>                :<span class="lineCov">         19 : }</span>
+<span class="lineNum">     320 </span>                :            : 
+<span class="lineNum">     321 </span>                :            : /*
+<span class="lineNum">     322 </span>                :            :  * Given a gathered changelist for the 'sharenfs' or 'sharesmb' property,
+<span class="lineNum">     323 </span>                :            :  * unshare all the datasets in the list.
+<a name="324"><span class="lineNum">     324 </span>                :            :  */</a>
+<span class="lineNum">     325 </span>                :            : int
+<span class="lineNum">     326 </span>                :<span class="lineCov">          8 : changelist_unshare(prop_changelist_t *clp, zfs_share_proto_t *proto)</span>
+<span class="lineNum">     327 </span>                :            : {
+<span class="lineNum">     328 </span>                :            :         prop_changenode_t *cn;
+<span class="lineNum">     329 </span>                :<span class="lineCov">          8 :         int ret = 0;</span>
+<span class="lineNum">     330 </span>                :            : 
+<span class="lineNum">     331 </span>        [<span class="branchCov" title="Branch 0 was taken 8 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          8 :         if (clp-&gt;cl_prop != ZFS_PROP_SHARENFS &amp;&amp;</span>
+<span class="lineNum">     332 </span>                :            :             clp-&gt;cl_prop != ZFS_PROP_SHARESMB)
+<span class="lineNum">     333 </span>                :            :                 return (0);
+<span class="lineNum">     334 </span>                :            : 
+<span class="lineNum">     335 </span>        [<span class="branchCov" title="Branch 1 was taken 8 times"> + </span><span class="branchCov" title="Branch 2 was taken 8 times"> + </span>]:<span class="lineCov">         16 :         for (cn = uu_list_first(clp-&gt;cl_list); cn != NULL;</span>
+<span class="lineNum">     336 </span>                :<span class="lineCov">          8 :             cn = uu_list_next(clp-&gt;cl_list, cn)) {</span>
+<span class="lineNum">     337 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 8 times"> + </span>]:<span class="lineCov">          8 :                 if (zfs_unshare_proto(cn-&gt;cn_handle, NULL, proto) != 0)</span>
+<span class="lineNum">     338 </span>                :<span class="lineNoCov">          0 :                         ret = -1;</span>
+<span class="lineNum">     339 </span>                :            :         }
+<span class="lineNum">     340 </span>                :            : 
+<span class="lineNum">     341 </span>                :            :         return (ret);
+<span class="lineNum">     342 </span>                :            : }
+<span class="lineNum">     343 </span>                :            : 
+<span class="lineNum">     344 </span>                :            : /*
+<span class="lineNum">     345 </span>                :            :  * Check if there is any child exported to a local zone in a given changelist.
+<span class="lineNum">     346 </span>                :            :  * This information has already been recorded while gathering the changelist
+<span class="lineNum">     347 </span>                :            :  * via changelist_gather().
+<a name="348"><span class="lineNum">     348 </span>                :            :  */</a>
+<span class="lineNum">     349 </span>                :            : int
+<span class="lineNum">     350 </span>                :<span class="lineCov">        425 : changelist_haszonedchild(prop_changelist_t *clp)</span>
+<span class="lineNum">     351 </span>                :            : {
+<span class="lineNum">     352 </span>                :<span class="lineCov">        425 :         return (clp-&gt;cl_haszonedchild);</span>
+<span class="lineNum">     353 </span>                :            : }
+<span class="lineNum">     354 </span>                :            : 
+<span class="lineNum">     355 </span>                :            : /*
+<span class="lineNum">     356 </span>                :            :  * Remove a node from a gathered list.
+<a name="357"><span class="lineNum">     357 </span>                :            :  */</a>
+<span class="lineNum">     358 </span>                :            : void
+<span class="lineNum">     359 </span>                :<span class="lineCov">         37 : changelist_remove(prop_changelist_t *clp, const char *name)</span>
+<span class="lineNum">     360 </span>                :            : {
+<span class="lineNum">     361 </span>                :            :         prop_changenode_t *cn;
+<span class="lineNum">     362 </span>                :            : 
+<span class="lineNum">     363 </span>        [<span class="branchCov" title="Branch 1 was taken 37 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">         37 :         for (cn = uu_list_first(clp-&gt;cl_list); cn != NULL;</span>
+<span class="lineNum">     364 </span>                :<span class="lineNoCov">          0 :             cn = uu_list_next(clp-&gt;cl_list, cn)) {</span>
+<span class="lineNum">     365 </span>                :            : 
+<span class="lineNum">     366 </span>        [<span class="branchCov" title="Branch 0 was taken 37 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         37 :                 if (strcmp(cn-&gt;cn_handle-&gt;zfs_name, name) == 0) {</span>
+<span class="lineNum">     367 </span>                :<span class="lineCov">         37 :                         uu_list_remove(clp-&gt;cl_list, cn);</span>
+<span class="lineNum">     368 </span>                :<span class="lineCov">         37 :                         zfs_close(cn-&gt;cn_handle);</span>
+<span class="lineNum">     369 </span>                :<span class="lineCov">         37 :                         free(cn);</span>
+<span class="lineNum">     370 </span>                :<span class="lineCov">         37 :                         return;</span>
+<span class="lineNum">     371 </span>                :            :                 }
+<span class="lineNum">     372 </span>                :            :         }
+<span class="lineNum">     373 </span>                :            : }
+<span class="lineNum">     374 </span>                :            : 
+<span class="lineNum">     375 </span>                :            : /*
+<span class="lineNum">     376 </span>                :            :  * Release any memory associated with a changelist.
+<a name="377"><span class="lineNum">     377 </span>                :            :  */</a>
+<span class="lineNum">     378 </span>                :            : void
+<span class="lineNum">     379 </span>                :<span class="lineCov">       5397 : changelist_free(prop_changelist_t *clp)</span>
+<span class="lineNum">     380 </span>                :            : {
+<span class="lineNum">     381 </span>                :            :         prop_changenode_t *cn;
+<span class="lineNum">     382 </span>                :            :         void *cookie;
+<span class="lineNum">     383 </span>                :            : 
+<span class="lineNum">     384 </span>        [<span class="branchCov" title="Branch 0 was taken 5397 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       5397 :         if (clp-&gt;cl_list) {</span>
+<span class="lineNum">     385 </span>                :<span class="lineCov">       5397 :                 cookie = NULL;</span>
+<span class="lineNum">     386 </span>        [<span class="branchCov" title="Branch 1 was taken 1562 times"> + </span><span class="branchCov" title="Branch 2 was taken 5397 times"> + </span>]:<span class="lineCov">       6959 :                 while ((cn = uu_list_teardown(clp-&gt;cl_list, &amp;cookie)) != NULL) {</span>
+<span class="lineNum">     387 </span>                :<span class="lineCov">       1562 :                         zfs_close(cn-&gt;cn_handle);</span>
+<span class="lineNum">     388 </span>                :<span class="lineCov">       1562 :                         free(cn);</span>
+<span class="lineNum">     389 </span>                :            :                 }
+<span class="lineNum">     390 </span>                :            : 
+<span class="lineNum">     391 </span>                :<span class="lineCov">       5397 :                 uu_list_destroy(clp-&gt;cl_list);</span>
+<span class="lineNum">     392 </span>                :            :         }
+<span class="lineNum">     393 </span>        [<span class="branchCov" title="Branch 0 was taken 5397 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       5397 :         if (clp-&gt;cl_pool)</span>
+<span class="lineNum">     394 </span>                :<span class="lineCov">       5397 :                 uu_list_pool_destroy(clp-&gt;cl_pool);</span>
+<span class="lineNum">     395 </span>                :            : 
+<span class="lineNum">     396 </span>                :<span class="lineCov">       5397 :         free(clp);</span>
+<span class="lineNum">     397 </span>                :<span class="lineCov">       5397 : }</span>
+<a name="398"><span class="lineNum">     398 </span>                :            : </a>
+<span class="lineNum">     399 </span>                :            : static int
+<span class="lineNum">     400 </span>                :<span class="lineCov">       1537 : change_one(zfs_handle_t *zhp, void *data)</span>
+<span class="lineNum">     401 </span>                :            : {
+<span class="lineNum">     402 </span>                :<span class="lineCov">       1537 :         prop_changelist_t *clp = data;</span>
+<span class="lineNum">     403 </span>                :            :         char property[ZFS_MAXPROPLEN];
+<span class="lineNum">     404 </span>                :            :         char where[64];
+<span class="lineNum">     405 </span>                :            :         prop_changenode_t *cn;
+<span class="lineNum">     406 </span>                :<span class="lineCov">       1537 :         zprop_source_t sourcetype = ZPROP_SRC_NONE;</span>
+<span class="lineNum">     407 </span>                :<span class="lineCov">       1537 :         zprop_source_t share_sourcetype = ZPROP_SRC_NONE;</span>
+<span class="lineNum">     408 </span>                :            : 
+<span class="lineNum">     409 </span>                :            :         /*
+<span class="lineNum">     410 </span>                :            :          * We only want to unmount/unshare those filesystems that may inherit
+<span class="lineNum">     411 </span>                :            :          * from the target filesystem.  If we find any filesystem with a
+<span class="lineNum">     412 </span>                :            :          * locally set mountpoint, we ignore any children since changing the
+<span class="lineNum">     413 </span>                :            :          * property will not affect them.  If this is a rename, we iterate
+<span class="lineNum">     414 </span>                :            :          * over all children regardless, since we need them unmounted in
+<span class="lineNum">     415 </span>                :            :          * order to do the rename.  Also, if this is a volume and we're doing
+<span class="lineNum">     416 </span>                :            :          * a rename, then always add it to the changelist.
+<span class="lineNum">     417 </span>                :            :          */
+<span class="lineNum">     418 </span>                :            : 
+<span class="lineNum">     419 </span>        [<span class="branchCov" title="Branch 0 was taken 136 times"> + </span><span class="branchCov" title="Branch 1 was taken 1401 times"> + </span>]:<span class="lineCov">       3021 :         if (!(ZFS_IS_VOLUME(zhp) &amp;&amp; clp-&gt;cl_realprop == ZFS_PROP_NAME) &amp;&amp;</span>
+<span class="lineNum">         </span>  [<span class="branchCov" title="Branch 2 was taken 83 times"> + </span><span class="branchCov" title="Branch 3 was taken 53 times"> + </span><span class="branchCov" title="Branch 4 was taken 1024 times"> + </span><span class="branchCov" title="Branch 5 was taken 460 times"> + </span>]
+<span class="lineNum">     420 </span>                :<span class="lineCov">       1484 :             zfs_prop_get(zhp, clp-&gt;cl_prop, property,</span>
+<span class="lineNum">     421 </span>                :            :             sizeof (property), &amp;sourcetype, where, sizeof (where),
+<span class="lineNum">     422 </span>                :            :             B_FALSE) != 0) {
+<span class="lineNum">     423 </span>                :<span class="lineCov">       1024 :                 zfs_close(zhp);</span>
+<span class="lineNum">     424 </span>                :<span class="lineCov">       1024 :                 return (0);</span>
+<span class="lineNum">     425 </span>                :            :         }
+<span class="lineNum">     426 </span>                :            : 
+<span class="lineNum">     427 </span>                :            :         /*
+<span class="lineNum">     428 </span>                :            :          * If we are &quot;watching&quot; sharenfs or sharesmb
+<span class="lineNum">     429 </span>                :            :          * then check out the companion property which is tracked
+<span class="lineNum">     430 </span>                :            :          * in cl_shareprop
+<span class="lineNum">     431 </span>                :            :          */
+<span class="lineNum">     432 </span>  [<span class="branchCov" title="Branch 0 was taken 513 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 513 times"> + </span>]:<span class="lineCov">       1026 :         if (clp-&gt;cl_shareprop != ZPROP_INVAL &amp;&amp;</span>
+<span class="lineNum">     433 </span>                :<span class="lineCov">        513 :             zfs_prop_get(zhp, clp-&gt;cl_shareprop, property,</span>
+<span class="lineNum">     434 </span>                :            :             sizeof (property), &amp;share_sourcetype, where, sizeof (where),
+<span class="lineNum">     435 </span>                :            :             B_FALSE) != 0) {
+<span class="lineNum">     436 </span>                :<span class="lineNoCov">          0 :                 zfs_close(zhp);</span>
+<span class="lineNum">     437 </span>                :<span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">     438 </span>                :            :         }
+<span class="lineNum">     439 </span>                :            : 
+<span class="lineNum">     440 </span>[<span class="branchCov" title="Branch 0 was taken 372 times"> + </span><span class="branchCov" title="Branch 1 was taken 141 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 353 times"> + </span><span class="branchCov" title="Branch 3 was taken 19 times"> + </span>]:<span class="lineCov">        513 :         if (clp-&gt;cl_alldependents || clp-&gt;cl_allchildren ||</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 183 times"> + </span><span class="branchCov" title="Branch 5 was taken 170 times"> + </span>]
+<span class="lineNum">     441 </span>        [<span class="branchCov" title="Branch 0 was taken 42 times"> + </span><span class="branchCov" title="Branch 1 was taken 141 times"> + </span>]:<span class="lineCov">        183 :             sourcetype == ZPROP_SRC_DEFAULT ||</span>
+<span class="lineNum">     442 </span>        [<span class="branchCov" title="Branch 0 was taken 42 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         42 :             sourcetype == ZPROP_SRC_INHERITED ||</span>
+<span class="lineNum">     443 </span>        [<span class="branchCov" title="Branch 0 was taken 24 times"> + </span><span class="branchCov" title="Branch 1 was taken 18 times"> + </span>]:<span class="lineCov">         42 :             (clp-&gt;cl_shareprop != ZPROP_INVAL &amp;&amp;</span>
+<span class="lineNum">     444 </span>                :<span class="lineCov">         42 :             (share_sourcetype == ZPROP_SRC_DEFAULT ||</span>
+<span class="lineNum">     445 </span>                :            :             share_sourcetype == ZPROP_SRC_INHERITED))) {
+<span class="lineNum">     446 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 495 times"> + </span>]:<span class="lineCov">        495 :                 if ((cn = zfs_alloc(zfs_get_handle(zhp),</span>
+<span class="lineNum">     447 </span>                :            :                     sizeof (prop_changenode_t))) == NULL) {
+<span class="lineNum">     448 </span>                :<span class="lineNoCov">          0 :                         zfs_close(zhp);</span>
+<span class="lineNum">     449 </span>                :<span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     450 </span>                :            :                 }
+<span class="lineNum">     451 </span>                :            : 
+<span class="lineNum">     452 </span>                :<span class="lineCov">        495 :                 cn-&gt;cn_handle = zhp;</span>
+<span class="lineNum">     453 </span>  [<span class="branchCov" title="Branch 0 was taken 363 times"> + </span><span class="branchCov" title="Branch 1 was taken 132 times"> + </span><span class="branchCov" title="Branch 2 was taken 219 times"> + </span><span class="branchCov" title="Branch 3 was taken 144 times"> + </span>]:<span class="lineCov">        858 :                 cn-&gt;cn_mounted = (clp-&gt;cl_gflags &amp; CL_GATHER_MOUNT_ALWAYS) ||</span>
+<span class="lineNum">     454 </span>                :<span class="lineCov">        363 :                     zfs_is_mounted(zhp, NULL);</span>
+<span class="lineNum">     455 </span>                :<span class="lineCov">        495 :                 cn-&gt;cn_shared = zfs_is_shared(zhp);</span>
+<span class="lineNum">     456 </span>                :<span class="lineCov">        495 :                 cn-&gt;cn_zoned = zfs_prop_get_int(zhp, ZFS_PROP_ZONED);</span>
+<span class="lineNum">     457 </span>                :<span class="lineCov">        495 :                 cn-&gt;cn_needpost = B_TRUE;</span>
+<span class="lineNum">     458 </span>                :            : 
+<span class="lineNum">     459 </span>                :            :                 /* Indicate if any child is exported to a local zone. */
+<span class="lineNum">     460 </span>[<span class="branchCov" title="Branch 1 was taken 495 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchCov" title="Branch 3 was taken 9 times"> + </span><span class="branchCov" title="Branch 4 was taken 486 times"> + </span>]:<span class="lineCov">        495 :                 if (getzoneid() == GLOBAL_ZONEID &amp;&amp; cn-&gt;cn_zoned)</span>
+<span class="lineNum">     461 </span>                :<span class="lineCov">          9 :                         clp-&gt;cl_haszonedchild = B_TRUE;</span>
+<span class="lineNum">     462 </span>                :            : 
+<span class="lineNum">     463 </span>                :<span class="lineCov">        495 :                 uu_list_node_init(cn, &amp;cn-&gt;cn_listnode, clp-&gt;cl_pool);</span>
+<span class="lineNum">     464 </span>                :            : 
+<span class="lineNum">     465 </span>        [<span class="branchCov" title="Branch 0 was taken 493 times"> + </span><span class="branchCov" title="Branch 1 was taken 2 times"> + </span>]:<span class="lineCov">        495 :                 if (clp-&gt;cl_sorted) {</span>
+<span class="lineNum">     466 </span>                :            :                         uu_list_index_t idx;
+<span class="lineNum">     467 </span>                :            : 
+<span class="lineNum">     468 </span>                :<span class="lineCov">        493 :                         (void) uu_list_find(clp-&gt;cl_list, cn, NULL,</span>
+<span class="lineNum">     469 </span>                :            :                             &amp;idx);
+<span class="lineNum">     470 </span>                :<span class="lineCov">        493 :                         uu_list_insert(clp-&gt;cl_list, cn, idx);</span>
+<span class="lineNum">     471 </span>                :            :                 } else {
+<span class="lineNum">     472 </span>                :            :                         /*
+<span class="lineNum">     473 </span>                :            :                          * Add this child to beginning of the list. Children
+<span class="lineNum">     474 </span>                :            :                          * below this one in the hierarchy will get added above
+<span class="lineNum">     475 </span>                :            :                          * this one in the list. This produces a list in
+<span class="lineNum">     476 </span>                :            :                          * reverse dataset name order.
+<span class="lineNum">     477 </span>                :            :                          * This is necessary when the original mountpoint
+<span class="lineNum">     478 </span>                :            :                          * is legacy or none.
+<span class="lineNum">     479 </span>                :            :                          */
+<span class="lineNum">     480 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2 times"> + </span>]:<span class="lineCov">          2 :                         ASSERT(!clp-&gt;cl_alldependents);</span>
+<span class="lineNum">     481 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 2 times"> + </span>]:<span class="lineCov">          2 :                         verify(uu_list_insert_before(clp-&gt;cl_list,</span>
+<span class="lineNum">     482 </span>                :            :                             uu_list_first(clp-&gt;cl_list), cn) == 0);
+<span class="lineNum">     483 </span>                :            :                 }
+<span class="lineNum">     484 </span>                :            : 
+<span class="lineNum">     485 </span>        [<span class="branchCov" title="Branch 0 was taken 354 times"> + </span><span class="branchCov" title="Branch 1 was taken 141 times"> + </span>]:<span class="lineCov">        495 :                 if (!clp-&gt;cl_alldependents)</span>
+<span class="lineNum">     486 </span>                :<span class="lineCov">        354 :                         return (zfs_iter_children(zhp, change_one, data));</span>
+<span class="lineNum">     487 </span>                :            :         } else {
+<span class="lineNum">     488 </span>                :<span class="lineCov">         18 :                 zfs_close(zhp);</span>
+<span class="lineNum">     489 </span>                :            :         }
+<span class="lineNum">     490 </span>                :            : 
+<span class="lineNum">     491 </span>                :            :         return (0);
+<span class="lineNum">     492 </span>                :            : }
+<span class="lineNum">     493 </span>                :            : 
+<a name="494"><span class="lineNum">     494 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     495 </span>                :            : static int
+<span class="lineNum">     496 </span>                :<span class="lineCov">       2122 : compare_mountpoints(const void *a, const void *b, void *unused)</span>
+<span class="lineNum">     497 </span>                :            : {
+<span class="lineNum">     498 </span>                :<span class="lineCov">       2122 :         const prop_changenode_t *ca = a;</span>
+<span class="lineNum">     499 </span>                :<span class="lineCov">       2122 :         const prop_changenode_t *cb = b;</span>
+<span class="lineNum">     500 </span>                :            : 
+<span class="lineNum">     501 </span>                :            :         char mounta[MAXPATHLEN];
+<span class="lineNum">     502 </span>                :            :         char mountb[MAXPATHLEN];
+<span class="lineNum">     503 </span>                :            : 
+<span class="lineNum">     504 </span>                :            :         boolean_t hasmounta, hasmountb;
+<span class="lineNum">     505 </span>                :            : 
+<span class="lineNum">     506 </span>                :            :         /*
+<span class="lineNum">     507 </span>                :            :          * When unsharing or unmounting filesystems, we need to do it in
+<span class="lineNum">     508 </span>                :            :          * mountpoint order.  This allows the user to have a mountpoint
+<span class="lineNum">     509 </span>                :            :          * hierarchy that is different from the dataset hierarchy, and still
+<span class="lineNum">     510 </span>                :            :          * allow it to be changed.  However, if either dataset doesn't have a
+<span class="lineNum">     511 </span>                :            :          * mountpoint (because it is a volume or a snapshot), we place it at the
+<span class="lineNum">     512 </span>                :            :          * end of the list, because it doesn't affect our change at all.
+<span class="lineNum">     513 </span>                :            :          */
+<span class="lineNum">     514 </span>                :<span class="lineCov">       2122 :         hasmounta = (zfs_prop_get(ca-&gt;cn_handle, ZFS_PROP_MOUNTPOINT, mounta,</span>
+<span class="lineNum">     515 </span>                :<span class="lineCov">       2122 :             sizeof (mounta), NULL, NULL, 0, B_FALSE) == 0);</span>
+<span class="lineNum">     516 </span>                :<span class="lineCov">       2122 :         hasmountb = (zfs_prop_get(cb-&gt;cn_handle, ZFS_PROP_MOUNTPOINT, mountb,</span>
+<span class="lineNum">     517 </span>                :<span class="lineCov">       2122 :             sizeof (mountb), NULL, NULL, 0, B_FALSE) == 0);</span>
+<span class="lineNum">     518 </span>                :            : 
+<span class="lineNum">     519 </span>        [<span class="branchCov" title="Branch 0 was taken 2010 times"> + </span><span class="branchCov" title="Branch 1 was taken 112 times"> + </span>]:<span class="lineCov">       2122 :         if (!hasmounta &amp;&amp; hasmountb)</span>
+<span class="lineNum">     520 </span>                :            :                 return (-1);
+<span class="lineNum">     521 </span>        [<span class="branchCov" title="Branch 0 was taken 2010 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       2010 :         else if (hasmounta &amp;&amp; !hasmountb)</span>
+<span class="lineNum">     522 </span>                :            :                 return (1);
+<span class="lineNum">     523 </span>        [<span class="branchCov" title="Branch 0 was taken 1961 times"> + </span><span class="branchCov" title="Branch 1 was taken 49 times"> + </span>]:<span class="lineCov">       2010 :         else if (!hasmounta &amp;&amp; !hasmountb)</span>
+<span class="lineNum">     524 </span>                :            :                 return (0);
+<span class="lineNum">     525 </span>                :            :         else
+<span class="lineNum">     526 </span>                :<span class="lineCov">       1961 :                 return (strcmp(mountb, mounta));</span>
+<span class="lineNum">     527 </span>                :            : }
+<span class="lineNum">     528 </span>                :            : 
+<span class="lineNum">     529 </span>                :            : /*
+<span class="lineNum">     530 </span>                :            :  * Given a ZFS handle and a property, construct a complete list of datasets
+<span class="lineNum">     531 </span>                :            :  * that need to be modified as part of this process.  For anything but the
+<span class="lineNum">     532 </span>                :            :  * 'mountpoint' and 'sharenfs' properties, this just returns an empty list.
+<span class="lineNum">     533 </span>                :            :  * Otherwise, we iterate over all children and look for any datasets that
+<span class="lineNum">     534 </span>                :            :  * inherit the property.  For each such dataset, we add it to the list and
+<span class="lineNum">     535 </span>                :            :  * mark whether it was shared beforehand.
+<a name="536"><span class="lineNum">     536 </span>                :            :  */</a>
+<span class="lineNum">     537 </span>                :            : prop_changelist_t *
+<span class="lineNum">     538 </span>                :<span class="lineCov">       5400 : changelist_gather(zfs_handle_t *zhp, zfs_prop_t prop, int gather_flags,</span>
+<span class="lineNum">     539 </span>                :            :     int mnt_flags)
+<span class="lineNum">     540 </span>                :            : {
+<span class="lineNum">     541 </span>                :            :         prop_changelist_t *clp;
+<span class="lineNum">     542 </span>                :            :         prop_changenode_t *cn;
+<span class="lineNum">     543 </span>                :            :         zfs_handle_t *temp;
+<span class="lineNum">     544 </span>                :            :         char property[ZFS_MAXPROPLEN];
+<span class="lineNum">     545 </span>                :<span class="lineCov">       5400 :         uu_compare_fn_t *compare = NULL;</span>
+<span class="lineNum">     546 </span>                :<span class="lineCov">       5400 :         boolean_t legacy = B_FALSE;</span>
+<span class="lineNum">     547 </span>                :            : 
+<span class="lineNum">     548 </span>        [<span class="branchCov" title="Branch 1 was taken 5400 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       5400 :         if ((clp = zfs_alloc(zhp-&gt;zfs_hdl, sizeof (prop_changelist_t))) == NULL)</span>
+<span class="lineNum">     549 </span>                :            :                 return (NULL);
+<span class="lineNum">     550 </span>                :            : 
+<span class="lineNum">     551 </span>                :            :         /*
+<span class="lineNum">     552 </span>                :            :          * For mountpoint-related tasks, we want to sort everything by
+<span class="lineNum">     553 </span>                :            :          * mountpoint, so that we mount and unmount them in the appropriate
+<span class="lineNum">     554 </span>                :            :          * order, regardless of their position in the hierarchy.
+<span class="lineNum">     555 </span>                :            :          */
+<span class="lineNum">     556 </span>        [<span class="branchCov" title="Branch 0 was taken 5282 times"> + </span><span class="branchCov" title="Branch 1 was taken 118 times"> + </span>]:<span class="lineCov">       5400 :         if (prop == ZFS_PROP_NAME || prop == ZFS_PROP_ZONED ||</span>
+<span class="lineNum">     557 </span>[<span class="branchCov" title="Branch 0 was taken 4369 times"> + </span><span class="branchCov" title="Branch 1 was taken 913 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 8 times"> + </span><span class="branchCov" title="Branch 3 was taken 4361 times"> + </span>]:<span class="lineCov">       5282 :             prop == ZFS_PROP_MOUNTPOINT || prop == ZFS_PROP_SHARENFS ||</span>
+<span class="lineNum">     558 </span>                :            :             prop == ZFS_PROP_SHARESMB) {
+<span class="lineNum">     559 </span>                :            : 
+<span class="lineNum">     560 </span>        [<span class="branchCov" title="Branch 1 was taken 1000 times"> + </span><span class="branchCov" title="Branch 2 was taken 39 times"> + </span>]:<span class="lineCov">       1039 :                 if (zfs_prop_get(zhp, ZFS_PROP_MOUNTPOINT,</span>
+<span class="lineNum">     561 </span>                :            :                     property, sizeof (property),
+<span class="lineNum">     562 </span>        [<span class="branchCov" title="Branch 0 was taken 985 times"> + </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">       1000 :                     NULL, NULL, 0, B_FALSE) == 0 &amp;&amp;</span>
+<span class="lineNum">     563 </span>        [<span class="branchCov" title="Branch 0 was taken 13 times"> + </span><span class="branchCov" title="Branch 1 was taken 972 times"> + </span>]:<span class="lineCov">        985 :                     (strcmp(property, &quot;legacy&quot;) == 0 ||</span>
+<span class="lineNum">     564 </span>                :<span class="lineCov">        985 :                     strcmp(property, &quot;none&quot;) == 0)) {</span>
+<span class="lineNum">     565 </span>                :            : 
+<span class="lineNum">     566 </span>                :<span class="lineCov">         28 :                         legacy = B_TRUE;</span>
+<span class="lineNum">     567 </span>                :            :                 }
+<span class="lineNum">     568 </span>        [<span class="branchCov" title="Branch 0 was taken 1011 times"> + </span><span class="branchCov" title="Branch 1 was taken 28 times"> + </span>]:<span class="lineCov">       1039 :                 if (!legacy) {</span>
+<span class="lineNum">     569 </span>                :<span class="lineCov">       1011 :                         compare = compare_mountpoints;</span>
+<span class="lineNum">     570 </span>                :<span class="lineCov">       1011 :                         clp-&gt;cl_sorted = B_TRUE;</span>
+<span class="lineNum">     571 </span>                :            :                 }
+<span class="lineNum">     572 </span>                :            :         }
+<span class="lineNum">     573 </span>                :            : 
+<span class="lineNum">     574 </span>                :<span class="lineCov">       5400 :         clp-&gt;cl_pool = uu_list_pool_create(&quot;changelist_pool&quot;,</span>
+<span class="lineNum">     575 </span>                :            :             sizeof (prop_changenode_t),
+<span class="lineNum">     576 </span>                :            :             offsetof(prop_changenode_t, cn_listnode),
+<span class="lineNum">     577 </span>                :            :             compare, 0);
+<span class="lineNum">     578 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5400 times"> + </span>]:<span class="lineCov">       5400 :         if (clp-&gt;cl_pool == NULL) {</span>
+<span class="lineNum">     579 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 assert(uu_error() == UU_ERROR_NO_MEMORY);</span>
+<span class="lineNum">     580 </span>                :<span class="lineNoCov">          0 :                 (void) zfs_error(zhp-&gt;zfs_hdl, EZFS_NOMEM, &quot;internal error&quot;);</span>
+<span class="lineNum">     581 </span>                :<span class="lineNoCov">          0 :                 changelist_free(clp);</span>
+<span class="lineNum">     582 </span>                :<span class="lineNoCov">          0 :                 return (NULL);</span>
+<span class="lineNum">     583 </span>                :            :         }
+<span class="lineNum">     584 </span>                :            : 
+<span class="lineNum">     585 </span>        [<span class="branchCov" title="Branch 0 was taken 4389 times"> + </span><span class="branchCov" title="Branch 1 was taken 1011 times"> + </span>]:<span class="lineCov">       5400 :         clp-&gt;cl_list = uu_list_create(clp-&gt;cl_pool, NULL,</span>
+<span class="lineNum">     586 </span>                :<span class="lineCov">       5400 :             clp-&gt;cl_sorted ? UU_LIST_SORTED : 0);</span>
+<span class="lineNum">     587 </span>                :<span class="lineCov">       5400 :         clp-&gt;cl_gflags = gather_flags;</span>
+<span class="lineNum">     588 </span>                :<span class="lineCov">       5400 :         clp-&gt;cl_mflags = mnt_flags;</span>
+<span class="lineNum">     589 </span>                :            : 
+<span class="lineNum">     590 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5400 times"> + </span>]:<span class="lineCov">       5400 :         if (clp-&gt;cl_list == NULL) {</span>
+<span class="lineNum">     591 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 assert(uu_error() == UU_ERROR_NO_MEMORY);</span>
+<span class="lineNum">     592 </span>                :<span class="lineNoCov">          0 :                 (void) zfs_error(zhp-&gt;zfs_hdl, EZFS_NOMEM, &quot;internal error&quot;);</span>
+<span class="lineNum">     593 </span>                :<span class="lineNoCov">          0 :                 changelist_free(clp);</span>
+<span class="lineNum">     594 </span>                :<span class="lineNoCov">          0 :                 return (NULL);</span>
+<span class="lineNum">     595 </span>                :            :         }
+<span class="lineNum">     596 </span>                :            : 
+<span class="lineNum">     597 </span>                :            :         /*
+<span class="lineNum">     598 </span>                :            :          * If this is a rename or the 'zoned' property, we pretend we're
+<span class="lineNum">     599 </span>                :            :          * changing the mountpoint and flag it so we can catch all children in
+<span class="lineNum">     600 </span>                :            :          * change_one().
+<span class="lineNum">     601 </span>                :            :          *
+<span class="lineNum">     602 </span>                :            :          * Flag cl_alldependents to catch all children plus the dependents
+<span class="lineNum">     603 </span>                :            :          * (clones) that are not in the hierarchy.
+<span class="lineNum">     604 </span>                :            :          */
+<span class="lineNum">     605 </span>        [<span class="branchCov" title="Branch 0 was taken 91 times"> + </span><span class="branchCov" title="Branch 1 was taken 5309 times"> + </span>]:<span class="lineCov">       5400 :         if (prop == ZFS_PROP_NAME) {</span>
+<span class="lineNum">     606 </span>                :<span class="lineCov">         91 :                 clp-&gt;cl_prop = ZFS_PROP_MOUNTPOINT;</span>
+<span class="lineNum">     607 </span>                :<span class="lineCov">         91 :                 clp-&gt;cl_alldependents = B_TRUE;</span>
+<span class="lineNum">     608 </span>        [<span class="branchCov" title="Branch 0 was taken 27 times"> + </span><span class="branchCov" title="Branch 1 was taken 5282 times"> + </span>]:<span class="lineCov">       5309 :         } else if (prop == ZFS_PROP_ZONED) {</span>
+<span class="lineNum">     609 </span>                :<span class="lineCov">         27 :                 clp-&gt;cl_prop = ZFS_PROP_MOUNTPOINT;</span>
+<span class="lineNum">     610 </span>                :<span class="lineCov">         27 :                 clp-&gt;cl_allchildren = B_TRUE;</span>
+<span class="lineNum">     611 </span>        [<span class="branchCov" title="Branch 0 was taken 47 times"> + </span><span class="branchCov" title="Branch 1 was taken 5235 times"> + </span>]:<span class="lineCov">       5282 :         } else if (prop == ZFS_PROP_CANMOUNT) {</span>
+<span class="lineNum">     612 </span>                :<span class="lineCov">         47 :                 clp-&gt;cl_prop = ZFS_PROP_MOUNTPOINT;</span>
+<span class="lineNum">     613 </span>        [<span class="branchCov" title="Branch 0 was taken 21 times"> + </span><span class="branchCov" title="Branch 1 was taken 5214 times"> + </span>]:<span class="lineCov">       5235 :         } else if (prop == ZFS_PROP_VOLSIZE) {</span>
+<span class="lineNum">     614 </span>                :<span class="lineCov">         21 :                 clp-&gt;cl_prop = ZFS_PROP_MOUNTPOINT;</span>
+<span class="lineNum">     615 </span>                :            :         } else {
+<span class="lineNum">     616 </span>                :<span class="lineCov">       5214 :                 clp-&gt;cl_prop = prop;</span>
+<span class="lineNum">     617 </span>                :            :         }
+<span class="lineNum">     618 </span>                :<span class="lineCov">       5400 :         clp-&gt;cl_realprop = prop;</span>
+<span class="lineNum">     619 </span>                :            : 
+<span class="lineNum">     620 </span>        [<span class="branchCov" title="Branch 0 was taken 1107 times"> + </span><span class="branchCov" title="Branch 1 was taken 4293 times"> + </span>]:<span class="lineCov">       5400 :         if (clp-&gt;cl_prop != ZFS_PROP_MOUNTPOINT &amp;&amp;</span>
+<span class="lineNum">     621 </span>                :<span class="lineCov">       5400 :             clp-&gt;cl_prop != ZFS_PROP_SHARENFS &amp;&amp;</span>
+<span class="lineNum">     622 </span>                :            :             clp-&gt;cl_prop != ZFS_PROP_SHARESMB)
+<span class="lineNum">     623 </span>                :            :                 return (clp);
+<span class="lineNum">     624 </span>                :            : 
+<span class="lineNum">     625 </span>                :            :         /*
+<span class="lineNum">     626 </span>                :            :          * If watching SHARENFS or SHARESMB then
+<span class="lineNum">     627 </span>                :            :          * also watch its companion property.
+<span class="lineNum">     628 </span>                :            :          */
+<span class="lineNum">     629 </span>        [<span class="branchCov" title="Branch 0 was taken 193 times"> + </span><span class="branchCov" title="Branch 1 was taken 914 times"> + </span>]:<span class="lineCov">       1107 :         if (clp-&gt;cl_prop == ZFS_PROP_SHARENFS)</span>
+<span class="lineNum">     630 </span>                :<span class="lineCov">        193 :                 clp-&gt;cl_shareprop = ZFS_PROP_SHARESMB;</span>
+<span class="lineNum">     631 </span>        [<span class="branchCov" title="Branch 0 was taken 8 times"> + </span><span class="branchCov" title="Branch 1 was taken 906 times"> + </span>]:<span class="lineCov">        914 :         else if (clp-&gt;cl_prop == ZFS_PROP_SHARESMB)</span>
+<span class="lineNum">     632 </span>                :<span class="lineCov">          8 :                 clp-&gt;cl_shareprop = ZFS_PROP_SHARENFS;</span>
+<span class="lineNum">     633 </span>                :            : 
+<span class="lineNum">     634 </span>        [<span class="branchCov" title="Branch 0 was taken 91 times"> + </span><span class="branchCov" title="Branch 1 was taken 1016 times"> + </span>]:<span class="lineCov">       1107 :         if (clp-&gt;cl_alldependents) {</span>
+<span class="lineNum">     635 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 91 times"> + </span>]:<span class="lineCov">         91 :                 if (zfs_iter_dependents(zhp, B_TRUE, change_one, clp) != 0) {</span>
+<span class="lineNum">     636 </span>                :<span class="lineNoCov">          0 :                         changelist_free(clp);</span>
+<span class="lineNum">     637 </span>                :<span class="lineNoCov">          0 :                         return (NULL);</span>
+<span class="lineNum">     638 </span>                :            :                 }
+<span class="lineNum">     639 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1016 times"> + </span>]:<span class="lineCov">       1016 :         } else if (zfs_iter_children(zhp, change_one, clp) != 0) {</span>
+<span class="lineNum">     640 </span>                :<span class="lineNoCov">          0 :                 changelist_free(clp);</span>
+<span class="lineNum">     641 </span>                :<span class="lineNoCov">          0 :                 return (NULL);</span>
+<span class="lineNum">     642 </span>                :            :         }
+<span class="lineNum">     643 </span>                :            : 
+<span class="lineNum">     644 </span>                :            :         /*
+<span class="lineNum">     645 </span>                :            :          * We have to re-open ourselves because we auto-close all the handles
+<span class="lineNum">     646 </span>                :            :          * and can't tell the difference.
+<span class="lineNum">     647 </span>                :            :          */
+<span class="lineNum">     648 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 1107 times"> + </span>]:<span class="lineCov">       1107 :         if ((temp = zfs_open(zhp-&gt;zfs_hdl, zfs_get_name(zhp),</span>
+<span class="lineNum">     649 </span>                :            :             ZFS_TYPE_DATASET)) == NULL) {
+<span class="lineNum">     650 </span>                :<span class="lineNoCov">          0 :                 changelist_free(clp);</span>
+<span class="lineNum">     651 </span>                :<span class="lineNoCov">          0 :                 return (NULL);</span>
+<span class="lineNum">     652 </span>                :            :         }
+<span class="lineNum">     653 </span>                :            : 
+<span class="lineNum">     654 </span>                :            :         /*
+<span class="lineNum">     655 </span>                :            :          * Always add ourself to the list.  We add ourselves to the end so that
+<span class="lineNum">     656 </span>                :            :          * we're the last to be unmounted.
+<span class="lineNum">     657 </span>                :            :          */
+<span class="lineNum">     658 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1107 times"> + </span>]:<span class="lineCov">       1107 :         if ((cn = zfs_alloc(zhp-&gt;zfs_hdl,</span>
+<span class="lineNum">     659 </span>                :            :             sizeof (prop_changenode_t))) == NULL) {
+<span class="lineNum">     660 </span>                :<span class="lineNoCov">          0 :                 zfs_close(temp);</span>
+<span class="lineNum">     661 </span>                :<span class="lineNoCov">          0 :                 changelist_free(clp);</span>
+<span class="lineNum">     662 </span>                :<span class="lineNoCov">          0 :                 return (NULL);</span>
+<span class="lineNum">     663 </span>                :            :         }
+<span class="lineNum">     664 </span>                :            : 
+<span class="lineNum">     665 </span>                :<span class="lineCov">       1107 :         cn-&gt;cn_handle = temp;</span>
+<span class="lineNum">     666 </span>  [<span class="branchCov" title="Branch 0 was taken 978 times"> + </span><span class="branchCov" title="Branch 1 was taken 129 times"> + </span><span class="branchCov" title="Branch 2 was taken 753 times"> + </span><span class="branchCov" title="Branch 3 was taken 225 times"> + </span>]:<span class="lineCov">       2085 :         cn-&gt;cn_mounted = (clp-&gt;cl_gflags &amp; CL_GATHER_MOUNT_ALWAYS) ||</span>
+<span class="lineNum">     667 </span>                :<span class="lineCov">        978 :             zfs_is_mounted(temp, NULL);</span>
+<span class="lineNum">     668 </span>                :<span class="lineCov">       1107 :         cn-&gt;cn_shared = zfs_is_shared(temp);</span>
+<span class="lineNum">     669 </span>                :<span class="lineCov">       1107 :         cn-&gt;cn_zoned = zfs_prop_get_int(zhp, ZFS_PROP_ZONED);</span>
+<span class="lineNum">     670 </span>                :<span class="lineCov">       1107 :         cn-&gt;cn_needpost = B_TRUE;</span>
+<span class="lineNum">     671 </span>                :            : 
+<span class="lineNum">     672 </span>                :<span class="lineCov">       1107 :         uu_list_node_init(cn, &amp;cn-&gt;cn_listnode, clp-&gt;cl_pool);</span>
+<span class="lineNum">     673 </span>        [<span class="branchCov" title="Branch 0 was taken 1011 times"> + </span><span class="branchCov" title="Branch 1 was taken 96 times"> + </span>]:<span class="lineCov">       1107 :         if (clp-&gt;cl_sorted) {</span>
+<span class="lineNum">     674 </span>                :            :                 uu_list_index_t idx;
+<span class="lineNum">     675 </span>                :<span class="lineCov">       1011 :                 (void) uu_list_find(clp-&gt;cl_list, cn, NULL, &amp;idx);</span>
+<span class="lineNum">     676 </span>                :<span class="lineCov">       1011 :                 uu_list_insert(clp-&gt;cl_list, cn, idx);</span>
+<span class="lineNum">     677 </span>                :            :         } else {
+<span class="lineNum">     678 </span>                :            :                 /*
+<span class="lineNum">     679 </span>                :            :                  * Add the target dataset to the end of the list.
+<span class="lineNum">     680 </span>                :            :                  * The list is not really unsorted. The list will be
+<span class="lineNum">     681 </span>                :            :                  * in reverse dataset name order. This is necessary
+<span class="lineNum">     682 </span>                :            :                  * when the original mountpoint is legacy or none.
+<span class="lineNum">     683 </span>                :            :                  */
+<span class="lineNum">     684 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 96 times"> + </span>]:<span class="lineCov">         96 :                 verify(uu_list_insert_after(clp-&gt;cl_list,</span>
+<span class="lineNum">     685 </span>                :            :                     uu_list_last(clp-&gt;cl_list), cn) == 0);
+<span class="lineNum">     686 </span>                :            :         }
+<span class="lineNum">     687 </span>                :            : 
+<span class="lineNum">     688 </span>                :            :         /*
+<span class="lineNum">     689 </span>                :            :          * If the mountpoint property was previously 'legacy', or 'none',
+<span class="lineNum">     690 </span>                :            :          * record it as the behavior of changelist_postfix() will be different.
+<span class="lineNum">     691 </span>                :            :          */
+<span class="lineNum">     692 </span>[<span class="branchCov" title="Branch 0 was taken 906 times"> + </span><span class="branchCov" title="Branch 1 was taken 201 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 28 times"> + </span><span class="branchCov" title="Branch 3 was taken 878 times"> + </span>]:<span class="lineCov">       1107 :         if ((clp-&gt;cl_prop == ZFS_PROP_MOUNTPOINT) &amp;&amp; legacy) {</span>
+<span class="lineNum">     693 </span>                :            :                 /*
+<span class="lineNum">     694 </span>                :            :                  * do not automatically mount ex-legacy datasets if
+<span class="lineNum">     695 </span>                :            :                  * we specifically set canmount to noauto
+<span class="lineNum">     696 </span>                :            :                  */
+<span class="lineNum">     697 </span>        [<span class="branchCov" title="Branch 1 was taken 28 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">         28 :                 if (zfs_prop_get_int(zhp, ZFS_PROP_CANMOUNT) !=</span>
+<span class="lineNum">     698 </span>                :            :                     ZFS_CANMOUNT_NOAUTO)
+<span class="lineNum">     699 </span>                :<span class="lineCov">         28 :                         clp-&gt;cl_waslegacy = B_TRUE;</span>
+<span class="lineNum">     700 </span>                :            :         }
+<span class="lineNum">     701 </span>                :            : 
+<span class="lineNum">     702 </span>                :            :         return (clp);
+<span class="lineNum">     703 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

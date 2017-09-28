@@ -1,0 +1,837 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/vdev_mirror.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - vdev_mirror.c<span style="font-size: 80%;"> (source / <a href="vdev_mirror.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">232</td>
+            <td class="headerCovTableEntry">238</td>
+            <td class="headerCovTableEntryHi">97.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">143</td>
+            <td class="headerCovTableEntry">163</td>
+            <td class="headerCovTableEntryMed">87.7 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : /*
+<span class="lineNum">      27 </span>                :            :  * Copyright (c) 2012, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      28 </span>                :            :  */
+<span class="lineNum">      29 </span>                :            : 
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/vdev_impl.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/zio.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/abd.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/fs/zfs.h&gt;
+<span class="lineNum">      36 </span>                :            : 
+<span class="lineNum">      37 </span>                :            : /*
+<span class="lineNum">      38 </span>                :            :  * Vdev mirror kstats
+<span class="lineNum">      39 </span>                :            :  */
+<span class="lineNum">      40 </span>                :            : static kstat_t *mirror_ksp = NULL;
+<span class="lineNum">      41 </span>                :            : 
+<span class="lineNum">      42 </span>                :            : typedef struct mirror_stats {
+<span class="lineNum">      43 </span>                :            :         kstat_named_t vdev_mirror_stat_rotating_linear;
+<span class="lineNum">      44 </span>                :            :         kstat_named_t vdev_mirror_stat_rotating_offset;
+<span class="lineNum">      45 </span>                :            :         kstat_named_t vdev_mirror_stat_rotating_seek;
+<span class="lineNum">      46 </span>                :            :         kstat_named_t vdev_mirror_stat_non_rotating_linear;
+<span class="lineNum">      47 </span>                :            :         kstat_named_t vdev_mirror_stat_non_rotating_seek;
+<span class="lineNum">      48 </span>                :            : 
+<span class="lineNum">      49 </span>                :            :         kstat_named_t vdev_mirror_stat_preferred_found;
+<span class="lineNum">      50 </span>                :            :         kstat_named_t vdev_mirror_stat_preferred_not_found;
+<span class="lineNum">      51 </span>                :            : } mirror_stats_t;
+<span class="lineNum">      52 </span>                :            : 
+<span class="lineNum">      53 </span>                :            : static mirror_stats_t mirror_stats = {
+<span class="lineNum">      54 </span>                :            :         /* New I/O follows directly the last I/O */
+<span class="lineNum">      55 </span>                :            :         { &quot;rotating_linear&quot;,                  KSTAT_DATA_UINT64 },
+<span class="lineNum">      56 </span>                :            :         /* New I/O is within zfs_vdev_mirror_rotating_seek_offset of the last */
+<span class="lineNum">      57 </span>                :            :         { &quot;rotating_offset&quot;,                  KSTAT_DATA_UINT64 },
+<span class="lineNum">      58 </span>                :            :         /* New I/O requires random seek */
+<span class="lineNum">      59 </span>                :            :         { &quot;rotating_seek&quot;,                    KSTAT_DATA_UINT64 },
+<span class="lineNum">      60 </span>                :            :         /* New I/O follows directly the last I/O  (nonrot) */
+<span class="lineNum">      61 </span>                :            :         { &quot;non_rotating_linear&quot;,              KSTAT_DATA_UINT64 },
+<span class="lineNum">      62 </span>                :            :         /* New I/O requires random seek (nonrot) */
+<span class="lineNum">      63 </span>                :            :         { &quot;non_rotating_seek&quot;,                        KSTAT_DATA_UINT64 },
+<span class="lineNum">      64 </span>                :            :         /* Preferred child vdev found */
+<span class="lineNum">      65 </span>                :            :         { &quot;preferred_found&quot;,                  KSTAT_DATA_UINT64 },
+<span class="lineNum">      66 </span>                :            :         /* Preferred child vdev not found or equal load  */
+<span class="lineNum">      67 </span>                :            :         { &quot;preferred_not_found&quot;,              KSTAT_DATA_UINT64 },
+<span class="lineNum">      68 </span>                :            : 
+<span class="lineNum">      69 </span>                :            : };
+<span class="lineNum">      70 </span>                :            : 
+<span class="lineNum">      71 </span>                :            : #define MIRROR_STAT(stat)               (mirror_stats.stat.value.ui64)
+<span class="lineNum">      72 </span>                :            : #define MIRROR_INCR(stat, val)          atomic_add_64(&amp;MIRROR_STAT(stat), val)
+<span class="lineNum">      73 </span>                :            : #define MIRROR_BUMP(stat)               MIRROR_INCR(stat, 1)
+<a name="74"><span class="lineNum">      74 </span>                :            : </a>
+<span class="lineNum">      75 </span>                :            : void
+<span class="lineNum">      76 </span>                :<span class="lineCov">       1234 : vdev_mirror_stat_init(void)</span>
+<span class="lineNum">      77 </span>                :            : {
+<span class="lineNum">      78 </span>                :<span class="lineCov">       1234 :         mirror_ksp = kstat_create(&quot;zfs&quot;, 0, &quot;vdev_mirror_stats&quot;,</span>
+<span class="lineNum">      79 </span>                :            :             &quot;misc&quot;, KSTAT_TYPE_NAMED,
+<span class="lineNum">      80 </span>                :            :             sizeof (mirror_stats) / sizeof (kstat_named_t), KSTAT_FLAG_VIRTUAL);
+<span class="lineNum">      81 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         if (mirror_ksp != NULL) {</span>
+<span class="lineNum">      82 </span>                :<span class="lineNoCov">          0 :                 mirror_ksp-&gt;ks_data = &amp;mirror_stats;</span>
+<span class="lineNum">      83 </span>                :<span class="lineNoCov">          0 :                 kstat_install(mirror_ksp);</span>
+<span class="lineNum">      84 </span>                :            :         }
+<span class="lineNum">      85 </span>                :<span class="lineCov">       1234 : }</span>
+<a name="86"><span class="lineNum">      86 </span>                :            : </a>
+<span class="lineNum">      87 </span>                :            : void
+<span class="lineNum">      88 </span>                :<span class="lineCov">        785 : vdev_mirror_stat_fini(void)</span>
+<span class="lineNum">      89 </span>                :            : {
+<span class="lineNum">      90 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 785 times"> + </span>]:<span class="lineCov">        785 :         if (mirror_ksp != NULL) {</span>
+<span class="lineNum">      91 </span>                :<span class="lineNoCov">          0 :                 kstat_delete(mirror_ksp);</span>
+<span class="lineNum">      92 </span>                :<span class="lineNoCov">          0 :                 mirror_ksp = NULL;</span>
+<span class="lineNum">      93 </span>                :            :         }
+<span class="lineNum">      94 </span>                :<span class="lineCov">        785 : }</span>
+<span class="lineNum">      95 </span>                :            : 
+<span class="lineNum">      96 </span>                :            : /*
+<span class="lineNum">      97 </span>                :            :  * Virtual device vector for mirroring.
+<span class="lineNum">      98 </span>                :            :  */
+<span class="lineNum">      99 </span>                :            : 
+<span class="lineNum">     100 </span>                :            : typedef struct mirror_child {
+<span class="lineNum">     101 </span>                :            :         vdev_t          *mc_vd;
+<span class="lineNum">     102 </span>                :            :         uint64_t        mc_offset;
+<span class="lineNum">     103 </span>                :            :         int             mc_error;
+<span class="lineNum">     104 </span>                :            :         int             mc_load;
+<span class="lineNum">     105 </span>                :            :         uint8_t         mc_tried;
+<span class="lineNum">     106 </span>                :            :         uint8_t         mc_skipped;
+<span class="lineNum">     107 </span>                :            :         uint8_t         mc_speculative;
+<span class="lineNum">     108 </span>                :            : } mirror_child_t;
+<span class="lineNum">     109 </span>                :            : 
+<span class="lineNum">     110 </span>                :            : typedef struct mirror_map {
+<span class="lineNum">     111 </span>                :            :         int             *mm_preferred;
+<span class="lineNum">     112 </span>                :            :         int             mm_preferred_cnt;
+<span class="lineNum">     113 </span>                :            :         int             mm_children;
+<span class="lineNum">     114 </span>                :            :         boolean_t       mm_replacing;
+<span class="lineNum">     115 </span>                :            :         boolean_t       mm_root;
+<span class="lineNum">     116 </span>                :            :         mirror_child_t  mm_child[];
+<span class="lineNum">     117 </span>                :            : } mirror_map_t;
+<span class="lineNum">     118 </span>                :            : 
+<span class="lineNum">     119 </span>                :            : static int vdev_mirror_shift = 21;
+<span class="lineNum">     120 </span>                :            : 
+<span class="lineNum">     121 </span>                :            : /*
+<span class="lineNum">     122 </span>                :            :  * The load configuration settings below are tuned by default for
+<span class="lineNum">     123 </span>                :            :  * the case where all devices are of the same rotational type.
+<span class="lineNum">     124 </span>                :            :  *
+<span class="lineNum">     125 </span>                :            :  * If there is a mixture of rotating and non-rotating media, setting
+<span class="lineNum">     126 </span>                :            :  * zfs_vdev_mirror_non_rotating_seek_inc to 0 may well provide better results
+<span class="lineNum">     127 </span>                :            :  * as it will direct more reads to the non-rotating vdevs which are more likely
+<span class="lineNum">     128 </span>                :            :  * to have a higher performance.
+<span class="lineNum">     129 </span>                :            :  */
+<span class="lineNum">     130 </span>                :            : 
+<span class="lineNum">     131 </span>                :            : /* Rotating media load calculation configuration. */
+<span class="lineNum">     132 </span>                :            : static int zfs_vdev_mirror_rotating_inc = 0;
+<span class="lineNum">     133 </span>                :            : static int zfs_vdev_mirror_rotating_seek_inc = 5;
+<span class="lineNum">     134 </span>                :            : static int zfs_vdev_mirror_rotating_seek_offset = 1 * 1024 * 1024;
+<span class="lineNum">     135 </span>                :            : 
+<span class="lineNum">     136 </span>                :            : /* Non-rotating media load calculation configuration. */
+<span class="lineNum">     137 </span>                :            : static int zfs_vdev_mirror_non_rotating_inc = 0;
+<span class="lineNum">     138 </span>                :            : static int zfs_vdev_mirror_non_rotating_seek_inc = 1;
+<a name="139"><span class="lineNum">     139 </span>                :            : </a>
+<span class="lineNum">     140 </span>                :            : static inline size_t
+<span class="lineNum">     141 </span>                :<span class="lineCov">    3304290 : vdev_mirror_map_size(int children)</span>
+<span class="lineNum">     142 </span>                :            : {
+<span class="lineNum">     143 </span>                :<span class="lineCov">    6608580 :         return (offsetof(mirror_map_t, mm_child[children]) +</span>
+<span class="lineNum">     144 </span>                :<span class="lineCov">    3304290 :             sizeof (int) * children);</span>
+<span class="lineNum">     145 </span>                :            : }
+<a name="146"><span class="lineNum">     146 </span>                :            : </a>
+<span class="lineNum">     147 </span>                :            : static inline mirror_map_t *
+<span class="lineNum">     148 </span>                :<span class="lineCov">    3304435 : vdev_mirror_map_alloc(int children, boolean_t replacing, boolean_t root)</span>
+<span class="lineNum">     149 </span>                :            : {
+<span class="lineNum">     150 </span>                :            :         mirror_map_t *mm;
+<span class="lineNum">     151 </span>                :            : 
+<span class="lineNum">     152 </span>                :<span class="lineCov">    3304435 :         mm = kmem_zalloc(vdev_mirror_map_size(children), KM_SLEEP);</span>
+<span class="lineNum">     153 </span>                :<span class="lineCov">    3304286 :         mm-&gt;mm_children = children;</span>
+<span class="lineNum">     154 </span>                :<span class="lineCov">    3304286 :         mm-&gt;mm_replacing = replacing;</span>
+<span class="lineNum">     155 </span>                :<span class="lineCov">    3304286 :         mm-&gt;mm_root = root;</span>
+<span class="lineNum">     156 </span>                :<span class="lineCov">    3304286 :         mm-&gt;mm_preferred = (int *)((uintptr_t)mm +</span>
+<span class="lineNum">     157 </span>                :            :             offsetof(mirror_map_t, mm_child[children]));
+<span class="lineNum">     158 </span>                :            : 
+<span class="lineNum">     159 </span>                :<span class="lineCov">    3304286 :         return (mm);</span>
+<span class="lineNum">     160 </span>                :            : }
+<a name="161"><span class="lineNum">     161 </span>                :            : </a>
+<span class="lineNum">     162 </span>                :            : static void
+<span class="lineNum">     163 </span>                :<span class="lineCov">    3304794 : vdev_mirror_map_free(zio_t *zio)</span>
+<span class="lineNum">     164 </span>                :            : {
+<span class="lineNum">     165 </span>                :<span class="lineCov">    3304794 :         mirror_map_t *mm = zio-&gt;io_vsd;</span>
+<span class="lineNum">     166 </span>                :            : 
+<span class="lineNum">     167 </span>                :<span class="lineCov">    3304794 :         kmem_free(mm, vdev_mirror_map_size(mm-&gt;mm_children));</span>
+<span class="lineNum">     168 </span>                :<span class="lineCov">    3304875 : }</span>
+<span class="lineNum">     169 </span>                :            : 
+<span class="lineNum">     170 </span>                :            : static const zio_vsd_ops_t vdev_mirror_vsd_ops = {
+<span class="lineNum">     171 </span>                :            :         vdev_mirror_map_free,
+<span class="lineNum">     172 </span>                :            :         zio_vsd_default_cksum_report
+<span class="lineNum">     173 </span>                :            : };
+<a name="174"><span class="lineNum">     174 </span>                :            : </a>
+<span class="lineNum">     175 </span>                :            : static int
+<span class="lineNum">     176 </span>                :<span class="lineCov">    1011205 : vdev_mirror_load(mirror_map_t *mm, vdev_t *vd, uint64_t zio_offset)</span>
+<span class="lineNum">     177 </span>                :            : {
+<span class="lineNum">     178 </span>                :            :         uint64_t last_offset;
+<span class="lineNum">     179 </span>                :            :         int64_t offset_diff;
+<span class="lineNum">     180 </span>                :            :         int load;
+<span class="lineNum">     181 </span>                :            : 
+<span class="lineNum">     182 </span>                :            :         /* All DVAs have equal weight at the root. */
+<span class="lineNum">     183 </span>        [<span class="branchCov" title="Branch 0 was taken 426289 times"> + </span><span class="branchCov" title="Branch 1 was taken 584916 times"> + </span>]:<span class="lineCov">    1011205 :         if (mm-&gt;mm_root)</span>
+<span class="lineNum">     184 </span>                :            :                 return (INT_MAX);
+<span class="lineNum">     185 </span>                :            : 
+<span class="lineNum">     186 </span>                :            :         /*
+<span class="lineNum">     187 </span>                :            :          * We don't return INT_MAX if the device is resilvering i.e.
+<span class="lineNum">     188 </span>                :            :          * vdev_resilver_txg != 0 as when tested performance was slightly
+<span class="lineNum">     189 </span>                :            :          * worse overall when resilvering with compared to without.
+<span class="lineNum">     190 </span>                :            :          */
+<span class="lineNum">     191 </span>                :            : 
+<span class="lineNum">     192 </span>                :            :         /* Fix zio_offset for leaf vdevs */
+<span class="lineNum">     193 </span>        [<span class="branchCov" title="Branch 0 was taken 340066 times"> + </span><span class="branchCov" title="Branch 1 was taken 86223 times"> + </span>]:<span class="lineCov">     426289 :         if (vd-&gt;vdev_ops-&gt;vdev_op_leaf)</span>
+<span class="lineNum">     194 </span>                :<span class="lineCov">     340066 :                 zio_offset += VDEV_LABEL_START_SIZE;</span>
+<span class="lineNum">     195 </span>                :            : 
+<span class="lineNum">     196 </span>                :            :         /* Standard load based on pending queue length. */
+<span class="lineNum">     197 </span>                :<span class="lineCov">     426289 :         load = vdev_queue_length(vd);</span>
+<span class="lineNum">     198 </span>                :<span class="lineCov">     426271 :         last_offset = vdev_queue_last_offset(vd);</span>
+<span class="lineNum">     199 </span>                :            : 
+<span class="lineNum">     200 </span>        [<span class="branchCov" title="Branch 0 was taken 424069 times"> + </span><span class="branchCov" title="Branch 1 was taken 2207 times"> + </span>]:<span class="lineCov">     426276 :         if (vd-&gt;vdev_nonrot) {</span>
+<span class="lineNum">     201 </span>                :            :                 /* Non-rotating media. */
+<span class="lineNum">     202 </span>        [<span class="branchCov" title="Branch 0 was taken 15009 times"> + </span><span class="branchCov" title="Branch 1 was taken 409060 times"> + </span>]:<span class="lineCov">     424069 :                 if (last_offset == zio_offset) {</span>
+<span class="lineNum">     203 </span>                :<span class="lineCov">      15009 :                         MIRROR_BUMP(vdev_mirror_stat_non_rotating_linear);</span>
+<span class="lineNum">     204 </span>                :<span class="lineCov">      15009 :                         return (load + zfs_vdev_mirror_non_rotating_inc);</span>
+<span class="lineNum">     205 </span>                :            :                 }
+<span class="lineNum">     206 </span>                :            : 
+<span class="lineNum">     207 </span>                :            :                 /*
+<span class="lineNum">     208 </span>                :            :                  * Apply a seek penalty even for non-rotating devices as
+<span class="lineNum">     209 </span>                :            :                  * sequential I/O's can be aggregated into fewer operations on
+<span class="lineNum">     210 </span>                :            :                  * the device, thus avoiding unnecessary per-command overhead
+<span class="lineNum">     211 </span>                :            :                  * and boosting performance.
+<span class="lineNum">     212 </span>                :            :                  */
+<span class="lineNum">     213 </span>                :<span class="lineCov">     409060 :                 MIRROR_BUMP(vdev_mirror_stat_non_rotating_seek);</span>
+<span class="lineNum">     214 </span>                :<span class="lineCov">     409060 :                 return (load + zfs_vdev_mirror_non_rotating_seek_inc);</span>
+<span class="lineNum">     215 </span>                :            :         }
+<span class="lineNum">     216 </span>                :            : 
+<span class="lineNum">     217 </span>                :            :         /* Rotating media I/O's which directly follow the last I/O. */
+<span class="lineNum">     218 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchCov" title="Branch 1 was taken 2204 times"> + </span>]:<span class="lineCov">       2207 :         if (last_offset == zio_offset) {</span>
+<span class="lineNum">     219 </span>                :<span class="lineCov">          3 :                 MIRROR_BUMP(vdev_mirror_stat_rotating_linear);</span>
+<span class="lineNum">     220 </span>                :<span class="lineCov">          3 :                 return (load + zfs_vdev_mirror_rotating_inc);</span>
+<span class="lineNum">     221 </span>                :            :         }
+<span class="lineNum">     222 </span>                :            : 
+<span class="lineNum">     223 </span>                :            :         /*
+<span class="lineNum">     224 </span>                :            :          * Apply half the seek increment to I/O's within seek offset
+<span class="lineNum">     225 </span>                :            :          * of the last I/O issued to this vdev as they should incur less
+<span class="lineNum">     226 </span>                :            :          * of a seek increment.
+<span class="lineNum">     227 </span>                :            :          */
+<span class="lineNum">     228 </span>                :<span class="lineCov">       2204 :         offset_diff = (int64_t)(last_offset - zio_offset);</span>
+<span class="lineNum">     229 </span>        [<span class="branchCov" title="Branch 0 was taken 86 times"> + </span><span class="branchCov" title="Branch 1 was taken 2118 times"> + </span>]:<span class="lineCov">       2204 :         if (ABS(offset_diff) &lt; zfs_vdev_mirror_rotating_seek_offset) {</span>
+<span class="lineNum">     230 </span>                :<span class="lineCov">         86 :                 MIRROR_BUMP(vdev_mirror_stat_rotating_offset);</span>
+<span class="lineNum">     231 </span>                :<span class="lineCov">         86 :                 return (load + (zfs_vdev_mirror_rotating_seek_inc / 2));</span>
+<span class="lineNum">     232 </span>                :            :         }
+<span class="lineNum">     233 </span>                :            : 
+<span class="lineNum">     234 </span>                :            :         /* Apply the full seek increment to all other I/O's. */
+<span class="lineNum">     235 </span>                :<span class="lineCov">       2118 :         MIRROR_BUMP(vdev_mirror_stat_rotating_seek);</span>
+<span class="lineNum">     236 </span>                :<span class="lineCov">       2118 :         return (load + zfs_vdev_mirror_rotating_seek_inc);</span>
+<span class="lineNum">     237 </span>                :            : }
+<span class="lineNum">     238 </span>                :            : 
+<span class="lineNum">     239 </span>                :            : /*
+<span class="lineNum">     240 </span>                :            :  * Avoid inlining the function to keep vdev_mirror_io_start(), which
+<span class="lineNum">     241 </span>                :            :  * is this functions only caller, as small as possible on the stack.
+<a name="242"><span class="lineNum">     242 </span>                :            :  */</a>
+<span class="lineNum">     243 </span>                :            : noinline static mirror_map_t *
+<span class="lineNum">     244 </span>                :<span class="lineCov">    3304844 : vdev_mirror_map_init(zio_t *zio)</span>
+<span class="lineNum">     245 </span>                :            : {
+<span class="lineNum">     246 </span>                :<span class="lineCov">    3304844 :         mirror_map_t *mm = NULL;</span>
+<span class="lineNum">     247 </span>                :            :         mirror_child_t *mc;
+<span class="lineNum">     248 </span>                :<span class="lineCov">    3304844 :         vdev_t *vd = zio-&gt;io_vd;</span>
+<span class="lineNum">     249 </span>                :            :         int c;
+<span class="lineNum">     250 </span>                :            : 
+<span class="lineNum">     251 </span>        [<span class="branchCov" title="Branch 0 was taken 1301055 times"> + </span><span class="branchCov" title="Branch 1 was taken 2003789 times"> + </span>]:<span class="lineCov">    3304844 :         if (vd == NULL) {</span>
+<span class="lineNum">     252 </span>                :<span class="lineCov">    1301055 :                 dva_t *dva = zio-&gt;io_bp-&gt;blk_dva;</span>
+<span class="lineNum">     253 </span>                :<span class="lineCov">    1301055 :                 spa_t *spa = zio-&gt;io_spa;</span>
+<span class="lineNum">     254 </span>                :            : 
+<span class="lineNum">     255 </span>[<span class="branchCov" title="Branch 0 was taken 1301047 times"> + </span><span class="branchCov" title="Branch 1 was taken 8 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 1301047 times"> + </span>]:<span class="lineCov">    1301055 :                 mm = vdev_mirror_map_alloc(BP_GET_NDVAS(zio-&gt;io_bp), B_FALSE,</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 8 was not executed"> # </span><span class="branchNoExec" title="Branch 9 was not executed"> # </span>][<span class="branchNoExec" title="Branch 10 was not executed"> # </span><span class="branchNoExec" title="Branch 11 was not executed"> # </span>]
+<span class="lineNum">     256 </span>                :            :                     B_TRUE);
+<span class="lineNum">     257 </span>        [<span class="branchCov" title="Branch 1 was taken 2892923 times"> + </span><span class="branchCov" title="Branch 2 was taken 1300785 times"> + </span>]:<span class="lineCov">    4193854 :                 for (c = 0; c &lt; mm-&gt;mm_children; c++) {</span>
+<span class="lineNum">     258 </span>                :<span class="lineCov">    2892923 :                         mc = &amp;mm-&gt;mm_child[c];</span>
+<span class="lineNum">     259 </span>                :            : 
+<span class="lineNum">     260 </span>                :<span class="lineCov">    2892923 :                         mc-&gt;mc_vd = vdev_lookup_top(spa, DVA_GET_VDEV(&amp;dva[c]));</span>
+<span class="lineNum">     261 </span>                :<span class="lineCov">    2892799 :                         mc-&gt;mc_offset = DVA_GET_OFFSET(&amp;dva[c]);</span>
+<span class="lineNum">     262 </span>                :            :                 }
+<span class="lineNum">     263 </span>                :            :         } else {
+<span class="lineNum">     264 </span>                :<span class="lineCov">    2003789 :                 mm = vdev_mirror_map_alloc(vd-&gt;vdev_children,</span>
+<span class="lineNum">     265 </span>[<span class="branchCov" title="Branch 0 was taken 1931885 times"> + </span><span class="branchCov" title="Branch 1 was taken 71904 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 1785250 times"> + </span><span class="branchCov" title="Branch 3 was taken 146635 times"> + </span>]:<span class="lineCov">    2003789 :                     (vd-&gt;vdev_ops == &amp;vdev_replacing_ops ||</span>
+<span class="lineNum">     266 </span>                :            :                     vd-&gt;vdev_ops == &amp;vdev_spare_ops), B_FALSE);
+<span class="lineNum">     267 </span>        [<span class="branchCov" title="Branch 1 was taken 3567868 times"> + </span><span class="branchCov" title="Branch 2 was taken 2003925 times"> + </span>]:<span class="lineCov">    5571657 :                 for (c = 0; c &lt; mm-&gt;mm_children; c++) {</span>
+<span class="lineNum">     268 </span>                :<span class="lineCov">    3567868 :                         mc = &amp;mm-&gt;mm_child[c];</span>
+<span class="lineNum">     269 </span>                :<span class="lineCov">    3567868 :                         mc-&gt;mc_vd = vd-&gt;vdev_child[c];</span>
+<span class="lineNum">     270 </span>                :<span class="lineCov">    3567868 :                         mc-&gt;mc_offset = zio-&gt;io_offset;</span>
+<span class="lineNum">     271 </span>                :            :                 }
+<span class="lineNum">     272 </span>                :            :         }
+<span class="lineNum">     273 </span>                :            : 
+<span class="lineNum">     274 </span>                :<span class="lineCov">    3304710 :         zio-&gt;io_vsd = mm;</span>
+<span class="lineNum">     275 </span>                :<span class="lineCov">    3304710 :         zio-&gt;io_vsd_ops = &amp;vdev_mirror_vsd_ops;</span>
+<span class="lineNum">     276 </span>                :<span class="lineCov">    3304710 :         return (mm);</span>
+<span class="lineNum">     277 </span>                :            : }
+<a name="278"><span class="lineNum">     278 </span>                :            : </a>
+<span class="lineNum">     279 </span>                :            : static int
+<span class="lineNum">     280 </span>                :<span class="lineCov">       1802 : vdev_mirror_open(vdev_t *vd, uint64_t *asize, uint64_t *max_asize,</span>
+<span class="lineNum">     281 </span>                :            :     uint64_t *ashift)
+<span class="lineNum">     282 </span>                :            : {
+<span class="lineNum">     283 </span>                :<span class="lineCov">       1802 :         int numerrors = 0;</span>
+<span class="lineNum">     284 </span>                :<span class="lineCov">       1802 :         int lasterror = 0;</span>
+<span class="lineNum">     285 </span>                :            :         int c;
+<span class="lineNum">     286 </span>                :            : 
+<span class="lineNum">     287 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1802 times"> + </span>]:<span class="lineCov">       1802 :         if (vd-&gt;vdev_children == 0) {</span>
+<span class="lineNum">     288 </span>                :<span class="lineNoCov">          0 :                 vd-&gt;vdev_stat.vs_aux = VDEV_AUX_BAD_LABEL;</span>
+<span class="lineNum">     289 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EINVAL));</span>
+<span class="lineNum">     290 </span>                :            :         }
+<span class="lineNum">     291 </span>                :            : 
+<span class="lineNum">     292 </span>                :<span class="lineCov">       1802 :         vdev_open_children(vd);</span>
+<span class="lineNum">     293 </span>                :            : 
+<span class="lineNum">     294 </span>        [<span class="branchCov" title="Branch 1 was taken 3075 times"> + </span><span class="branchCov" title="Branch 2 was taken 1803 times"> + </span>]:<span class="lineCov">       4877 :         for (c = 0; c &lt; vd-&gt;vdev_children; c++) {</span>
+<span class="lineNum">     295 </span>                :<span class="lineCov">       3075 :                 vdev_t *cvd = vd-&gt;vdev_child[c];</span>
+<span class="lineNum">     296 </span>                :            : 
+<span class="lineNum">     297 </span>        [<span class="branchCov" title="Branch 0 was taken 96 times"> + </span><span class="branchCov" title="Branch 1 was taken 2979 times"> + </span>]:<span class="lineCov">       3075 :                 if (cvd-&gt;vdev_open_error) {</span>
+<span class="lineNum">     298 </span>                :<span class="lineCov">         96 :                         lasterror = cvd-&gt;vdev_open_error;</span>
+<span class="lineNum">     299 </span>                :<span class="lineCov">         96 :                         numerrors++;</span>
+<span class="lineNum">     300 </span>                :<span class="lineCov">         96 :                         continue;</span>
+<span class="lineNum">     301 </span>                :            :                 }
+<span class="lineNum">     302 </span>                :            : 
+<span class="lineNum">     303 </span>                :<span class="lineCov">       2979 :                 *asize = MIN(*asize - 1, cvd-&gt;vdev_asize - 1) + 1;</span>
+<span class="lineNum">     304 </span>                :<span class="lineCov">       2979 :                 *max_asize = MIN(*max_asize - 1, cvd-&gt;vdev_max_asize - 1) + 1;</span>
+<span class="lineNum">     305 </span>                :<span class="lineCov">       2979 :                 *ashift = MAX(*ashift, cvd-&gt;vdev_ashift);</span>
+<span class="lineNum">     306 </span>                :            :         }
+<span class="lineNum">     307 </span>                :            : 
+<span class="lineNum">     308 </span>        [<span class="branchCov" title="Branch 0 was taken 49 times"> + </span><span class="branchCov" title="Branch 1 was taken 1754 times"> + </span>]:<span class="lineCov">       1803 :         if (numerrors == vd-&gt;vdev_children) {</span>
+<span class="lineNum">     309 </span>                :<span class="lineCov">         49 :                 vd-&gt;vdev_stat.vs_aux = VDEV_AUX_NO_REPLICAS;</span>
+<span class="lineNum">     310 </span>                :<span class="lineCov">         49 :                 return (lasterror);</span>
+<span class="lineNum">     311 </span>                :            :         }
+<span class="lineNum">     312 </span>                :            : 
+<span class="lineNum">     313 </span>                :            :         return (0);
+<span class="lineNum">     314 </span>                :            : }
+<a name="315"><span class="lineNum">     315 </span>                :            : </a>
+<span class="lineNum">     316 </span>                :            : static void
+<span class="lineNum">     317 </span>                :<span class="lineCov">       5447 : vdev_mirror_close(vdev_t *vd)</span>
+<span class="lineNum">     318 </span>                :            : {
+<span class="lineNum">     319 </span>                :            :         int c;
+<span class="lineNum">     320 </span>                :            : 
+<span class="lineNum">     321 </span>        [<span class="branchCov" title="Branch 0 was taken 9428 times"> + </span><span class="branchCov" title="Branch 1 was taken 5447 times"> + </span>]:<span class="lineCov">      14875 :         for (c = 0; c &lt; vd-&gt;vdev_children; c++)</span>
+<span class="lineNum">     322 </span>                :<span class="lineCov">       9428 :                 vdev_close(vd-&gt;vdev_child[c]);</span>
+<span class="lineNum">     323 </span>                :<span class="lineCov">       5447 : }</span>
+<a name="324"><span class="lineNum">     324 </span>                :            : </a>
+<span class="lineNum">     325 </span>                :            : static void
+<span class="lineNum">     326 </span>                :<span class="lineCov">    4652399 : vdev_mirror_child_done(zio_t *zio)</span>
+<span class="lineNum">     327 </span>                :            : {
+<span class="lineNum">     328 </span>                :<span class="lineCov">    4652399 :         mirror_child_t *mc = zio-&gt;io_private;</span>
+<span class="lineNum">     329 </span>                :            : 
+<span class="lineNum">     330 </span>                :<span class="lineCov">    4652399 :         mc-&gt;mc_error = zio-&gt;io_error;</span>
+<span class="lineNum">     331 </span>                :<span class="lineCov">    4652399 :         mc-&gt;mc_tried = 1;</span>
+<span class="lineNum">     332 </span>                :<span class="lineCov">    4652399 :         mc-&gt;mc_skipped = 0;</span>
+<span class="lineNum">     333 </span>                :<span class="lineCov">    4652399 : }</span>
+<a name="334"><span class="lineNum">     334 </span>                :            : </a>
+<span class="lineNum">     335 </span>                :            : static void
+<span class="lineNum">     336 </span>                :<span class="lineCov">    1310159 : vdev_mirror_scrub_done(zio_t *zio)</span>
+<span class="lineNum">     337 </span>                :            : {
+<span class="lineNum">     338 </span>                :<span class="lineCov">    1310159 :         mirror_child_t *mc = zio-&gt;io_private;</span>
+<span class="lineNum">     339 </span>                :            : 
+<span class="lineNum">     340 </span>        [<span class="branchCov" title="Branch 0 was taken 1181952 times"> + </span><span class="branchCov" title="Branch 1 was taken 128207 times"> + </span>]:<span class="lineCov">    1310159 :         if (zio-&gt;io_error == 0) {</span>
+<span class="lineNum">     341 </span>                :            :                 zio_t *pio;
+<span class="lineNum">     342 </span>                :<span class="lineCov">    1181952 :                 zio_link_t *zl = NULL;</span>
+<span class="lineNum">     343 </span>                :            : 
+<span class="lineNum">     344 </span>                :<span class="lineCov">    1181952 :                 mutex_enter(&amp;zio-&gt;io_lock);</span>
+<span class="lineNum">     345 </span>        [<span class="branchCov" title="Branch 1 was taken 1181968 times"> + </span><span class="branchCov" title="Branch 2 was taken 1182115 times"> + </span>]:<span class="lineCov">    2364322 :                 while ((pio = zio_walk_parents(zio, &amp;zl)) != NULL) {</span>
+<span class="lineNum">     346 </span>                :<span class="lineCov">    1181968 :                         mutex_enter(&amp;pio-&gt;io_lock);</span>
+<span class="lineNum">     347 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1182176 times"> + </span>]:<span class="lineCov">    1182176 :                         ASSERT3U(zio-&gt;io_size, &gt;=, pio-&gt;io_size);</span>
+<span class="lineNum">     348 </span>                :<span class="lineCov">    1182176 :                         abd_copy(pio-&gt;io_abd, zio-&gt;io_abd, pio-&gt;io_size);</span>
+<span class="lineNum">     349 </span>                :<span class="lineCov">    1181690 :                         mutex_exit(&amp;pio-&gt;io_lock);</span>
+<span class="lineNum">     350 </span>                :            :                 }
+<span class="lineNum">     351 </span>                :<span class="lineCov">    1182115 :                 mutex_exit(&amp;zio-&gt;io_lock);</span>
+<span class="lineNum">     352 </span>                :            :         }
+<span class="lineNum">     353 </span>                :            : 
+<span class="lineNum">     354 </span>                :<span class="lineCov">    1310375 :         abd_free(zio-&gt;io_abd);</span>
+<span class="lineNum">     355 </span>                :            : 
+<span class="lineNum">     356 </span>                :<span class="lineCov">    1310688 :         mc-&gt;mc_error = zio-&gt;io_error;</span>
+<span class="lineNum">     357 </span>                :<span class="lineCov">    1310688 :         mc-&gt;mc_tried = 1;</span>
+<span class="lineNum">     358 </span>                :<span class="lineCov">    1310688 :         mc-&gt;mc_skipped = 0;</span>
+<span class="lineNum">     359 </span>                :<span class="lineCov">    1310688 : }</span>
+<span class="lineNum">     360 </span>                :            : 
+<span class="lineNum">     361 </span>                :            : /*
+<span class="lineNum">     362 </span>                :            :  * Check the other, lower-index DVAs to see if they're on the same
+<span class="lineNum">     363 </span>                :            :  * vdev as the child we picked.  If they are, use them since they
+<span class="lineNum">     364 </span>                :            :  * are likely to have been allocated from the primary metaslab in
+<span class="lineNum">     365 </span>                :            :  * use at the time, and hence are more likely to have locality with
+<span class="lineNum">     366 </span>                :            :  * single-copy data.
+<a name="367"><span class="lineNum">     367 </span>                :            :  */</a>
+<span class="lineNum">     368 </span>                :            : static int
+<span class="lineNum">     369 </span>                :<span class="lineCov">     482108 : vdev_mirror_dva_select(zio_t *zio, int p)</span>
+<span class="lineNum">     370 </span>                :            : {
+<span class="lineNum">     371 </span>                :<span class="lineCov">     241054 :         dva_t *dva = zio-&gt;io_bp-&gt;blk_dva;</span>
+<span class="lineNum">     372 </span>                :<span class="lineCov">     241054 :         mirror_map_t *mm = zio-&gt;io_vsd;</span>
+<span class="lineNum">     373 </span>                :            :         int preferred;
+<span class="lineNum">     374 </span>                :            :         int c;
+<span class="lineNum">     375 </span>                :            : 
+<span class="lineNum">     376 </span>                :<span class="lineCov">     241054 :         preferred = mm-&gt;mm_preferred[p];</span>
+<span class="lineNum">     377 </span>        [<span class="branchCov" title="Branch 0 was taken 150417 times"> + </span><span class="branchCov" title="Branch 1 was taken 241054 times"> + </span>]:<span class="lineCov">     391471 :         for (p--; p &gt;= 0; p--) {</span>
+<span class="lineNum">     378 </span>                :<span class="lineCov">     150417 :                 c = mm-&gt;mm_preferred[p];</span>
+<span class="lineNum">     379 </span>        [<span class="branchCov" title="Branch 0 was taken 118173 times"> + </span><span class="branchCov" title="Branch 1 was taken 32244 times"> + </span>]:<span class="lineCov">     150417 :                 if (DVA_GET_VDEV(&amp;dva[c]) == DVA_GET_VDEV(&amp;dva[preferred]))</span>
+<span class="lineNum">     380 </span>                :<span class="lineCov">     118173 :                         preferred = c;</span>
+<span class="lineNum">     381 </span>                :            :         }
+<span class="lineNum">     382 </span>                :<span class="lineCov">     241054 :         return (preferred);</span>
+<span class="lineNum">     383 </span>                :            : }
+<a name="384"><span class="lineNum">     384 </span>                :            : </a>
+<span class="lineNum">     385 </span>                :            : static int
+<span class="lineNum">     386 </span>                :<span class="lineCov">     331128 : vdev_mirror_preferred_child_randomize(zio_t *zio)</span>
+<span class="lineNum">     387 </span>                :            : {
+<span class="lineNum">     388 </span>                :<span class="lineCov">     331128 :         mirror_map_t *mm = zio-&gt;io_vsd;</span>
+<span class="lineNum">     389 </span>                :            :         int p;
+<span class="lineNum">     390 </span>                :            : 
+<span class="lineNum">     391 </span>        [<span class="branchCov" title="Branch 0 was taken 241070 times"> + </span><span class="branchCov" title="Branch 1 was taken 90058 times"> + </span>]:<span class="lineCov">     331128 :         if (mm-&gt;mm_root) {</span>
+<span class="lineNum">     392 </span>                :<span class="lineCov">     241070 :                 p = spa_get_random(mm-&gt;mm_preferred_cnt);</span>
+<span class="lineNum">     393 </span>                :<span class="lineCov">     241061 :                 return (vdev_mirror_dva_select(zio, p));</span>
+<span class="lineNum">     394 </span>                :            :         }
+<span class="lineNum">     395 </span>                :            : 
+<span class="lineNum">     396 </span>                :            :         /*
+<span class="lineNum">     397 </span>                :            :          * To ensure we don't always favour the first matching vdev,
+<span class="lineNum">     398 </span>                :            :          * which could lead to wear leveling issues on SSD's, we
+<span class="lineNum">     399 </span>                :            :          * use the I/O offset as a pseudo random seed into the vdevs
+<span class="lineNum">     400 </span>                :            :          * which have the lowest load.
+<span class="lineNum">     401 </span>                :            :          */
+<span class="lineNum">     402 </span>                :<span class="lineCov">      90058 :         p = (zio-&gt;io_offset &gt;&gt; vdev_mirror_shift) % mm-&gt;mm_preferred_cnt;</span>
+<span class="lineNum">     403 </span>                :<span class="lineCov">      90058 :         return (mm-&gt;mm_preferred[p]);</span>
+<span class="lineNum">     404 </span>                :            : }
+<span class="lineNum">     405 </span>                :            : 
+<span class="lineNum">     406 </span>                :            : /*
+<span class="lineNum">     407 </span>                :            :  * Try to find a vdev whose DTL doesn't contain the block we want to read
+<span class="lineNum">     408 </span>                :            :  * prefering vdevs based on determined load.
+<span class="lineNum">     409 </span>                :            :  *
+<span class="lineNum">     410 </span>                :            :  * Try to find a child whose DTL doesn't contain the block we want to read.
+<span class="lineNum">     411 </span>                :            :  * If we can't, try the read on any vdev we haven't already tried.
+<a name="412"><span class="lineNum">     412 </span>                :            :  */</a>
+<span class="lineNum">     413 </span>                :            : static int
+<span class="lineNum">     414 </span>                :<span class="lineCov">     658517 : vdev_mirror_child_select(zio_t *zio)</span>
+<span class="lineNum">     415 </span>                :            : {
+<span class="lineNum">     416 </span>                :<span class="lineCov">     658517 :         mirror_map_t *mm = zio-&gt;io_vsd;</span>
+<span class="lineNum">     417 </span>                :<span class="lineCov">     658517 :         uint64_t txg = zio-&gt;io_txg;</span>
+<span class="lineNum">     418 </span>                :            :         int c, lowest_load;
+<span class="lineNum">     419 </span>                :            : 
+<span class="lineNum">     420 </span>   [<span class="branchCov" title="Branch 0 was taken 632014 times"> + </span><span class="branchCov" title="Branch 1 was taken 26503 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 632018 times"> + </span>]:<span class="lineCov">     658517 :         ASSERT(zio-&gt;io_bp == NULL || BP_PHYSICAL_BIRTH(zio-&gt;io_bp) == txg);</span>
+<span class="lineNum">         </span>[<span class="branchCov" title="Branch 4 was taken 625928 times"> + </span><span class="branchCov" title="Branch 5 was taken 6090 times"> + </span>][<span class="branchNoCov" title="Branch 6 was not taken"> - </span><span class="branchCov" title="Branch 7 was taken 632014 times"> + </span>]
+<span class="lineNum">     421 </span>                :            : 
+<span class="lineNum">     422 </span>                :<span class="lineCov">     658517 :         lowest_load = INT_MAX;</span>
+<span class="lineNum">     423 </span>                :<span class="lineCov">     658517 :         mm-&gt;mm_preferred_cnt = 0;</span>
+<span class="lineNum">     424 </span>        [<span class="branchCov" title="Branch 0 was taken 1202964 times"> + </span><span class="branchCov" title="Branch 1 was taken 658556 times"> + </span>]:<span class="lineCov">    1861520 :         for (c = 0; c &lt; mm-&gt;mm_children; c++) {</span>
+<span class="lineNum">     425 </span>                :            :                 mirror_child_t *mc;
+<span class="lineNum">     426 </span>                :            : 
+<span class="lineNum">     427 </span>                :<span class="lineCov">    1202964 :                 mc = &amp;mm-&gt;mm_child[c];</span>
+<span class="lineNum">     428 </span>        [<span class="branchCov" title="Branch 0 was taken 150554 times"> + </span><span class="branchCov" title="Branch 1 was taken 1052410 times"> + </span>]:<span class="lineCov">    1202964 :                 if (mc-&gt;mc_tried || mc-&gt;mc_skipped)</span>
+<span class="lineNum">     429 </span>                :<span class="lineCov">     150554 :                         continue;</span>
+<span class="lineNum">     430 </span>                :            : 
+<span class="lineNum">     431 </span>[<span class="branchCov" title="Branch 0 was taken 1052379 times"> + </span><span class="branchCov" title="Branch 1 was taken 31 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 491 times"> + </span><span class="branchCov" title="Branch 4 was taken 1051885 times"> + </span>]:<span class="lineCov">    1052410 :                 if (mc-&gt;mc_vd == NULL || !vdev_readable(mc-&gt;mc_vd)) {</span>
+<span class="lineNum">     432 </span>                :<span class="lineCov">        522 :                         mc-&gt;mc_error = SET_ERROR(ENXIO);</span>
+<span class="lineNum">     433 </span>                :<span class="lineCov">        494 :                         mc-&gt;mc_tried = 1;    /* don't even try */</span>
+<span class="lineNum">     434 </span>                :<span class="lineCov">        494 :                         mc-&gt;mc_skipped = 1;</span>
+<span class="lineNum">     435 </span>                :<span class="lineCov">        494 :                         continue;</span>
+<span class="lineNum">     436 </span>                :            :                 }
+<span class="lineNum">     437 </span>                :            : 
+<span class="lineNum">     438 </span>        [<span class="branchCov" title="Branch 1 was taken 40766 times"> + </span><span class="branchCov" title="Branch 2 was taken 1011205 times"> + </span>]:<span class="lineCov">    1051885 :                 if (vdev_dtl_contains(mc-&gt;mc_vd, DTL_MISSING, txg, 1)) {</span>
+<span class="lineNum">     439 </span>                :<span class="lineCov">      40766 :                         mc-&gt;mc_error = SET_ERROR(ESTALE);</span>
+<span class="lineNum">     440 </span>                :<span class="lineCov">      40765 :                         mc-&gt;mc_skipped = 1;</span>
+<span class="lineNum">     441 </span>                :<span class="lineCov">      40765 :                         mc-&gt;mc_speculative = 1;</span>
+<span class="lineNum">     442 </span>                :<span class="lineCov">      40765 :                         continue;</span>
+<span class="lineNum">     443 </span>                :            :                 }
+<span class="lineNum">     444 </span>                :            : 
+<span class="lineNum">     445 </span>                :<span class="lineCov">    1011205 :                 mc-&gt;mc_load = vdev_mirror_load(mm, mc-&gt;mc_vd, mc-&gt;mc_offset);</span>
+<span class="lineNum">     446 </span>        [<span class="branchCov" title="Branch 0 was taken 31094 times"> + </span><span class="branchCov" title="Branch 1 was taken 980096 times"> + </span>]:<span class="lineCov">    1011190 :                 if (mc-&gt;mc_load &gt; lowest_load)</span>
+<span class="lineNum">     447 </span>                :<span class="lineCov">      31094 :                         continue;</span>
+<span class="lineNum">     448 </span>                :            : 
+<span class="lineNum">     449 </span>        [<span class="branchCov" title="Branch 0 was taken 294287 times"> + </span><span class="branchCov" title="Branch 1 was taken 685809 times"> + </span>]:<span class="lineCov">     980096 :                 if (mc-&gt;mc_load &lt; lowest_load) {</span>
+<span class="lineNum">     450 </span>                :<span class="lineCov">     294287 :                         lowest_load = mc-&gt;mc_load;</span>
+<span class="lineNum">     451 </span>                :<span class="lineCov">     294287 :                         mm-&gt;mm_preferred_cnt = 0;</span>
+<span class="lineNum">     452 </span>                :            :                 }
+<span class="lineNum">     453 </span>                :<span class="lineCov">     980096 :                 mm-&gt;mm_preferred[mm-&gt;mm_preferred_cnt] = c;</span>
+<span class="lineNum">     454 </span>                :<span class="lineCov">     980096 :                 mm-&gt;mm_preferred_cnt++;</span>
+<span class="lineNum">     455 </span>                :            :         }
+<span class="lineNum">     456 </span>                :            : 
+<span class="lineNum">     457 </span>        [<span class="branchCov" title="Branch 0 was taken 217797 times"> + </span><span class="branchCov" title="Branch 1 was taken 440759 times"> + </span>]:<span class="lineCov">     658556 :         if (mm-&gt;mm_preferred_cnt == 1) {</span>
+<span class="lineNum">     458 </span>                :<span class="lineCov">     217797 :                 MIRROR_BUMP(vdev_mirror_stat_preferred_found);</span>
+<span class="lineNum">     459 </span>                :<span class="lineCov">     217798 :                 return (mm-&gt;mm_preferred[0]);</span>
+<span class="lineNum">     460 </span>                :            :         }
+<span class="lineNum">     461 </span>                :            : 
+<span class="lineNum">     462 </span>        [<span class="branchCov" title="Branch 0 was taken 109633 times"> + </span><span class="branchCov" title="Branch 1 was taken 331126 times"> + </span>]:<span class="lineCov">     440759 :         if (mm-&gt;mm_preferred_cnt &gt; 1) {</span>
+<span class="lineNum">     463 </span>                :<span class="lineCov">     331126 :                 MIRROR_BUMP(vdev_mirror_stat_preferred_not_found);</span>
+<span class="lineNum">     464 </span>                :<span class="lineCov">     331128 :                 return (vdev_mirror_preferred_child_randomize(zio));</span>
+<span class="lineNum">     465 </span>                :            :         }
+<span class="lineNum">     466 </span>                :            : 
+<span class="lineNum">     467 </span>                :            :         /*
+<span class="lineNum">     468 </span>                :            :          * Every device is either missing or has this txg in its DTL.
+<span class="lineNum">     469 </span>                :            :          * Look for any child we haven't already tried before giving up.
+<span class="lineNum">     470 </span>                :            :          */
+<span class="lineNum">     471 </span>        [<span class="branchCov" title="Branch 0 was taken 146252 times"> + </span><span class="branchCov" title="Branch 1 was taken 106178 times"> + </span>]:<span class="lineCov">     252430 :         for (c = 0; c &lt; mm-&gt;mm_children; c++) {</span>
+<span class="lineNum">     472 </span>        [<span class="branchCov" title="Branch 0 was taken 142797 times"> + </span><span class="branchCov" title="Branch 1 was taken 3455 times"> + </span>]:<span class="lineCov">     146252 :                 if (!mm-&gt;mm_child[c].mc_tried)</span>
+<span class="lineNum">     473 </span>                :            :                         return (c);
+<span class="lineNum">     474 </span>                :            :         }
+<span class="lineNum">     475 </span>                :            : 
+<span class="lineNum">     476 </span>                :            :         /*
+<span class="lineNum">     477 </span>                :            :          * Every child failed.  There's no place left to look.
+<span class="lineNum">     478 </span>                :            :          */
+<span class="lineNum">     479 </span>                :            :         return (-1);
+<span class="lineNum">     480 </span>                :            : }
+<a name="481"><span class="lineNum">     481 </span>                :            : </a>
+<span class="lineNum">     482 </span>                :            : static void
+<span class="lineNum">     483 </span>                :<span class="lineCov">    3304388 : vdev_mirror_io_start(zio_t *zio)</span>
+<span class="lineNum">     484 </span>                :            : {
+<span class="lineNum">     485 </span>                :            :         mirror_map_t *mm;
+<span class="lineNum">     486 </span>                :            :         mirror_child_t *mc;
+<span class="lineNum">     487 </span>                :            :         int c, children;
+<span class="lineNum">     488 </span>                :            : 
+<span class="lineNum">     489 </span>                :<span class="lineCov">    3304388 :         mm = vdev_mirror_map_init(zio);</span>
+<span class="lineNum">     490 </span>                :            : 
+<span class="lineNum">     491 </span>        [<span class="branchCov" title="Branch 0 was taken 1315036 times"> + </span><span class="branchCov" title="Branch 1 was taken 1989204 times"> + </span>]:<span class="lineCov">    3304240 :         if (zio-&gt;io_type == ZIO_TYPE_READ) {</span>
+<span class="lineNum">     492 </span>[<span class="branchCov" title="Branch 0 was taken 815282 times"> + </span><span class="branchCov" title="Branch 1 was taken 499754 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 769295 times"> + </span><span class="branchCov" title="Branch 3 was taken 45987 times"> + </span>]:<span class="lineCov">    1315036 :                 if ((zio-&gt;io_flags &amp; ZIO_FLAG_SCRUB) &amp;&amp; !mm-&gt;mm_replacing) {</span>
+<span class="lineNum">     493 </span>                :            :                         /*
+<span class="lineNum">     494 </span>                :            :                          * For scrubbing reads we need to allocate a read
+<span class="lineNum">     495 </span>                :            :                          * buffer for each child and issue reads to all
+<span class="lineNum">     496 </span>                :            :                          * children.  If any child succeeds, it will copy its
+<span class="lineNum">     497 </span>                :            :                          * data into zio-&gt;io_data in vdev_mirror_scrub_done.
+<span class="lineNum">     498 </span>                :            :                          */
+<span class="lineNum">     499 </span>        [<span class="branchCov" title="Branch 0 was taken 1310696 times"> + </span><span class="branchCov" title="Branch 1 was taken 769346 times"> + </span>]:<span class="lineCov">    2080042 :                         for (c = 0; c &lt; mm-&gt;mm_children; c++) {</span>
+<span class="lineNum">     500 </span>                :<span class="lineCov">    1310696 :                                 mc = &amp;mm-&gt;mm_child[c];</span>
+<span class="lineNum">     501 </span>                :<span class="lineCov">    1310754 :                                 zio_nowait(zio_vdev_child_io(zio, zio-&gt;io_bp,</span>
+<span class="lineNum">     502 </span>                :            :                                     mc-&gt;mc_vd, mc-&gt;mc_offset,
+<span class="lineNum">     503 </span>                :<span class="lineCov">    1310696 :                                     abd_alloc_sametype(zio-&gt;io_abd,</span>
+<span class="lineNum">     504 </span>                :            :                                     zio-&gt;io_size), zio-&gt;io_size,
+<span class="lineNum">     505 </span>                :<span class="lineCov">    1310696 :                                     zio-&gt;io_type, zio-&gt;io_priority, 0,</span>
+<span class="lineNum">     506 </span>                :            :                                     vdev_mirror_scrub_done, mc));
+<span class="lineNum">     507 </span>                :            :                         }
+<span class="lineNum">     508 </span>                :<span class="lineCov">     769346 :                         zio_execute(zio);</span>
+<span class="lineNum">     509 </span>                :<span class="lineCov">     769352 :                         return;</span>
+<span class="lineNum">     510 </span>                :            :                 }
+<span class="lineNum">     511 </span>                :            :                 /*
+<span class="lineNum">     512 </span>                :            :                  * For normal reads just pick one child.
+<span class="lineNum">     513 </span>                :            :                  */
+<span class="lineNum">     514 </span>                :<span class="lineCov">     545741 :                 c = vdev_mirror_child_select(zio);</span>
+<span class="lineNum">     515 </span>                :<span class="lineCov">    2533961 :                 children = (c &gt;= 0);</span>
+<span class="lineNum">     516 </span>                :            :         } else {
+<span class="lineNum">     517 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1989204 times"> + </span>]:<span class="lineCov">    1989204 :                 ASSERT(zio-&gt;io_type == ZIO_TYPE_WRITE);</span>
+<span class="lineNum">     518 </span>                :            : 
+<span class="lineNum">     519 </span>                :            :                 /*
+<span class="lineNum">     520 </span>                :            :                  * Writes go to all children.
+<span class="lineNum">     521 </span>                :            :                  */
+<span class="lineNum">     522 </span>                :<span class="lineCov">    1989204 :                 c = 0;</span>
+<span class="lineNum">     523 </span>                :<span class="lineCov">    1989204 :                 children = mm-&gt;mm_children;</span>
+<span class="lineNum">     524 </span>                :            :         }
+<span class="lineNum">     525 </span>                :            : 
+<span class="lineNum">     526 </span>        [<span class="branchCov" title="Branch 0 was taken 4645920 times"> + </span><span class="branchCov" title="Branch 1 was taken 2535886 times"> + </span>]:<span class="lineCov">    7181806 :         while (children--) {</span>
+<span class="lineNum">     527 </span>                :<span class="lineCov">    4645920 :                 mc = &amp;mm-&gt;mm_child[c];</span>
+<span class="lineNum">     528 </span>                :<span class="lineCov">    4645920 :                 zio_nowait(zio_vdev_child_io(zio, zio-&gt;io_bp,</span>
+<span class="lineNum">     529 </span>                :            :                     mc-&gt;mc_vd, mc-&gt;mc_offset, zio-&gt;io_abd, zio-&gt;io_size,
+<span class="lineNum">     530 </span>                :<span class="lineCov">    4645920 :                     zio-&gt;io_type, zio-&gt;io_priority, 0,</span>
+<span class="lineNum">     531 </span>                :            :                     vdev_mirror_child_done, mc));
+<span class="lineNum">     532 </span>                :<span class="lineCov">    4647845 :                 c++;</span>
+<span class="lineNum">     533 </span>                :            :         }
+<span class="lineNum">     534 </span>                :            : 
+<span class="lineNum">     535 </span>                :<span class="lineCov">    2535886 :         zio_execute(zio);</span>
+<span class="lineNum">     536 </span>                :            : }
+<a name="537"><span class="lineNum">     537 </span>                :            : </a>
+<span class="lineNum">     538 </span>                :            : static int
+<span class="lineNum">     539 </span>                :<span class="lineCov">     106182 : vdev_mirror_worst_error(mirror_map_t *mm)</span>
+<span class="lineNum">     540 </span>                :            : {
+<span class="lineNum">     541 </span>                :<span class="lineCov">     106182 :         int c, error[2] = { 0, 0 };</span>
+<span class="lineNum">     542 </span>                :            : 
+<span class="lineNum">     543 </span>        [<span class="branchCov" title="Branch 0 was taken 140657 times"> + </span><span class="branchCov" title="Branch 1 was taken 106186 times"> + </span>]:<span class="lineCov">     246843 :         for (c = 0; c &lt; mm-&gt;mm_children; c++) {</span>
+<span class="lineNum">     544 </span>                :<span class="lineCov">     140657 :                 mirror_child_t *mc = &amp;mm-&gt;mm_child[c];</span>
+<span class="lineNum">     545 </span>                :<span class="lineCov">     140657 :                 int s = mc-&gt;mc_speculative;</span>
+<span class="lineNum">     546 </span>                :<span class="lineCov">     140657 :                 error[s] = zio_worst_error(error[s], mc-&gt;mc_error);</span>
+<span class="lineNum">     547 </span>                :            :         }
+<span class="lineNum">     548 </span>                :            : 
+<span class="lineNum">     549 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 106186 times"> + </span>]:<span class="lineCov">     106186 :         return (error[0] ? error[0] : error[1]);</span>
+<span class="lineNum">     550 </span>                :            : }
+<a name="551"><span class="lineNum">     551 </span>                :            : </a>
+<span class="lineNum">     552 </span>                :            : static void
+<span class="lineNum">     553 </span>                :<span class="lineCov">    3311437 : vdev_mirror_io_done(zio_t *zio)</span>
+<span class="lineNum">     554 </span>                :            : {
+<span class="lineNum">     555 </span>                :<span class="lineCov">    3311437 :         mirror_map_t *mm = zio-&gt;io_vsd;</span>
+<span class="lineNum">     556 </span>                :            :         mirror_child_t *mc;
+<span class="lineNum">     557 </span>                :            :         int c;
+<span class="lineNum">     558 </span>                :<span class="lineCov">    3311437 :         int good_copies = 0;</span>
+<span class="lineNum">     559 </span>                :<span class="lineCov">    3311437 :         int unexpected_errors = 0;</span>
+<span class="lineNum">     560 </span>                :            : 
+<span class="lineNum">     561 </span>        [<span class="branchCov" title="Branch 0 was taken 6473045 times"> + </span><span class="branchCov" title="Branch 1 was taken 3311437 times"> + </span>]:<span class="lineCov">    9784482 :         for (c = 0; c &lt; mm-&gt;mm_children; c++) {</span>
+<span class="lineNum">     562 </span>                :<span class="lineCov">    6473045 :                 mc = &amp;mm-&gt;mm_child[c];</span>
+<span class="lineNum">     563 </span>                :            : 
+<span class="lineNum">     564 </span>        [<span class="branchCov" title="Branch 0 was taken 221160 times"> + </span><span class="branchCov" title="Branch 1 was taken 6251885 times"> + </span>]:<span class="lineCov">    6473045 :                 if (mc-&gt;mc_error) {</span>
+<span class="lineNum">     565 </span>        [<span class="branchCov" title="Branch 0 was taken 180234 times"> + </span><span class="branchCov" title="Branch 1 was taken 40926 times"> + </span>]:<span class="lineCov">     221160 :                         if (!mc-&gt;mc_skipped)</span>
+<span class="lineNum">     566 </span>                :<span class="lineCov">     180234 :                                 unexpected_errors++;</span>
+<span class="lineNum">     567 </span>        [<span class="branchCov" title="Branch 0 was taken 5789700 times"> + </span><span class="branchCov" title="Branch 1 was taken 462185 times"> + </span>]:<span class="lineCov">    6251885 :                 } else if (mc-&gt;mc_tried) {</span>
+<span class="lineNum">     568 </span>                :<span class="lineCov">    5789700 :                         good_copies++;</span>
+<span class="lineNum">     569 </span>                :            :                 }
+<span class="lineNum">     570 </span>                :            :         }
+<span class="lineNum">     571 </span>                :            : 
+<span class="lineNum">     572 </span>        [<span class="branchCov" title="Branch 0 was taken 1989894 times"> + </span><span class="branchCov" title="Branch 1 was taken 1321543 times"> + </span>]:<span class="lineCov">    3311437 :         if (zio-&gt;io_type == ZIO_TYPE_WRITE) {</span>
+<span class="lineNum">     573 </span>                :            :                 /*
+<span class="lineNum">     574 </span>                :            :                  * XXX -- for now, treat partial writes as success.
+<span class="lineNum">     575 </span>                :            :                  *
+<span class="lineNum">     576 </span>                :            :                  * Now that we support write reallocation, it would be better
+<span class="lineNum">     577 </span>                :            :                  * to treat partial failure as real failure unless there are
+<span class="lineNum">     578 </span>                :            :                  * no non-degraded top-level vdevs left, and not update DTLs
+<span class="lineNum">     579 </span>                :            :                  * if we intend to reallocate.
+<span class="lineNum">     580 </span>                :            :                  */
+<span class="lineNum">     581 </span>                :            :                 /* XXPOLICY */
+<span class="lineNum">     582 </span>        [<span class="branchCov" title="Branch 0 was taken 32198 times"> + </span><span class="branchCov" title="Branch 1 was taken 1957696 times"> + </span>]:<span class="lineCov">    1989894 :                 if (good_copies != mm-&gt;mm_children) {</span>
+<span class="lineNum">     583 </span>                :            :                         /*
+<span class="lineNum">     584 </span>                :            :                          * Always require at least one good copy.
+<span class="lineNum">     585 </span>                :            :                          *
+<span class="lineNum">     586 </span>                :            :                          * For ditto blocks (io_vd == NULL), require
+<span class="lineNum">     587 </span>                :            :                          * all copies to be good.
+<span class="lineNum">     588 </span>                :            :                          *
+<span class="lineNum">     589 </span>                :            :                          * XXX -- for replacing vdevs, there's no great answer.
+<span class="lineNum">     590 </span>                :            :                          * If the old device is really dead, we may not even
+<span class="lineNum">     591 </span>                :            :                          * be able to access it -- so we only want to
+<span class="lineNum">     592 </span>                :            :                          * require good writes to the new device.  But if
+<span class="lineNum">     593 </span>                :            :                          * the new device turns out to be flaky, we want
+<span class="lineNum">     594 </span>                :            :                          * to be able to detach it -- which requires all
+<span class="lineNum">     595 </span>                :            :                          * writes to the old device to have succeeded.
+<span class="lineNum">     596 </span>                :            :                          */
+<span class="lineNum">     597 </span>[<span class="branchCov" title="Branch 0 was taken 32166 times"> + </span><span class="branchCov" title="Branch 1 was taken 32 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 20 times"> + </span><span class="branchCov" title="Branch 3 was taken 32146 times"> + </span>]:<span class="lineCov">      32198 :                         if (good_copies == 0 || zio-&gt;io_vd == NULL)</span>
+<span class="lineNum">     598 </span>                :<span class="lineCov">         52 :                                 zio-&gt;io_error = vdev_mirror_worst_error(mm);</span>
+<span class="lineNum">     599 </span>                :            :                 }
+<span class="lineNum">     600 </span>                :            :                 return;
+<span class="lineNum">     601 </span>                :            :         }
+<span class="lineNum">     602 </span>                :            : 
+<span class="lineNum">     603 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1321543 times"> + </span>]:<span class="lineCov">    1321543 :         ASSERT(zio-&gt;io_type == ZIO_TYPE_READ);</span>
+<span class="lineNum">     604 </span>                :            : 
+<span class="lineNum">     605 </span>                :            :         /*
+<span class="lineNum">     606 </span>                :            :          * If we don't have a good copy yet, keep trying other children.
+<span class="lineNum">     607 </span>                :            :          */
+<span class="lineNum">     608 </span>                :            :         /* XXPOLICY */
+<span class="lineNum">     609 </span>[<span class="branchCov" title="Branch 0 was taken 112685 times"> + </span><span class="branchCov" title="Branch 1 was taken 1208858 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 6536 times"> + </span><span class="branchCov" title="Branch 4 was taken 106144 times"> + </span>]:<span class="lineCov">    1321543 :         if (good_copies == 0 &amp;&amp; (c = vdev_mirror_child_select(zio)) != -1) {</span>
+<span class="lineNum">     610 </span>[<span class="branchCov" title="Branch 0 was taken 6536 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 6536 times"> + </span>]:<span class="lineCov">       6536 :                 ASSERT(c &gt;= 0 &amp;&amp; c &lt; mm-&gt;mm_children);</span>
+<span class="lineNum">     611 </span>                :<span class="lineCov">       6536 :                 mc = &amp;mm-&gt;mm_child[c];</span>
+<span class="lineNum">     612 </span>                :<span class="lineCov">       6536 :                 zio_vdev_io_redone(zio);</span>
+<span class="lineNum">     613 </span>                :<span class="lineCov">       6536 :                 zio_nowait(zio_vdev_child_io(zio, zio-&gt;io_bp,</span>
+<span class="lineNum">     614 </span>                :            :                     mc-&gt;mc_vd, mc-&gt;mc_offset, zio-&gt;io_abd, zio-&gt;io_size,
+<span class="lineNum">     615 </span>                :            :                     ZIO_TYPE_READ, zio-&gt;io_priority, 0,
+<span class="lineNum">     616 </span>                :            :                     vdev_mirror_child_done, mc));
+<span class="lineNum">     617 </span>                :<span class="lineCov">       6536 :                 return;</span>
+<span class="lineNum">     618 </span>                :            :         }
+<span class="lineNum">     619 </span>                :            : 
+<span class="lineNum">     620 </span>                :            :         /* XXPOLICY */
+<span class="lineNum">     621 </span>        [<span class="branchCov" title="Branch 0 was taken 106149 times"> + </span><span class="branchCov" title="Branch 1 was taken 1208853 times"> + </span>]:<span class="lineCov">    1315002 :         if (good_copies == 0) {</span>
+<span class="lineNum">     622 </span>                :<span class="lineCov">     106149 :                 zio-&gt;io_error = vdev_mirror_worst_error(mm);</span>
+<span class="lineNum">     623 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 106137 times"> + </span>]:<span class="lineCov">     106137 :                 ASSERT(zio-&gt;io_error != 0);</span>
+<span class="lineNum">     624 </span>                :            :         }
+<span class="lineNum">     625 </span>                :            : 
+<span class="lineNum">     626 </span>[<span class="branchCov" title="Branch 0 was taken 1208884 times"> + </span><span class="branchCov" title="Branch 1 was taken 106106 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 255230 times"> + </span><span class="branchCov" title="Branch 4 was taken 953511 times"> + </span>]:<span class="lineCov">    1314990 :         if (good_copies &amp;&amp; spa_writeable(zio-&gt;io_spa) &amp;&amp;</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 5 was taken 254972 times"> + </span><span class="branchCov" title="Branch 6 was taken 258 times"> + </span>]
+<span class="lineNum">     627 </span>        [<span class="branchCov" title="Branch 0 was taken 50047 times"> + </span><span class="branchCov" title="Branch 1 was taken 204925 times"> + </span>]:<span class="lineCov">     263420 :             (unexpected_errors ||</span>
+<span class="lineNum">     628 </span>        [<span class="branchCov" title="Branch 0 was taken 124506 times"> + </span><span class="branchCov" title="Branch 1 was taken 80419 times"> + </span>]:<span class="lineCov">     204925 :             (zio-&gt;io_flags &amp; ZIO_FLAG_RESILVER) ||</span>
+<span class="lineNum">     629 </span>        [<span class="branchCov" title="Branch 0 was taken 8190 times"> + </span><span class="branchCov" title="Branch 1 was taken 116316 times"> + </span>]:<span class="lineCov">     124506 :             ((zio-&gt;io_flags &amp; ZIO_FLAG_SCRUB) &amp;&amp; mm-&gt;mm_replacing))) {</span>
+<span class="lineNum">     630 </span>                :            :                 /*
+<span class="lineNum">     631 </span>                :            :                  * Use the good data we have in hand to repair damaged children.
+<span class="lineNum">     632 </span>                :            :                  */
+<span class="lineNum">     633 </span>        [<span class="branchCov" title="Branch 0 was taken 106061 times"> + </span><span class="branchCov" title="Branch 1 was taken 58479 times"> + </span>]:<span class="lineCov">     164540 :                 for (c = 0; c &lt; mm-&gt;mm_children; c++) {</span>
+<span class="lineNum">     634 </span>                :            :                         /*
+<span class="lineNum">     635 </span>                :            :                          * Don't rewrite known good children.
+<span class="lineNum">     636 </span>                :            :                          * Not only is it unnecessary, it could
+<span class="lineNum">     637 </span>                :            :                          * actually be harmful: if the system lost
+<span class="lineNum">     638 </span>                :            :                          * power while rewriting the only good copy,
+<span class="lineNum">     639 </span>                :            :                          * there would be no good copies left!
+<span class="lineNum">     640 </span>                :            :                          */
+<span class="lineNum">     641 </span>                :<span class="lineCov">     106061 :                         mc = &amp;mm-&gt;mm_child[c];</span>
+<span class="lineNum">     642 </span>                :            : 
+<span class="lineNum">     643 </span>        [<span class="branchCov" title="Branch 0 was taken 86801 times"> + </span><span class="branchCov" title="Branch 1 was taken 19260 times"> + </span>]:<span class="lineCov">     106061 :                         if (mc-&gt;mc_error == 0) {</span>
+<span class="lineNum">     644 </span>        [<span class="branchCov" title="Branch 0 was taken 58504 times"> + </span><span class="branchCov" title="Branch 1 was taken 28297 times"> + </span>]:<span class="lineCov">      86801 :                                 if (mc-&gt;mc_tried)</span>
+<span class="lineNum">     645 </span>                :<span class="lineCov">      58504 :                                         continue;</span>
+<span class="lineNum">     646 </span>  [<span class="branchCov" title="Branch 0 was taken 24215 times"> + </span><span class="branchCov" title="Branch 1 was taken 4082 times"> + </span><span class="branchCov" title="Branch 2 was taken 3747 times"> + </span><span class="branchCov" title="Branch 3 was taken 20471 times"> + </span>]:<span class="lineCov">      52515 :                                 if (!(zio-&gt;io_flags &amp; ZIO_FLAG_SCRUB) &amp;&amp;</span>
+<span class="lineNum">     647 </span>                :<span class="lineCov">      24215 :                                     !vdev_dtl_contains(mc-&gt;mc_vd, DTL_PARTIAL,</span>
+<span class="lineNum">     648 </span>                :            :                                     zio-&gt;io_txg, 1))
+<span class="lineNum">     649 </span>                :<span class="lineCov">       3747 :                                         continue;</span>
+<span class="lineNum">     650 </span>                :<span class="lineCov">      24553 :                                 mc-&gt;mc_error = SET_ERROR(ESTALE);</span>
+<span class="lineNum">     651 </span>                :            :                         }
+<span class="lineNum">     652 </span>                :            : 
+<span class="lineNum">     653 </span>        [<span class="branchCov" title="Branch 0 was taken 43554 times"> + </span><span class="branchCov" title="Branch 1 was taken 259 times"> + </span>]:<span class="lineCov">      43813 :                         zio_nowait(zio_vdev_child_io(zio, zio-&gt;io_bp,</span>
+<span class="lineNum">     654 </span>                :            :                             mc-&gt;mc_vd, mc-&gt;mc_offset,
+<span class="lineNum">     655 </span>                :            :                             zio-&gt;io_abd, zio-&gt;io_size,
+<span class="lineNum">     656 </span>                :            :                             ZIO_TYPE_WRITE, ZIO_PRIORITY_ASYNC_WRITE,
+<span class="lineNum">     657 </span>                :            :                             ZIO_FLAG_IO_REPAIR | (unexpected_errors ?
+<span class="lineNum">     658 </span>                :            :                             ZIO_FLAG_SELF_HEAL : 0), NULL, NULL));
+<span class="lineNum">     659 </span>                :            :                 }
+<span class="lineNum">     660 </span>                :            :         }
+<span class="lineNum">     661 </span>                :            : }
+<a name="662"><span class="lineNum">     662 </span>                :            : </a>
+<span class="lineNum">     663 </span>                :            : static void
+<span class="lineNum">     664 </span>                :<span class="lineCov">        121 : vdev_mirror_state_change(vdev_t *vd, int faulted, int degraded)</span>
+<span class="lineNum">     665 </span>                :            : {
+<span class="lineNum">     666 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 119 times"> + </span>]:<span class="lineCov">        121 :         if (faulted == vd-&gt;vdev_children)</span>
+<span class="lineNum">     667 </span>                :<span class="lineCov">          2 :                 vdev_set_state(vd, B_FALSE, VDEV_STATE_CANT_OPEN,</span>
+<span class="lineNum">     668 </span>                :            :                     VDEV_AUX_NO_REPLICAS);
+<span class="lineNum">     669 </span>        [<span class="branchCov" title="Branch 0 was taken 12 times"> + </span><span class="branchCov" title="Branch 1 was taken 107 times"> + </span>]:<span class="lineCov">        119 :         else if (degraded + faulted != 0)</span>
+<span class="lineNum">     670 </span>                :<span class="lineCov">         12 :                 vdev_set_state(vd, B_FALSE, VDEV_STATE_DEGRADED, VDEV_AUX_NONE);</span>
+<span class="lineNum">     671 </span>                :            :         else
+<span class="lineNum">     672 </span>                :<span class="lineCov">        107 :                 vdev_set_state(vd, B_FALSE, VDEV_STATE_HEALTHY, VDEV_AUX_NONE);</span>
+<span class="lineNum">     673 </span>                :<span class="lineCov">        121 : }</span>
+<span class="lineNum">     674 </span>                :            : 
+<span class="lineNum">     675 </span>                :            : vdev_ops_t vdev_mirror_ops = {
+<span class="lineNum">     676 </span>                :            :         vdev_mirror_open,
+<span class="lineNum">     677 </span>                :            :         vdev_mirror_close,
+<span class="lineNum">     678 </span>                :            :         vdev_default_asize,
+<span class="lineNum">     679 </span>                :            :         vdev_mirror_io_start,
+<span class="lineNum">     680 </span>                :            :         vdev_mirror_io_done,
+<span class="lineNum">     681 </span>                :            :         vdev_mirror_state_change,
+<span class="lineNum">     682 </span>                :            :         NULL,
+<span class="lineNum">     683 </span>                :            :         NULL,
+<span class="lineNum">     684 </span>                :            :         NULL,
+<span class="lineNum">     685 </span>                :            :         VDEV_TYPE_MIRROR,       /* name of this vdev type */
+<span class="lineNum">     686 </span>                :            :         B_FALSE                 /* not a leaf vdev */
+<span class="lineNum">     687 </span>                :            : };
+<span class="lineNum">     688 </span>                :            : 
+<span class="lineNum">     689 </span>                :            : vdev_ops_t vdev_replacing_ops = {
+<span class="lineNum">     690 </span>                :            :         vdev_mirror_open,
+<span class="lineNum">     691 </span>                :            :         vdev_mirror_close,
+<span class="lineNum">     692 </span>                :            :         vdev_default_asize,
+<span class="lineNum">     693 </span>                :            :         vdev_mirror_io_start,
+<span class="lineNum">     694 </span>                :            :         vdev_mirror_io_done,
+<span class="lineNum">     695 </span>                :            :         vdev_mirror_state_change,
+<span class="lineNum">     696 </span>                :            :         NULL,
+<span class="lineNum">     697 </span>                :            :         NULL,
+<span class="lineNum">     698 </span>                :            :         NULL,
+<span class="lineNum">     699 </span>                :            :         VDEV_TYPE_REPLACING,    /* name of this vdev type */
+<span class="lineNum">     700 </span>                :            :         B_FALSE                 /* not a leaf vdev */
+<span class="lineNum">     701 </span>                :            : };
+<span class="lineNum">     702 </span>                :            : 
+<span class="lineNum">     703 </span>                :            : vdev_ops_t vdev_spare_ops = {
+<span class="lineNum">     704 </span>                :            :         vdev_mirror_open,
+<span class="lineNum">     705 </span>                :            :         vdev_mirror_close,
+<span class="lineNum">     706 </span>                :            :         vdev_default_asize,
+<span class="lineNum">     707 </span>                :            :         vdev_mirror_io_start,
+<span class="lineNum">     708 </span>                :            :         vdev_mirror_io_done,
+<span class="lineNum">     709 </span>                :            :         vdev_mirror_state_change,
+<span class="lineNum">     710 </span>                :            :         NULL,
+<span class="lineNum">     711 </span>                :            :         NULL,
+<span class="lineNum">     712 </span>                :            :         NULL,
+<span class="lineNum">     713 </span>                :            :         VDEV_TYPE_SPARE,        /* name of this vdev type */
+<span class="lineNum">     714 </span>                :            :         B_FALSE                 /* not a leaf vdev */
+<span class="lineNum">     715 </span>                :            : };
+<span class="lineNum">     716 </span>                :            : 
+<span class="lineNum">     717 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     718 </span>                :            : /* BEGIN CSTYLED */
+<span class="lineNum">     719 </span>                :            : module_param(zfs_vdev_mirror_rotating_inc, int, 0644);
+<span class="lineNum">     720 </span>                :            : MODULE_PARM_DESC(zfs_vdev_mirror_rotating_inc,
+<span class="lineNum">     721 </span>                :            :         &quot;Rotating media load increment for non-seeking I/O's&quot;);
+<span class="lineNum">     722 </span>                :            : 
+<span class="lineNum">     723 </span>                :            : module_param(zfs_vdev_mirror_rotating_seek_inc, int, 0644);
+<span class="lineNum">     724 </span>                :            : MODULE_PARM_DESC(zfs_vdev_mirror_rotating_seek_inc,
+<span class="lineNum">     725 </span>                :            :         &quot;Rotating media load increment for seeking I/O's&quot;);
+<span class="lineNum">     726 </span>                :            : 
+<span class="lineNum">     727 </span>                :            : module_param(zfs_vdev_mirror_rotating_seek_offset, int, 0644);
+<span class="lineNum">     728 </span>                :            : 
+<span class="lineNum">     729 </span>                :            : MODULE_PARM_DESC(zfs_vdev_mirror_rotating_seek_offset,
+<span class="lineNum">     730 </span>                :            :         &quot;Offset in bytes from the last I/O which &quot;
+<span class="lineNum">     731 </span>                :            :         &quot;triggers a reduced rotating media seek increment&quot;);
+<span class="lineNum">     732 </span>                :            : 
+<span class="lineNum">     733 </span>                :            : module_param(zfs_vdev_mirror_non_rotating_inc, int, 0644);
+<span class="lineNum">     734 </span>                :            : MODULE_PARM_DESC(zfs_vdev_mirror_non_rotating_inc,
+<span class="lineNum">     735 </span>                :            :         &quot;Non-rotating media load increment for non-seeking I/O's&quot;);
+<span class="lineNum">     736 </span>                :            : 
+<span class="lineNum">     737 </span>                :            : module_param(zfs_vdev_mirror_non_rotating_seek_inc, int, 0644);
+<span class="lineNum">     738 </span>                :            : MODULE_PARM_DESC(zfs_vdev_mirror_non_rotating_seek_inc,
+<span class="lineNum">     739 </span>                :            :         &quot;Non-rotating media load increment for seeking I/O's&quot;);
+<span class="lineNum">     740 </span>                :            : /* END CSTYLED */
+<span class="lineNum">     741 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

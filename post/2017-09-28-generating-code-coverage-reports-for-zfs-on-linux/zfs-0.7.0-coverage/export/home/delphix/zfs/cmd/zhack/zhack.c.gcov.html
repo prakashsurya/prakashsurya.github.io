@@ -1,0 +1,628 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/cmd/zhack/zhack.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/cmd/zhack</a> - zhack.c<span style="font-size: 80%;"> (source / <a href="zhack.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">131</td>
+            <td class="headerCovTableEntry">232</td>
+            <td class="headerCovTableEntryLo">56.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryLo">53.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">42</td>
+            <td class="headerCovTableEntry">111</td>
+            <td class="headerCovTableEntryLo">37.8 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : /*
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2011, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright (c) 2013 Steven Hartland. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  */
+<span class="lineNum">      26 </span>                :            : 
+<span class="lineNum">      27 </span>                :            : /*
+<span class="lineNum">      28 </span>                :            :  * zhack is a debugging tool that can write changes to ZFS pool using libzpool
+<span class="lineNum">      29 </span>                :            :  * for testing purposes. Altering pools with zhack is unsupported and may
+<span class="lineNum">      30 </span>                :            :  * result in corrupted pools.
+<span class="lineNum">      31 </span>                :            :  */
+<span class="lineNum">      32 </span>                :            : 
+<span class="lineNum">      33 </span>                :            : #include &lt;stdio.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;ctype.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      37 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      38 </span>                :            : #include &lt;sys/spa_impl.h&gt;
+<span class="lineNum">      39 </span>                :            : #include &lt;sys/dmu.h&gt;
+<span class="lineNum">      40 </span>                :            : #include &lt;sys/zap.h&gt;
+<span class="lineNum">      41 </span>                :            : #include &lt;sys/zfs_znode.h&gt;
+<span class="lineNum">      42 </span>                :            : #include &lt;sys/dsl_synctask.h&gt;
+<span class="lineNum">      43 </span>                :            : #include &lt;sys/vdev.h&gt;
+<span class="lineNum">      44 </span>                :            : #include &lt;sys/fs/zfs.h&gt;
+<span class="lineNum">      45 </span>                :            : #include &lt;sys/dmu_objset.h&gt;
+<span class="lineNum">      46 </span>                :            : #include &lt;sys/dsl_pool.h&gt;
+<span class="lineNum">      47 </span>                :            : #include &lt;sys/zio_checksum.h&gt;
+<span class="lineNum">      48 </span>                :            : #include &lt;sys/zio_compress.h&gt;
+<span class="lineNum">      49 </span>                :            : #include &lt;sys/zfeature.h&gt;
+<span class="lineNum">      50 </span>                :            : #include &lt;sys/dmu_tx.h&gt;
+<span class="lineNum">      51 </span>                :            : #include &lt;libzfs.h&gt;
+<span class="lineNum">      52 </span>                :            : 
+<span class="lineNum">      53 </span>                :            : extern boolean_t zfeature_checks_disable;
+<span class="lineNum">      54 </span>                :            : 
+<span class="lineNum">      55 </span>                :            : const char cmdname[] = &quot;zhack&quot;;
+<span class="lineNum">      56 </span>                :            : libzfs_handle_t *g_zfs;
+<span class="lineNum">      57 </span>                :            : static importargs_t g_importargs;
+<span class="lineNum">      58 </span>                :            : static char *g_pool;
+<span class="lineNum">      59 </span>                :            : static boolean_t g_readonly;
+<a name="60"><span class="lineNum">      60 </span>                :            : </a>
+<span class="lineNum">      61 </span>                :            : static void
+<span class="lineNum">      62 </span>                :<span class="lineNoCov">          0 : usage(void)</span>
+<span class="lineNum">      63 </span>                :            : {
+<span class="lineNum">      64 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(stderr,</span>
+<span class="lineNum">      65 </span>                :            :             &quot;Usage: %s [-c cachefile] [-d dir] &lt;subcommand&gt; &lt;args&gt; ...\n&quot;
+<span class="lineNum">      66 </span>                :            :             &quot;where &lt;subcommand&gt; &lt;args&gt; is one of the following:\n&quot;
+<span class="lineNum">      67 </span>                :            :             &quot;\n&quot;, cmdname);
+<span class="lineNum">      68 </span>                :            : 
+<span class="lineNum">      69 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(stderr,</span>
+<span class="lineNum">      70 </span>                :            :             &quot;    feature stat &lt;pool&gt;\n&quot;
+<span class="lineNum">      71 </span>                :            :             &quot;        print information about enabled features\n&quot;
+<span class="lineNum">      72 </span>                :            :             &quot;    feature enable [-r] [-d desc] &lt;pool&gt; &lt;feature&gt;\n&quot;
+<span class="lineNum">      73 </span>                :            :             &quot;        add a new enabled feature to the pool\n&quot;
+<span class="lineNum">      74 </span>                :            :             &quot;        -d &lt;desc&gt; sets the feature's description\n&quot;
+<span class="lineNum">      75 </span>                :            :             &quot;        -r set read-only compatible flag for feature\n&quot;
+<span class="lineNum">      76 </span>                :            :             &quot;    feature ref [-md] &lt;pool&gt; &lt;feature&gt;\n&quot;
+<span class="lineNum">      77 </span>                :            :             &quot;        change the refcount on the given feature\n&quot;
+<span class="lineNum">      78 </span>                :            :             &quot;        -d decrease instead of increase the refcount\n&quot;
+<span class="lineNum">      79 </span>                :            :             &quot;        -m add the feature to the label if increasing refcount\n&quot;
+<span class="lineNum">      80 </span>                :            :             &quot;\n&quot;
+<span class="lineNum">      81 </span>                :            :             &quot;    &lt;feature&gt; : should be a feature guid\n&quot;);
+<span class="lineNum">      82 </span>                :<span class="lineNoCov">          0 :         exit(1);</span>
+<span class="lineNum">      83 </span>                :            : }
+<span class="lineNum">      84 </span>                :            : 
+<a name="85"><span class="lineNum">      85 </span>                :            : </a>
+<span class="lineNum">      86 </span>                :            : static void
+<span class="lineNum">      87 </span>                :<span class="lineNoCov">          0 : fatal(spa_t *spa, void *tag, const char *fmt, ...)</span>
+<span class="lineNum">      88 </span>                :            : {
+<span class="lineNum">      89 </span>                :            :         va_list ap;
+<span class="lineNum">      90 </span>                :            : 
+<span class="lineNum">      91 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (spa != NULL) {</span>
+<span class="lineNum">      92 </span>                :<span class="lineNoCov">          0 :                 spa_close(spa, tag);</span>
+<span class="lineNum">      93 </span>                :<span class="lineNoCov">          0 :                 (void) spa_export(g_pool, NULL, B_TRUE, B_FALSE);</span>
+<span class="lineNum">      94 </span>                :            :         }
+<span class="lineNum">      95 </span>                :            : 
+<span class="lineNum">      96 </span>                :<span class="lineNoCov">          0 :         va_start(ap, fmt);</span>
+<span class="lineNum">      97 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(stderr, &quot;%s: &quot;, cmdname);</span>
+<span class="lineNum">      98 </span>                :<span class="lineNoCov">          0 :         (void) vfprintf(stderr, fmt, ap);</span>
+<span class="lineNum">      99 </span>                :<span class="lineNoCov">          0 :         va_end(ap);</span>
+<span class="lineNum">     100 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(stderr, &quot;\n&quot;);</span>
+<span class="lineNum">     101 </span>                :            : 
+<span class="lineNum">     102 </span>                :<span class="lineNoCov">          0 :         exit(1);</span>
+<span class="lineNum">     103 </span>                :            : }
+<span class="lineNum">     104 </span>                :            : 
+<a name="105"><span class="lineNum">     105 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     106 </span>                :            : static int
+<span class="lineNum">     107 </span>                :<span class="lineNoCov">          0 : space_delta_cb(dmu_object_type_t bonustype, void *data,</span>
+<span class="lineNum">     108 </span>                :            :     uint64_t *userp, uint64_t *groupp)
+<span class="lineNum">     109 </span>                :            : {
+<span class="lineNum">     110 </span>                :            :         /*
+<span class="lineNum">     111 </span>                :            :          * Is it a valid type of object to track?
+<span class="lineNum">     112 </span>                :            :          */
+<span class="lineNum">     113 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (bonustype != DMU_OT_ZNODE &amp;&amp; bonustype != DMU_OT_SA)</span>
+<span class="lineNum">     114 </span>                :<span class="lineNoCov">          0 :                 return (ENOENT);</span>
+<span class="lineNum">     115 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(stderr, &quot;modifying object that needs user accounting&quot;);</span>
+<span class="lineNum">     116 </span>                :<span class="lineNoCov">          0 :         abort();</span>
+<span class="lineNum">     117 </span>                :            :         /* NOTREACHED */
+<span class="lineNum">     118 </span>                :            : }
+<span class="lineNum">     119 </span>                :            : 
+<span class="lineNum">     120 </span>                :            : /*
+<span class="lineNum">     121 </span>                :            :  * Target is the dataset whose pool we want to open.
+<a name="122"><span class="lineNum">     122 </span>                :            :  */</a>
+<span class="lineNum">     123 </span>                :            : static void
+<span class="lineNum">     124 </span>                :<span class="lineCov">         15 : zhack_import(char *target, boolean_t readonly)</span>
+<span class="lineNum">     125 </span>                :            : {
+<span class="lineNum">     126 </span>                :            :         nvlist_t *config;
+<span class="lineNum">     127 </span>                :            :         nvlist_t *props;
+<span class="lineNum">     128 </span>                :            :         int error;
+<span class="lineNum">     129 </span>                :            : 
+<span class="lineNum">     130 </span>        [<span class="branchCov" title="Branch 0 was taken 15 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         15 :         kernel_init(readonly ? FREAD : (FREAD | FWRITE));</span>
+<span class="lineNum">     131 </span>                :<span class="lineCov">         15 :         g_zfs = libzfs_init();</span>
+<span class="lineNum">     132 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         ASSERT(g_zfs != NULL);</span>
+<span class="lineNum">     133 </span>                :            : 
+<span class="lineNum">     134 </span>                :<span class="lineCov">         15 :         dmu_objset_register_type(DMU_OST_ZFS, space_delta_cb);</span>
+<span class="lineNum">     135 </span>                :            : 
+<span class="lineNum">     136 </span>                :<span class="lineCov">         15 :         g_readonly = readonly;</span>
+<span class="lineNum">     137 </span>                :<span class="lineCov">         15 :         g_importargs.unique = B_TRUE;</span>
+<span class="lineNum">     138 </span>                :<span class="lineCov">         15 :         g_importargs.can_be_active = readonly;</span>
+<span class="lineNum">     139 </span>                :<span class="lineCov">         15 :         g_pool = strdup(target);</span>
+<span class="lineNum">     140 </span>                :            : 
+<span class="lineNum">     141 </span>                :<span class="lineCov">         15 :         error = zpool_tryimport(g_zfs, target, &amp;config, &amp;g_importargs);</span>
+<span class="lineNum">     142 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         if (error)</span>
+<span class="lineNum">     143 </span>                :<span class="lineNoCov">          0 :                 fatal(NULL, FTAG, &quot;cannot import '%s': %s&quot;, target,</span>
+<span class="lineNum">     144 </span>                :            :                     libzfs_error_description(g_zfs));
+<span class="lineNum">     145 </span>                :            : 
+<span class="lineNum">     146 </span>                :<span class="lineCov">         15 :         props = NULL;</span>
+<span class="lineNum">     147 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         if (readonly) {</span>
+<span class="lineNum">     148 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY(nvlist_alloc(&amp;props, NV_UNIQUE_NAME, 0) == 0);</span>
+<span class="lineNum">     149 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY(nvlist_add_uint64(props,</span>
+<span class="lineNum">     150 </span>                :            :                     zpool_prop_to_name(ZPOOL_PROP_READONLY), 1) == 0);
+<span class="lineNum">     151 </span>                :            :         }
+<span class="lineNum">     152 </span>                :            : 
+<span class="lineNum">     153 </span>                :<span class="lineCov">         15 :         zfeature_checks_disable = B_TRUE;</span>
+<span class="lineNum">     154 </span>        [<span class="branchCov" title="Branch 0 was taken 15 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         15 :         error = spa_import(target, config, props,</span>
+<span class="lineNum">     155 </span>                :            :             (readonly ?  ZFS_IMPORT_SKIP_MMP : ZFS_IMPORT_NORMAL));
+<span class="lineNum">     156 </span>                :<span class="lineCov">         15 :         zfeature_checks_disable = B_FALSE;</span>
+<span class="lineNum">     157 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         if (error == EEXIST)</span>
+<span class="lineNum">     158 </span>                :<span class="lineNoCov">          0 :                 error = 0;</span>
+<span class="lineNum">     159 </span>                :            : 
+<span class="lineNum">     160 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         if (error)</span>
+<span class="lineNum">     161 </span>                :<span class="lineNoCov">          0 :                 fatal(NULL, FTAG, &quot;can't import '%s': %s&quot;, target,</span>
+<span class="lineNum">     162 </span>                :            :                     strerror(error));
+<span class="lineNum">     163 </span>                :<span class="lineCov">         15 : }</span>
+<a name="164"><span class="lineNum">     164 </span>                :            : </a>
+<span class="lineNum">     165 </span>                :            : static void
+<span class="lineNum">     166 </span>                :<span class="lineCov">         15 : zhack_spa_open(char *target, boolean_t readonly, void *tag, spa_t **spa)</span>
+<span class="lineNum">     167 </span>                :            : {
+<span class="lineNum">     168 </span>                :            :         int err;
+<span class="lineNum">     169 </span>                :            : 
+<span class="lineNum">     170 </span>                :<span class="lineCov">         15 :         zhack_import(target, readonly);</span>
+<span class="lineNum">     171 </span>                :            : 
+<span class="lineNum">     172 </span>                :<span class="lineCov">         15 :         zfeature_checks_disable = B_TRUE;</span>
+<span class="lineNum">     173 </span>                :<span class="lineCov">         15 :         err = spa_open(target, spa, tag);</span>
+<span class="lineNum">     174 </span>                :<span class="lineCov">         15 :         zfeature_checks_disable = B_FALSE;</span>
+<span class="lineNum">     175 </span>                :            : 
+<span class="lineNum">     176 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         if (err != 0)</span>
+<span class="lineNum">     177 </span>                :<span class="lineNoCov">          0 :                 fatal(*spa, FTAG, &quot;cannot open '%s': %s&quot;, target,</span>
+<span class="lineNum">     178 </span>                :            :                     strerror(err));
+<span class="lineNum">     179 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         if (spa_version(*spa) &lt; SPA_VERSION_FEATURES) {</span>
+<span class="lineNum">     180 </span>                :<span class="lineNoCov">          0 :                 fatal(*spa, FTAG, &quot;'%s' has version %d, features not enabled&quot;,</span>
+<span class="lineNum">     181 </span>                :<span class="lineNoCov">          0 :                     target, (int)spa_version(*spa));</span>
+<span class="lineNum">     182 </span>                :            :         }
+<span class="lineNum">     183 </span>                :<span class="lineCov">         15 : }</span>
+<a name="184"><span class="lineNum">     184 </span>                :            : </a>
+<span class="lineNum">     185 </span>                :            : static void
+<span class="lineNum">     186 </span>                :<span class="lineNoCov">          0 : dump_obj(objset_t *os, uint64_t obj, const char *name)</span>
+<span class="lineNum">     187 </span>                :            : {
+<span class="lineNum">     188 </span>                :            :         zap_cursor_t zc;
+<span class="lineNum">     189 </span>                :            :         zap_attribute_t za;
+<span class="lineNum">     190 </span>                :            : 
+<span class="lineNum">     191 </span>                :<span class="lineNoCov">          0 :         (void) printf(&quot;%s_obj:\n&quot;, name);</span>
+<span class="lineNum">     192 </span>                :            : 
+<span class="lineNum">     193 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (zap_cursor_init(&amp;zc, os, obj);</span>
+<span class="lineNum">     194 </span>                :<span class="lineNoCov">          0 :             zap_cursor_retrieve(&amp;zc, &amp;za) == 0;</span>
+<span class="lineNum">     195 </span>                :<span class="lineNoCov">          0 :             zap_cursor_advance(&amp;zc)) {</span>
+<span class="lineNum">     196 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (za.za_integer_length == 8) {</span>
+<span class="lineNum">     197 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(za.za_num_integers == 1);</span>
+<span class="lineNum">     198 </span>                :            :                         (void) printf(&quot;\t%s = %llu\n&quot;,
+<span class="lineNum">     199 </span>                :<span class="lineNoCov">          0 :                             za.za_name, (u_longlong_t)za.za_first_integer);</span>
+<span class="lineNum">     200 </span>                :            :                 } else {
+<span class="lineNum">     201 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(za.za_integer_length == 1);</span>
+<span class="lineNum">     202 </span>                :            :                         char val[1024];
+<span class="lineNum">     203 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         VERIFY(zap_lookup(os, obj, za.za_name,</span>
+<span class="lineNum">     204 </span>                :            :                             1, sizeof (val), val) == 0);
+<span class="lineNum">     205 </span>                :<span class="lineNoCov">          0 :                         (void) printf(&quot;\t%s = %s\n&quot;, za.za_name, val);</span>
+<span class="lineNum">     206 </span>                :            :                 }
+<span class="lineNum">     207 </span>                :            :         }
+<span class="lineNum">     208 </span>                :<span class="lineNoCov">          0 :         zap_cursor_fini(&amp;zc);</span>
+<span class="lineNum">     209 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="210"><span class="lineNum">     210 </span>                :            : </a>
+<span class="lineNum">     211 </span>                :            : static void
+<span class="lineNum">     212 </span>                :<span class="lineNoCov">          0 : dump_mos(spa_t *spa)</span>
+<span class="lineNum">     213 </span>                :            : {
+<span class="lineNum">     214 </span>                :<span class="lineNoCov">          0 :         nvlist_t *nv = spa-&gt;spa_label_features;</span>
+<span class="lineNum">     215 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     216 </span>                :            : 
+<span class="lineNum">     217 </span>                :<span class="lineNoCov">          0 :         (void) printf(&quot;label config:\n&quot;);</span>
+<span class="lineNum">     218 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (pair = nvlist_next_nvpair(nv, NULL);</span>
+<span class="lineNum">     219 </span>                :            :             pair != NULL;
+<span class="lineNum">     220 </span>                :<span class="lineNoCov">          0 :             pair = nvlist_next_nvpair(nv, pair)) {</span>
+<span class="lineNum">     221 </span>                :<span class="lineNoCov">          0 :                 (void) printf(&quot;\t%s\n&quot;, nvpair_name(pair));</span>
+<span class="lineNum">     222 </span>                :            :         }
+<span class="lineNum">     223 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="224"><span class="lineNum">     224 </span>                :            : </a>
+<span class="lineNum">     225 </span>                :            : static void
+<span class="lineNum">     226 </span>                :<span class="lineNoCov">          0 : zhack_do_feature_stat(int argc, char **argv)</span>
+<span class="lineNum">     227 </span>                :            : {
+<span class="lineNum">     228 </span>                :            :         spa_t *spa;
+<span class="lineNum">     229 </span>                :            :         objset_t *os;
+<span class="lineNum">     230 </span>                :            :         char *target;
+<span class="lineNum">     231 </span>                :            : 
+<span class="lineNum">     232 </span>                :<span class="lineNoCov">          0 :         argc--;</span>
+<span class="lineNum">     233 </span>                :<span class="lineNoCov">          0 :         argv++;</span>
+<span class="lineNum">     234 </span>                :            : 
+<span class="lineNum">     235 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (argc &lt; 1) {</span>
+<span class="lineNum">     236 </span>                :<span class="lineNoCov">          0 :                 (void) fprintf(stderr, &quot;error: missing pool name\n&quot;);</span>
+<span class="lineNum">     237 </span>                :<span class="lineNoCov">          0 :                 usage();</span>
+<span class="lineNum">     238 </span>                :            :         }
+<span class="lineNum">     239 </span>                :<span class="lineNoCov">          0 :         target = argv[0];</span>
+<span class="lineNum">     240 </span>                :            : 
+<span class="lineNum">     241 </span>                :<span class="lineNoCov">          0 :         zhack_spa_open(target, B_TRUE, FTAG, &amp;spa);</span>
+<span class="lineNum">     242 </span>                :<span class="lineNoCov">          0 :         os = spa-&gt;spa_meta_objset;</span>
+<span class="lineNum">     243 </span>                :            : 
+<span class="lineNum">     244 </span>                :<span class="lineNoCov">          0 :         dump_obj(os, spa-&gt;spa_feat_for_read_obj, &quot;for_read&quot;);</span>
+<span class="lineNum">     245 </span>                :<span class="lineNoCov">          0 :         dump_obj(os, spa-&gt;spa_feat_for_write_obj, &quot;for_write&quot;);</span>
+<span class="lineNum">     246 </span>                :<span class="lineNoCov">          0 :         dump_obj(os, spa-&gt;spa_feat_desc_obj, &quot;descriptions&quot;);</span>
+<span class="lineNum">     247 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (spa_feature_is_active(spa, SPA_FEATURE_ENABLED_TXG)) {</span>
+<span class="lineNum">     248 </span>                :<span class="lineNoCov">          0 :                 dump_obj(os, spa-&gt;spa_feat_enabled_txg_obj, &quot;enabled_txg&quot;);</span>
+<span class="lineNum">     249 </span>                :            :         }
+<span class="lineNum">     250 </span>                :<span class="lineNoCov">          0 :         dump_mos(spa);</span>
+<span class="lineNum">     251 </span>                :            : 
+<span class="lineNum">     252 </span>                :<span class="lineNoCov">          0 :         spa_close(spa, FTAG);</span>
+<span class="lineNum">     253 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="254"><span class="lineNum">     254 </span>                :            : </a>
+<span class="lineNum">     255 </span>                :            : static void
+<span class="lineNum">     256 </span>                :<span class="lineCov">         11 : zhack_feature_enable_sync(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     257 </span>                :            : {
+<span class="lineNum">     258 </span>                :<span class="lineCov">         11 :         spa_t *spa = dmu_tx_pool(tx)-&gt;dp_spa;</span>
+<span class="lineNum">     259 </span>                :<span class="lineCov">         11 :         zfeature_info_t *feature = arg;</span>
+<span class="lineNum">     260 </span>                :            : 
+<span class="lineNum">     261 </span>                :<span class="lineCov">         11 :         feature_enable_sync(spa, feature, tx);</span>
+<span class="lineNum">     262 </span>                :            : 
+<span class="lineNum">     263 </span>                :<span class="lineCov">         11 :         spa_history_log_internal(spa, &quot;zhack enable feature&quot;, tx,</span>
+<span class="lineNum">     264 </span>                :            :             &quot;name=%s flags=%u&quot;,
+<span class="lineNum">     265 </span>                :<span class="lineCov">         11 :             feature-&gt;fi_guid, feature-&gt;fi_flags);</span>
+<span class="lineNum">     266 </span>                :<span class="lineCov">         11 : }</span>
+<a name="267"><span class="lineNum">     267 </span>                :            : </a>
+<span class="lineNum">     268 </span>                :            : static void
+<span class="lineNum">     269 </span>                :<span class="lineCov">         11 : zhack_do_feature_enable(int argc, char **argv)</span>
+<span class="lineNum">     270 </span>                :            : {
+<span class="lineNum">     271 </span>                :            :         char c;
+<span class="lineNum">     272 </span>                :            :         char *desc, *target;
+<span class="lineNum">     273 </span>                :            :         spa_t *spa;
+<span class="lineNum">     274 </span>                :            :         objset_t *mos;
+<span class="lineNum">     275 </span>                :            :         zfeature_info_t feature;
+<span class="lineNum">     276 </span>                :<span class="lineCov">         11 :         spa_feature_t nodeps[] = { SPA_FEATURE_NONE };</span>
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>                :            :         /*
+<span class="lineNum">     279 </span>                :            :          * Features are not added to the pool's label until their refcounts
+<span class="lineNum">     280 </span>                :            :          * are incremented, so fi_mos can just be left as false for now.
+<span class="lineNum">     281 </span>                :            :          */
+<span class="lineNum">     282 </span>                :<span class="lineCov">         11 :         desc = NULL;</span>
+<span class="lineNum">     283 </span>                :<span class="lineCov">         11 :         feature.fi_uname = &quot;zhack&quot;;</span>
+<span class="lineNum">     284 </span>                :<span class="lineCov">         11 :         feature.fi_flags = 0;</span>
+<span class="lineNum">     285 </span>                :<span class="lineCov">         11 :         feature.fi_depends = nodeps;</span>
+<span class="lineNum">     286 </span>                :<span class="lineCov">         11 :         feature.fi_feature = SPA_FEATURE_NONE;</span>
+<span class="lineNum">     287 </span>                :            : 
+<span class="lineNum">     288 </span>                :<span class="lineCov">         11 :         optind = 1;</span>
+<span class="lineNum">     289 </span>        [<span class="branchCov" title="Branch 1 was taken 4 times"> + </span><span class="branchCov" title="Branch 2 was taken 11 times"> + </span>]:<span class="lineCov">         15 :         while ((c = getopt(argc, argv, &quot;+rd:&quot;)) != -1) {</span>
+<span class="lineNum">     290 </span>     [<span class="branchCov" title="Branch 0 was taken 4 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">          4 :                 switch (c) {</span>
+<span class="lineNum">     291 </span>                :            :                 case 'r':
+<span class="lineNum">     292 </span>                :<span class="lineCov">          4 :                         feature.fi_flags |= ZFEATURE_FLAG_READONLY_COMPAT;</span>
+<span class="lineNum">     293 </span>                :<span class="lineCov">          4 :                         break;</span>
+<span class="lineNum">     294 </span>                :            :                 case 'd':
+<span class="lineNum">     295 </span>                :<span class="lineNoCov">          0 :                         desc = strdup(optarg);</span>
+<span class="lineNum">     296 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     297 </span>                :            :                 default:
+<span class="lineNum">     298 </span>                :<span class="lineCov">          4 :                         usage();</span>
+<span class="lineNum">     299 </span>                :            :                         break;
+<span class="lineNum">     300 </span>                :            :                 }
+<span class="lineNum">     301 </span>                :            :         }
+<span class="lineNum">     302 </span>                :            : 
+<span class="lineNum">     303 </span>        [<span class="branchCov" title="Branch 0 was taken 11 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         11 :         if (desc == NULL)</span>
+<span class="lineNum">     304 </span>                :<span class="lineCov">         11 :                 desc = strdup(&quot;zhack injected&quot;);</span>
+<span class="lineNum">     305 </span>                :<span class="lineCov">         11 :         feature.fi_desc = desc;</span>
+<span class="lineNum">     306 </span>                :            : 
+<span class="lineNum">     307 </span>                :<span class="lineCov">         11 :         argc -= optind;</span>
+<span class="lineNum">     308 </span>                :<span class="lineCov">         11 :         argv += optind;</span>
+<span class="lineNum">     309 </span>                :            : 
+<span class="lineNum">     310 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 11 times"> + </span>]:<span class="lineCov">         11 :         if (argc &lt; 2) {</span>
+<span class="lineNum">     311 </span>                :<span class="lineNoCov">          0 :                 (void) fprintf(stderr, &quot;error: missing feature or pool name\n&quot;);</span>
+<span class="lineNum">     312 </span>                :<span class="lineNoCov">          0 :                 usage();</span>
+<span class="lineNum">     313 </span>                :            :         }
+<span class="lineNum">     314 </span>                :<span class="lineCov">         11 :         target = argv[0];</span>
+<span class="lineNum">     315 </span>                :<span class="lineCov">         11 :         feature.fi_guid = argv[1];</span>
+<span class="lineNum">     316 </span>                :            : 
+<span class="lineNum">     317 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 11 times"> + </span>]:<span class="lineCov">         11 :         if (!zfeature_is_valid_guid(feature.fi_guid))</span>
+<span class="lineNum">     318 </span>                :<span class="lineNoCov">          0 :                 fatal(NULL, FTAG, &quot;invalid feature guid: %s&quot;, feature.fi_guid);</span>
+<span class="lineNum">     319 </span>                :            : 
+<span class="lineNum">     320 </span>                :<span class="lineCov">         11 :         zhack_spa_open(target, B_FALSE, FTAG, &amp;spa);</span>
+<span class="lineNum">     321 </span>                :<span class="lineCov">         11 :         mos = spa-&gt;spa_meta_objset;</span>
+<span class="lineNum">     322 </span>                :            : 
+<span class="lineNum">     323 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 11 times"> + </span>]:<span class="lineCov">         11 :         if (zfeature_is_supported(feature.fi_guid))</span>
+<span class="lineNum">     324 </span>                :<span class="lineNoCov">          0 :                 fatal(spa, FTAG, &quot;'%s' is a real feature, will not enable&quot;);</span>
+<span class="lineNum">     325 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 11 times"> + </span>]:<span class="lineCov">         11 :         if (0 == zap_contains(mos, spa-&gt;spa_feat_desc_obj, feature.fi_guid))</span>
+<span class="lineNum">     326 </span>                :<span class="lineNoCov">          0 :                 fatal(spa, FTAG, &quot;feature already enabled: %s&quot;,</span>
+<span class="lineNum">     327 </span>                :            :                     feature.fi_guid);
+<span class="lineNum">     328 </span>                :            : 
+<span class="lineNum">     329 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 11 times"> + </span>]:<span class="lineCov">         11 :         VERIFY0(dsl_sync_task(spa_name(spa), NULL,</span>
+<span class="lineNum">     330 </span>                :            :             zhack_feature_enable_sync, &amp;feature, 5, ZFS_SPACE_CHECK_NORMAL));
+<span class="lineNum">     331 </span>                :            : 
+<span class="lineNum">     332 </span>                :<span class="lineCov">         11 :         spa_close(spa, FTAG);</span>
+<span class="lineNum">     333 </span>                :            : 
+<span class="lineNum">     334 </span>                :<span class="lineCov">         11 :         free(desc);</span>
+<span class="lineNum">     335 </span>                :<span class="lineCov">         11 : }</span>
+<a name="336"><span class="lineNum">     336 </span>                :            : </a>
+<span class="lineNum">     337 </span>                :            : static void
+<span class="lineNum">     338 </span>                :<span class="lineCov">          4 : feature_incr_sync(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     339 </span>                :            : {
+<span class="lineNum">     340 </span>                :<span class="lineCov">          4 :         spa_t *spa = dmu_tx_pool(tx)-&gt;dp_spa;</span>
+<span class="lineNum">     341 </span>                :<span class="lineCov">          4 :         zfeature_info_t *feature = arg;</span>
+<span class="lineNum">     342 </span>                :            :         uint64_t refcount;
+<span class="lineNum">     343 </span>                :            : 
+<span class="lineNum">     344 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 4 times"> + </span>]:<span class="lineCov">          4 :         VERIFY0(feature_get_refcount_from_disk(spa, feature, &amp;refcount));</span>
+<span class="lineNum">     345 </span>                :<span class="lineCov">          4 :         feature_sync(spa, feature, refcount + 1, tx);</span>
+<span class="lineNum">     346 </span>                :<span class="lineCov">          4 :         spa_history_log_internal(spa, &quot;zhack feature incr&quot;, tx,</span>
+<span class="lineNum">     347 </span>                :            :             &quot;name=%s&quot;, feature-&gt;fi_guid);
+<span class="lineNum">     348 </span>                :<span class="lineCov">          4 : }</span>
+<a name="349"><span class="lineNum">     349 </span>                :            : </a>
+<span class="lineNum">     350 </span>                :            : static void
+<span class="lineNum">     351 </span>                :<span class="lineNoCov">          0 : feature_decr_sync(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     352 </span>                :            : {
+<span class="lineNum">     353 </span>                :<span class="lineNoCov">          0 :         spa_t *spa = dmu_tx_pool(tx)-&gt;dp_spa;</span>
+<span class="lineNum">     354 </span>                :<span class="lineNoCov">          0 :         zfeature_info_t *feature = arg;</span>
+<span class="lineNum">     355 </span>                :            :         uint64_t refcount;
+<span class="lineNum">     356 </span>                :            : 
+<span class="lineNum">     357 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(feature_get_refcount_from_disk(spa, feature, &amp;refcount));</span>
+<span class="lineNum">     358 </span>                :<span class="lineNoCov">          0 :         feature_sync(spa, feature, refcount - 1, tx);</span>
+<span class="lineNum">     359 </span>                :<span class="lineNoCov">          0 :         spa_history_log_internal(spa, &quot;zhack feature decr&quot;, tx,</span>
+<span class="lineNum">     360 </span>                :            :             &quot;name=%s&quot;, feature-&gt;fi_guid);
+<span class="lineNum">     361 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="362"><span class="lineNum">     362 </span>                :            : </a>
+<span class="lineNum">     363 </span>                :            : static void
+<span class="lineNum">     364 </span>                :<span class="lineCov">          4 : zhack_do_feature_ref(int argc, char **argv)</span>
+<span class="lineNum">     365 </span>                :            : {
+<span class="lineNum">     366 </span>                :            :         char c;
+<span class="lineNum">     367 </span>                :            :         char *target;
+<span class="lineNum">     368 </span>                :<span class="lineCov">          4 :         boolean_t decr = B_FALSE;</span>
+<span class="lineNum">     369 </span>                :            :         spa_t *spa;
+<span class="lineNum">     370 </span>                :            :         objset_t *mos;
+<span class="lineNum">     371 </span>                :            :         zfeature_info_t feature;
+<span class="lineNum">     372 </span>                :<span class="lineCov">          4 :         spa_feature_t nodeps[] = { SPA_FEATURE_NONE };</span>
+<span class="lineNum">     373 </span>                :            : 
+<span class="lineNum">     374 </span>                :            :         /*
+<span class="lineNum">     375 </span>                :            :          * fi_desc does not matter here because it was written to disk
+<span class="lineNum">     376 </span>                :            :          * when the feature was enabled, but we need to properly set the
+<span class="lineNum">     377 </span>                :            :          * feature for read or write based on the information we read off
+<span class="lineNum">     378 </span>                :            :          * disk later.
+<span class="lineNum">     379 </span>                :            :          */
+<span class="lineNum">     380 </span>                :<span class="lineCov">          4 :         feature.fi_uname = &quot;zhack&quot;;</span>
+<span class="lineNum">     381 </span>                :<span class="lineCov">          4 :         feature.fi_flags = 0;</span>
+<span class="lineNum">     382 </span>                :<span class="lineCov">          4 :         feature.fi_desc = NULL;</span>
+<span class="lineNum">     383 </span>                :<span class="lineCov">          4 :         feature.fi_depends = nodeps;</span>
+<span class="lineNum">     384 </span>                :<span class="lineCov">          4 :         feature.fi_feature = SPA_FEATURE_NONE;</span>
+<span class="lineNum">     385 </span>                :            : 
+<span class="lineNum">     386 </span>                :<span class="lineCov">          4 :         optind = 1;</span>
+<span class="lineNum">     387 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 4 times"> + </span>]:<span class="lineCov">          8 :         while ((c = getopt(argc, argv, &quot;+md&quot;)) != -1) {</span>
+<span class="lineNum">     388 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 switch (c) {</span>
+<span class="lineNum">     389 </span>                :            :                 case 'm':
+<span class="lineNum">     390 </span>                :<span class="lineNoCov">          0 :                         feature.fi_flags |= ZFEATURE_FLAG_MOS;</span>
+<span class="lineNum">     391 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     392 </span>                :            :                 case 'd':
+<span class="lineNum">     393 </span>                :            :                         decr = B_TRUE;
+<span class="lineNum">     394 </span>                :            :                         break;
+<span class="lineNum">     395 </span>                :            :                 default:
+<span class="lineNum">     396 </span>                :<span class="lineCov">          4 :                         usage();</span>
+<span class="lineNum">     397 </span>                :            :                         break;
+<span class="lineNum">     398 </span>                :            :                 }
+<span class="lineNum">     399 </span>                :            :         }
+<span class="lineNum">     400 </span>                :<span class="lineCov">          4 :         argc -= optind;</span>
+<span class="lineNum">     401 </span>                :<span class="lineCov">          4 :         argv += optind;</span>
+<span class="lineNum">     402 </span>                :            : 
+<span class="lineNum">     403 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4 times"> + </span>]:<span class="lineCov">          4 :         if (argc &lt; 2) {</span>
+<span class="lineNum">     404 </span>                :<span class="lineNoCov">          0 :                 (void) fprintf(stderr, &quot;error: missing feature or pool name\n&quot;);</span>
+<span class="lineNum">     405 </span>                :<span class="lineNoCov">          0 :                 usage();</span>
+<span class="lineNum">     406 </span>                :            :         }
+<span class="lineNum">     407 </span>                :<span class="lineCov">          4 :         target = argv[0];</span>
+<span class="lineNum">     408 </span>                :<span class="lineCov">          4 :         feature.fi_guid = argv[1];</span>
+<span class="lineNum">     409 </span>                :            : 
+<span class="lineNum">     410 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 4 times"> + </span>]:<span class="lineCov">          4 :         if (!zfeature_is_valid_guid(feature.fi_guid))</span>
+<span class="lineNum">     411 </span>                :<span class="lineNoCov">          0 :                 fatal(NULL, FTAG, &quot;invalid feature guid: %s&quot;, feature.fi_guid);</span>
+<span class="lineNum">     412 </span>                :            : 
+<span class="lineNum">     413 </span>                :<span class="lineCov">          4 :         zhack_spa_open(target, B_FALSE, FTAG, &amp;spa);</span>
+<span class="lineNum">     414 </span>                :<span class="lineCov">          4 :         mos = spa-&gt;spa_meta_objset;</span>
+<span class="lineNum">     415 </span>                :            : 
+<span class="lineNum">     416 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 4 times"> + </span>]:<span class="lineCov">          4 :         if (zfeature_is_supported(feature.fi_guid)) {</span>
+<span class="lineNum">     417 </span>                :<span class="lineNoCov">          0 :                 fatal(spa, FTAG,</span>
+<span class="lineNum">     418 </span>                :            :                     &quot;'%s' is a real feature, will not change refcount&quot;);
+<span class="lineNum">     419 </span>                :            :         }
+<span class="lineNum">     420 </span>                :            : 
+<span class="lineNum">     421 </span>        [<span class="branchCov" title="Branch 1 was taken 2 times"> + </span><span class="branchCov" title="Branch 2 was taken 2 times"> + </span>]:<span class="lineCov">          4 :         if (0 == zap_contains(mos, spa-&gt;spa_feat_for_read_obj,</span>
+<span class="lineNum">     422 </span>                :            :             feature.fi_guid)) {
+<span class="lineNum">     423 </span>                :<span class="lineCov">          2 :                 feature.fi_flags &amp;= ~ZFEATURE_FLAG_READONLY_COMPAT;</span>
+<span class="lineNum">     424 </span>        [<span class="branchCov" title="Branch 1 was taken 2 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">          2 :         } else if (0 == zap_contains(mos, spa-&gt;spa_feat_for_write_obj,</span>
+<span class="lineNum">     425 </span>                :            :             feature.fi_guid)) {
+<span class="lineNum">     426 </span>                :<span class="lineCov">          2 :                 feature.fi_flags |= ZFEATURE_FLAG_READONLY_COMPAT;</span>
+<span class="lineNum">     427 </span>                :            :         } else {
+<span class="lineNum">     428 </span>                :<span class="lineNoCov">          0 :                 fatal(spa, FTAG, &quot;feature is not enabled: %s&quot;, feature.fi_guid);</span>
+<span class="lineNum">     429 </span>                :            :         }
+<span class="lineNum">     430 </span>                :            : 
+<span class="lineNum">     431 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4 times"> + </span>]:<span class="lineCov">          4 :         if (decr) {</span>
+<span class="lineNum">     432 </span>                :            :                 uint64_t count;
+<span class="lineNum">     433 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (feature_get_refcount_from_disk(spa, &amp;feature,</span>
+<span class="lineNum">     434 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                     &amp;count) == 0 &amp;&amp; count == 0) {</span>
+<span class="lineNum">     435 </span>                :<span class="lineNoCov">          0 :                         fatal(spa, FTAG, &quot;feature refcount already 0: %s&quot;,</span>
+<span class="lineNum">     436 </span>                :            :                             feature.fi_guid);
+<span class="lineNum">     437 </span>                :            :                 }
+<span class="lineNum">     438 </span>                :            :         }
+<span class="lineNum">     439 </span>                :            : 
+<span class="lineNum">     440 </span>[<span class="branchCov" title="Branch 0 was taken 4 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 4 times"> + </span>]:<span class="lineCov">          4 :         VERIFY0(dsl_sync_task(spa_name(spa), NULL,</span>
+<span class="lineNum">     441 </span>                :            :             decr ? feature_decr_sync : feature_incr_sync, &amp;feature,
+<span class="lineNum">     442 </span>                :            :             5, ZFS_SPACE_CHECK_NORMAL));
+<span class="lineNum">     443 </span>                :            : 
+<span class="lineNum">     444 </span>                :<span class="lineCov">          4 :         spa_close(spa, FTAG);</span>
+<span class="lineNum">     445 </span>                :<span class="lineCov">          4 : }</span>
+<a name="446"><span class="lineNum">     446 </span>                :            : </a>
+<span class="lineNum">     447 </span>                :            : static int
+<span class="lineNum">     448 </span>                :<span class="lineCov">         15 : zhack_do_feature(int argc, char **argv)</span>
+<span class="lineNum">     449 </span>                :            : {
+<span class="lineNum">     450 </span>                :            :         char *subcommand;
+<span class="lineNum">     451 </span>                :            : 
+<span class="lineNum">     452 </span>                :<span class="lineCov">         15 :         argc--;</span>
+<span class="lineNum">     453 </span>                :<span class="lineCov">         15 :         argv++;</span>
+<span class="lineNum">     454 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         if (argc == 0) {</span>
+<span class="lineNum">     455 </span>                :<span class="lineNoCov">          0 :                 (void) fprintf(stderr,</span>
+<span class="lineNum">     456 </span>                :            :                     &quot;error: no feature operation specified\n&quot;);
+<span class="lineNum">     457 </span>                :<span class="lineNoCov">          0 :                 usage();</span>
+<span class="lineNum">     458 </span>                :            :         }
+<span class="lineNum">     459 </span>                :            : 
+<span class="lineNum">     460 </span>                :<span class="lineCov">         15 :         subcommand = argv[0];</span>
+<span class="lineNum">     461 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         if (strcmp(subcommand, &quot;stat&quot;) == 0) {</span>
+<span class="lineNum">     462 </span>                :<span class="lineNoCov">          0 :                 zhack_do_feature_stat(argc, argv);</span>
+<span class="lineNum">     463 </span>        [<span class="branchCov" title="Branch 0 was taken 11 times"> + </span><span class="branchCov" title="Branch 1 was taken 4 times"> + </span>]:<span class="lineCov">         15 :         } else if (strcmp(subcommand, &quot;enable&quot;) == 0) {</span>
+<span class="lineNum">     464 </span>                :<span class="lineCov">         11 :                 zhack_do_feature_enable(argc, argv);</span>
+<span class="lineNum">     465 </span>        [<span class="branchCov" title="Branch 0 was taken 4 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          4 :         } else if (strcmp(subcommand, &quot;ref&quot;) == 0) {</span>
+<span class="lineNum">     466 </span>                :<span class="lineCov">          4 :                 zhack_do_feature_ref(argc, argv);</span>
+<span class="lineNum">     467 </span>                :            :         } else {
+<span class="lineNum">     468 </span>                :<span class="lineNoCov">          0 :                 (void) fprintf(stderr, &quot;error: unknown subcommand: %s\n&quot;,</span>
+<span class="lineNum">     469 </span>                :            :                     subcommand);
+<span class="lineNum">     470 </span>                :<span class="lineNoCov">          0 :                 usage();</span>
+<span class="lineNum">     471 </span>                :            :         }
+<span class="lineNum">     472 </span>                :            : 
+<span class="lineNum">     473 </span>                :<span class="lineCov">         15 :         return (0);</span>
+<span class="lineNum">     474 </span>                :            : }
+<span class="lineNum">     475 </span>                :            : 
+<span class="lineNum">     476 </span>                :            : #define MAX_NUM_PATHS 1024
+<a name="477"><span class="lineNum">     477 </span>                :            : </a>
+<span class="lineNum">     478 </span>                :            : int
+<span class="lineNum">     479 </span>                :<span class="lineCov">         15 : main(int argc, char **argv)</span>
+<span class="lineNum">     480 </span>                :            : {
+<span class="lineNum">     481 </span>                :            :         extern void zfs_prop_init(void);
+<span class="lineNum">     482 </span>                :            : 
+<span class="lineNum">     483 </span>                :            :         char *path[MAX_NUM_PATHS];
+<span class="lineNum">     484 </span>                :            :         const char *subcommand;
+<span class="lineNum">     485 </span>                :<span class="lineCov">         15 :         int rv = 0;</span>
+<span class="lineNum">     486 </span>                :            :         char c;
+<span class="lineNum">     487 </span>                :            : 
+<span class="lineNum">     488 </span>                :<span class="lineCov">         15 :         g_importargs.path = path;</span>
+<span class="lineNum">     489 </span>                :            : 
+<span class="lineNum">     490 </span>                :<span class="lineCov">         15 :         dprintf_setup(&amp;argc, argv);</span>
+<span class="lineNum">     491 </span>                :<span class="lineCov">         15 :         zfs_prop_init();</span>
+<span class="lineNum">     492 </span>                :            : 
+<span class="lineNum">     493 </span>        [<span class="branchCov" title="Branch 1 was taken 15 times"> + </span><span class="branchCov" title="Branch 2 was taken 15 times"> + </span>]:<span class="lineCov">         30 :         while ((c = getopt(argc, argv, &quot;+c:d:&quot;)) != -1) {</span>
+<span class="lineNum">     494 </span>     [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">         15 :                 switch (c) {</span>
+<span class="lineNum">     495 </span>                :            :                 case 'c':
+<span class="lineNum">     496 </span>                :<span class="lineNoCov">          0 :                         g_importargs.cachefile = optarg;</span>
+<span class="lineNum">     497 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     498 </span>                :            :                 case 'd':
+<span class="lineNum">     499 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :                         assert(g_importargs.paths &lt; MAX_NUM_PATHS);</span>
+<span class="lineNum">     500 </span>                :<span class="lineCov">         15 :                         g_importargs.path[g_importargs.paths++] = optarg;</span>
+<span class="lineNum">     501 </span>                :<span class="lineCov">         15 :                         break;</span>
+<span class="lineNum">     502 </span>                :            :                 default:
+<span class="lineNum">     503 </span>                :<span class="lineCov">         15 :                         usage();</span>
+<span class="lineNum">     504 </span>                :            :                         break;
+<span class="lineNum">     505 </span>                :            :                 }
+<span class="lineNum">     506 </span>                :            :         }
+<span class="lineNum">     507 </span>                :            : 
+<span class="lineNum">     508 </span>                :<span class="lineCov">         15 :         argc -= optind;</span>
+<span class="lineNum">     509 </span>                :<span class="lineCov">         15 :         argv += optind;</span>
+<span class="lineNum">     510 </span>                :<span class="lineCov">         15 :         optind = 1;</span>
+<span class="lineNum">     511 </span>                :            : 
+<span class="lineNum">     512 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         if (argc == 0) {</span>
+<span class="lineNum">     513 </span>                :<span class="lineNoCov">          0 :                 (void) fprintf(stderr, &quot;error: no command specified\n&quot;);</span>
+<span class="lineNum">     514 </span>                :<span class="lineNoCov">          0 :                 usage();</span>
+<span class="lineNum">     515 </span>                :            :         }
+<span class="lineNum">     516 </span>                :            : 
+<span class="lineNum">     517 </span>                :<span class="lineCov">         15 :         subcommand = argv[0];</span>
+<span class="lineNum">     518 </span>                :            : 
+<span class="lineNum">     519 </span>        [<span class="branchCov" title="Branch 0 was taken 15 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         15 :         if (strcmp(subcommand, &quot;feature&quot;) == 0) {</span>
+<span class="lineNum">     520 </span>                :<span class="lineCov">         15 :                 rv = zhack_do_feature(argc, argv);</span>
+<span class="lineNum">     521 </span>                :            :         } else {
+<span class="lineNum">     522 </span>                :<span class="lineNoCov">          0 :                 (void) fprintf(stderr, &quot;error: unknown subcommand: %s\n&quot;,</span>
+<span class="lineNum">     523 </span>                :            :                     subcommand);
+<span class="lineNum">     524 </span>                :<span class="lineNoCov">          0 :                 usage();</span>
+<span class="lineNum">     525 </span>                :            :         }
+<span class="lineNum">     526 </span>                :            : 
+<span class="lineNum">     527 </span>[<span class="branchCov" title="Branch 0 was taken 15 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         if (!g_readonly &amp;&amp; spa_export(g_pool, NULL, B_TRUE, B_FALSE) != 0) {</span>
+<span class="lineNum">     528 </span>                :<span class="lineNoCov">          0 :                 fatal(NULL, FTAG, &quot;pool export failed; &quot;</span>
+<span class="lineNum">     529 </span>                :            :                     &quot;changes may not be committed to disk\n&quot;);
+<span class="lineNum">     530 </span>                :            :         }
+<span class="lineNum">     531 </span>                :            : 
+<span class="lineNum">     532 </span>                :<span class="lineCov">         15 :         libzfs_fini(g_zfs);</span>
+<span class="lineNum">     533 </span>                :<span class="lineCov">         15 :         kernel_fini();</span>
+<span class="lineNum">     534 </span>                :            : 
+<span class="lineNum">     535 </span>                :            :         return (rv);
+<span class="lineNum">     536 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

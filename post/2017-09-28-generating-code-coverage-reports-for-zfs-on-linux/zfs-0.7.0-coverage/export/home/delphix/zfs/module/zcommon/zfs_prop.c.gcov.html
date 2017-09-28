@@ -1,0 +1,972 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zcommon/zfs_prop.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zcommon</a> - zfs_prop.c<span style="font-size: 80%;"> (source / <a href="zfs_prop.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">151</td>
+            <td class="headerCovTableEntry">157</td>
+            <td class="headerCovTableEntryHi">96.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">23</td>
+            <td class="headerCovTableEntry">25</td>
+            <td class="headerCovTableEntryHi">92.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">30</td>
+            <td class="headerCovTableEntry">32</td>
+            <td class="headerCovTableEntryHi">93.8 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2011, 2014 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright (c) 2013 by Saso Kiselkov. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  * Copyright 2016, Joyent, Inc.
+<span class="lineNum">      26 </span>                :            :  */
+<span class="lineNum">      27 </span>                :            : 
+<span class="lineNum">      28 </span>                :            : /* Portions Copyright 2010 Robert Milkowski */
+<span class="lineNum">      29 </span>                :            : 
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/zio.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/u8_textprep.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/zfs_acl.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/zfs_ioctl.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/zfs_znode.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;sys/dsl_crypt.h&gt;
+<span class="lineNum">      37 </span>                :            : 
+<span class="lineNum">      38 </span>                :            : #include &quot;zfs_prop.h&quot;
+<span class="lineNum">      39 </span>                :            : #include &quot;zfs_deleg.h&quot;
+<span class="lineNum">      40 </span>                :            : #include &quot;zfs_fletcher.h&quot;
+<span class="lineNum">      41 </span>                :            : 
+<span class="lineNum">      42 </span>                :            : #if defined(_KERNEL)
+<span class="lineNum">      43 </span>                :            : #include &lt;sys/systm.h&gt;
+<span class="lineNum">      44 </span>                :            : #else
+<span class="lineNum">      45 </span>                :            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      46 </span>                :            : #include &lt;string.h&gt;
+<span class="lineNum">      47 </span>                :            : #include &lt;ctype.h&gt;
+<span class="lineNum">      48 </span>                :            : #endif
+<span class="lineNum">      49 </span>                :            : 
+<span class="lineNum">      50 </span>                :            : static zprop_desc_t zfs_prop_table[ZFS_NUM_PROPS];
+<span class="lineNum">      51 </span>                :            : 
+<span class="lineNum">      52 </span>                :            : /* Note this is indexed by zfs_userquota_prop_t, keep the order the same */
+<span class="lineNum">      53 </span>                :            : const char *zfs_userquota_prop_prefixes[] = {
+<span class="lineNum">      54 </span>                :            :         &quot;userused@&quot;,
+<span class="lineNum">      55 </span>                :            :         &quot;userquota@&quot;,
+<span class="lineNum">      56 </span>                :            :         &quot;groupused@&quot;,
+<span class="lineNum">      57 </span>                :            :         &quot;groupquota@&quot;,
+<span class="lineNum">      58 </span>                :            :         &quot;userobjused@&quot;,
+<span class="lineNum">      59 </span>                :            :         &quot;userobjquota@&quot;,
+<span class="lineNum">      60 </span>                :            :         &quot;groupobjused@&quot;,
+<span class="lineNum">      61 </span>                :            :         &quot;groupobjquota@&quot;
+<span class="lineNum">      62 </span>                :            : };
+<a name="63"><span class="lineNum">      63 </span>                :            : </a>
+<span class="lineNum">      64 </span>                :            : zprop_desc_t *
+<span class="lineNum">      65 </span>                :<span class="lineCov">    8229822 : zfs_prop_get_table(void)</span>
+<span class="lineNum">      66 </span>                :            : {
+<span class="lineNum">      67 </span>                :<span class="lineCov">    8229822 :         return (zfs_prop_table);</span>
+<span class="lineNum">      68 </span>                :            : }
+<a name="69"><span class="lineNum">      69 </span>                :            : </a>
+<span class="lineNum">      70 </span>                :            : void
+<span class="lineNum">      71 </span>                :<span class="lineCov">      59727 : zfs_prop_init(void)</span>
+<span class="lineNum">      72 </span>                :            : {
+<span class="lineNum">      73 </span>                :            :         static zprop_index_t checksum_table[] = {
+<span class="lineNum">      74 </span>                :            :                 { &quot;on&quot;,               ZIO_CHECKSUM_ON },
+<span class="lineNum">      75 </span>                :            :                 { &quot;off&quot;,      ZIO_CHECKSUM_OFF },
+<span class="lineNum">      76 </span>                :            :                 { &quot;fletcher2&quot;,        ZIO_CHECKSUM_FLETCHER_2 },
+<span class="lineNum">      77 </span>                :            :                 { &quot;fletcher4&quot;,        ZIO_CHECKSUM_FLETCHER_4 },
+<span class="lineNum">      78 </span>                :            :                 { &quot;sha256&quot;,   ZIO_CHECKSUM_SHA256 },
+<span class="lineNum">      79 </span>                :            :                 { &quot;noparity&quot;,   ZIO_CHECKSUM_NOPARITY },
+<span class="lineNum">      80 </span>                :            :                 { &quot;sha512&quot;,   ZIO_CHECKSUM_SHA512 },
+<span class="lineNum">      81 </span>                :            :                 { &quot;skein&quot;,    ZIO_CHECKSUM_SKEIN },
+<span class="lineNum">      82 </span>                :            :                 { &quot;edonr&quot;,    ZIO_CHECKSUM_EDONR },
+<span class="lineNum">      83 </span>                :            :                 { NULL }
+<span class="lineNum">      84 </span>                :            :         };
+<span class="lineNum">      85 </span>                :            : 
+<span class="lineNum">      86 </span>                :            :         static zprop_index_t dedup_table[] = {
+<span class="lineNum">      87 </span>                :            :                 { &quot;on&quot;,               ZIO_CHECKSUM_ON },
+<span class="lineNum">      88 </span>                :            :                 { &quot;off&quot;,      ZIO_CHECKSUM_OFF },
+<span class="lineNum">      89 </span>                :            :                 { &quot;verify&quot;,   ZIO_CHECKSUM_ON | ZIO_CHECKSUM_VERIFY },
+<span class="lineNum">      90 </span>                :            :                 { &quot;sha256&quot;,   ZIO_CHECKSUM_SHA256 },
+<span class="lineNum">      91 </span>                :            :                 { &quot;sha256,verify&quot;,
+<span class="lineNum">      92 </span>                :            :                                 ZIO_CHECKSUM_SHA256 | ZIO_CHECKSUM_VERIFY },
+<span class="lineNum">      93 </span>                :            :                 { &quot;sha512&quot;,   ZIO_CHECKSUM_SHA512 },
+<span class="lineNum">      94 </span>                :            :                 { &quot;sha512,verify&quot;,
+<span class="lineNum">      95 </span>                :            :                                 ZIO_CHECKSUM_SHA512 | ZIO_CHECKSUM_VERIFY },
+<span class="lineNum">      96 </span>                :            :                 { &quot;skein&quot;,    ZIO_CHECKSUM_SKEIN },
+<span class="lineNum">      97 </span>                :            :                 { &quot;skein,verify&quot;,
+<span class="lineNum">      98 </span>                :            :                                 ZIO_CHECKSUM_SKEIN | ZIO_CHECKSUM_VERIFY },
+<span class="lineNum">      99 </span>                :            :                 { &quot;edonr,verify&quot;,
+<span class="lineNum">     100 </span>                :            :                                 ZIO_CHECKSUM_EDONR | ZIO_CHECKSUM_VERIFY },
+<span class="lineNum">     101 </span>                :            :                 { NULL }
+<span class="lineNum">     102 </span>                :            :         };
+<span class="lineNum">     103 </span>                :            : 
+<span class="lineNum">     104 </span>                :            :         static zprop_index_t compress_table[] = {
+<span class="lineNum">     105 </span>                :            :                 { &quot;on&quot;,               ZIO_COMPRESS_ON },
+<span class="lineNum">     106 </span>                :            :                 { &quot;off&quot;,      ZIO_COMPRESS_OFF },
+<span class="lineNum">     107 </span>                :            :                 { &quot;lzjb&quot;,     ZIO_COMPRESS_LZJB },
+<span class="lineNum">     108 </span>                :            :                 { &quot;gzip&quot;,     ZIO_COMPRESS_GZIP_6 },  /* gzip default */
+<span class="lineNum">     109 </span>                :            :                 { &quot;gzip-1&quot;,   ZIO_COMPRESS_GZIP_1 },
+<span class="lineNum">     110 </span>                :            :                 { &quot;gzip-2&quot;,   ZIO_COMPRESS_GZIP_2 },
+<span class="lineNum">     111 </span>                :            :                 { &quot;gzip-3&quot;,   ZIO_COMPRESS_GZIP_3 },
+<span class="lineNum">     112 </span>                :            :                 { &quot;gzip-4&quot;,   ZIO_COMPRESS_GZIP_4 },
+<span class="lineNum">     113 </span>                :            :                 { &quot;gzip-5&quot;,   ZIO_COMPRESS_GZIP_5 },
+<span class="lineNum">     114 </span>                :            :                 { &quot;gzip-6&quot;,   ZIO_COMPRESS_GZIP_6 },
+<span class="lineNum">     115 </span>                :            :                 { &quot;gzip-7&quot;,   ZIO_COMPRESS_GZIP_7 },
+<span class="lineNum">     116 </span>                :            :                 { &quot;gzip-8&quot;,   ZIO_COMPRESS_GZIP_8 },
+<span class="lineNum">     117 </span>                :            :                 { &quot;gzip-9&quot;,   ZIO_COMPRESS_GZIP_9 },
+<span class="lineNum">     118 </span>                :            :                 { &quot;zle&quot;,      ZIO_COMPRESS_ZLE },
+<span class="lineNum">     119 </span>                :            :                 { &quot;lz4&quot;,      ZIO_COMPRESS_LZ4 },
+<span class="lineNum">     120 </span>                :            :                 { NULL }
+<span class="lineNum">     121 </span>                :            :         };
+<span class="lineNum">     122 </span>                :            : 
+<span class="lineNum">     123 </span>                :            :         static zprop_index_t crypto_table[] = {
+<span class="lineNum">     124 </span>                :            :                 { &quot;on&quot;,                       ZIO_CRYPT_ON },
+<span class="lineNum">     125 </span>                :            :                 { &quot;off&quot;,              ZIO_CRYPT_OFF },
+<span class="lineNum">     126 </span>                :            :                 { &quot;aes-128-ccm&quot;,      ZIO_CRYPT_AES_128_CCM },
+<span class="lineNum">     127 </span>                :            :                 { &quot;aes-192-ccm&quot;,      ZIO_CRYPT_AES_192_CCM },
+<span class="lineNum">     128 </span>                :            :                 { &quot;aes-256-ccm&quot;,      ZIO_CRYPT_AES_256_CCM },
+<span class="lineNum">     129 </span>                :            :                 { &quot;aes-128-gcm&quot;,      ZIO_CRYPT_AES_128_GCM },
+<span class="lineNum">     130 </span>                :            :                 { &quot;aes-192-gcm&quot;,      ZIO_CRYPT_AES_192_GCM },
+<span class="lineNum">     131 </span>                :            :                 { &quot;aes-256-gcm&quot;,      ZIO_CRYPT_AES_256_GCM },
+<span class="lineNum">     132 </span>                :            :                 { NULL }
+<span class="lineNum">     133 </span>                :            :         };
+<span class="lineNum">     134 </span>                :            : 
+<span class="lineNum">     135 </span>                :            :         static zprop_index_t keyformat_table[] = {
+<span class="lineNum">     136 </span>                :            :                 { &quot;none&quot;,             ZFS_KEYFORMAT_NONE },
+<span class="lineNum">     137 </span>                :            :                 { &quot;raw&quot;,              ZFS_KEYFORMAT_RAW },
+<span class="lineNum">     138 </span>                :            :                 { &quot;hex&quot;,              ZFS_KEYFORMAT_HEX },
+<span class="lineNum">     139 </span>                :            :                 { &quot;passphrase&quot;,               ZFS_KEYFORMAT_PASSPHRASE },
+<span class="lineNum">     140 </span>                :            :                 { NULL }
+<span class="lineNum">     141 </span>                :            :         };
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>                :            :         static zprop_index_t snapdir_table[] = {
+<span class="lineNum">     144 </span>                :            :                 { &quot;hidden&quot;,   ZFS_SNAPDIR_HIDDEN },
+<span class="lineNum">     145 </span>                :            :                 { &quot;visible&quot;,  ZFS_SNAPDIR_VISIBLE },
+<span class="lineNum">     146 </span>                :            :                 { NULL }
+<span class="lineNum">     147 </span>                :            :         };
+<span class="lineNum">     148 </span>                :            : 
+<span class="lineNum">     149 </span>                :            :         static zprop_index_t snapdev_table[] = {
+<span class="lineNum">     150 </span>                :            :                 { &quot;hidden&quot;,   ZFS_SNAPDEV_HIDDEN },
+<span class="lineNum">     151 </span>                :            :                 { &quot;visible&quot;,  ZFS_SNAPDEV_VISIBLE },
+<span class="lineNum">     152 </span>                :            :                 { NULL }
+<span class="lineNum">     153 </span>                :            :         };
+<span class="lineNum">     154 </span>                :            : 
+<span class="lineNum">     155 </span>                :            :         static zprop_index_t acltype_table[] = {
+<span class="lineNum">     156 </span>                :            :                 { &quot;off&quot;,      ZFS_ACLTYPE_OFF },
+<span class="lineNum">     157 </span>                :            :                 { &quot;disabled&quot;, ZFS_ACLTYPE_OFF },
+<span class="lineNum">     158 </span>                :            :                 { &quot;noacl&quot;,    ZFS_ACLTYPE_OFF },
+<span class="lineNum">     159 </span>                :            :                 { &quot;posixacl&quot;, ZFS_ACLTYPE_POSIXACL },
+<span class="lineNum">     160 </span>                :            :                 { NULL }
+<span class="lineNum">     161 </span>                :            :         };
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>                :            :         static zprop_index_t acl_inherit_table[] = {
+<span class="lineNum">     164 </span>                :            :                 { &quot;discard&quot;,  ZFS_ACL_DISCARD },
+<span class="lineNum">     165 </span>                :            :                 { &quot;noallow&quot;,  ZFS_ACL_NOALLOW },
+<span class="lineNum">     166 </span>                :            :                 { &quot;restricted&quot;,       ZFS_ACL_RESTRICTED },
+<span class="lineNum">     167 </span>                :            :                 { &quot;passthrough&quot;, ZFS_ACL_PASSTHROUGH },
+<span class="lineNum">     168 </span>                :            :                 { &quot;secure&quot;,   ZFS_ACL_RESTRICTED }, /* bkwrd compatibility */
+<span class="lineNum">     169 </span>                :            :                 { &quot;passthrough-x&quot;, ZFS_ACL_PASSTHROUGH_X },
+<span class="lineNum">     170 </span>                :            :                 { NULL }
+<span class="lineNum">     171 </span>                :            :         };
+<span class="lineNum">     172 </span>                :            : 
+<span class="lineNum">     173 </span>                :            :         static zprop_index_t case_table[] = {
+<span class="lineNum">     174 </span>                :            :                 { &quot;sensitive&quot;,                ZFS_CASE_SENSITIVE },
+<span class="lineNum">     175 </span>                :            :                 { &quot;insensitive&quot;,      ZFS_CASE_INSENSITIVE },
+<span class="lineNum">     176 </span>                :            :                 { &quot;mixed&quot;,            ZFS_CASE_MIXED },
+<span class="lineNum">     177 </span>                :            :                 { NULL }
+<span class="lineNum">     178 </span>                :            :         };
+<span class="lineNum">     179 </span>                :            : 
+<span class="lineNum">     180 </span>                :            :         static zprop_index_t copies_table[] = {
+<span class="lineNum">     181 </span>                :            :                 { &quot;1&quot;,                1 },
+<span class="lineNum">     182 </span>                :            :                 { &quot;2&quot;,                2 },
+<span class="lineNum">     183 </span>                :            :                 { &quot;3&quot;,                3 },
+<span class="lineNum">     184 </span>                :            :                 { NULL }
+<span class="lineNum">     185 </span>                :            :         };
+<span class="lineNum">     186 </span>                :            : 
+<span class="lineNum">     187 </span>                :            :         /*
+<span class="lineNum">     188 </span>                :            :          * Use the unique flags we have to send to u8_strcmp() and/or
+<span class="lineNum">     189 </span>                :            :          * u8_textprep() to represent the various normalization property
+<span class="lineNum">     190 </span>                :            :          * values.
+<span class="lineNum">     191 </span>                :            :          */
+<span class="lineNum">     192 </span>                :            :         static zprop_index_t normalize_table[] = {
+<span class="lineNum">     193 </span>                :            :                 { &quot;none&quot;,     0 },
+<span class="lineNum">     194 </span>                :            :                 { &quot;formD&quot;,    U8_TEXTPREP_NFD },
+<span class="lineNum">     195 </span>                :            :                 { &quot;formKC&quot;,   U8_TEXTPREP_NFKC },
+<span class="lineNum">     196 </span>                :            :                 { &quot;formC&quot;,    U8_TEXTPREP_NFC },
+<span class="lineNum">     197 </span>                :            :                 { &quot;formKD&quot;,   U8_TEXTPREP_NFKD },
+<span class="lineNum">     198 </span>                :            :                 { NULL }
+<span class="lineNum">     199 </span>                :            :         };
+<span class="lineNum">     200 </span>                :            : 
+<span class="lineNum">     201 </span>                :            :         static zprop_index_t version_table[] = {
+<span class="lineNum">     202 </span>                :            :                 { &quot;1&quot;,                1 },
+<span class="lineNum">     203 </span>                :            :                 { &quot;2&quot;,                2 },
+<span class="lineNum">     204 </span>                :            :                 { &quot;3&quot;,                3 },
+<span class="lineNum">     205 </span>                :            :                 { &quot;4&quot;,                4 },
+<span class="lineNum">     206 </span>                :            :                 { &quot;5&quot;,                5 },
+<span class="lineNum">     207 </span>                :            :                 { &quot;current&quot;,  ZPL_VERSION },
+<span class="lineNum">     208 </span>                :            :                 { NULL }
+<span class="lineNum">     209 </span>                :            :         };
+<span class="lineNum">     210 </span>                :            : 
+<span class="lineNum">     211 </span>                :            :         static zprop_index_t boolean_table[] = {
+<span class="lineNum">     212 </span>                :            :                 { &quot;off&quot;,      0 },
+<span class="lineNum">     213 </span>                :            :                 { &quot;on&quot;,               1 },
+<span class="lineNum">     214 </span>                :            :                 { NULL }
+<span class="lineNum">     215 </span>                :            :         };
+<span class="lineNum">     216 </span>                :            : 
+<span class="lineNum">     217 </span>                :            :         static zprop_index_t keystatus_table[] = {
+<span class="lineNum">     218 </span>                :            :                 { &quot;none&quot;,             ZFS_KEYSTATUS_NONE},
+<span class="lineNum">     219 </span>                :            :                 { &quot;unavailable&quot;,      ZFS_KEYSTATUS_UNAVAILABLE},
+<span class="lineNum">     220 </span>                :            :                 { &quot;available&quot;,                ZFS_KEYSTATUS_AVAILABLE},
+<span class="lineNum">     221 </span>                :            :                 { NULL }
+<span class="lineNum">     222 </span>                :            :         };
+<span class="lineNum">     223 </span>                :            : 
+<span class="lineNum">     224 </span>                :            :         static zprop_index_t logbias_table[] = {
+<span class="lineNum">     225 </span>                :            :                 { &quot;latency&quot;,  ZFS_LOGBIAS_LATENCY },
+<span class="lineNum">     226 </span>                :            :                 { &quot;throughput&quot;,       ZFS_LOGBIAS_THROUGHPUT },
+<span class="lineNum">     227 </span>                :            :                 { NULL }
+<span class="lineNum">     228 </span>                :            :         };
+<span class="lineNum">     229 </span>                :            : 
+<span class="lineNum">     230 </span>                :            :         static zprop_index_t canmount_table[] = {
+<span class="lineNum">     231 </span>                :            :                 { &quot;off&quot;,      ZFS_CANMOUNT_OFF },
+<span class="lineNum">     232 </span>                :            :                 { &quot;on&quot;,               ZFS_CANMOUNT_ON },
+<span class="lineNum">     233 </span>                :            :                 { &quot;noauto&quot;,   ZFS_CANMOUNT_NOAUTO },
+<span class="lineNum">     234 </span>                :            :                 { NULL }
+<span class="lineNum">     235 </span>                :            :         };
+<span class="lineNum">     236 </span>                :            : 
+<span class="lineNum">     237 </span>                :            :         static zprop_index_t cache_table[] = {
+<span class="lineNum">     238 </span>                :            :                 { &quot;none&quot;,     ZFS_CACHE_NONE },
+<span class="lineNum">     239 </span>                :            :                 { &quot;metadata&quot;, ZFS_CACHE_METADATA },
+<span class="lineNum">     240 </span>                :            :                 { &quot;all&quot;,      ZFS_CACHE_ALL },
+<span class="lineNum">     241 </span>                :            :                 { NULL }
+<span class="lineNum">     242 </span>                :            :         };
+<span class="lineNum">     243 </span>                :            : 
+<span class="lineNum">     244 </span>                :            :         static zprop_index_t sync_table[] = {
+<span class="lineNum">     245 </span>                :            :                 { &quot;standard&quot;, ZFS_SYNC_STANDARD },
+<span class="lineNum">     246 </span>                :            :                 { &quot;always&quot;,   ZFS_SYNC_ALWAYS },
+<span class="lineNum">     247 </span>                :            :                 { &quot;disabled&quot;, ZFS_SYNC_DISABLED },
+<span class="lineNum">     248 </span>                :            :                 { NULL }
+<span class="lineNum">     249 </span>                :            :         };
+<span class="lineNum">     250 </span>                :            : 
+<span class="lineNum">     251 </span>                :            :         static zprop_index_t xattr_table[] = {
+<span class="lineNum">     252 </span>                :            :                 { &quot;off&quot;,      ZFS_XATTR_OFF },
+<span class="lineNum">     253 </span>                :            :                 { &quot;on&quot;,               ZFS_XATTR_DIR },
+<span class="lineNum">     254 </span>                :            :                 { &quot;sa&quot;,               ZFS_XATTR_SA },
+<span class="lineNum">     255 </span>                :            :                 { &quot;dir&quot;,      ZFS_XATTR_DIR },
+<span class="lineNum">     256 </span>                :            :                 { NULL }
+<span class="lineNum">     257 </span>                :            :         };
+<span class="lineNum">     258 </span>                :            : 
+<span class="lineNum">     259 </span>                :            :         static zprop_index_t dnsize_table[] = {
+<span class="lineNum">     260 </span>                :            :                 { &quot;legacy&quot;,   ZFS_DNSIZE_LEGACY },
+<span class="lineNum">     261 </span>                :            :                 { &quot;auto&quot;,     ZFS_DNSIZE_AUTO },
+<span class="lineNum">     262 </span>                :            :                 { &quot;1k&quot;,               ZFS_DNSIZE_1K },
+<span class="lineNum">     263 </span>                :            :                 { &quot;2k&quot;,               ZFS_DNSIZE_2K },
+<span class="lineNum">     264 </span>                :            :                 { &quot;4k&quot;,               ZFS_DNSIZE_4K },
+<span class="lineNum">     265 </span>                :            :                 { &quot;8k&quot;,               ZFS_DNSIZE_8K },
+<span class="lineNum">     266 </span>                :            :                 { &quot;16k&quot;,      ZFS_DNSIZE_16K },
+<span class="lineNum">     267 </span>                :            :                 { NULL }
+<span class="lineNum">     268 </span>                :            :         };
+<span class="lineNum">     269 </span>                :            : 
+<span class="lineNum">     270 </span>                :            :         static zprop_index_t redundant_metadata_table[] = {
+<span class="lineNum">     271 </span>                :            :                 { &quot;all&quot;,      ZFS_REDUNDANT_METADATA_ALL },
+<span class="lineNum">     272 </span>                :            :                 { &quot;most&quot;,     ZFS_REDUNDANT_METADATA_MOST },
+<span class="lineNum">     273 </span>                :            :                 { NULL }
+<span class="lineNum">     274 </span>                :            :         };
+<span class="lineNum">     275 </span>                :            : 
+<span class="lineNum">     276 </span>                :            :         static zprop_index_t volmode_table[] = {
+<span class="lineNum">     277 </span>                :            :                 { &quot;default&quot;,  ZFS_VOLMODE_DEFAULT },
+<span class="lineNum">     278 </span>                :            :                 { &quot;full&quot;,     ZFS_VOLMODE_GEOM },
+<span class="lineNum">     279 </span>                :            :                 { &quot;geom&quot;,     ZFS_VOLMODE_GEOM },
+<span class="lineNum">     280 </span>                :            :                 { &quot;dev&quot;,      ZFS_VOLMODE_DEV },
+<span class="lineNum">     281 </span>                :            :                 { &quot;none&quot;,     ZFS_VOLMODE_NONE },
+<span class="lineNum">     282 </span>                :            :                 { NULL }
+<span class="lineNum">     283 </span>                :            :         };
+<span class="lineNum">     284 </span>                :            : 
+<span class="lineNum">     285 </span>                :            :         /* inherit index properties */
+<span class="lineNum">     286 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_REDUNDANT_METADATA, &quot;redundant_metadata&quot;,</span>
+<span class="lineNum">     287 </span>                :            :             ZFS_REDUNDANT_METADATA_ALL,
+<span class="lineNum">     288 </span>                :            :             PROP_INHERIT, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     289 </span>                :            :             &quot;all | most&quot;, &quot;REDUND_MD&quot;,
+<span class="lineNum">     290 </span>                :            :             redundant_metadata_table);
+<span class="lineNum">     291 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_SYNC, &quot;sync&quot;, ZFS_SYNC_STANDARD,</span>
+<span class="lineNum">     292 </span>                :            :             PROP_INHERIT, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     293 </span>                :            :             &quot;standard | always | disabled&quot;, &quot;SYNC&quot;,
+<span class="lineNum">     294 </span>                :            :             sync_table);
+<span class="lineNum">     295 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_CHECKSUM, &quot;checksum&quot;,</span>
+<span class="lineNum">     296 </span>                :            :             ZIO_CHECKSUM_DEFAULT, PROP_INHERIT, ZFS_TYPE_FILESYSTEM |
+<span class="lineNum">     297 </span>                :            :             ZFS_TYPE_VOLUME,
+<span class="lineNum">     298 </span>                :            :             &quot;on | off | fletcher2 | fletcher4 | sha256 | sha512 | &quot;
+<span class="lineNum">     299 </span>                :            :             &quot;skein | edonr&quot;, &quot;CHECKSUM&quot;, checksum_table);
+<span class="lineNum">     300 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_DEDUP, &quot;dedup&quot;, ZIO_CHECKSUM_OFF,</span>
+<span class="lineNum">     301 </span>                :            :             PROP_INHERIT, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     302 </span>                :            :             &quot;on | off | verify | sha256[,verify], sha512[,verify], &quot;
+<span class="lineNum">     303 </span>                :            :             &quot;skein[,verify], edonr,verify&quot;, &quot;DEDUP&quot;, dedup_table);
+<span class="lineNum">     304 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_COMPRESSION, &quot;compression&quot;,</span>
+<span class="lineNum">     305 </span>                :            :             ZIO_COMPRESS_DEFAULT, PROP_INHERIT,
+<span class="lineNum">     306 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     307 </span>                :            :             &quot;on | off | lzjb | gzip | gzip-[1-9] | zle | lz4&quot;, &quot;COMPRESS&quot;,
+<span class="lineNum">     308 </span>                :            :             compress_table);
+<span class="lineNum">     309 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_SNAPDIR, &quot;snapdir&quot;, ZFS_SNAPDIR_HIDDEN,</span>
+<span class="lineNum">     310 </span>                :            :             PROP_INHERIT, ZFS_TYPE_FILESYSTEM,
+<span class="lineNum">     311 </span>                :            :             &quot;hidden | visible&quot;, &quot;SNAPDIR&quot;, snapdir_table);
+<span class="lineNum">     312 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_SNAPDEV, &quot;snapdev&quot;, ZFS_SNAPDEV_HIDDEN,</span>
+<span class="lineNum">     313 </span>                :            :             PROP_INHERIT, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     314 </span>                :            :             &quot;hidden | visible&quot;, &quot;SNAPDEV&quot;, snapdev_table);
+<span class="lineNum">     315 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_ACLTYPE, &quot;acltype&quot;, ZFS_ACLTYPE_OFF,</span>
+<span class="lineNum">     316 </span>                :            :             PROP_INHERIT, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT,
+<span class="lineNum">     317 </span>                :            :             &quot;noacl | posixacl&quot;, &quot;ACLTYPE&quot;, acltype_table);
+<span class="lineNum">     318 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_ACLINHERIT, &quot;aclinherit&quot;,</span>
+<span class="lineNum">     319 </span>                :            :             ZFS_ACL_RESTRICTED, PROP_INHERIT, ZFS_TYPE_FILESYSTEM,
+<span class="lineNum">     320 </span>                :            :             &quot;discard | noallow | restricted | passthrough | passthrough-x&quot;,
+<span class="lineNum">     321 </span>                :            :             &quot;ACLINHERIT&quot;, acl_inherit_table);
+<span class="lineNum">     322 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_COPIES, &quot;copies&quot;, 1, PROP_INHERIT,</span>
+<span class="lineNum">     323 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     324 </span>                :            :             &quot;1 | 2 | 3&quot;, &quot;COPIES&quot;, copies_table);
+<span class="lineNum">     325 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_PRIMARYCACHE, &quot;primarycache&quot;,</span>
+<span class="lineNum">     326 </span>                :            :             ZFS_CACHE_ALL, PROP_INHERIT,
+<span class="lineNum">     327 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT | ZFS_TYPE_VOLUME,
+<span class="lineNum">     328 </span>                :            :             &quot;all | none | metadata&quot;, &quot;PRIMARYCACHE&quot;, cache_table);
+<span class="lineNum">     329 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_SECONDARYCACHE, &quot;secondarycache&quot;,</span>
+<span class="lineNum">     330 </span>                :            :             ZFS_CACHE_ALL, PROP_INHERIT,
+<span class="lineNum">     331 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT | ZFS_TYPE_VOLUME,
+<span class="lineNum">     332 </span>                :            :             &quot;all | none | metadata&quot;, &quot;SECONDARYCACHE&quot;, cache_table);
+<span class="lineNum">     333 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_LOGBIAS, &quot;logbias&quot;, ZFS_LOGBIAS_LATENCY,</span>
+<span class="lineNum">     334 </span>                :            :             PROP_INHERIT, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     335 </span>                :            :             &quot;latency | throughput&quot;, &quot;LOGBIAS&quot;, logbias_table);
+<span class="lineNum">     336 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_XATTR, &quot;xattr&quot;, ZFS_XATTR_DIR,</span>
+<span class="lineNum">     337 </span>                :            :             PROP_INHERIT, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT,
+<span class="lineNum">     338 </span>                :            :             &quot;on | off | dir | sa&quot;, &quot;XATTR&quot;, xattr_table);
+<span class="lineNum">     339 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_DNODESIZE, &quot;dnodesize&quot;,</span>
+<span class="lineNum">     340 </span>                :            :             ZFS_DNSIZE_LEGACY, PROP_INHERIT, ZFS_TYPE_FILESYSTEM,
+<span class="lineNum">     341 </span>                :            :             &quot;legacy | auto | 1k | 2k | 4k | 8k | 16k&quot;, &quot;DNSIZE&quot;, dnsize_table);
+<span class="lineNum">     342 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_VOLMODE, &quot;volmode&quot;,</span>
+<span class="lineNum">     343 </span>                :            :             ZFS_VOLMODE_DEFAULT, PROP_INHERIT,
+<span class="lineNum">     344 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     345 </span>                :            :             &quot;default | full | geom | dev | none&quot;, &quot;VOLMODE&quot;, volmode_table);
+<span class="lineNum">     346 </span>                :            : 
+<span class="lineNum">     347 </span>                :            :         /* inherit index (boolean) properties */
+<span class="lineNum">     348 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_ATIME, &quot;atime&quot;, 1, PROP_INHERIT,</span>
+<span class="lineNum">     349 </span>                :            :             ZFS_TYPE_FILESYSTEM, &quot;on | off&quot;, &quot;ATIME&quot;, boolean_table);
+<span class="lineNum">     350 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_RELATIME, &quot;relatime&quot;, 0, PROP_INHERIT,</span>
+<span class="lineNum">     351 </span>                :            :             ZFS_TYPE_FILESYSTEM, &quot;on | off&quot;, &quot;RELATIME&quot;, boolean_table);
+<span class="lineNum">     352 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_DEVICES, &quot;devices&quot;, 1, PROP_INHERIT,</span>
+<span class="lineNum">     353 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT, &quot;on | off&quot;, &quot;DEVICES&quot;,
+<span class="lineNum">     354 </span>                :            :             boolean_table);
+<span class="lineNum">     355 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_EXEC, &quot;exec&quot;, 1, PROP_INHERIT,</span>
+<span class="lineNum">     356 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT, &quot;on | off&quot;, &quot;EXEC&quot;,
+<span class="lineNum">     357 </span>                :            :             boolean_table);
+<span class="lineNum">     358 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_SETUID, &quot;setuid&quot;, 1, PROP_INHERIT,</span>
+<span class="lineNum">     359 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT, &quot;on | off&quot;, &quot;SETUID&quot;,
+<span class="lineNum">     360 </span>                :            :             boolean_table);
+<span class="lineNum">     361 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_READONLY, &quot;readonly&quot;, 0, PROP_INHERIT,</span>
+<span class="lineNum">     362 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME, &quot;on | off&quot;, &quot;RDONLY&quot;,
+<span class="lineNum">     363 </span>                :            :             boolean_table);
+<span class="lineNum">     364 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_ZONED, &quot;zoned&quot;, 0, PROP_INHERIT,</span>
+<span class="lineNum">     365 </span>                :            :             ZFS_TYPE_FILESYSTEM, &quot;on | off&quot;, &quot;ZONED&quot;, boolean_table);
+<span class="lineNum">     366 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_VSCAN, &quot;vscan&quot;, 0, PROP_INHERIT,</span>
+<span class="lineNum">     367 </span>                :            :             ZFS_TYPE_FILESYSTEM, &quot;on | off&quot;, &quot;VSCAN&quot;, boolean_table);
+<span class="lineNum">     368 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_NBMAND, &quot;nbmand&quot;, 0, PROP_INHERIT,</span>
+<span class="lineNum">     369 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT, &quot;on | off&quot;, &quot;NBMAND&quot;,
+<span class="lineNum">     370 </span>                :            :             boolean_table);
+<span class="lineNum">     371 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_OVERLAY, &quot;overlay&quot;, 0, PROP_INHERIT,</span>
+<span class="lineNum">     372 </span>                :            :             ZFS_TYPE_FILESYSTEM, &quot;on | off&quot;, &quot;OVERLAY&quot;, boolean_table);
+<span class="lineNum">     373 </span>                :            : 
+<span class="lineNum">     374 </span>                :            :         /* default index properties */
+<span class="lineNum">     375 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_VERSION, &quot;version&quot;, 0, PROP_DEFAULT,</span>
+<span class="lineNum">     376 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT,
+<span class="lineNum">     377 </span>                :            :             &quot;1 | 2 | 3 | 4 | 5 | current&quot;, &quot;VERSION&quot;, version_table);
+<span class="lineNum">     378 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_CANMOUNT, &quot;canmount&quot;, ZFS_CANMOUNT_ON,</span>
+<span class="lineNum">     379 </span>                :            :             PROP_DEFAULT, ZFS_TYPE_FILESYSTEM, &quot;on | off | noauto&quot;,
+<span class="lineNum">     380 </span>                :            :             &quot;CANMOUNT&quot;, canmount_table);
+<span class="lineNum">     381 </span>                :            : 
+<span class="lineNum">     382 </span>                :            :         /* readonly index properties */
+<span class="lineNum">     383 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_MOUNTED, &quot;mounted&quot;, 0, PROP_READONLY,</span>
+<span class="lineNum">     384 </span>                :            :             ZFS_TYPE_FILESYSTEM, &quot;yes | no&quot;, &quot;MOUNTED&quot;, boolean_table);
+<span class="lineNum">     385 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_DEFER_DESTROY, &quot;defer_destroy&quot;, 0,</span>
+<span class="lineNum">     386 </span>                :            :             PROP_READONLY, ZFS_TYPE_SNAPSHOT, &quot;yes | no&quot;, &quot;DEFER_DESTROY&quot;,
+<span class="lineNum">     387 </span>                :            :             boolean_table);
+<span class="lineNum">     388 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_KEYSTATUS, &quot;keystatus&quot;,</span>
+<span class="lineNum">     389 </span>                :            :             ZFS_KEYSTATUS_NONE, PROP_READONLY, ZFS_TYPE_DATASET,
+<span class="lineNum">     390 </span>                :            :             &quot;none | unavailable | available&quot;,
+<span class="lineNum">     391 </span>                :            :             &quot;KEYSTATUS&quot;, keystatus_table);
+<span class="lineNum">     392 </span>                :            : 
+<span class="lineNum">     393 </span>                :            :         /* set once index properties */
+<span class="lineNum">     394 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_NORMALIZE, &quot;normalization&quot;, 0,</span>
+<span class="lineNum">     395 </span>                :            :             PROP_ONETIME, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT,
+<span class="lineNum">     396 </span>                :            :             &quot;none | formC | formD | formKC | formKD&quot;, &quot;NORMALIZATION&quot;,
+<span class="lineNum">     397 </span>                :            :             normalize_table);
+<span class="lineNum">     398 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_CASE, &quot;casesensitivity&quot;,</span>
+<span class="lineNum">     399 </span>                :            :             ZFS_CASE_SENSITIVE, PROP_ONETIME, ZFS_TYPE_FILESYSTEM |
+<span class="lineNum">     400 </span>                :            :             ZFS_TYPE_SNAPSHOT,
+<span class="lineNum">     401 </span>                :            :             &quot;sensitive | insensitive | mixed&quot;, &quot;CASE&quot;, case_table);
+<span class="lineNum">     402 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_KEYFORMAT, &quot;keyformat&quot;,</span>
+<span class="lineNum">     403 </span>                :            :             ZFS_KEYFORMAT_NONE, PROP_ONETIME_DEFAULT,
+<span class="lineNum">     404 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     405 </span>                :            :             &quot;none | raw | hex | passphrase&quot;, &quot;KEYFORMAT&quot;, keyformat_table);
+<span class="lineNum">     406 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_ENCRYPTION, &quot;encryption&quot;,</span>
+<span class="lineNum">     407 </span>                :            :             ZIO_CRYPT_DEFAULT, PROP_ONETIME, ZFS_TYPE_DATASET,
+<span class="lineNum">     408 </span>                :            :             &quot;on | off | aes-128-ccm | aes-192-ccm | aes-256-ccm | &quot;
+<span class="lineNum">     409 </span>                :            :             &quot;aes-128-gcm | aes-192-gcm | aes-256-gcm&quot;, &quot;ENCRYPTION&quot;,
+<span class="lineNum">     410 </span>                :            :             crypto_table);
+<span class="lineNum">     411 </span>                :            : 
+<span class="lineNum">     412 </span>                :            :         /* set once index (boolean) properties */
+<span class="lineNum">     413 </span>                :<span class="lineCov">      59727 :         zprop_register_index(ZFS_PROP_UTF8ONLY, &quot;utf8only&quot;, 0, PROP_ONETIME,</span>
+<span class="lineNum">     414 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT,
+<span class="lineNum">     415 </span>                :            :             &quot;on | off&quot;, &quot;UTF8ONLY&quot;, boolean_table);
+<span class="lineNum">     416 </span>                :            : 
+<span class="lineNum">     417 </span>                :            :         /* string properties */
+<span class="lineNum">     418 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_ORIGIN, &quot;origin&quot;, NULL, PROP_READONLY,</span>
+<span class="lineNum">     419 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME, &quot;&lt;snapshot&gt;&quot;, &quot;ORIGIN&quot;);
+<span class="lineNum">     420 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_CLONES, &quot;clones&quot;, NULL, PROP_READONLY,</span>
+<span class="lineNum">     421 </span>                :            :             ZFS_TYPE_SNAPSHOT, &quot;&lt;dataset&gt;[,...]&quot;, &quot;CLONES&quot;);
+<span class="lineNum">     422 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_MOUNTPOINT, &quot;mountpoint&quot;, &quot;/&quot;,</span>
+<span class="lineNum">     423 </span>                :            :             PROP_INHERIT, ZFS_TYPE_FILESYSTEM, &quot;&lt;path&gt; | legacy | none&quot;,
+<span class="lineNum">     424 </span>                :            :             &quot;MOUNTPOINT&quot;);
+<span class="lineNum">     425 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_SHARENFS, &quot;sharenfs&quot;, &quot;off&quot;,</span>
+<span class="lineNum">     426 </span>                :            :             PROP_INHERIT, ZFS_TYPE_FILESYSTEM, &quot;on | off | share(1M) options&quot;,
+<span class="lineNum">     427 </span>                :            :             &quot;SHARENFS&quot;);
+<span class="lineNum">     428 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_TYPE, &quot;type&quot;, NULL, PROP_READONLY,</span>
+<span class="lineNum">     429 </span>                :            :             ZFS_TYPE_DATASET | ZFS_TYPE_BOOKMARK,
+<span class="lineNum">     430 </span>                :            :             &quot;filesystem | volume | snapshot | bookmark&quot;, &quot;TYPE&quot;);
+<span class="lineNum">     431 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_SHARESMB, &quot;sharesmb&quot;, &quot;off&quot;,</span>
+<span class="lineNum">     432 </span>                :            :             PROP_INHERIT, ZFS_TYPE_FILESYSTEM,
+<span class="lineNum">     433 </span>                :            :             &quot;on | off | sharemgr(1M) options&quot;, &quot;SHARESMB&quot;);
+<span class="lineNum">     434 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_MLSLABEL, &quot;mlslabel&quot;,</span>
+<span class="lineNum">     435 </span>                :            :             ZFS_MLSLABEL_DEFAULT, PROP_INHERIT, ZFS_TYPE_DATASET,
+<span class="lineNum">     436 </span>                :            :             &quot;&lt;sensitivity label&gt;&quot;, &quot;MLSLABEL&quot;);
+<span class="lineNum">     437 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_SELINUX_CONTEXT, &quot;context&quot;,</span>
+<span class="lineNum">     438 </span>                :            :             &quot;none&quot;, PROP_DEFAULT, ZFS_TYPE_DATASET, &quot;&lt;selinux context&gt;&quot;,
+<span class="lineNum">     439 </span>                :            :             &quot;CONTEXT&quot;);
+<span class="lineNum">     440 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_SELINUX_FSCONTEXT, &quot;fscontext&quot;,</span>
+<span class="lineNum">     441 </span>                :            :             &quot;none&quot;, PROP_DEFAULT, ZFS_TYPE_DATASET, &quot;&lt;selinux fscontext&gt;&quot;,
+<span class="lineNum">     442 </span>                :            :             &quot;FSCONTEXT&quot;);
+<span class="lineNum">     443 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_SELINUX_DEFCONTEXT, &quot;defcontext&quot;,</span>
+<span class="lineNum">     444 </span>                :            :             &quot;none&quot;, PROP_DEFAULT, ZFS_TYPE_DATASET, &quot;&lt;selinux defcontext&gt;&quot;,
+<span class="lineNum">     445 </span>                :            :             &quot;DEFCONTEXT&quot;);
+<span class="lineNum">     446 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_SELINUX_ROOTCONTEXT, &quot;rootcontext&quot;,</span>
+<span class="lineNum">     447 </span>                :            :             &quot;none&quot;, PROP_DEFAULT, ZFS_TYPE_DATASET, &quot;&lt;selinux rootcontext&gt;&quot;,
+<span class="lineNum">     448 </span>                :            :             &quot;ROOTCONTEXT&quot;);
+<span class="lineNum">     449 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_RECEIVE_RESUME_TOKEN,</span>
+<span class="lineNum">     450 </span>                :            :             &quot;receive_resume_token&quot;,
+<span class="lineNum">     451 </span>                :            :             NULL, PROP_READONLY, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     452 </span>                :            :             &quot;&lt;string token&gt;&quot;, &quot;RESUMETOK&quot;);
+<span class="lineNum">     453 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_ENCRYPTION_ROOT, &quot;encryptionroot&quot;, NULL,</span>
+<span class="lineNum">     454 </span>                :            :             PROP_READONLY, ZFS_TYPE_DATASET, &quot;&lt;filesystem | volume&gt;&quot;,
+<span class="lineNum">     455 </span>                :            :             &quot;ENCROOT&quot;);
+<span class="lineNum">     456 </span>                :<span class="lineCov">      59727 :         zprop_register_string(ZFS_PROP_KEYLOCATION, &quot;keylocation&quot;,</span>
+<span class="lineNum">     457 </span>                :            :             &quot;none&quot;, PROP_DEFAULT, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     458 </span>                :            :             &quot;prompt | &lt;file URI&gt;&quot;, &quot;KEYLOCATION&quot;);
+<span class="lineNum">     459 </span>                :            : 
+<span class="lineNum">     460 </span>                :            :         /* readonly number properties */
+<span class="lineNum">     461 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_USED, &quot;used&quot;, 0, PROP_READONLY,</span>
+<span class="lineNum">     462 </span>                :            :             ZFS_TYPE_DATASET, &quot;&lt;size&gt;&quot;, &quot;USED&quot;);
+<span class="lineNum">     463 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_AVAILABLE, &quot;available&quot;, 0, PROP_READONLY,</span>
+<span class="lineNum">     464 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME, &quot;&lt;size&gt;&quot;, &quot;AVAIL&quot;);
+<span class="lineNum">     465 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_REFERENCED, &quot;referenced&quot;, 0,</span>
+<span class="lineNum">     466 </span>                :            :             PROP_READONLY, ZFS_TYPE_DATASET, &quot;&lt;size&gt;&quot;, &quot;REFER&quot;);
+<span class="lineNum">     467 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_COMPRESSRATIO, &quot;compressratio&quot;, 0,</span>
+<span class="lineNum">     468 </span>                :            :             PROP_READONLY, ZFS_TYPE_DATASET,
+<span class="lineNum">     469 </span>                :            :             &quot;&lt;1.00x or higher if compressed&gt;&quot;, &quot;RATIO&quot;);
+<span class="lineNum">     470 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_REFRATIO, &quot;refcompressratio&quot;, 0,</span>
+<span class="lineNum">     471 </span>                :            :             PROP_READONLY, ZFS_TYPE_DATASET,
+<span class="lineNum">     472 </span>                :            :             &quot;&lt;1.00x or higher if compressed&gt;&quot;, &quot;REFRATIO&quot;);
+<span class="lineNum">     473 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_VOLBLOCKSIZE, &quot;volblocksize&quot;,</span>
+<span class="lineNum">     474 </span>                :            :             ZVOL_DEFAULT_BLOCKSIZE, PROP_ONETIME,
+<span class="lineNum">     475 </span>                :            :             ZFS_TYPE_VOLUME, &quot;512 to 128k, power of 2&quot;,       &quot;VOLBLOCK&quot;);
+<span class="lineNum">     476 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_USEDSNAP, &quot;usedbysnapshots&quot;, 0,</span>
+<span class="lineNum">     477 </span>                :            :             PROP_READONLY, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME, &quot;&lt;size&gt;&quot;,
+<span class="lineNum">     478 </span>                :            :             &quot;USEDSNAP&quot;);
+<span class="lineNum">     479 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_USEDDS, &quot;usedbydataset&quot;, 0,</span>
+<span class="lineNum">     480 </span>                :            :             PROP_READONLY, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME, &quot;&lt;size&gt;&quot;,
+<span class="lineNum">     481 </span>                :            :             &quot;USEDDS&quot;);
+<span class="lineNum">     482 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_USEDCHILD, &quot;usedbychildren&quot;, 0,</span>
+<span class="lineNum">     483 </span>                :            :             PROP_READONLY, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME, &quot;&lt;size&gt;&quot;,
+<span class="lineNum">     484 </span>                :            :             &quot;USEDCHILD&quot;);
+<span class="lineNum">     485 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_USEDREFRESERV, &quot;usedbyrefreservation&quot;, 0,</span>
+<span class="lineNum">     486 </span>                :            :             PROP_READONLY,
+<span class="lineNum">     487 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME, &quot;&lt;size&gt;&quot;, &quot;USEDREFRESERV&quot;);
+<span class="lineNum">     488 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_USERREFS, &quot;userrefs&quot;, 0, PROP_READONLY,</span>
+<span class="lineNum">     489 </span>                :            :             ZFS_TYPE_SNAPSHOT, &quot;&lt;count&gt;&quot;, &quot;USERREFS&quot;);
+<span class="lineNum">     490 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_WRITTEN, &quot;written&quot;, 0, PROP_READONLY,</span>
+<span class="lineNum">     491 </span>                :            :             ZFS_TYPE_DATASET, &quot;&lt;size&gt;&quot;, &quot;WRITTEN&quot;);
+<span class="lineNum">     492 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_LOGICALUSED, &quot;logicalused&quot;, 0,</span>
+<span class="lineNum">     493 </span>                :            :             PROP_READONLY, ZFS_TYPE_DATASET, &quot;&lt;size&gt;&quot;, &quot;LUSED&quot;);
+<span class="lineNum">     494 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_LOGICALREFERENCED, &quot;logicalreferenced&quot;,</span>
+<span class="lineNum">     495 </span>                :            :             0, PROP_READONLY, ZFS_TYPE_DATASET, &quot;&lt;size&gt;&quot;, &quot;LREFER&quot;);
+<span class="lineNum">     496 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_FILESYSTEM_COUNT, &quot;filesystem_count&quot;,</span>
+<span class="lineNum">     497 </span>                :            :             UINT64_MAX, PROP_READONLY, ZFS_TYPE_FILESYSTEM,
+<span class="lineNum">     498 </span>                :            :             &quot;&lt;count&gt;&quot;, &quot;FSCOUNT&quot;);
+<span class="lineNum">     499 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_SNAPSHOT_COUNT, &quot;snapshot_count&quot;,</span>
+<span class="lineNum">     500 </span>                :            :             UINT64_MAX, PROP_READONLY, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     501 </span>                :            :             &quot;&lt;count&gt;&quot;, &quot;SSCOUNT&quot;);
+<span class="lineNum">     502 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_GUID, &quot;guid&quot;, 0, PROP_READONLY,</span>
+<span class="lineNum">     503 </span>                :            :             ZFS_TYPE_DATASET | ZFS_TYPE_BOOKMARK, &quot;&lt;uint64&gt;&quot;, &quot;GUID&quot;);
+<span class="lineNum">     504 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_CREATETXG, &quot;createtxg&quot;, 0, PROP_READONLY,</span>
+<span class="lineNum">     505 </span>                :            :             ZFS_TYPE_DATASET | ZFS_TYPE_BOOKMARK, &quot;&lt;uint64&gt;&quot;, &quot;CREATETXG&quot;);
+<span class="lineNum">     506 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_PBKDF2_ITERS, &quot;pbkdf2iters&quot;,</span>
+<span class="lineNum">     507 </span>                :            :             0, PROP_ONETIME_DEFAULT, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     508 </span>                :            :             &quot;&lt;iters&gt;&quot;, &quot;PBKDF2ITERS&quot;);
+<span class="lineNum">     509 </span>                :            : 
+<span class="lineNum">     510 </span>                :            :         /* default number properties */
+<span class="lineNum">     511 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_QUOTA, &quot;quota&quot;, 0, PROP_DEFAULT,</span>
+<span class="lineNum">     512 </span>                :            :             ZFS_TYPE_FILESYSTEM, &quot;&lt;size&gt; | none&quot;, &quot;QUOTA&quot;);
+<span class="lineNum">     513 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_RESERVATION, &quot;reservation&quot;, 0,</span>
+<span class="lineNum">     514 </span>                :            :             PROP_DEFAULT, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     515 </span>                :            :             &quot;&lt;size&gt; | none&quot;, &quot;RESERV&quot;);
+<span class="lineNum">     516 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_VOLSIZE, &quot;volsize&quot;, 0, PROP_DEFAULT,</span>
+<span class="lineNum">     517 </span>                :            :             ZFS_TYPE_SNAPSHOT | ZFS_TYPE_VOLUME, &quot;&lt;size&gt;&quot;, &quot;VOLSIZE&quot;);
+<span class="lineNum">     518 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_REFQUOTA, &quot;refquota&quot;, 0, PROP_DEFAULT,</span>
+<span class="lineNum">     519 </span>                :            :             ZFS_TYPE_FILESYSTEM, &quot;&lt;size&gt; | none&quot;, &quot;REFQUOTA&quot;);
+<span class="lineNum">     520 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_REFRESERVATION, &quot;refreservation&quot;, 0,</span>
+<span class="lineNum">     521 </span>                :            :             PROP_DEFAULT, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     522 </span>                :            :             &quot;&lt;size&gt; | none&quot;, &quot;REFRESERV&quot;);
+<span class="lineNum">     523 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_FILESYSTEM_LIMIT, &quot;filesystem_limit&quot;,</span>
+<span class="lineNum">     524 </span>                :            :             UINT64_MAX, PROP_DEFAULT, ZFS_TYPE_FILESYSTEM,
+<span class="lineNum">     525 </span>                :            :             &quot;&lt;count&gt; | none&quot;, &quot;FSLIMIT&quot;);
+<span class="lineNum">     526 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_SNAPSHOT_LIMIT, &quot;snapshot_limit&quot;,</span>
+<span class="lineNum">     527 </span>                :            :             UINT64_MAX, PROP_DEFAULT, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME,
+<span class="lineNum">     528 </span>                :            :             &quot;&lt;count&gt; | none&quot;, &quot;SSLIMIT&quot;);
+<span class="lineNum">     529 </span>                :            : 
+<span class="lineNum">     530 </span>                :            :         /* inherit number properties */
+<span class="lineNum">     531 </span>                :<span class="lineCov">      59727 :         zprop_register_number(ZFS_PROP_RECORDSIZE, &quot;recordsize&quot;,</span>
+<span class="lineNum">     532 </span>                :            :             SPA_OLD_MAXBLOCKSIZE, PROP_INHERIT,
+<span class="lineNum">     533 </span>                :            :             ZFS_TYPE_FILESYSTEM, &quot;512 to 1M, power of 2&quot;, &quot;RECSIZE&quot;);
+<span class="lineNum">     534 </span>                :            : 
+<span class="lineNum">     535 </span>                :            :         /* hidden properties */
+<span class="lineNum">     536 </span>                :<span class="lineCov">      59727 :         zprop_register_hidden(ZFS_PROP_NUMCLONES, &quot;numclones&quot;, PROP_TYPE_NUMBER,</span>
+<span class="lineNum">     537 </span>                :            :             PROP_READONLY, ZFS_TYPE_SNAPSHOT, &quot;NUMCLONES&quot;);
+<span class="lineNum">     538 </span>                :<span class="lineCov">      59727 :         zprop_register_hidden(ZFS_PROP_NAME, &quot;name&quot;, PROP_TYPE_STRING,</span>
+<span class="lineNum">     539 </span>                :            :             PROP_READONLY, ZFS_TYPE_DATASET | ZFS_TYPE_BOOKMARK, &quot;NAME&quot;);
+<span class="lineNum">     540 </span>                :<span class="lineCov">      59727 :         zprop_register_hidden(ZFS_PROP_ISCSIOPTIONS, &quot;iscsioptions&quot;,</span>
+<span class="lineNum">     541 </span>                :            :             PROP_TYPE_STRING, PROP_INHERIT, ZFS_TYPE_VOLUME, &quot;ISCSIOPTIONS&quot;);
+<span class="lineNum">     542 </span>                :<span class="lineCov">      59727 :         zprop_register_hidden(ZFS_PROP_STMF_SHAREINFO, &quot;stmf_sbd_lu&quot;,</span>
+<span class="lineNum">     543 </span>                :            :             PROP_TYPE_STRING, PROP_INHERIT, ZFS_TYPE_VOLUME,
+<span class="lineNum">     544 </span>                :            :             &quot;STMF_SBD_LU&quot;);
+<span class="lineNum">     545 </span>                :<span class="lineCov">      59727 :         zprop_register_hidden(ZFS_PROP_USERACCOUNTING, &quot;useraccounting&quot;,</span>
+<span class="lineNum">     546 </span>                :            :             PROP_TYPE_NUMBER, PROP_READONLY, ZFS_TYPE_DATASET,
+<span class="lineNum">     547 </span>                :            :             &quot;USERACCOUNTING&quot;);
+<span class="lineNum">     548 </span>                :<span class="lineCov">      59727 :         zprop_register_hidden(ZFS_PROP_UNIQUE, &quot;unique&quot;, PROP_TYPE_NUMBER,</span>
+<span class="lineNum">     549 </span>                :            :             PROP_READONLY, ZFS_TYPE_DATASET, &quot;UNIQUE&quot;);
+<span class="lineNum">     550 </span>                :<span class="lineCov">      59727 :         zprop_register_hidden(ZFS_PROP_OBJSETID, &quot;objsetid&quot;, PROP_TYPE_NUMBER,</span>
+<span class="lineNum">     551 </span>                :            :             PROP_READONLY, ZFS_TYPE_DATASET, &quot;OBJSETID&quot;);
+<span class="lineNum">     552 </span>                :<span class="lineCov">      59727 :         zprop_register_hidden(ZFS_PROP_INCONSISTENT, &quot;inconsistent&quot;,</span>
+<span class="lineNum">     553 </span>                :            :             PROP_TYPE_NUMBER, PROP_READONLY, ZFS_TYPE_DATASET, &quot;INCONSISTENT&quot;);
+<span class="lineNum">     554 </span>                :<span class="lineCov">      59727 :         zprop_register_hidden(ZFS_PROP_PREV_SNAP, &quot;prevsnap&quot;, PROP_TYPE_STRING,</span>
+<span class="lineNum">     555 </span>                :            :             PROP_READONLY, ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME, &quot;PREVSNAP&quot;);
+<span class="lineNum">     556 </span>                :<span class="lineCov">      59727 :         zprop_register_hidden(ZFS_PROP_PBKDF2_SALT, &quot;pbkdf2salt&quot;,</span>
+<span class="lineNum">     557 </span>                :            :             PROP_TYPE_NUMBER, PROP_ONETIME_DEFAULT,
+<span class="lineNum">     558 </span>                :            :             ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME, &quot;PBKDF2SALT&quot;);
+<span class="lineNum">     559 </span>                :<span class="lineCov">      59727 :         zprop_register_hidden(ZFS_PROP_KEY_GUID, &quot;keyguid&quot;, PROP_TYPE_NUMBER,</span>
+<span class="lineNum">     560 </span>                :            :             PROP_READONLY, ZFS_TYPE_DATASET, &quot;KEYGUID&quot;);
+<span class="lineNum">     561 </span>                :            : 
+<span class="lineNum">     562 </span>                :            :         /*
+<span class="lineNum">     563 </span>                :            :          * Property to be removed once libbe is integrated
+<span class="lineNum">     564 </span>                :            :          */
+<span class="lineNum">     565 </span>                :<span class="lineCov">      59727 :         zprop_register_hidden(ZFS_PROP_PRIVATE, &quot;priv_prop&quot;,</span>
+<span class="lineNum">     566 </span>                :            :             PROP_TYPE_NUMBER, PROP_READONLY, ZFS_TYPE_FILESYSTEM,
+<span class="lineNum">     567 </span>                :            :             &quot;PRIV_PROP&quot;);
+<span class="lineNum">     568 </span>                :            : 
+<span class="lineNum">     569 </span>                :            :         /* oddball properties */
+<span class="lineNum">     570 </span>                :<span class="lineCov">      59727 :         zprop_register_impl(ZFS_PROP_CREATION, &quot;creation&quot;, PROP_TYPE_NUMBER, 0,</span>
+<span class="lineNum">     571 </span>                :            :             NULL, PROP_READONLY, ZFS_TYPE_DATASET | ZFS_TYPE_BOOKMARK,
+<span class="lineNum">     572 </span>                :            :             &quot;&lt;date&gt;&quot;, &quot;CREATION&quot;, B_FALSE, B_TRUE, NULL);
+<span class="lineNum">     573 </span>                :<span class="lineCov">      59727 : }</span>
+<a name="574"><span class="lineNum">     574 </span>                :            : </a>
+<span class="lineNum">     575 </span>                :            : boolean_t
+<span class="lineNum">     576 </span>                :<span class="lineNoCov">          0 : zfs_prop_delegatable(zfs_prop_t prop)</span>
+<span class="lineNum">     577 </span>                :            : {
+<span class="lineNum">     578 </span>                :<span class="lineNoCov">          0 :         zprop_desc_t *pd = &amp;zfs_prop_table[prop];</span>
+<span class="lineNum">     579 </span>                :            : 
+<span class="lineNum">     580 </span>                :            :         /* The mlslabel property is never delegatable. */
+<span class="lineNum">     581 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (prop == ZFS_PROP_MLSLABEL)</span>
+<span class="lineNum">     582 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     583 </span>                :            : 
+<span class="lineNum">     584 </span>                :<span class="lineNoCov">          0 :         return (pd-&gt;pd_attr != PROP_READONLY);</span>
+<span class="lineNum">     585 </span>                :            : }
+<span class="lineNum">     586 </span>                :            : 
+<span class="lineNum">     587 </span>                :            : /*
+<span class="lineNum">     588 </span>                :            :  * Given a zfs dataset property name, returns the corresponding property ID.
+<a name="589"><span class="lineNum">     589 </span>                :            :  */</a>
+<span class="lineNum">     590 </span>                :            : zfs_prop_t
+<span class="lineNum">     591 </span>                :<span class="lineCov">    1131373 : zfs_name_to_prop(const char *propname)</span>
+<span class="lineNum">     592 </span>                :            : {
+<span class="lineNum">     593 </span>                :<span class="lineCov">    1131373 :         return (zprop_name_to_prop(propname, ZFS_TYPE_DATASET));</span>
+<span class="lineNum">     594 </span>                :            : }
+<span class="lineNum">     595 </span>                :            : 
+<span class="lineNum">     596 </span>                :            : /*
+<span class="lineNum">     597 </span>                :            :  * For user property names, we allow all lowercase alphanumeric characters, plus
+<span class="lineNum">     598 </span>                :            :  * a few useful punctuation characters.
+<a name="599"><span class="lineNum">     599 </span>                :            :  */</a>
+<span class="lineNum">     600 </span>                :            : static int
+<span class="lineNum">     601 </span>                :<span class="lineCov">   21944966 : valid_char(char c)</span>
+<span class="lineNum">     602 </span>                :            : {
+<span class="lineNum">     603 </span>                :<span class="lineCov">   43889932 :         return ((c &gt;= 'a' &amp;&amp; c &lt;= 'z') ||</span>
+<span class="lineNum">     604 </span>                :<span class="lineCov">   21944966 :             (c &gt;= '0' &amp;&amp; c &lt;= '9') ||</span>
+<span class="lineNum">     605 </span>[<span class="branchCov" title="Branch 0 was taken 103331 times"> + </span><span class="branchCov" title="Branch 1 was taken 21841635 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 15681 times"> + </span><span class="branchCov" title="Branch 3 was taken 87650 times"> + </span>]:<span class="lineCov">   21944966 :             c == '-' || c == '_' || c == '.' || c == ':');</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 5256 times"> + </span><span class="branchCov" title="Branch 5 was taken 10425 times"> + </span>]
+<span class="lineNum">     606 </span>                :            : }
+<span class="lineNum">     607 </span>                :            : 
+<span class="lineNum">     608 </span>                :            : /*
+<span class="lineNum">     609 </span>                :            :  * Returns true if this is a valid user-defined property (one with a ':').
+<a name="610"><span class="lineNum">     610 </span>                :            :  */</a>
+<span class="lineNum">     611 </span>                :            : boolean_t
+<span class="lineNum">     612 </span>                :<span class="lineCov">    2197518 : zfs_prop_user(const char *name)</span>
+<span class="lineNum">     613 </span>                :            : {
+<span class="lineNum">     614 </span>                :            :         int i;
+<span class="lineNum">     615 </span>                :            :         char c;
+<span class="lineNum">     616 </span>                :<span class="lineCov">    2197518 :         boolean_t foundsep = B_FALSE;</span>
+<span class="lineNum">     617 </span>                :            : 
+<span class="lineNum">     618 </span>        [<span class="branchCov" title="Branch 0 was taken 21944966 times"> + </span><span class="branchCov" title="Branch 1 was taken 2192262 times"> + </span>]:<span class="lineCov">   24137228 :         for (i = 0; i &lt; strlen(name); i++) {</span>
+<span class="lineNum">     619 </span>                :<span class="lineCov">   21944966 :                 c = name[i];</span>
+<span class="lineNum">     620 </span>        [<span class="branchCov" title="Branch 1 was taken 21939710 times"> + </span><span class="branchCov" title="Branch 2 was taken 5256 times"> + </span>]:<span class="lineCov">   21944966 :                 if (!valid_char(c))</span>
+<span class="lineNum">     621 </span>                :            :                         return (B_FALSE);
+<span class="lineNum">     622 </span>        [<span class="branchCov" title="Branch 0 was taken 9913 times"> + </span><span class="branchCov" title="Branch 1 was taken 21929797 times"> + </span>]:<span class="lineCov">   21939710 :                 if (c == ':')</span>
+<span class="lineNum">     623 </span>                :<span class="lineCov">       9913 :                         foundsep = B_TRUE;</span>
+<span class="lineNum">     624 </span>                :            :         }
+<span class="lineNum">     625 </span>                :            : 
+<span class="lineNum">     626 </span>        [<span class="branchCov" title="Branch 0 was taken 8808 times"> + </span><span class="branchCov" title="Branch 1 was taken 2183454 times"> + </span>]:<span class="lineCov">    2192262 :         if (!foundsep)</span>
+<span class="lineNum">     627 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     628 </span>                :            : 
+<span class="lineNum">     629 </span>                :<span class="lineCov">       8808 :         return (B_TRUE);</span>
+<span class="lineNum">     630 </span>                :            : }
+<span class="lineNum">     631 </span>                :            : 
+<span class="lineNum">     632 </span>                :            : /*
+<span class="lineNum">     633 </span>                :            :  * Returns true if this is a valid userspace-type property (one with a '@').
+<span class="lineNum">     634 </span>                :            :  * Note that after the @, any character is valid (eg, another @, for SID
+<span class="lineNum">     635 </span>                :            :  * user@domain).
+<a name="636"><span class="lineNum">     636 </span>                :            :  */</a>
+<span class="lineNum">     637 </span>                :            : boolean_t
+<span class="lineNum">     638 </span>                :<span class="lineCov">      13528 : zfs_prop_userquota(const char *name)</span>
+<span class="lineNum">     639 </span>                :            : {
+<span class="lineNum">     640 </span>                :            :         zfs_userquota_prop_t prop;
+<span class="lineNum">     641 </span>                :            : 
+<span class="lineNum">     642 </span>        [<span class="branchCov" title="Branch 0 was taken 41464 times"> + </span><span class="branchCov" title="Branch 1 was taken 1422 times"> + </span>]:<span class="lineCov">      42886 :         for (prop = 0; prop &lt; ZFS_NUM_USERQUOTA_PROPS; prop++) {</span>
+<span class="lineNum">     643 </span>        [<span class="branchCov" title="Branch 0 was taken 29358 times"> + </span><span class="branchCov" title="Branch 1 was taken 12106 times"> + </span>]:<span class="lineCov">      41464 :                 if (strncmp(name, zfs_userquota_prop_prefixes[prop],</span>
+<span class="lineNum">     644 </span>                :            :                     strlen(zfs_userquota_prop_prefixes[prop])) == 0) {
+<span class="lineNum">     645 </span>                :            :                         return (B_TRUE);
+<span class="lineNum">     646 </span>                :            :                 }
+<span class="lineNum">     647 </span>                :            :         }
+<span class="lineNum">     648 </span>                :            : 
+<span class="lineNum">     649 </span>                :            :         return (B_FALSE);
+<span class="lineNum">     650 </span>                :            : }
+<span class="lineNum">     651 </span>                :            : 
+<span class="lineNum">     652 </span>                :            : /*
+<span class="lineNum">     653 </span>                :            :  * Returns true if this is a valid written@ property.
+<span class="lineNum">     654 </span>                :            :  * Note that after the @, any character is valid (eg, another @, for
+<span class="lineNum">     655 </span>                :            :  * written@pool/fs@origin).
+<a name="656"><span class="lineNum">     656 </span>                :            :  */</a>
+<span class="lineNum">     657 </span>                :            : boolean_t
+<span class="lineNum">     658 </span>                :<span class="lineCov">       1422 : zfs_prop_written(const char *name)</span>
+<span class="lineNum">     659 </span>                :            : {
+<span class="lineNum">     660 </span>                :            :         static const char *prefix = &quot;written@&quot;;
+<span class="lineNum">     661 </span>                :<span class="lineCov">       1422 :         return (strncmp(name, prefix, strlen(prefix)) == 0);</span>
+<span class="lineNum">     662 </span>                :            : }
+<span class="lineNum">     663 </span>                :            : 
+<span class="lineNum">     664 </span>                :            : /*
+<span class="lineNum">     665 </span>                :            :  * Tables of index types, plus functions to convert between the user view
+<span class="lineNum">     666 </span>                :            :  * (strings) and internal representation (uint64_t).
+<a name="667"><span class="lineNum">     667 </span>                :            :  */</a>
+<span class="lineNum">     668 </span>                :            : int
+<span class="lineNum">     669 </span>                :<span class="lineCov">         94 : zfs_prop_string_to_index(zfs_prop_t prop, const char *string, uint64_t *index)</span>
+<span class="lineNum">     670 </span>                :            : {
+<span class="lineNum">     671 </span>                :<span class="lineCov">         94 :         return (zprop_string_to_index(prop, string, index, ZFS_TYPE_DATASET));</span>
+<span class="lineNum">     672 </span>                :            : }
+<a name="673"><span class="lineNum">     673 </span>                :            : </a>
+<span class="lineNum">     674 </span>                :            : int
+<span class="lineNum">     675 </span>                :<span class="lineCov">      31596 : zfs_prop_index_to_string(zfs_prop_t prop, uint64_t index, const char **string)</span>
+<span class="lineNum">     676 </span>                :            : {
+<span class="lineNum">     677 </span>                :<span class="lineCov">      31596 :         return (zprop_index_to_string(prop, index, string, ZFS_TYPE_DATASET));</span>
+<span class="lineNum">     678 </span>                :            : }
+<a name="679"><span class="lineNum">     679 </span>                :            : </a>
+<span class="lineNum">     680 </span>                :            : uint64_t
+<span class="lineNum">     681 </span>                :<span class="lineCov">       4262 : zfs_prop_random_value(zfs_prop_t prop, uint64_t seed)</span>
+<span class="lineNum">     682 </span>                :            : {
+<span class="lineNum">     683 </span>                :<span class="lineCov">       4262 :         return (zprop_random_value(prop, seed, ZFS_TYPE_DATASET));</span>
+<span class="lineNum">     684 </span>                :            : }
+<span class="lineNum">     685 </span>                :            : 
+<span class="lineNum">     686 </span>                :            : /*
+<span class="lineNum">     687 </span>                :            :  * Returns TRUE if the property applies to any of the given dataset types.
+<a name="688"><span class="lineNum">     688 </span>                :            :  */</a>
+<span class="lineNum">     689 </span>                :            : boolean_t
+<span class="lineNum">     690 </span>                :<span class="lineCov">     289955 : zfs_prop_valid_for_type(int prop, zfs_type_t types, boolean_t headcheck)</span>
+<span class="lineNum">     691 </span>                :            : {
+<span class="lineNum">     692 </span>                :<span class="lineCov">     289955 :         return (zprop_valid_for_type(prop, types, headcheck));</span>
+<span class="lineNum">     693 </span>                :            : }
+<a name="694"><span class="lineNum">     694 </span>                :            : </a>
+<span class="lineNum">     695 </span>                :            : zprop_type_t
+<span class="lineNum">     696 </span>                :<span class="lineCov">     335870 : zfs_prop_get_type(zfs_prop_t prop)</span>
+<span class="lineNum">     697 </span>                :            : {
+<span class="lineNum">     698 </span>                :<span class="lineCov">     335870 :         return (zfs_prop_table[prop].pd_proptype);</span>
+<span class="lineNum">     699 </span>                :            : }
+<span class="lineNum">     700 </span>                :            : 
+<span class="lineNum">     701 </span>                :            : /*
+<span class="lineNum">     702 </span>                :            :  * Returns TRUE if the property is readonly.
+<a name="703"><span class="lineNum">     703 </span>                :            :  */</a>
+<span class="lineNum">     704 </span>                :            : boolean_t
+<span class="lineNum">     705 </span>                :<span class="lineCov">     515702 : zfs_prop_readonly(zfs_prop_t prop)</span>
+<span class="lineNum">     706 </span>                :            : {
+<span class="lineNum">     707 </span>                :<span class="lineCov">     515702 :         return (zfs_prop_table[prop].pd_attr == PROP_READONLY ||</span>
+<span class="lineNum">     708 </span>[<span class="branchCov" title="Branch 0 was taken 348605 times"> + </span><span class="branchCov" title="Branch 1 was taken 167097 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 342591 times"> + </span><span class="branchCov" title="Branch 3 was taken 6014 times"> + </span>]:<span class="lineCov">     515702 :             zfs_prop_table[prop].pd_attr == PROP_ONETIME ||</span>
+<span class="lineNum">     709 </span>                :            :             zfs_prop_table[prop].pd_attr == PROP_ONETIME_DEFAULT);
+<span class="lineNum">     710 </span>                :            : }
+<span class="lineNum">     711 </span>                :            : 
+<span class="lineNum">     712 </span>                :            : /*
+<span class="lineNum">     713 </span>                :            :  * Returns TRUE if the property is only allowed to be set once.
+<a name="714"><span class="lineNum">     714 </span>                :            :  */</a>
+<span class="lineNum">     715 </span>                :            : boolean_t
+<span class="lineNum">     716 </span>                :<span class="lineCov">      57466 : zfs_prop_setonce(zfs_prop_t prop)</span>
+<span class="lineNum">     717 </span>                :            : {
+<span class="lineNum">     718 </span>                :<span class="lineCov">      57466 :         return (zfs_prop_table[prop].pd_attr == PROP_ONETIME ||</span>
+<span class="lineNum">     719 </span>                :            :             zfs_prop_table[prop].pd_attr == PROP_ONETIME_DEFAULT);
+<span class="lineNum">     720 </span>                :            : }
+<a name="721"><span class="lineNum">     721 </span>                :            : </a>
+<span class="lineNum">     722 </span>                :            : const char *
+<span class="lineNum">     723 </span>                :<span class="lineCov">      40016 : zfs_prop_default_string(zfs_prop_t prop)</span>
+<span class="lineNum">     724 </span>                :            : {
+<span class="lineNum">     725 </span>                :<span class="lineCov">      40016 :         return (zfs_prop_table[prop].pd_strdefault);</span>
+<span class="lineNum">     726 </span>                :            : }
+<a name="727"><span class="lineNum">     727 </span>                :            : </a>
+<span class="lineNum">     728 </span>                :            : uint64_t
+<span class="lineNum">     729 </span>                :<span class="lineCov">     289825 : zfs_prop_default_numeric(zfs_prop_t prop)</span>
+<span class="lineNum">     730 </span>                :            : {
+<span class="lineNum">     731 </span>                :<span class="lineCov">     289825 :         return (zfs_prop_table[prop].pd_numdefault);</span>
+<span class="lineNum">     732 </span>                :            : }
+<span class="lineNum">     733 </span>                :            : 
+<span class="lineNum">     734 </span>                :            : /*
+<span class="lineNum">     735 </span>                :            :  * Given a dataset property ID, returns the corresponding name.
+<span class="lineNum">     736 </span>                :            :  * Assuming the zfs dataset property ID is valid.
+<a name="737"><span class="lineNum">     737 </span>                :            :  */</a>
+<span class="lineNum">     738 </span>                :            : const char *
+<span class="lineNum">     739 </span>                :<span class="lineCov">     767048 : zfs_prop_to_name(zfs_prop_t prop)</span>
+<span class="lineNum">     740 </span>                :            : {
+<span class="lineNum">     741 </span>                :<span class="lineCov">     767048 :         return (zfs_prop_table[prop].pd_name);</span>
+<span class="lineNum">     742 </span>                :            : }
+<span class="lineNum">     743 </span>                :            : 
+<span class="lineNum">     744 </span>                :            : /*
+<span class="lineNum">     745 </span>                :            :  * Returns TRUE if the property is inheritable.
+<a name="746"><span class="lineNum">     746 </span>                :            :  */</a>
+<span class="lineNum">     747 </span>                :            : boolean_t
+<span class="lineNum">     748 </span>                :<span class="lineCov">     549290 : zfs_prop_inheritable(zfs_prop_t prop)</span>
+<span class="lineNum">     749 </span>                :            : {
+<span class="lineNum">     750 </span>                :<span class="lineCov">     549290 :         return (zfs_prop_table[prop].pd_attr == PROP_INHERIT ||</span>
+<span class="lineNum">     751 </span>                :            :             zfs_prop_table[prop].pd_attr == PROP_ONETIME);
+<span class="lineNum">     752 </span>                :            : }
+<span class="lineNum">     753 </span>                :            : 
+<span class="lineNum">     754 </span>                :            : /*
+<span class="lineNum">     755 </span>                :            :  * Returns TRUE if property is one of the encryption properties that requires
+<span class="lineNum">     756 </span>                :            :  * a loaded encryption key to modify.
+<a name="757"><span class="lineNum">     757 </span>                :            :  */</a>
+<span class="lineNum">     758 </span>                :            : boolean_t
+<span class="lineNum">     759 </span>                :<span class="lineCov">        479 : zfs_prop_encryption_key_param(zfs_prop_t prop)</span>
+<span class="lineNum">     760 </span>                :            : {
+<span class="lineNum">     761 </span>                :            :         /*
+<span class="lineNum">     762 </span>                :            :          * keylocation does not count as an encryption property. It can be
+<span class="lineNum">     763 </span>                :            :          * changed at will without needing the master keys.
+<span class="lineNum">     764 </span>                :            :          */
+<span class="lineNum">     765 </span>                :<span class="lineCov">        479 :         return (prop == ZFS_PROP_PBKDF2_SALT || prop == ZFS_PROP_PBKDF2_ITERS ||</span>
+<span class="lineNum">     766 </span>                :            :             prop == ZFS_PROP_KEYFORMAT);
+<span class="lineNum">     767 </span>                :            : }
+<span class="lineNum">     768 </span>                :            : 
+<span class="lineNum">     769 </span>                :            : /*
+<span class="lineNum">     770 </span>                :            :  * Helper function used by both kernelspace and userspace to check the
+<span class="lineNum">     771 </span>                :            :  * keylocation property. If encrypted is set, the keylocation must be valid
+<span class="lineNum">     772 </span>                :            :  * for an encrypted dataset.
+<a name="773"><span class="lineNum">     773 </span>                :            :  */</a>
+<span class="lineNum">     774 </span>                :            : boolean_t
+<span class="lineNum">     775 </span>                :<span class="lineCov">         70 : zfs_prop_valid_keylocation(const char *str, boolean_t encrypted)</span>
+<span class="lineNum">     776 </span>                :            : {
+<span class="lineNum">     777 </span>        [<span class="branchCov" title="Branch 0 was taken 6 times"> + </span><span class="branchCov" title="Branch 1 was taken 64 times"> + </span>]:<span class="lineCov">         70 :         if (strcmp(&quot;none&quot;, str) == 0)</span>
+<span class="lineNum">     778 </span>                :<span class="lineCov">          6 :                 return (!encrypted);</span>
+<span class="lineNum">     779 </span>        [<span class="branchCov" title="Branch 0 was taken 25 times"> + </span><span class="branchCov" title="Branch 1 was taken 39 times"> + </span>]:<span class="lineCov">         64 :         else if (strcmp(&quot;prompt&quot;, str) == 0)</span>
+<span class="lineNum">     780 </span>                :            :                 return (B_TRUE);
+<span class="lineNum">     781 </span>[<span class="branchCov" title="Branch 0 was taken 24 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>][<span class="branchCov" title="Branch 2 was taken 3 times"> + </span><span class="branchCov" title="Branch 3 was taken 21 times"> + </span>]:<span class="lineCov">         25 :         else if (strlen(str) &gt; 8 &amp;&amp; strncmp(&quot;file:///&quot;, str, 8) == 0)</span>
+<span class="lineNum">     782 </span>                :            :                 return (B_TRUE);
+<span class="lineNum">     783 </span>                :            : 
+<span class="lineNum">     784 </span>                :<span class="lineCov">          4 :         return (B_FALSE);</span>
+<span class="lineNum">     785 </span>                :            : }
+<span class="lineNum">     786 </span>                :            : 
+<span class="lineNum">     787 </span>                :            : 
+<span class="lineNum">     788 </span>                :            : #ifndef _KERNEL
+<span class="lineNum">     789 </span>                :            : 
+<span class="lineNum">     790 </span>                :            : /*
+<span class="lineNum">     791 </span>                :            :  * Returns a string describing the set of acceptable values for the given
+<span class="lineNum">     792 </span>                :            :  * zfs property, or NULL if it cannot be set.
+<a name="793"><span class="lineNum">     793 </span>                :            :  */</a>
+<span class="lineNum">     794 </span>                :            : const char *
+<span class="lineNum">     795 </span>                :<span class="lineCov">     392964 : zfs_prop_values(zfs_prop_t prop)</span>
+<span class="lineNum">     796 </span>                :            : {
+<span class="lineNum">     797 </span>                :<span class="lineCov">     392964 :         return (zfs_prop_table[prop].pd_values);</span>
+<span class="lineNum">     798 </span>                :            : }
+<span class="lineNum">     799 </span>                :            : 
+<span class="lineNum">     800 </span>                :            : /*
+<span class="lineNum">     801 </span>                :            :  * Returns TRUE if this property is a string type.  Note that index types
+<span class="lineNum">     802 </span>                :            :  * (compression, checksum) are treated as strings in userland, even though they
+<span class="lineNum">     803 </span>                :            :  * are stored numerically on disk.
+<a name="804"><span class="lineNum">     804 </span>                :            :  */</a>
+<span class="lineNum">     805 </span>                :            : int
+<span class="lineNum">     806 </span>                :<span class="lineNoCov">          0 : zfs_prop_is_string(zfs_prop_t prop)</span>
+<span class="lineNum">     807 </span>                :            : {
+<span class="lineNum">     808 </span>                :<span class="lineNoCov">          0 :         return (zfs_prop_table[prop].pd_proptype == PROP_TYPE_STRING ||</span>
+<span class="lineNum">     809 </span>                :            :             zfs_prop_table[prop].pd_proptype == PROP_TYPE_INDEX);
+<span class="lineNum">     810 </span>                :            : }
+<span class="lineNum">     811 </span>                :            : 
+<span class="lineNum">     812 </span>                :            : /*
+<span class="lineNum">     813 </span>                :            :  * Returns the column header for the given property.  Used only in
+<span class="lineNum">     814 </span>                :            :  * 'zfs list -o', but centralized here with the other property information.
+<a name="815"><span class="lineNum">     815 </span>                :            :  */</a>
+<span class="lineNum">     816 </span>                :            : const char *
+<span class="lineNum">     817 </span>                :<span class="lineCov">         51 : zfs_prop_column_name(zfs_prop_t prop)</span>
+<span class="lineNum">     818 </span>                :            : {
+<span class="lineNum">     819 </span>                :<span class="lineCov">         51 :         return (zfs_prop_table[prop].pd_colname);</span>
+<span class="lineNum">     820 </span>                :            : }
+<span class="lineNum">     821 </span>                :            : 
+<span class="lineNum">     822 </span>                :            : /*
+<span class="lineNum">     823 </span>                :            :  * Returns whether the given property should be displayed right-justified for
+<span class="lineNum">     824 </span>                :            :  * 'zfs list'.
+<a name="825"><span class="lineNum">     825 </span>                :            :  */</a>
+<span class="lineNum">     826 </span>                :            : boolean_t
+<span class="lineNum">     827 </span>                :<span class="lineCov">       6482 : zfs_prop_align_right(zfs_prop_t prop)</span>
+<span class="lineNum">     828 </span>                :            : {
+<span class="lineNum">     829 </span>                :<span class="lineCov">       6482 :         return (zfs_prop_table[prop].pd_rightalign);</span>
+<span class="lineNum">     830 </span>                :            : }
+<span class="lineNum">     831 </span>                :            : 
+<span class="lineNum">     832 </span>                :            : #endif
+<span class="lineNum">     833 </span>                :            : 
+<span class="lineNum">     834 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     835 </span>                :            : static int __init
+<span class="lineNum">     836 </span>                :            : zcommon_init(void)
+<span class="lineNum">     837 </span>                :            : {
+<span class="lineNum">     838 </span>                :            :         fletcher_4_init();
+<span class="lineNum">     839 </span>                :            :         return (0);
+<span class="lineNum">     840 </span>                :            : }
+<span class="lineNum">     841 </span>                :            : 
+<span class="lineNum">     842 </span>                :            : static void __exit
+<span class="lineNum">     843 </span>                :            : zcommon_fini(void)
+<span class="lineNum">     844 </span>                :            : {
+<span class="lineNum">     845 </span>                :            :         fletcher_4_fini();
+<span class="lineNum">     846 </span>                :            : }
+<span class="lineNum">     847 </span>                :            : 
+<span class="lineNum">     848 </span>                :            : module_init(zcommon_init);
+<span class="lineNum">     849 </span>                :            : module_exit(zcommon_fini);
+<span class="lineNum">     850 </span>                :            : 
+<span class="lineNum">     851 </span>                :            : MODULE_DESCRIPTION(&quot;Generic ZFS support&quot;);
+<span class="lineNum">     852 </span>                :            : MODULE_AUTHOR(ZFS_META_AUTHOR);
+<span class="lineNum">     853 </span>                :            : MODULE_LICENSE(ZFS_META_LICENSE);
+<span class="lineNum">     854 </span>                :            : MODULE_VERSION(ZFS_META_VERSION &quot;-&quot; ZFS_META_RELEASE);
+<span class="lineNum">     855 </span>                :            : 
+<span class="lineNum">     856 </span>                :            : /* zfs dataset property functions */
+<span class="lineNum">     857 </span>                :            : EXPORT_SYMBOL(zfs_userquota_prop_prefixes);
+<span class="lineNum">     858 </span>                :            : EXPORT_SYMBOL(zfs_prop_init);
+<span class="lineNum">     859 </span>                :            : EXPORT_SYMBOL(zfs_prop_get_type);
+<span class="lineNum">     860 </span>                :            : EXPORT_SYMBOL(zfs_prop_get_table);
+<span class="lineNum">     861 </span>                :            : EXPORT_SYMBOL(zfs_prop_delegatable);
+<span class="lineNum">     862 </span>                :            : 
+<span class="lineNum">     863 </span>                :            : /* Dataset property functions shared between libzfs and kernel. */
+<span class="lineNum">     864 </span>                :            : EXPORT_SYMBOL(zfs_prop_default_string);
+<span class="lineNum">     865 </span>                :            : EXPORT_SYMBOL(zfs_prop_default_numeric);
+<span class="lineNum">     866 </span>                :            : EXPORT_SYMBOL(zfs_prop_readonly);
+<span class="lineNum">     867 </span>                :            : EXPORT_SYMBOL(zfs_prop_inheritable);
+<span class="lineNum">     868 </span>                :            : EXPORT_SYMBOL(zfs_prop_encryption_key_param);
+<span class="lineNum">     869 </span>                :            : EXPORT_SYMBOL(zfs_prop_valid_keylocation);
+<span class="lineNum">     870 </span>                :            : EXPORT_SYMBOL(zfs_prop_setonce);
+<span class="lineNum">     871 </span>                :            : EXPORT_SYMBOL(zfs_prop_to_name);
+<span class="lineNum">     872 </span>                :            : EXPORT_SYMBOL(zfs_name_to_prop);
+<span class="lineNum">     873 </span>                :            : EXPORT_SYMBOL(zfs_prop_user);
+<span class="lineNum">     874 </span>                :            : EXPORT_SYMBOL(zfs_prop_userquota);
+<span class="lineNum">     875 </span>                :            : EXPORT_SYMBOL(zfs_prop_index_to_string);
+<span class="lineNum">     876 </span>                :            : EXPORT_SYMBOL(zfs_prop_string_to_index);
+<span class="lineNum">     877 </span>                :            : EXPORT_SYMBOL(zfs_prop_valid_for_type);
+<span class="lineNum">     878 </span>                :            : 
+<span class="lineNum">     879 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

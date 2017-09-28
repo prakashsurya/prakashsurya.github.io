@@ -1,0 +1,524 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/dmu_object.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - dmu_object.c<span style="font-size: 80%;"> (source / <a href="dmu_object.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">121</td>
+            <td class="headerCovTableEntry">142</td>
+            <td class="headerCovTableEntryMed">85.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryLo">70.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">60</td>
+            <td class="headerCovTableEntry">92</td>
+            <td class="headerCovTableEntryLo">65.2 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2013, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright 2014 HybridCluster. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  */
+<span class="lineNum">      26 </span>                :            : 
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/dmu.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/dmu_objset.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/dmu_tx.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/dnode.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/zap.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/zfeature.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/dsl_dataset.h&gt;
+<span class="lineNum">      34 </span>                :            : 
+<span class="lineNum">      35 </span>                :            : /*
+<span class="lineNum">      36 </span>                :            :  * Each of the concurrent object allocators will grab
+<span class="lineNum">      37 </span>                :            :  * 2^dmu_object_alloc_chunk_shift dnode slots at a time.  The default is to
+<span class="lineNum">      38 </span>                :            :  * grab 128 slots, which is 4 blocks worth.  This was experimentally
+<span class="lineNum">      39 </span>                :            :  * determined to be the lowest value that eliminates the measurable effect
+<span class="lineNum">      40 </span>                :            :  * of lock contention from this code path.
+<span class="lineNum">      41 </span>                :            :  */
+<span class="lineNum">      42 </span>                :            : int dmu_object_alloc_chunk_shift = 7;
+<a name="43"><span class="lineNum">      43 </span>                :            : </a>
+<span class="lineNum">      44 </span>                :            : uint64_t
+<span class="lineNum">      45 </span>                :<span class="lineCov">       3284 : dmu_object_alloc(objset_t *os, dmu_object_type_t ot, int blocksize,</span>
+<span class="lineNum">      46 </span>                :            :     dmu_object_type_t bonustype, int bonuslen, dmu_tx_t *tx)
+<span class="lineNum">      47 </span>                :            : {
+<span class="lineNum">      48 </span>                :<span class="lineCov">       3284 :         return dmu_object_alloc_dnsize(os, ot, blocksize, bonustype, bonuslen,</span>
+<span class="lineNum">      49 </span>                :            :             0, tx);
+<span class="lineNum">      50 </span>                :            : }
+<a name="51"><span class="lineNum">      51 </span>                :            : </a>
+<span class="lineNum">      52 </span>                :            : uint64_t
+<span class="lineNum">      53 </span>                :<span class="lineCov">      14842 : dmu_object_alloc_dnsize(objset_t *os, dmu_object_type_t ot, int blocksize,</span>
+<span class="lineNum">      54 </span>                :            :     dmu_object_type_t bonustype, int bonuslen, int dnodesize, dmu_tx_t *tx)
+<span class="lineNum">      55 </span>                :            : {
+<span class="lineNum">      56 </span>                :            :         uint64_t object;
+<span class="lineNum">      57 </span>                :<span class="lineCov">      14842 :         uint64_t L1_dnode_count = DNODES_PER_BLOCK &lt;&lt;</span>
+<span class="lineNum">      58 </span>                :<span class="lineCov">      14842 :             (DMU_META_DNODE(os)-&gt;dn_indblkshift - SPA_BLKPTRSHIFT);</span>
+<span class="lineNum">      59 </span>                :<span class="lineCov">      14842 :         dnode_t *dn = NULL;</span>
+<span class="lineNum">      60 </span>                :<span class="lineCov">      14842 :         int dn_slots = dnodesize &gt;&gt; DNODE_SHIFT;</span>
+<span class="lineNum">      61 </span>                :<span class="lineCov">      14842 :         boolean_t restarted = B_FALSE;</span>
+<span class="lineNum">      62 </span>                :<span class="lineCov">      14842 :         uint64_t *cpuobj = NULL;</span>
+<span class="lineNum">      63 </span>                :<span class="lineCov">      14842 :         int dnodes_per_chunk = 1 &lt;&lt; dmu_object_alloc_chunk_shift;</span>
+<span class="lineNum">      64 </span>                :            :         int error;
+<span class="lineNum">      65 </span>                :            : 
+<span class="lineNum">      66 </span>                :            :         kpreempt_disable();
+<span class="lineNum">      67 </span>                :<span class="lineCov">      14842 :         cpuobj = &amp;os-&gt;os_obj_next_percpu[CPU_SEQID %</span>
+<span class="lineNum">      68 </span>                :<span class="lineCov">      14842 :             os-&gt;os_obj_next_percpu_len];</span>
+<span class="lineNum">      69 </span>                :            :         kpreempt_enable();
+<span class="lineNum">      70 </span>                :            : 
+<span class="lineNum">      71 </span>        [<span class="branchCov" title="Branch 0 was taken 7684 times"> + </span><span class="branchCov" title="Branch 1 was taken 7158 times"> + </span>]:<span class="lineCov">      14842 :         if (dn_slots == 0) {</span>
+<span class="lineNum">      72 </span>                :            :                 dn_slots = DNODE_MIN_SLOTS;
+<span class="lineNum">      73 </span>                :            :         } else {
+<span class="lineNum">      74 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 7684 times"> + </span>]:<span class="lineCov">       7684 :                 ASSERT3S(dn_slots, &gt;=, DNODE_MIN_SLOTS);</span>
+<span class="lineNum">      75 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 7684 times"> + </span>]:<span class="lineCov">       7684 :                 ASSERT3S(dn_slots, &lt;=, DNODE_MAX_SLOTS);</span>
+<span class="lineNum">      76 </span>                :            :         }
+<span class="lineNum">      77 </span>                :            : 
+<span class="lineNum">      78 </span>                :            :         /*
+<span class="lineNum">      79 </span>                :            :          * The &quot;chunk&quot; of dnodes that is assigned to a CPU-specific
+<span class="lineNum">      80 </span>                :            :          * allocator needs to be at least one block's worth, to avoid
+<span class="lineNum">      81 </span>                :            :          * lock contention on the dbuf.  It can be at most one L1 block's
+<span class="lineNum">      82 </span>                :            :          * worth, so that the &quot;rescan after polishing off a L1's worth&quot;
+<span class="lineNum">      83 </span>                :            :          * logic below will be sure to kick in.
+<span class="lineNum">      84 </span>                :            :          */
+<span class="lineNum">      85 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 14842 times"> + </span>]:<span class="lineCov">      14842 :         if (dnodes_per_chunk &lt; DNODES_PER_BLOCK)</span>
+<span class="lineNum">      86 </span>                :<span class="lineNoCov">          0 :                 dnodes_per_chunk = DNODES_PER_BLOCK;</span>
+<span class="lineNum">      87 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 14842 times"> + </span>]:<span class="lineCov">      14842 :         if (dnodes_per_chunk &gt; L1_dnode_count)</span>
+<span class="lineNum">      88 </span>                :<span class="lineNoCov">          0 :                 dnodes_per_chunk = L1_dnode_count;</span>
+<span class="lineNum">      89 </span>                :            : 
+<span class="lineNum">      90 </span>                :<span class="lineCov">      14842 :         object = *cpuobj;</span>
+<span class="lineNum">      91 </span>                :            :         for (;;) {
+<span class="lineNum">      92 </span>                :            :                 /*
+<span class="lineNum">      93 </span>                :            :                  * If we finished a chunk of dnodes, get a new one from
+<span class="lineNum">      94 </span>                :            :                  * the global allocator.
+<span class="lineNum">      95 </span>                :            :                  */
+<span class="lineNum">      96 </span>[<span class="branchCov" title="Branch 0 was taken 20375 times"> + </span><span class="branchCov" title="Branch 1 was taken 803 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 91 times"> + </span><span class="branchCov" title="Branch 3 was taken 20284 times"> + </span>]:<span class="lineCov">      21178 :                 if ((P2PHASE(object, dnodes_per_chunk) == 0) ||</span>
+<span class="lineNum">      97 </span>                :<span class="lineCov">      20375 :                     (P2PHASE(object + dn_slots - 1, dnodes_per_chunk) &lt;</span>
+<span class="lineNum">      98 </span>                :            :                     dn_slots)) {
+<span class="lineNum">      99 </span>                :<span class="lineCov">        894 :                         DNODE_STAT_BUMP(dnode_alloc_next_chunk);</span>
+<span class="lineNum">     100 </span>                :<span class="lineCov">        894 :                         mutex_enter(&amp;os-&gt;os_obj_lock);</span>
+<span class="lineNum">     101 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 894 times"> + </span>]:<span class="lineCov">        894 :                         ASSERT0(P2PHASE(os-&gt;os_obj_next_chunk,</span>
+<span class="lineNum">     102 </span>                :            :                             dnodes_per_chunk));
+<span class="lineNum">     103 </span>                :<span class="lineCov">        894 :                         object = os-&gt;os_obj_next_chunk;</span>
+<span class="lineNum">     104 </span>                :            : 
+<span class="lineNum">     105 </span>                :            :                         /*
+<span class="lineNum">     106 </span>                :            :                          * Each time we polish off a L1 bp worth of dnodes
+<span class="lineNum">     107 </span>                :            :                          * (2^12 objects), move to another L1 bp that's
+<span class="lineNum">     108 </span>                :            :                          * still reasonably sparse (at most 1/4 full). Look
+<span class="lineNum">     109 </span>                :            :                          * from the beginning at most once per txg. If we
+<span class="lineNum">     110 </span>                :            :                          * still can't allocate from that L1 block, search
+<span class="lineNum">     111 </span>                :            :                          * for an empty L0 block, which will quickly skip
+<span class="lineNum">     112 </span>                :            :                          * to the end of the metadnode if no nearby L0
+<span class="lineNum">     113 </span>                :            :                          * blocks are empty. This fallback avoids a
+<span class="lineNum">     114 </span>                :            :                          * pathology where full dnode blocks containing
+<span class="lineNum">     115 </span>                :            :                          * large dnodes appear sparse because they have a
+<span class="lineNum">     116 </span>                :            :                          * low blk_fill, leading to many failed allocation
+<span class="lineNum">     117 </span>                :            :                          * attempts. In the long term a better mechanism to
+<span class="lineNum">     118 </span>                :            :                          * search for sparse metadnode regions, such as
+<span class="lineNum">     119 </span>                :            :                          * spacemaps, could be implemented.
+<span class="lineNum">     120 </span>                :            :                          *
+<span class="lineNum">     121 </span>                :            :                          * os_scan_dnodes is set during txg sync if enough
+<span class="lineNum">     122 </span>                :            :                          * objects have been freed since the previous
+<span class="lineNum">     123 </span>                :            :                          * rescan to justify backfilling again.
+<span class="lineNum">     124 </span>                :            :                          *
+<span class="lineNum">     125 </span>                :            :                          * Note that dmu_traverse depends on the behavior
+<span class="lineNum">     126 </span>                :            :                          * that we use multiple blocks of the dnode object
+<span class="lineNum">     127 </span>                :            :                          * before going back to reuse objects.  Any change
+<span class="lineNum">     128 </span>                :            :                          * to this algorithm should preserve that property
+<span class="lineNum">     129 </span>                :            :                          * or find another solution to the issues described
+<span class="lineNum">     130 </span>                :            :                          * in traverse_visitbp.
+<span class="lineNum">     131 </span>                :            :                          */
+<span class="lineNum">     132 </span>        [<span class="branchCov" title="Branch 0 was taken 722 times"> + </span><span class="branchCov" title="Branch 1 was taken 172 times"> + </span>]:<span class="lineCov">        894 :                         if (P2PHASE(object, L1_dnode_count) == 0) {</span>
+<span class="lineNum">     133 </span>                :            :                                 uint64_t offset;
+<span class="lineNum">     134 </span>                :            :                                 uint64_t blkfill;
+<span class="lineNum">     135 </span>                :            :                                 int minlvl;
+<span class="lineNum">     136 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 722 times"> + </span>]:<span class="lineCov">        722 :                                 if (os-&gt;os_rescan_dnodes) {</span>
+<span class="lineNum">     137 </span>                :<span class="lineNoCov">          0 :                                         offset = 0;</span>
+<span class="lineNum">     138 </span>                :<span class="lineNoCov">          0 :                                         os-&gt;os_rescan_dnodes = B_FALSE;</span>
+<span class="lineNum">     139 </span>                :            :                                 } else {
+<span class="lineNum">     140 </span>                :<span class="lineCov">        722 :                                         offset = object &lt;&lt; DNODE_SHIFT;</span>
+<span class="lineNum">     141 </span>                :            :                                 }
+<span class="lineNum">     142 </span>        [<span class="branchCov" title="Branch 0 was taken 722 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        722 :                                 blkfill = restarted ? 1 : DNODES_PER_BLOCK &gt;&gt; 2;</span>
+<span class="lineNum">     143 </span>        [<span class="branchCov" title="Branch 0 was taken 722 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        722 :                                 minlvl = restarted ? 1 : 2;</span>
+<span class="lineNum">     144 </span>                :<span class="lineCov">        722 :                                 restarted = B_TRUE;</span>
+<span class="lineNum">     145 </span>                :<span class="lineCov">        722 :                                 error = dnode_next_offset(DMU_META_DNODE(os),</span>
+<span class="lineNum">     146 </span>                :            :                                     DNODE_FIND_HOLE, &amp;offset, minlvl,
+<span class="lineNum">     147 </span>                :            :                                     blkfill, 0);
+<span class="lineNum">     148 </span>        [<span class="branchCov" title="Branch 0 was taken 669 times"> + </span><span class="branchCov" title="Branch 1 was taken 53 times"> + </span>]:<span class="lineCov">        722 :                                 if (error == 0) {</span>
+<span class="lineNum">     149 </span>                :<span class="lineCov">        722 :                                         object = offset &gt;&gt; DNODE_SHIFT;</span>
+<span class="lineNum">     150 </span>                :            :                                 }
+<span class="lineNum">     151 </span>                :            :                         }
+<span class="lineNum">     152 </span>                :            :                         /*
+<span class="lineNum">     153 </span>                :            :                          * Note: if &quot;restarted&quot;, we may find a L0 that
+<span class="lineNum">     154 </span>                :            :                          * is not suitably aligned.
+<span class="lineNum">     155 </span>                :            :                          */
+<span class="lineNum">     156 </span>                :<span class="lineCov">        894 :                         os-&gt;os_obj_next_chunk =</span>
+<span class="lineNum">     157 </span>                :<span class="lineCov">        894 :                             P2ALIGN(object, dnodes_per_chunk) +</span>
+<span class="lineNum">     158 </span>                :            :                             dnodes_per_chunk;
+<span class="lineNum">     159 </span>                :<span class="lineCov">        894 :                         (void) atomic_swap_64(cpuobj, object);</span>
+<span class="lineNum">     160 </span>                :<span class="lineCov">        894 :                         mutex_exit(&amp;os-&gt;os_obj_lock);</span>
+<span class="lineNum">     161 </span>                :            :                 }
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>                :            :                 /*
+<span class="lineNum">     164 </span>                :            :                  * The value of (*cpuobj) before adding dn_slots is the object
+<span class="lineNum">     165 </span>                :            :                  * ID assigned to us.  The value afterwards is the object ID
+<span class="lineNum">     166 </span>                :            :                  * assigned to whoever wants to do an allocation next.
+<span class="lineNum">     167 </span>                :            :                  */
+<span class="lineNum">     168 </span>                :<span class="lineCov">      21178 :                 object = atomic_add_64_nv(cpuobj, dn_slots) - dn_slots;</span>
+<span class="lineNum">     169 </span>                :            : 
+<span class="lineNum">     170 </span>                :            :                 /*
+<span class="lineNum">     171 </span>                :            :                  * XXX We should check for an i/o error here and return
+<span class="lineNum">     172 </span>                :            :                  * up to our caller.  Actually we should pre-read it in
+<span class="lineNum">     173 </span>                :            :                  * dmu_tx_assign(), but there is currently no mechanism
+<span class="lineNum">     174 </span>                :            :                  * to do so.
+<span class="lineNum">     175 </span>                :            :                  */
+<span class="lineNum">     176 </span>                :<span class="lineCov">      21178 :                 error = dnode_hold_impl(os, object, DNODE_MUST_BE_FREE,</span>
+<span class="lineNum">     177 </span>                :            :                     dn_slots, FTAG, &amp;dn);
+<span class="lineNum">     178 </span>        [<span class="branchCov" title="Branch 0 was taken 14842 times"> + </span><span class="branchCov" title="Branch 1 was taken 6336 times"> + </span>]:<span class="lineCov">      21178 :                 if (error == 0) {</span>
+<span class="lineNum">     179 </span>                :<span class="lineCov">      14842 :                         rw_enter(&amp;dn-&gt;dn_struct_rwlock, RW_WRITER);</span>
+<span class="lineNum">     180 </span>                :            :                         /*
+<span class="lineNum">     181 </span>                :            :                          * Another thread could have allocated it; check
+<span class="lineNum">     182 </span>                :            :                          * again now that we have the struct lock.
+<span class="lineNum">     183 </span>                :            :                          */
+<span class="lineNum">     184 </span>        [<span class="branchCov" title="Branch 0 was taken 14841 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      14841 :                         if (dn-&gt;dn_type == DMU_OT_NONE) {</span>
+<span class="lineNum">     185 </span>                :<span class="lineCov">      14841 :                                 dnode_allocate(dn, ot, blocksize, 0,</span>
+<span class="lineNum">     186 </span>                :            :                                     bonustype, bonuslen, dn_slots, tx);
+<span class="lineNum">     187 </span>                :<span class="lineCov">      14842 :                                 rw_exit(&amp;dn-&gt;dn_struct_rwlock);</span>
+<span class="lineNum">     188 </span>                :<span class="lineCov">      14842 :                                 dmu_tx_add_new_object(tx, dn);</span>
+<span class="lineNum">     189 </span>                :<span class="lineCov">      14842 :                                 dnode_rele(dn, FTAG);</span>
+<span class="lineNum">     190 </span>                :<span class="lineCov">      14842 :                                 return (object);</span>
+<span class="lineNum">     191 </span>                :            :                         }
+<span class="lineNum">     192 </span>                :<span class="lineNoCov">          0 :                         rw_exit(&amp;dn-&gt;dn_struct_rwlock);</span>
+<span class="lineNum">     193 </span>                :<span class="lineNoCov">          0 :                         dnode_rele(dn, FTAG);</span>
+<span class="lineNum">     194 </span>                :<span class="lineNoCov">          0 :                         DNODE_STAT_BUMP(dnode_alloc_race);</span>
+<span class="lineNum">     195 </span>                :            :                 }
+<span class="lineNum">     196 </span>                :            : 
+<span class="lineNum">     197 </span>                :            :                 /*
+<span class="lineNum">     198 </span>                :            :                  * Skip to next known valid starting point on error.  This
+<span class="lineNum">     199 </span>                :            :                  * is the start of the next block of dnodes.
+<span class="lineNum">     200 </span>                :            :                  */
+<span class="lineNum">     201 </span>        [<span class="branchCov" title="Branch 1 was taken 54 times"> + </span><span class="branchCov" title="Branch 2 was taken 6282 times"> + </span>]:<span class="lineCov">       6336 :                 if (dmu_object_next(os, &amp;object, B_TRUE, 0) != 0) {</span>
+<span class="lineNum">     202 </span>                :<span class="lineCov">         54 :                         object = P2ROUNDUP(object + 1, DNODES_PER_BLOCK);</span>
+<span class="lineNum">     203 </span>                :<span class="lineCov">         54 :                         DNODE_STAT_BUMP(dnode_alloc_next_block);</span>
+<span class="lineNum">     204 </span>                :            :                 }
+<span class="lineNum">     205 </span>                :<span class="lineCov">       6336 :                 (void) atomic_swap_64(cpuobj, object);</span>
+<span class="lineNum">     206 </span>                :            :         }
+<span class="lineNum">     207 </span>                :            : }
+<a name="208"><span class="lineNum">     208 </span>                :            : </a>
+<span class="lineNum">     209 </span>                :            : int
+<span class="lineNum">     210 </span>                :<span class="lineNoCov">          0 : dmu_object_claim(objset_t *os, uint64_t object, dmu_object_type_t ot,</span>
+<span class="lineNum">     211 </span>                :            :     int blocksize, dmu_object_type_t bonustype, int bonuslen, dmu_tx_t *tx)
+<span class="lineNum">     212 </span>                :            : {
+<span class="lineNum">     213 </span>                :<span class="lineNoCov">          0 :         return (dmu_object_claim_dnsize(os, object, ot, blocksize, bonustype,</span>
+<span class="lineNum">     214 </span>                :            :             bonuslen, 0, tx));
+<span class="lineNum">     215 </span>                :            : }
+<a name="216"><span class="lineNum">     216 </span>                :            : </a>
+<span class="lineNum">     217 </span>                :            : int
+<span class="lineNum">     218 </span>                :<span class="lineCov">        464 : dmu_object_claim_dnsize(objset_t *os, uint64_t object, dmu_object_type_t ot,</span>
+<span class="lineNum">     219 </span>                :            :     int blocksize, dmu_object_type_t bonustype, int bonuslen,
+<span class="lineNum">     220 </span>                :            :     int dnodesize, dmu_tx_t *tx)
+<span class="lineNum">     221 </span>                :            : {
+<span class="lineNum">     222 </span>                :            :         dnode_t *dn;
+<span class="lineNum">     223 </span>                :<span class="lineCov">        464 :         int dn_slots = dnodesize &gt;&gt; DNODE_SHIFT;</span>
+<span class="lineNum">     224 </span>                :            :         int err;
+<span class="lineNum">     225 </span>                :            : 
+<span class="lineNum">     226 </span>        [<span class="branchCov" title="Branch 0 was taken 428 times"> + </span><span class="branchCov" title="Branch 1 was taken 36 times"> + </span>]:<span class="lineCov">        464 :         if (dn_slots == 0)</span>
+<span class="lineNum">     227 </span>                :<span class="lineCov">        428 :                 dn_slots = DNODE_MIN_SLOTS;</span>
+<span class="lineNum">     228 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 464 times"> + </span>]:<span class="lineCov">        464 :         ASSERT3S(dn_slots, &gt;=, DNODE_MIN_SLOTS);</span>
+<span class="lineNum">     229 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 464 times"> + </span>]:<span class="lineCov">        464 :         ASSERT3S(dn_slots, &lt;=, DNODE_MAX_SLOTS);</span>
+<span class="lineNum">     230 </span>                :            : 
+<span class="lineNum">     231 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 464 times"> + </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineCov">        464 :         if (object == DMU_META_DNODE_OBJECT &amp;&amp; !dmu_tx_private_ok(tx))</span>
+<span class="lineNum">     232 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EBADF));</span>
+<span class="lineNum">     233 </span>                :            : 
+<span class="lineNum">     234 </span>                :<span class="lineCov">        464 :         err = dnode_hold_impl(os, object, DNODE_MUST_BE_FREE, dn_slots,</span>
+<span class="lineNum">     235 </span>                :            :             FTAG, &amp;dn);
+<span class="lineNum">     236 </span>        [<span class="branchCov" title="Branch 0 was taken 464 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        464 :         if (err)</span>
+<span class="lineNum">     237 </span>                :            :                 return (err);
+<span class="lineNum">     238 </span>                :            : 
+<span class="lineNum">     239 </span>                :<span class="lineCov">        464 :         dnode_allocate(dn, ot, blocksize, 0, bonustype, bonuslen, dn_slots, tx);</span>
+<span class="lineNum">     240 </span>                :<span class="lineCov">        464 :         dmu_tx_add_new_object(tx, dn);</span>
+<span class="lineNum">     241 </span>                :            : 
+<span class="lineNum">     242 </span>                :<span class="lineCov">        464 :         dnode_rele(dn, FTAG);</span>
+<span class="lineNum">     243 </span>                :            : 
+<span class="lineNum">     244 </span>                :<span class="lineCov">        464 :         return (0);</span>
+<span class="lineNum">     245 </span>                :            : }
+<a name="246"><span class="lineNum">     246 </span>                :            : </a>
+<span class="lineNum">     247 </span>                :            : int
+<span class="lineNum">     248 </span>                :<span class="lineNoCov">          0 : dmu_object_reclaim(objset_t *os, uint64_t object, dmu_object_type_t ot,</span>
+<span class="lineNum">     249 </span>                :            :     int blocksize, dmu_object_type_t bonustype, int bonuslen, dmu_tx_t *tx)
+<span class="lineNum">     250 </span>                :            : {
+<span class="lineNum">     251 </span>                :<span class="lineNoCov">          0 :         return (dmu_object_reclaim_dnsize(os, object, ot, blocksize, bonustype,</span>
+<span class="lineNum">     252 </span>                :            :             bonuslen, 0, tx));
+<span class="lineNum">     253 </span>                :            : }
+<a name="254"><span class="lineNum">     254 </span>                :            : </a>
+<span class="lineNum">     255 </span>                :            : int
+<span class="lineNum">     256 </span>                :<span class="lineNoCov">          0 : dmu_object_reclaim_dnsize(objset_t *os, uint64_t object, dmu_object_type_t ot,</span>
+<span class="lineNum">     257 </span>                :            :     int blocksize, dmu_object_type_t bonustype, int bonuslen, int dnodesize,
+<span class="lineNum">     258 </span>                :            :     dmu_tx_t *tx)
+<span class="lineNum">     259 </span>                :            : {
+<span class="lineNum">     260 </span>                :            :         dnode_t *dn;
+<span class="lineNum">     261 </span>                :<span class="lineNoCov">          0 :         int dn_slots = dnodesize &gt;&gt; DNODE_SHIFT;</span>
+<span class="lineNum">     262 </span>                :            :         int err;
+<span class="lineNum">     263 </span>                :            : 
+<span class="lineNum">     264 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (object == DMU_META_DNODE_OBJECT)</span>
+<span class="lineNum">     265 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EBADF));</span>
+<span class="lineNum">     266 </span>                :            : 
+<span class="lineNum">     267 </span>                :<span class="lineNoCov">          0 :         err = dnode_hold_impl(os, object, DNODE_MUST_BE_ALLOCATED, 0,</span>
+<span class="lineNum">     268 </span>                :            :             FTAG, &amp;dn);
+<span class="lineNum">     269 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (err)</span>
+<span class="lineNum">     270 </span>                :            :                 return (err);
+<span class="lineNum">     271 </span>                :            : 
+<span class="lineNum">     272 </span>                :<span class="lineNoCov">          0 :         dnode_reallocate(dn, ot, blocksize, bonustype, bonuslen, dn_slots, tx);</span>
+<span class="lineNum">     273 </span>                :            : 
+<span class="lineNum">     274 </span>                :<span class="lineNoCov">          0 :         dnode_rele(dn, FTAG);</span>
+<span class="lineNum">     275 </span>                :<span class="lineNoCov">          0 :         return (err);</span>
+<span class="lineNum">     276 </span>                :            : }
+<span class="lineNum">     277 </span>                :            : 
+<a name="278"><span class="lineNum">     278 </span>                :            : </a>
+<span class="lineNum">     279 </span>                :            : int
+<span class="lineNum">     280 </span>                :<span class="lineCov">       6207 : dmu_object_free(objset_t *os, uint64_t object, dmu_tx_t *tx)</span>
+<span class="lineNum">     281 </span>                :            : {
+<span class="lineNum">     282 </span>                :            :         dnode_t *dn;
+<span class="lineNum">     283 </span>                :            :         int err;
+<span class="lineNum">     284 </span>                :            : 
+<span class="lineNum">     285 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 6207 times"> + </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineCov">       6207 :         ASSERT(object != DMU_META_DNODE_OBJECT || dmu_tx_private_ok(tx));</span>
+<span class="lineNum">     286 </span>                :            : 
+<span class="lineNum">     287 </span>                :<span class="lineCov">       6207 :         err = dnode_hold_impl(os, object, DNODE_MUST_BE_ALLOCATED, 0,</span>
+<span class="lineNum">     288 </span>                :            :             FTAG, &amp;dn);
+<span class="lineNum">     289 </span>        [<span class="branchCov" title="Branch 0 was taken 6206 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       6206 :         if (err)</span>
+<span class="lineNum">     290 </span>                :            :                 return (err);
+<span class="lineNum">     291 </span>                :            : 
+<span class="lineNum">     292 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 6206 times"> + </span>]:<span class="lineCov">       6206 :         ASSERT(dn-&gt;dn_type != DMU_OT_NONE);</span>
+<span class="lineNum">     293 </span>                :<span class="lineCov">       6206 :         dnode_free_range(dn, 0, DMU_OBJECT_END, tx);</span>
+<span class="lineNum">     294 </span>                :<span class="lineCov">       6207 :         dnode_free(dn, tx);</span>
+<span class="lineNum">     295 </span>                :<span class="lineCov">       6207 :         dnode_rele(dn, FTAG);</span>
+<span class="lineNum">     296 </span>                :            : 
+<span class="lineNum">     297 </span>                :<span class="lineCov">       6207 :         return (0);</span>
+<span class="lineNum">     298 </span>                :            : }
+<span class="lineNum">     299 </span>                :            : 
+<span class="lineNum">     300 </span>                :            : /*
+<span class="lineNum">     301 </span>                :            :  * Return (in *objectp) the next object which is allocated (or a hole)
+<span class="lineNum">     302 </span>                :            :  * after *object, taking into account only objects that may have been modified
+<span class="lineNum">     303 </span>                :            :  * after the specified txg.
+<a name="304"><span class="lineNum">     304 </span>                :            :  */</a>
+<span class="lineNum">     305 </span>                :            : int
+<span class="lineNum">     306 </span>                :<span class="lineCov">     268306 : dmu_object_next(objset_t *os, uint64_t *objectp, boolean_t hole, uint64_t txg)</span>
+<span class="lineNum">     307 </span>                :            : {
+<span class="lineNum">     308 </span>                :            :         uint64_t offset;
+<span class="lineNum">     309 </span>                :            :         uint64_t start_obj;
+<span class="lineNum">     310 </span>                :<span class="lineCov">     268306 :         struct dsl_dataset *ds = os-&gt;os_dsl_dataset;</span>
+<span class="lineNum">     311 </span>                :            :         int error;
+<span class="lineNum">     312 </span>                :            : 
+<span class="lineNum">     313 </span>        [<span class="branchCov" title="Branch 0 was taken 264413 times"> + </span><span class="branchCov" title="Branch 1 was taken 3893 times"> + </span>]:<span class="lineCov">     268306 :         if (*objectp == 0) {</span>
+<span class="lineNum">     314 </span>                :            :                 start_obj = 1;
+<span class="lineNum">     315 </span>[<span class="branchCov" title="Branch 0 was taken 134617 times"> + </span><span class="branchCov" title="Branch 1 was taken 129796 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 133123 times"> + </span><span class="branchCov" title="Branch 3 was taken 1494 times"> + </span>]:<span class="lineCov">     277339 :         } else if (ds &amp;&amp; ds-&gt;ds_feature_inuse[SPA_FEATURE_LARGE_DNODE]) {</span>
+<span class="lineNum">     316 </span>                :<span class="lineCov">     133123 :                 uint64_t i = *objectp + 1;</span>
+<span class="lineNum">     317 </span>                :<span class="lineCov">     133123 :                 uint64_t last_obj = *objectp | (DNODES_PER_BLOCK - 1);</span>
+<span class="lineNum">     318 </span>                :            :                 dmu_object_info_t doi;
+<span class="lineNum">     319 </span>                :            : 
+<span class="lineNum">     320 </span>                :            :                 /*
+<span class="lineNum">     321 </span>                :            :                  * Scan through the remaining meta dnode block.  The contents
+<span class="lineNum">     322 </span>                :            :                  * of each slot in the block are known so it can be quickly
+<span class="lineNum">     323 </span>                :            :                  * checked.  If the block is exhausted without a match then
+<span class="lineNum">     324 </span>                :            :                  * hand off to dnode_next_offset() for further scanning.
+<span class="lineNum">     325 </span>                :            :                  */
+<span class="lineNum">     326 </span>        [<span class="branchCov" title="Branch 0 was taken 369448 times"> + </span><span class="branchCov" title="Branch 1 was taken 12926 times"> + </span>]:<span class="lineCov">     382374 :                 while (i &lt;= last_obj) {</span>
+<span class="lineNum">     327 </span>                :<span class="lineCov">     369448 :                         error = dmu_object_info(os, i, &amp;doi);</span>
+<span class="lineNum">     328 </span>        [<span class="branchCov" title="Branch 0 was taken 87008 times"> + </span><span class="branchCov" title="Branch 1 was taken 282440 times"> + </span>]:<span class="lineCov">     369448 :                         if (error == ENOENT) {</span>
+<span class="lineNum">     329 </span>        [<span class="branchCov" title="Branch 0 was taken 3739 times"> + </span><span class="branchCov" title="Branch 1 was taken 83269 times"> + </span>]:<span class="lineCov">      87008 :                                 if (hole) {</span>
+<span class="lineNum">     330 </span>                :<span class="lineCov">       3739 :                                         *objectp = i;</span>
+<span class="lineNum">     331 </span>                :<span class="lineCov">     120197 :                                         return (0);</span>
+<span class="lineNum">     332 </span>                :            :                                 } else {
+<span class="lineNum">     333 </span>                :<span class="lineCov">      83269 :                                         i++;</span>
+<span class="lineNum">     334 </span>                :            :                                 }
+<span class="lineNum">     335 </span>        [<span class="branchCov" title="Branch 0 was taken 165747 times"> + </span><span class="branchCov" title="Branch 1 was taken 116693 times"> + </span>]:<span class="lineCov">     282440 :                         } else if (error == EEXIST) {</span>
+<span class="lineNum">     336 </span>                :<span class="lineCov">     165747 :                                 i++;</span>
+<span class="lineNum">     337 </span>        [<span class="branchCov" title="Branch 0 was taken 116693 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">     116693 :                         } else if (error == 0) {</span>
+<span class="lineNum">     338 </span>        [<span class="branchCov" title="Branch 0 was taken 235 times"> + </span><span class="branchCov" title="Branch 1 was taken 116458 times"> + </span>]:<span class="lineCov">     116693 :                                 if (hole) {</span>
+<span class="lineNum">     339 </span>                :<span class="lineCov">        235 :                                         i += doi.doi_dnodesize &gt;&gt; DNODE_SHIFT;</span>
+<span class="lineNum">     340 </span>                :            :                                 } else {
+<span class="lineNum">     341 </span>                :<span class="lineCov">     116458 :                                         *objectp = i;</span>
+<span class="lineNum">     342 </span>                :<span class="lineCov">     365709 :                                         return (0);</span>
+<span class="lineNum">     343 </span>                :            :                                 }
+<span class="lineNum">     344 </span>                :            :                         } else {
+<span class="lineNum">     345 </span>                :            :                                 return (error);
+<span class="lineNum">     346 </span>                :            :                         }
+<span class="lineNum">     347 </span>                :            :                 }
+<span class="lineNum">     348 </span>                :            : 
+<span class="lineNum">     349 </span>                :<span class="lineCov">      12926 :                 start_obj = i;</span>
+<span class="lineNum">     350 </span>                :            :         } else {
+<span class="lineNum">     351 </span>                :<span class="lineCov">     131290 :                 start_obj = *objectp + 1;</span>
+<span class="lineNum">     352 </span>                :            :         }
+<span class="lineNum">     353 </span>                :            : 
+<span class="lineNum">     354 </span>                :<span class="lineCov">     148109 :         offset = start_obj &lt;&lt; DNODE_SHIFT;</span>
+<span class="lineNum">     355 </span>                :            : 
+<span class="lineNum">     356 </span>                :<span class="lineCov">     148109 :         error = dnode_next_offset(DMU_META_DNODE(os),</span>
+<span class="lineNum">     357 </span>                :            :             (hole ? DNODE_FIND_HOLE : 0), &amp;offset, 0, DNODES_PER_BLOCK, txg);
+<span class="lineNum">     358 </span>                :            : 
+<span class="lineNum">     359 </span>                :<span class="lineCov">     148109 :         *objectp = offset &gt;&gt; DNODE_SHIFT;</span>
+<span class="lineNum">     360 </span>                :            : 
+<span class="lineNum">     361 </span>                :<span class="lineCov">     148109 :         return (error);</span>
+<span class="lineNum">     362 </span>                :            : }
+<span class="lineNum">     363 </span>                :            : 
+<span class="lineNum">     364 </span>                :            : /*
+<span class="lineNum">     365 </span>                :            :  * Turn this object from old_type into DMU_OTN_ZAP_METADATA, and bump the
+<span class="lineNum">     366 </span>                :            :  * refcount on SPA_FEATURE_EXTENSIBLE_DATASET.
+<span class="lineNum">     367 </span>                :            :  *
+<span class="lineNum">     368 </span>                :            :  * Only for use from syncing context, on MOS objects.
+<a name="369"><span class="lineNum">     369 </span>                :            :  */</a>
+<span class="lineNum">     370 </span>                :            : void
+<span class="lineNum">     371 </span>                :<span class="lineCov">       1080 : dmu_object_zapify(objset_t *mos, uint64_t object, dmu_object_type_t old_type,</span>
+<span class="lineNum">     372 </span>                :            :     dmu_tx_t *tx)
+<span class="lineNum">     373 </span>                :            : {
+<span class="lineNum">     374 </span>                :            :         dnode_t *dn;
+<span class="lineNum">     375 </span>                :            : 
+<span class="lineNum">     376 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1080 times"> + </span>]:<span class="lineCov">       1080 :         ASSERT(dmu_tx_is_syncing(tx));</span>
+<span class="lineNum">     377 </span>                :            : 
+<span class="lineNum">     378 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1080 times"> + </span>]:<span class="lineCov">       1080 :         VERIFY0(dnode_hold(mos, object, FTAG, &amp;dn));</span>
+<span class="lineNum">     379 </span>        [<span class="branchCov" title="Branch 0 was taken 354 times"> + </span><span class="branchCov" title="Branch 1 was taken 726 times"> + </span>]:<span class="lineCov">       1080 :         if (dn-&gt;dn_type == DMU_OTN_ZAP_METADATA) {</span>
+<span class="lineNum">     380 </span>                :<span class="lineCov">        354 :                 dnode_rele(dn, FTAG);</span>
+<span class="lineNum">     381 </span>                :<span class="lineCov">        354 :                 return;</span>
+<span class="lineNum">     382 </span>                :            :         }
+<span class="lineNum">     383 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 726 times"> + </span>]:<span class="lineCov">        726 :         ASSERT3U(dn-&gt;dn_type, ==, old_type);</span>
+<span class="lineNum">     384 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 726 times"> + </span>]:<span class="lineCov">        726 :         ASSERT0(dn-&gt;dn_maxblkid);</span>
+<span class="lineNum">     385 </span>                :<span class="lineCov">        726 :         dn-&gt;dn_next_type[tx-&gt;tx_txg &amp; TXG_MASK] = dn-&gt;dn_type =</span>
+<span class="lineNum">     386 </span>                :            :             DMU_OTN_ZAP_METADATA;
+<span class="lineNum">     387 </span>                :<span class="lineCov">        726 :         dnode_setdirty(dn, tx);</span>
+<span class="lineNum">     388 </span>                :<span class="lineCov">        726 :         dnode_rele(dn, FTAG);</span>
+<span class="lineNum">     389 </span>                :            : 
+<span class="lineNum">     390 </span>                :<span class="lineCov">        726 :         mzap_create_impl(mos, object, 0, 0, tx);</span>
+<span class="lineNum">     391 </span>                :            : 
+<span class="lineNum">     392 </span>                :<span class="lineCov">        726 :         spa_feature_incr(dmu_objset_spa(mos),</span>
+<span class="lineNum">     393 </span>                :            :             SPA_FEATURE_EXTENSIBLE_DATASET, tx);
+<span class="lineNum">     394 </span>                :            : }
+<a name="395"><span class="lineNum">     395 </span>                :            : </a>
+<span class="lineNum">     396 </span>                :            : void
+<span class="lineNum">     397 </span>                :<span class="lineCov">        383 : dmu_object_free_zapified(objset_t *mos, uint64_t object, dmu_tx_t *tx)</span>
+<span class="lineNum">     398 </span>                :            : {
+<span class="lineNum">     399 </span>                :            :         dnode_t *dn;
+<span class="lineNum">     400 </span>                :            :         dmu_object_type_t t;
+<span class="lineNum">     401 </span>                :            : 
+<span class="lineNum">     402 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 383 times"> + </span>]:<span class="lineCov">        383 :         ASSERT(dmu_tx_is_syncing(tx));</span>
+<span class="lineNum">     403 </span>                :            : 
+<span class="lineNum">     404 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 383 times"> + </span>]:<span class="lineCov">        383 :         VERIFY0(dnode_hold(mos, object, FTAG, &amp;dn));</span>
+<span class="lineNum">     405 </span>                :<span class="lineCov">        383 :         t = dn-&gt;dn_type;</span>
+<span class="lineNum">     406 </span>                :<span class="lineCov">        383 :         dnode_rele(dn, FTAG);</span>
+<span class="lineNum">     407 </span>                :            : 
+<span class="lineNum">     408 </span>        [<span class="branchCov" title="Branch 0 was taken 240 times"> + </span><span class="branchCov" title="Branch 1 was taken 143 times"> + </span>]:<span class="lineCov">        383 :         if (t == DMU_OTN_ZAP_METADATA) {</span>
+<span class="lineNum">     409 </span>                :<span class="lineCov">        240 :                 spa_feature_decr(dmu_objset_spa(mos),</span>
+<span class="lineNum">     410 </span>                :            :                     SPA_FEATURE_EXTENSIBLE_DATASET, tx);
+<span class="lineNum">     411 </span>                :            :         }
+<span class="lineNum">     412 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 383 times"> + </span>]:<span class="lineCov">        383 :         VERIFY0(dmu_object_free(mos, object, tx));</span>
+<span class="lineNum">     413 </span>                :<span class="lineCov">        383 : }</span>
+<span class="lineNum">     414 </span>                :            : 
+<span class="lineNum">     415 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     416 </span>                :            : EXPORT_SYMBOL(dmu_object_alloc);
+<span class="lineNum">     417 </span>                :            : EXPORT_SYMBOL(dmu_object_alloc_dnsize);
+<span class="lineNum">     418 </span>                :            : EXPORT_SYMBOL(dmu_object_claim);
+<span class="lineNum">     419 </span>                :            : EXPORT_SYMBOL(dmu_object_claim_dnsize);
+<span class="lineNum">     420 </span>                :            : EXPORT_SYMBOL(dmu_object_reclaim);
+<span class="lineNum">     421 </span>                :            : EXPORT_SYMBOL(dmu_object_reclaim_dnsize);
+<span class="lineNum">     422 </span>                :            : EXPORT_SYMBOL(dmu_object_free);
+<span class="lineNum">     423 </span>                :            : EXPORT_SYMBOL(dmu_object_next);
+<span class="lineNum">     424 </span>                :            : EXPORT_SYMBOL(dmu_object_zapify);
+<span class="lineNum">     425 </span>                :            : EXPORT_SYMBOL(dmu_object_free_zapified);
+<span class="lineNum">     426 </span>                :            : 
+<span class="lineNum">     427 </span>                :            : /* BEGIN CSTYLED */
+<span class="lineNum">     428 </span>                :            : module_param(dmu_object_alloc_chunk_shift, int, 0644);
+<span class="lineNum">     429 </span>                :            : MODULE_PARM_DESC(dmu_object_alloc_chunk_shift,
+<span class="lineNum">     430 </span>                :            :         &quot;CPU-specific allocator grabs 2^N objects at once&quot;);
+<span class="lineNum">     431 </span>                :            : /* END CSTYLED */
+<span class="lineNum">     432 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

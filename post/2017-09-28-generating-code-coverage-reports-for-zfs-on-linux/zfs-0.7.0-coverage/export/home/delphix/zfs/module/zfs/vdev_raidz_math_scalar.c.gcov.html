@@ -1,0 +1,428 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/vdev_raidz_math_scalar.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - vdev_raidz_math_scalar.c<span style="font-size: 80%;"> (source / <a href="vdev_raidz_math_scalar.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : /*
+<span class="lineNum">      23 </span>                :            :  * Copyright (C) 2016 Gvozden Nešković. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : #include &lt;sys/vdev_raidz_impl.h&gt;
+<span class="lineNum">      27 </span>                :            : 
+<span class="lineNum">      28 </span>                :            : /*
+<span class="lineNum">      29 </span>                :            :  * Provide native CPU scalar routines.
+<span class="lineNum">      30 </span>                :            :  * Support 32bit and 64bit CPUs.
+<span class="lineNum">      31 </span>                :            :  */
+<span class="lineNum">      32 </span>                :            : #if ((~(0x0ULL)) &gt;&gt; 24) == 0xffULL
+<span class="lineNum">      33 </span>                :            : #define ELEM_SIZE       4
+<span class="lineNum">      34 </span>                :            : typedef uint32_t iv_t;
+<span class="lineNum">      35 </span>                :            : #elif ((~(0x0ULL)) &gt;&gt; 56) == 0xffULL
+<span class="lineNum">      36 </span>                :            : #define ELEM_SIZE       8
+<span class="lineNum">      37 </span>                :            : typedef uint64_t iv_t;
+<span class="lineNum">      38 </span>                :            : #endif
+<span class="lineNum">      39 </span>                :            : 
+<span class="lineNum">      40 </span>                :            : /*
+<span class="lineNum">      41 </span>                :            :  * Vector type used in scalar implementation
+<span class="lineNum">      42 </span>                :            :  *
+<span class="lineNum">      43 </span>                :            :  * The union is expected to be of native CPU register size. Since addition
+<span class="lineNum">      44 </span>                :            :  * uses XOR operation, it can be performed an all byte elements at once.
+<span class="lineNum">      45 </span>                :            :  * Multiplication requires per byte access.
+<span class="lineNum">      46 </span>                :            :  */
+<span class="lineNum">      47 </span>                :            : typedef union {
+<span class="lineNum">      48 </span>                :            :         iv_t e;
+<span class="lineNum">      49 </span>                :            :         uint8_t b[ELEM_SIZE];
+<span class="lineNum">      50 </span>                :            : } v_t;
+<span class="lineNum">      51 </span>                :            : 
+<span class="lineNum">      52 </span>                :            : /*
+<span class="lineNum">      53 </span>                :            :  * Precomputed lookup tables for multiplication by a constant
+<span class="lineNum">      54 </span>                :            :  *
+<span class="lineNum">      55 </span>                :            :  * Reconstruction path requires multiplication by a constant factors. Instead of
+<span class="lineNum">      56 </span>                :            :  * performing two step lookup (log &amp; exp tables), a direct lookup can be used
+<span class="lineNum">      57 </span>                :            :  * instead. Multiplication of element 'a' by a constant 'c' is obtained as:
+<span class="lineNum">      58 </span>                :            :  *
+<span class="lineNum">      59 </span>                :            :  *      r = vdev_raidz_mul_lt[c_log][a];
+<span class="lineNum">      60 </span>                :            :  *
+<span class="lineNum">      61 </span>                :            :  * where c_log = vdev_raidz_log2[c]. Log of coefficient factors is used because
+<span class="lineNum">      62 </span>                :            :  * they are faster to obtain while solving the syndrome equations.
+<span class="lineNum">      63 </span>                :            :  *
+<span class="lineNum">      64 </span>                :            :  * PERFORMANCE NOTE:
+<span class="lineNum">      65 </span>                :            :  * Even though the complete lookup table uses 64kiB, only relatively small
+<span class="lineNum">      66 </span>                :            :  * portion of it is used at the same time. Following shows number of accessed
+<span class="lineNum">      67 </span>                :            :  * bytes for different cases:
+<span class="lineNum">      68 </span>                :            :  *      - 1 failed disk: 256B (1 mul. coefficient)
+<span class="lineNum">      69 </span>                :            :  *      - 2 failed disks: 512B (2 mul. coefficients)
+<span class="lineNum">      70 </span>                :            :  *      - 3 failed disks: 1536B (6 mul. coefficients)
+<span class="lineNum">      71 </span>                :            :  *
+<span class="lineNum">      72 </span>                :            :  * Size of actually accessed lookup table regions is only larger for
+<span class="lineNum">      73 </span>                :            :  * reconstruction of 3 failed disks, when compared to traditional log/exp
+<span class="lineNum">      74 </span>                :            :  * method. But since the result is obtained in one lookup step performance is
+<span class="lineNum">      75 </span>                :            :  * doubled.
+<span class="lineNum">      76 </span>                :            :  */
+<span class="lineNum">      77 </span>                :            : static uint8_t vdev_raidz_mul_lt[256][256] __attribute__((aligned(256)));
+<a name="78"><span class="lineNum">      78 </span>                :            : </a>
+<span class="lineNum">      79 </span>                :            : static void
+<span class="lineNum">      80 </span>                :<span class="lineCov">       1234 : raidz_init_scalar(void)</span>
+<span class="lineNum">      81 </span>                :            : {
+<span class="lineNum">      82 </span>                :            :         int c, i;
+<span class="lineNum">      83 </span>        [<span class="branchCov" title="Branch 0 was taken 315904 times"> + </span><span class="branchCov" title="Branch 1 was taken 1234 times"> + </span>]:<span class="lineCov">     317138 :         for (c = 0; c &lt; 256; c++)</span>
+<span class="lineNum">      84 </span>        [<span class="branchCov" title="Branch 0 was taken 80871424 times"> + </span><span class="branchCov" title="Branch 1 was taken 315904 times"> + </span>]:<span class="lineCov">   81187328 :                 for (i = 0; i &lt; 256; i++)</span>
+<span class="lineNum">      85 </span>                :<span class="lineCov">   80871424 :                         vdev_raidz_mul_lt[c][i] = gf_mul(c, i);</span>
+<span class="lineNum">      86 </span>                :            : 
+<span class="lineNum">      87 </span>                :<span class="lineCov">       1234 : }</span>
+<span class="lineNum">      88 </span>                :            : 
+<span class="lineNum">      89 </span>                :            : #define PREFETCHNTA(ptr, offset)        {}
+<span class="lineNum">      90 </span>                :            : #define PREFETCH(ptr, offset)           {}
+<span class="lineNum">      91 </span>                :            : 
+<span class="lineNum">      92 </span>                :            : #define XOR_ACC(src, acc)       acc.e ^= ((v_t *)src)[0].e
+<span class="lineNum">      93 </span>                :            : #define XOR(src, acc)           acc.e ^= src.e
+<span class="lineNum">      94 </span>                :            : #define ZERO(acc)               acc.e = 0
+<span class="lineNum">      95 </span>                :            : #define COPY(src, dst)          dst = src
+<span class="lineNum">      96 </span>                :            : #define LOAD(src, val)          val = ((v_t *)src)[0]
+<span class="lineNum">      97 </span>                :            : #define STORE(dst, val)         ((v_t *)dst)[0] = val
+<span class="lineNum">      98 </span>                :            : 
+<span class="lineNum">      99 </span>                :            : /*
+<span class="lineNum">     100 </span>                :            :  * Constants used for optimized multiplication by 2.
+<span class="lineNum">     101 </span>                :            :  */
+<span class="lineNum">     102 </span>                :            : static const struct {
+<span class="lineNum">     103 </span>                :            :         iv_t mod;
+<span class="lineNum">     104 </span>                :            :         iv_t mask;
+<span class="lineNum">     105 </span>                :            :         iv_t msb;
+<span class="lineNum">     106 </span>                :            : } scalar_mul2_consts = {
+<span class="lineNum">     107 </span>                :            : #if ELEM_SIZE == 8
+<span class="lineNum">     108 </span>                :            :         .mod    = 0x1d1d1d1d1d1d1d1dULL,
+<span class="lineNum">     109 </span>                :            :         .mask   = 0xfefefefefefefefeULL,
+<span class="lineNum">     110 </span>                :            :         .msb    = 0x8080808080808080ULL,
+<span class="lineNum">     111 </span>                :            : #else
+<span class="lineNum">     112 </span>                :            :         .mod    = 0x1d1d1d1dULL,
+<span class="lineNum">     113 </span>                :            :         .mask   = 0xfefefefeULL,
+<span class="lineNum">     114 </span>                :            :         .msb    = 0x80808080ULL,
+<span class="lineNum">     115 </span>                :            : #endif
+<span class="lineNum">     116 </span>                :            : };
+<span class="lineNum">     117 </span>                :            : 
+<span class="lineNum">     118 </span>                :            : #define MUL2_SETUP() {}
+<span class="lineNum">     119 </span>                :            : 
+<span class="lineNum">     120 </span>                :            : #define MUL2(a)                                                         \
+<span class="lineNum">     121 </span>                :            : {                                                                       \
+<span class="lineNum">     122 </span>                :            :         iv_t _mask;                                                     \
+<span class="lineNum">     123 </span>                :            :                                                                         \
+<span class="lineNum">     124 </span>                :            :         _mask = (a).e &amp; scalar_mul2_consts.msb;                             \
+<span class="lineNum">     125 </span>                :            :         _mask = (_mask &lt;&lt; 1) - (_mask &gt;&gt; 7);                                \
+<span class="lineNum">     126 </span>                :            :         (a).e = ((a).e &lt;&lt; 1) &amp; scalar_mul2_consts.mask;                       \
+<span class="lineNum">     127 </span>                :            :         (a).e = (a).e ^ (_mask &amp; scalar_mul2_consts.mod);           \
+<span class="lineNum">     128 </span>                :            : }
+<span class="lineNum">     129 </span>                :            : 
+<span class="lineNum">     130 </span>                :            : #define MUL4(a)                                                         \
+<span class="lineNum">     131 </span>                :            : {                                                                       \
+<span class="lineNum">     132 </span>                :            :         MUL2(a);                                                        \
+<span class="lineNum">     133 </span>                :            :         MUL2(a);                                                        \
+<span class="lineNum">     134 </span>                :            : }
+<span class="lineNum">     135 </span>                :            : 
+<span class="lineNum">     136 </span>                :            : #define MUL(c, a)                                                       \
+<span class="lineNum">     137 </span>                :            : {                                                                       \
+<span class="lineNum">     138 </span>                :            :         const uint8_t *mul_lt = vdev_raidz_mul_lt[c];                   \
+<span class="lineNum">     139 </span>                :            :         switch (ELEM_SIZE) {                                            \
+<span class="lineNum">     140 </span>                :            :         case 8:                                                         \
+<span class="lineNum">     141 </span>                :            :                 a.b[7] = mul_lt[a.b[7]];                                \
+<span class="lineNum">     142 </span>                :            :                 a.b[6] = mul_lt[a.b[6]];                                \
+<span class="lineNum">     143 </span>                :            :                 a.b[5] = mul_lt[a.b[5]];                                \
+<span class="lineNum">     144 </span>                :            :                 a.b[4] = mul_lt[a.b[4]];                                \
+<span class="lineNum">     145 </span>                :            :         case 4:                                                         \
+<span class="lineNum">     146 </span>                :            :                 a.b[3] = mul_lt[a.b[3]];                                \
+<span class="lineNum">     147 </span>                :            :                 a.b[2] = mul_lt[a.b[2]];                                \
+<span class="lineNum">     148 </span>                :            :                 a.b[1] = mul_lt[a.b[1]];                                \
+<span class="lineNum">     149 </span>                :            :                 a.b[0] = mul_lt[a.b[0]];                                \
+<span class="lineNum">     150 </span>                :            :                 break;                                                  \
+<span class="lineNum">     151 </span>                :            :         }                                                               \
+<span class="lineNum">     152 </span>                :            : }
+<span class="lineNum">     153 </span>                :            : 
+<span class="lineNum">     154 </span>                :            : #define raidz_math_begin()      {}
+<span class="lineNum">     155 </span>                :            : #define raidz_math_end()        {}
+<span class="lineNum">     156 </span>                :            : 
+<span class="lineNum">     157 </span>                :            : #define SYN_STRIDE              1
+<span class="lineNum">     158 </span>                :            : 
+<span class="lineNum">     159 </span>                :            : #define ZERO_DEFINE()           v_t d0
+<span class="lineNum">     160 </span>                :            : #define ZERO_STRIDE             1
+<span class="lineNum">     161 </span>                :            : #define ZERO_D                  d0
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>                :            : #define COPY_DEFINE()           v_t d0
+<span class="lineNum">     164 </span>                :            : #define COPY_STRIDE             1
+<span class="lineNum">     165 </span>                :            : #define COPY_D                  d0
+<span class="lineNum">     166 </span>                :            : 
+<span class="lineNum">     167 </span>                :            : #define ADD_DEFINE()            v_t d0
+<span class="lineNum">     168 </span>                :            : #define ADD_STRIDE              1
+<span class="lineNum">     169 </span>                :            : #define ADD_D                   d0
+<span class="lineNum">     170 </span>                :            : 
+<span class="lineNum">     171 </span>                :            : #define MUL_DEFINE()            v_t d0
+<span class="lineNum">     172 </span>                :            : #define MUL_STRIDE              1
+<span class="lineNum">     173 </span>                :            : #define MUL_D                   d0
+<span class="lineNum">     174 </span>                :            : 
+<span class="lineNum">     175 </span>                :            : #define GEN_P_STRIDE            1
+<span class="lineNum">     176 </span>                :            : #define GEN_P_DEFINE()          v_t p0
+<span class="lineNum">     177 </span>                :            : #define GEN_P_P                 p0
+<span class="lineNum">     178 </span>                :            : 
+<span class="lineNum">     179 </span>                :            : #define GEN_PQ_STRIDE           1
+<span class="lineNum">     180 </span>                :            : #define GEN_PQ_DEFINE()         v_t d0, c0
+<span class="lineNum">     181 </span>                :            : #define GEN_PQ_D                d0
+<span class="lineNum">     182 </span>                :            : #define GEN_PQ_C                c0
+<span class="lineNum">     183 </span>                :            : 
+<span class="lineNum">     184 </span>                :            : #define GEN_PQR_STRIDE          1
+<span class="lineNum">     185 </span>                :            : #define GEN_PQR_DEFINE()        v_t d0, c0
+<span class="lineNum">     186 </span>                :            : #define GEN_PQR_D               d0
+<span class="lineNum">     187 </span>                :            : #define GEN_PQR_C               c0
+<span class="lineNum">     188 </span>                :            : 
+<span class="lineNum">     189 </span>                :            : #define SYN_Q_DEFINE()          v_t d0, x0
+<span class="lineNum">     190 </span>                :            : #define SYN_Q_D                 d0
+<span class="lineNum">     191 </span>                :            : #define SYN_Q_X                 x0
+<span class="lineNum">     192 </span>                :            : 
+<span class="lineNum">     193 </span>                :            : 
+<span class="lineNum">     194 </span>                :            : #define SYN_R_DEFINE()          v_t d0, x0
+<span class="lineNum">     195 </span>                :            : #define SYN_R_D                 d0
+<span class="lineNum">     196 </span>                :            : #define SYN_R_X                 x0
+<span class="lineNum">     197 </span>                :            : 
+<span class="lineNum">     198 </span>                :            : 
+<span class="lineNum">     199 </span>                :            : #define SYN_PQ_DEFINE()         v_t d0, x0
+<span class="lineNum">     200 </span>                :            : #define SYN_PQ_D                d0
+<span class="lineNum">     201 </span>                :            : #define SYN_PQ_X                x0
+<span class="lineNum">     202 </span>                :            : 
+<span class="lineNum">     203 </span>                :            : 
+<span class="lineNum">     204 </span>                :            : #define REC_PQ_STRIDE           1
+<span class="lineNum">     205 </span>                :            : #define REC_PQ_DEFINE()         v_t x0, y0, t0
+<span class="lineNum">     206 </span>                :            : #define REC_PQ_X                x0
+<span class="lineNum">     207 </span>                :            : #define REC_PQ_Y                y0
+<span class="lineNum">     208 </span>                :            : #define REC_PQ_T                t0
+<span class="lineNum">     209 </span>                :            : 
+<span class="lineNum">     210 </span>                :            : 
+<span class="lineNum">     211 </span>                :            : #define SYN_PR_DEFINE()         v_t d0, x0
+<span class="lineNum">     212 </span>                :            : #define SYN_PR_D                d0
+<span class="lineNum">     213 </span>                :            : #define SYN_PR_X                x0
+<span class="lineNum">     214 </span>                :            : 
+<span class="lineNum">     215 </span>                :            : #define REC_PR_STRIDE           1
+<span class="lineNum">     216 </span>                :            : #define REC_PR_DEFINE()         v_t x0, y0, t0
+<span class="lineNum">     217 </span>                :            : #define REC_PR_X                x0
+<span class="lineNum">     218 </span>                :            : #define REC_PR_Y                y0
+<span class="lineNum">     219 </span>                :            : #define REC_PR_T                t0
+<span class="lineNum">     220 </span>                :            : 
+<span class="lineNum">     221 </span>                :            : 
+<span class="lineNum">     222 </span>                :            : #define SYN_QR_DEFINE()         v_t d0, x0
+<span class="lineNum">     223 </span>                :            : #define SYN_QR_D                d0
+<span class="lineNum">     224 </span>                :            : #define SYN_QR_X                x0
+<span class="lineNum">     225 </span>                :            : 
+<span class="lineNum">     226 </span>                :            : 
+<span class="lineNum">     227 </span>                :            : #define REC_QR_STRIDE           1
+<span class="lineNum">     228 </span>                :            : #define REC_QR_DEFINE()         v_t x0, y0, t0
+<span class="lineNum">     229 </span>                :            : #define REC_QR_X                x0
+<span class="lineNum">     230 </span>                :            : #define REC_QR_Y                y0
+<span class="lineNum">     231 </span>                :            : #define REC_QR_T                t0
+<span class="lineNum">     232 </span>                :            : 
+<span class="lineNum">     233 </span>                :            : 
+<span class="lineNum">     234 </span>                :            : #define SYN_PQR_DEFINE()        v_t d0, x0
+<span class="lineNum">     235 </span>                :            : #define SYN_PQR_D               d0
+<span class="lineNum">     236 </span>                :            : #define SYN_PQR_X               x0
+<span class="lineNum">     237 </span>                :            : 
+<span class="lineNum">     238 </span>                :            : #define REC_PQR_STRIDE          1
+<span class="lineNum">     239 </span>                :            : #define REC_PQR_DEFINE()        v_t x0, y0, z0, xs0, ys0
+<span class="lineNum">     240 </span>                :            : #define REC_PQR_X               x0
+<span class="lineNum">     241 </span>                :            : #define REC_PQR_Y               y0
+<span class="lineNum">     242 </span>                :            : #define REC_PQR_Z               z0
+<span class="lineNum">     243 </span>                :            : #define REC_PQR_XS              xs0
+<span class="lineNum">     244 </span>                :            : #define REC_PQR_YS              ys0
+<span class="lineNum">     245 </span>                :            : 
+<span class="lineNum">     246 </span>                :            : #include &quot;vdev_raidz_math_impl.h&quot;
+<span class="lineNum">     247 </span>                :            : 
+<span class="lineNum">     248 </span>                :<span class="lineCov">     145777 : DEFINE_GEN_METHODS(scalar);</span>
+<span class="lineNum">     249 </span>                :<span class="lineCov">      50009 : DEFINE_REC_METHODS(scalar);</span>
+<a name="250"><span class="lineNum">     250 </span>                :            : </a>
+<span class="lineNum">     251 </span>                :            : boolean_t
+<span class="lineNum">     252 </span>                :<span class="lineCov">       2468 : raidz_will_scalar_work(void)</span>
+<span class="lineNum">     253 </span>                :            : {
+<span class="lineNum">     254 </span>                :<span class="lineCov">       2468 :         return (B_TRUE); /* always */</span>
+<span class="lineNum">     255 </span>                :            : }
+<span class="lineNum">     256 </span>                :            : 
+<span class="lineNum">     257 </span>                :            : const raidz_impl_ops_t vdev_raidz_scalar_impl = {
+<span class="lineNum">     258 </span>                :            :         .init = raidz_init_scalar,
+<span class="lineNum">     259 </span>                :            :         .fini = NULL,
+<span class="lineNum">     260 </span>                :            :         .gen = RAIDZ_GEN_METHODS(scalar),
+<span class="lineNum">     261 </span>                :            :         .rec = RAIDZ_REC_METHODS(scalar),
+<span class="lineNum">     262 </span>                :            :         .is_supported = &amp;raidz_will_scalar_work,
+<span class="lineNum">     263 </span>                :            :         .name = &quot;scalar&quot;
+<span class="lineNum">     264 </span>                :            : };
+<span class="lineNum">     265 </span>                :            : 
+<span class="lineNum">     266 </span>                :            : /* Powers of 2 in the RAID-Z Galois field. */
+<span class="lineNum">     267 </span>                :            : const uint8_t vdev_raidz_pow2[256] __attribute__((aligned(256))) = {
+<span class="lineNum">     268 </span>                :            :         0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
+<span class="lineNum">     269 </span>                :            :         0x1d, 0x3a, 0x74, 0xe8, 0xcd, 0x87, 0x13, 0x26,
+<span class="lineNum">     270 </span>                :            :         0x4c, 0x98, 0x2d, 0x5a, 0xb4, 0x75, 0xea, 0xc9,
+<span class="lineNum">     271 </span>                :            :         0x8f, 0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0,
+<span class="lineNum">     272 </span>                :            :         0x9d, 0x27, 0x4e, 0x9c, 0x25, 0x4a, 0x94, 0x35,
+<span class="lineNum">     273 </span>                :            :         0x6a, 0xd4, 0xb5, 0x77, 0xee, 0xc1, 0x9f, 0x23,
+<span class="lineNum">     274 </span>                :            :         0x46, 0x8c, 0x05, 0x0a, 0x14, 0x28, 0x50, 0xa0,
+<span class="lineNum">     275 </span>                :            :         0x5d, 0xba, 0x69, 0xd2, 0xb9, 0x6f, 0xde, 0xa1,
+<span class="lineNum">     276 </span>                :            :         0x5f, 0xbe, 0x61, 0xc2, 0x99, 0x2f, 0x5e, 0xbc,
+<span class="lineNum">     277 </span>                :            :         0x65, 0xca, 0x89, 0x0f, 0x1e, 0x3c, 0x78, 0xf0,
+<span class="lineNum">     278 </span>                :            :         0xfd, 0xe7, 0xd3, 0xbb, 0x6b, 0xd6, 0xb1, 0x7f,
+<span class="lineNum">     279 </span>                :            :         0xfe, 0xe1, 0xdf, 0xa3, 0x5b, 0xb6, 0x71, 0xe2,
+<span class="lineNum">     280 </span>                :            :         0xd9, 0xaf, 0x43, 0x86, 0x11, 0x22, 0x44, 0x88,
+<span class="lineNum">     281 </span>                :            :         0x0d, 0x1a, 0x34, 0x68, 0xd0, 0xbd, 0x67, 0xce,
+<span class="lineNum">     282 </span>                :            :         0x81, 0x1f, 0x3e, 0x7c, 0xf8, 0xed, 0xc7, 0x93,
+<span class="lineNum">     283 </span>                :            :         0x3b, 0x76, 0xec, 0xc5, 0x97, 0x33, 0x66, 0xcc,
+<span class="lineNum">     284 </span>                :            :         0x85, 0x17, 0x2e, 0x5c, 0xb8, 0x6d, 0xda, 0xa9,
+<span class="lineNum">     285 </span>                :            :         0x4f, 0x9e, 0x21, 0x42, 0x84, 0x15, 0x2a, 0x54,
+<span class="lineNum">     286 </span>                :            :         0xa8, 0x4d, 0x9a, 0x29, 0x52, 0xa4, 0x55, 0xaa,
+<span class="lineNum">     287 </span>                :            :         0x49, 0x92, 0x39, 0x72, 0xe4, 0xd5, 0xb7, 0x73,
+<span class="lineNum">     288 </span>                :            :         0xe6, 0xd1, 0xbf, 0x63, 0xc6, 0x91, 0x3f, 0x7e,
+<span class="lineNum">     289 </span>                :            :         0xfc, 0xe5, 0xd7, 0xb3, 0x7b, 0xf6, 0xf1, 0xff,
+<span class="lineNum">     290 </span>                :            :         0xe3, 0xdb, 0xab, 0x4b, 0x96, 0x31, 0x62, 0xc4,
+<span class="lineNum">     291 </span>                :            :         0x95, 0x37, 0x6e, 0xdc, 0xa5, 0x57, 0xae, 0x41,
+<span class="lineNum">     292 </span>                :            :         0x82, 0x19, 0x32, 0x64, 0xc8, 0x8d, 0x07, 0x0e,
+<span class="lineNum">     293 </span>                :            :         0x1c, 0x38, 0x70, 0xe0, 0xdd, 0xa7, 0x53, 0xa6,
+<span class="lineNum">     294 </span>                :            :         0x51, 0xa2, 0x59, 0xb2, 0x79, 0xf2, 0xf9, 0xef,
+<span class="lineNum">     295 </span>                :            :         0xc3, 0x9b, 0x2b, 0x56, 0xac, 0x45, 0x8a, 0x09,
+<span class="lineNum">     296 </span>                :            :         0x12, 0x24, 0x48, 0x90, 0x3d, 0x7a, 0xf4, 0xf5,
+<span class="lineNum">     297 </span>                :            :         0xf7, 0xf3, 0xfb, 0xeb, 0xcb, 0x8b, 0x0b, 0x16,
+<span class="lineNum">     298 </span>                :            :         0x2c, 0x58, 0xb0, 0x7d, 0xfa, 0xe9, 0xcf, 0x83,
+<span class="lineNum">     299 </span>                :            :         0x1b, 0x36, 0x6c, 0xd8, 0xad, 0x47, 0x8e, 0x01
+<span class="lineNum">     300 </span>                :            : };
+<span class="lineNum">     301 </span>                :            : 
+<span class="lineNum">     302 </span>                :            : /* Logs of 2 in the RAID-Z Galois field. */
+<span class="lineNum">     303 </span>                :            : const uint8_t vdev_raidz_log2[256] __attribute__((aligned(256))) = {
+<span class="lineNum">     304 </span>                :            :         0x00, 0x00, 0x01, 0x19, 0x02, 0x32, 0x1a, 0xc6,
+<span class="lineNum">     305 </span>                :            :         0x03, 0xdf, 0x33, 0xee, 0x1b, 0x68, 0xc7, 0x4b,
+<span class="lineNum">     306 </span>                :            :         0x04, 0x64, 0xe0, 0x0e, 0x34, 0x8d, 0xef, 0x81,
+<span class="lineNum">     307 </span>                :            :         0x1c, 0xc1, 0x69, 0xf8, 0xc8, 0x08, 0x4c, 0x71,
+<span class="lineNum">     308 </span>                :            :         0x05, 0x8a, 0x65, 0x2f, 0xe1, 0x24, 0x0f, 0x21,
+<span class="lineNum">     309 </span>                :            :         0x35, 0x93, 0x8e, 0xda, 0xf0, 0x12, 0x82, 0x45,
+<span class="lineNum">     310 </span>                :            :         0x1d, 0xb5, 0xc2, 0x7d, 0x6a, 0x27, 0xf9, 0xb9,
+<span class="lineNum">     311 </span>                :            :         0xc9, 0x9a, 0x09, 0x78, 0x4d, 0xe4, 0x72, 0xa6,
+<span class="lineNum">     312 </span>                :            :         0x06, 0xbf, 0x8b, 0x62, 0x66, 0xdd, 0x30, 0xfd,
+<span class="lineNum">     313 </span>                :            :         0xe2, 0x98, 0x25, 0xb3, 0x10, 0x91, 0x22, 0x88,
+<span class="lineNum">     314 </span>                :            :         0x36, 0xd0, 0x94, 0xce, 0x8f, 0x96, 0xdb, 0xbd,
+<span class="lineNum">     315 </span>                :            :         0xf1, 0xd2, 0x13, 0x5c, 0x83, 0x38, 0x46, 0x40,
+<span class="lineNum">     316 </span>                :            :         0x1e, 0x42, 0xb6, 0xa3, 0xc3, 0x48, 0x7e, 0x6e,
+<span class="lineNum">     317 </span>                :            :         0x6b, 0x3a, 0x28, 0x54, 0xfa, 0x85, 0xba, 0x3d,
+<span class="lineNum">     318 </span>                :            :         0xca, 0x5e, 0x9b, 0x9f, 0x0a, 0x15, 0x79, 0x2b,
+<span class="lineNum">     319 </span>                :            :         0x4e, 0xd4, 0xe5, 0xac, 0x73, 0xf3, 0xa7, 0x57,
+<span class="lineNum">     320 </span>                :            :         0x07, 0x70, 0xc0, 0xf7, 0x8c, 0x80, 0x63, 0x0d,
+<span class="lineNum">     321 </span>                :            :         0x67, 0x4a, 0xde, 0xed, 0x31, 0xc5, 0xfe, 0x18,
+<span class="lineNum">     322 </span>                :            :         0xe3, 0xa5, 0x99, 0x77, 0x26, 0xb8, 0xb4, 0x7c,
+<span class="lineNum">     323 </span>                :            :         0x11, 0x44, 0x92, 0xd9, 0x23, 0x20, 0x89, 0x2e,
+<span class="lineNum">     324 </span>                :            :         0x37, 0x3f, 0xd1, 0x5b, 0x95, 0xbc, 0xcf, 0xcd,
+<span class="lineNum">     325 </span>                :            :         0x90, 0x87, 0x97, 0xb2, 0xdc, 0xfc, 0xbe, 0x61,
+<span class="lineNum">     326 </span>                :            :         0xf2, 0x56, 0xd3, 0xab, 0x14, 0x2a, 0x5d, 0x9e,
+<span class="lineNum">     327 </span>                :            :         0x84, 0x3c, 0x39, 0x53, 0x47, 0x6d, 0x41, 0xa2,
+<span class="lineNum">     328 </span>                :            :         0x1f, 0x2d, 0x43, 0xd8, 0xb7, 0x7b, 0xa4, 0x76,
+<span class="lineNum">     329 </span>                :            :         0xc4, 0x17, 0x49, 0xec, 0x7f, 0x0c, 0x6f, 0xf6,
+<span class="lineNum">     330 </span>                :            :         0x6c, 0xa1, 0x3b, 0x52, 0x29, 0x9d, 0x55, 0xaa,
+<span class="lineNum">     331 </span>                :            :         0xfb, 0x60, 0x86, 0xb1, 0xbb, 0xcc, 0x3e, 0x5a,
+<span class="lineNum">     332 </span>                :            :         0xcb, 0x59, 0x5f, 0xb0, 0x9c, 0xa9, 0xa0, 0x51,
+<span class="lineNum">     333 </span>                :            :         0x0b, 0xf5, 0x16, 0xeb, 0x7a, 0x75, 0x2c, 0xd7,
+<span class="lineNum">     334 </span>                :            :         0x4f, 0xae, 0xd5, 0xe9, 0xe6, 0xe7, 0xad, 0xe8,
+<span class="lineNum">     335 </span>                :            :         0x74, 0xd6, 0xf4, 0xea, 0xa8, 0x50, 0x58, 0xaf,
+<span class="lineNum">     336 </span>                :            : };
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

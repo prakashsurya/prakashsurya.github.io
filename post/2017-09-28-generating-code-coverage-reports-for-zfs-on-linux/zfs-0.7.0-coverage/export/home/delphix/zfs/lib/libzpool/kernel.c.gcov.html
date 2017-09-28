@@ -1,0 +1,1306 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/lib/libzpool/kernel.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/lib/libzpool</a> - kernel.c<span style="font-size: 80%;"> (source / <a href="kernel.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">310</td>
+            <td class="headerCovTableEntry">442</td>
+            <td class="headerCovTableEntryLo">70.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">52</td>
+            <td class="headerCovTableEntry">83</td>
+            <td class="headerCovTableEntryLo">62.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">116</td>
+            <td class="headerCovTableEntry">211</td>
+            <td class="headerCovTableEntryLo">55.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2016 Actifio, Inc. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : #include &lt;assert.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;poll.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;stdio.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;string.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;zlib.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;libgen.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/signal.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">      37 </span>                :            : #include &lt;sys/processor.h&gt;
+<span class="lineNum">      38 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      39 </span>                :            : #include &lt;sys/rrwlock.h&gt;
+<span class="lineNum">      40 </span>                :            : #include &lt;sys/utsname.h&gt;
+<span class="lineNum">      41 </span>                :            : #include &lt;sys/time.h&gt;
+<span class="lineNum">      42 </span>                :            : #include &lt;sys/systeminfo.h&gt;
+<span class="lineNum">      43 </span>                :            : #include &lt;zfs_fletcher.h&gt;
+<span class="lineNum">      44 </span>                :            : #include &lt;sys/crypto/icp.h&gt;
+<span class="lineNum">      45 </span>                :            : 
+<span class="lineNum">      46 </span>                :            : /*
+<span class="lineNum">      47 </span>                :            :  * Emulation of kernel services in userland.
+<span class="lineNum">      48 </span>                :            :  */
+<span class="lineNum">      49 </span>                :            : 
+<span class="lineNum">      50 </span>                :            : int aok;
+<span class="lineNum">      51 </span>                :            : uint64_t physmem;
+<span class="lineNum">      52 </span>                :            : vnode_t *rootdir = (vnode_t *)0xabcd1234;
+<span class="lineNum">      53 </span>                :            : char hw_serial[HW_HOSTID_LEN];
+<span class="lineNum">      54 </span>                :            : struct utsname hw_utsname;
+<span class="lineNum">      55 </span>                :            : vmem_t *zio_arena = NULL;
+<span class="lineNum">      56 </span>                :            : 
+<span class="lineNum">      57 </span>                :            : /* If set, all blocks read will be copied to the specified directory. */
+<span class="lineNum">      58 </span>                :            : char *vn_dumpdir = NULL;
+<span class="lineNum">      59 </span>                :            : 
+<span class="lineNum">      60 </span>                :            : /* this only exists to have its address taken */
+<span class="lineNum">      61 </span>                :            : struct proc p0;
+<span class="lineNum">      62 </span>                :            : 
+<span class="lineNum">      63 </span>                :            : /*
+<span class="lineNum">      64 </span>                :            :  * =========================================================================
+<span class="lineNum">      65 </span>                :            :  * threads
+<span class="lineNum">      66 </span>                :            :  * =========================================================================
+<span class="lineNum">      67 </span>                :            :  *
+<span class="lineNum">      68 </span>                :            :  * TS_STACK_MIN is dictated by the minimum allowed pthread stack size.  While
+<span class="lineNum">      69 </span>                :            :  * TS_STACK_MAX is somewhat arbitrary, it was selected to be large enough for
+<span class="lineNum">      70 </span>                :            :  * the expected stack depth while small enough to avoid exhausting address
+<span class="lineNum">      71 </span>                :            :  * space with high thread counts.
+<span class="lineNum">      72 </span>                :            :  */
+<span class="lineNum">      73 </span>                :            : #define TS_STACK_MIN    MAX(PTHREAD_STACK_MIN, 32768)
+<span class="lineNum">      74 </span>                :            : #define TS_STACK_MAX    (256 * 1024)
+<span class="lineNum">      75 </span>                :            : 
+<a name="76"><span class="lineNum">      76 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">      77 </span>                :            : kthread_t *
+<span class="lineNum">      78 </span>                :<span class="lineCov">     929301 : zk_thread_create(void (*func)(void *), void *arg, size_t stksize, int state)</span>
+<span class="lineNum">      79 </span>                :            : {
+<span class="lineNum">      80 </span>                :            :         pthread_attr_t attr;
+<span class="lineNum">      81 </span>                :            :         pthread_t tid;
+<span class="lineNum">      82 </span>                :            :         char *stkstr;
+<span class="lineNum">      83 </span>                :<span class="lineCov">     929301 :         int detachstate = PTHREAD_CREATE_DETACHED;</span>
+<span class="lineNum">      84 </span>                :            : 
+<span class="lineNum">      85 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 929302 times"> + </span>]:<span class="lineCov">     929301 :         VERIFY0(pthread_attr_init(&amp;attr));</span>
+<span class="lineNum">      86 </span>                :            : 
+<span class="lineNum">      87 </span>        [<span class="branchCov" title="Branch 0 was taken 1179 times"> + </span><span class="branchCov" title="Branch 1 was taken 928123 times"> + </span>]:<span class="lineCov">     929302 :         if (state &amp; TS_JOINABLE)</span>
+<span class="lineNum">      88 </span>                :<span class="lineCov">       1179 :                 detachstate = PTHREAD_CREATE_JOINABLE;</span>
+<span class="lineNum">      89 </span>                :            : 
+<span class="lineNum">      90 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 929300 times"> + </span>]:<span class="lineCov">     929302 :         VERIFY0(pthread_attr_setdetachstate(&amp;attr, detachstate));</span>
+<span class="lineNum">      91 </span>                :            : 
+<span class="lineNum">      92 </span>                :            :         /*
+<span class="lineNum">      93 </span>                :            :          * We allow the default stack size in user space to be specified by
+<span class="lineNum">      94 </span>                :            :          * setting the ZFS_STACK_SIZE environment variable.  This allows us
+<span class="lineNum">      95 </span>                :            :          * the convenience of observing and debugging stack overruns in
+<span class="lineNum">      96 </span>                :            :          * user space.  Explicitly specified stack sizes will be honored.
+<span class="lineNum">      97 </span>                :            :          * The usage of ZFS_STACK_SIZE is discussed further in the
+<span class="lineNum">      98 </span>                :            :          * ENVIRONMENT VARIABLES sections of the ztest(1) man page.
+<span class="lineNum">      99 </span>                :            :          */
+<span class="lineNum">     100 </span>        [<span class="branchCov" title="Branch 0 was taken 929300 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">     929300 :         if (stksize == 0) {</span>
+<span class="lineNum">     101 </span>                :<span class="lineCov">     929300 :                 stkstr = getenv(&quot;ZFS_STACK_SIZE&quot;);</span>
+<span class="lineNum">     102 </span>                :            : 
+<span class="lineNum">     103 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 929301 times"> + </span>]:<span class="lineCov">     929301 :                 if (stkstr == NULL)</span>
+<span class="lineNum">     104 </span>                :            :                         stksize = TS_STACK_MAX;
+<span class="lineNum">     105 </span>                :            :                 else
+<span class="lineNum">     106 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         stksize = MAX(atoi(stkstr), TS_STACK_MIN);</span>
+<span class="lineNum">     107 </span>                :            :         }
+<span class="lineNum">     108 </span>                :            : 
+<span class="lineNum">     109 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 929301 times"> + </span>]:<span class="lineCov">     929301 :         VERIFY3S(stksize, &gt;, 0);</span>
+<span class="lineNum">     110 </span>                :<span class="lineCov">     929301 :         stksize = P2ROUNDUP(MAX(stksize, TS_STACK_MIN), PAGESIZE);</span>
+<span class="lineNum">     111 </span>                :            : 
+<span class="lineNum">     112 </span>                :            :         /*
+<span class="lineNum">     113 </span>                :            :          * If this ever fails, it may be because the stack size is not a
+<span class="lineNum">     114 </span>                :            :          * multiple of system page size.
+<span class="lineNum">     115 </span>                :            :          */
+<span class="lineNum">     116 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 929301 times"> + </span>]:<span class="lineCov">     929301 :         VERIFY0(pthread_attr_setstacksize(&amp;attr, stksize));</span>
+<span class="lineNum">     117 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 929302 times"> + </span>]:<span class="lineCov">     929301 :         VERIFY0(pthread_attr_setguardsize(&amp;attr, PAGESIZE));</span>
+<span class="lineNum">     118 </span>                :            : 
+<span class="lineNum">     119 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 929302 times"> + </span>]:<span class="lineCov">     929302 :         VERIFY0(pthread_create(&amp;tid, &amp;attr, (void *(*)(void *))func, arg));</span>
+<span class="lineNum">     120 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 929302 times"> + </span>]:<span class="lineCov">     929302 :         VERIFY0(pthread_attr_destroy(&amp;attr));</span>
+<span class="lineNum">     121 </span>                :            : 
+<span class="lineNum">     122 </span>                :<span class="lineCov">     929302 :         return ((void *)(uintptr_t)tid);</span>
+<span class="lineNum">     123 </span>                :            : }
+<span class="lineNum">     124 </span>                :            : 
+<span class="lineNum">     125 </span>                :            : /*
+<span class="lineNum">     126 </span>                :            :  * =========================================================================
+<span class="lineNum">     127 </span>                :            :  * kstats
+<span class="lineNum">     128 </span>                :            :  * =========================================================================
+<span class="lineNum">     129 </span>                :            :  */
+<a name="130"><span class="lineNum">     130 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     131 </span>                :            : kstat_t *
+<span class="lineNum">     132 </span>                :<span class="lineCov">      29574 : kstat_create(const char *module, int instance, const char *name,</span>
+<span class="lineNum">     133 </span>                :            :     const char *class, uchar_t type, ulong_t ndata, uchar_t ks_flag)
+<span class="lineNum">     134 </span>                :            : {
+<span class="lineNum">     135 </span>                :<span class="lineCov">      29574 :         return (NULL);</span>
+<span class="lineNum">     136 </span>                :            : }
+<span class="lineNum">     137 </span>                :            : 
+<a name="138"><span class="lineNum">     138 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     139 </span>                :            : void
+<span class="lineNum">     140 </span>                :<span class="lineNoCov">          0 : kstat_install(kstat_t *ksp)</span>
+<span class="lineNum">     141 </span>                :<span class="lineNoCov">          0 : {}</span>
+<span class="lineNum">     142 </span>                :            : 
+<a name="143"><span class="lineNum">     143 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     144 </span>                :            : void
+<span class="lineNum">     145 </span>                :<span class="lineNoCov">          0 : kstat_delete(kstat_t *ksp)</span>
+<span class="lineNum">     146 </span>                :<span class="lineNoCov">          0 : {}</span>
+<span class="lineNum">     147 </span>                :            : 
+<a name="148"><span class="lineNum">     148 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     149 </span>                :            : void
+<span class="lineNum">     150 </span>                :<span class="lineNoCov">          0 : kstat_waitq_enter(kstat_io_t *kiop)</span>
+<span class="lineNum">     151 </span>                :<span class="lineNoCov">          0 : {}</span>
+<span class="lineNum">     152 </span>                :            : 
+<a name="153"><span class="lineNum">     153 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     154 </span>                :            : void
+<span class="lineNum">     155 </span>                :<span class="lineNoCov">          0 : kstat_waitq_exit(kstat_io_t *kiop)</span>
+<span class="lineNum">     156 </span>                :<span class="lineNoCov">          0 : {}</span>
+<span class="lineNum">     157 </span>                :            : 
+<a name="158"><span class="lineNum">     158 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     159 </span>                :            : void
+<span class="lineNum">     160 </span>                :<span class="lineNoCov">          0 : kstat_runq_enter(kstat_io_t *kiop)</span>
+<span class="lineNum">     161 </span>                :<span class="lineNoCov">          0 : {}</span>
+<span class="lineNum">     162 </span>                :            : 
+<a name="163"><span class="lineNum">     163 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     164 </span>                :            : void
+<span class="lineNum">     165 </span>                :<span class="lineNoCov">          0 : kstat_runq_exit(kstat_io_t *kiop)</span>
+<span class="lineNum">     166 </span>                :<span class="lineNoCov">          0 : {}</span>
+<span class="lineNum">     167 </span>                :            : 
+<a name="168"><span class="lineNum">     168 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     169 </span>                :            : void
+<span class="lineNum">     170 </span>                :<span class="lineNoCov">          0 : kstat_waitq_to_runq(kstat_io_t *kiop)</span>
+<span class="lineNum">     171 </span>                :<span class="lineNoCov">          0 : {}</span>
+<span class="lineNum">     172 </span>                :            : 
+<a name="173"><span class="lineNum">     173 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     174 </span>                :            : void
+<span class="lineNum">     175 </span>                :<span class="lineNoCov">          0 : kstat_runq_back_to_waitq(kstat_io_t *kiop)</span>
+<span class="lineNum">     176 </span>                :<span class="lineNoCov">          0 : {}</span>
+<a name="177"><span class="lineNum">     177 </span>                :            : </a>
+<span class="lineNum">     178 </span>                :            : void
+<span class="lineNum">     179 </span>                :<span class="lineNoCov">          0 : kstat_set_raw_ops(kstat_t *ksp,</span>
+<span class="lineNum">     180 </span>                :            :     int (*headers)(char *buf, size_t size),
+<span class="lineNum">     181 </span>                :            :     int (*data)(char *buf, size_t size, void *data),
+<span class="lineNum">     182 </span>                :            :     void *(*addr)(kstat_t *ksp, loff_t index))
+<span class="lineNum">     183 </span>                :<span class="lineNoCov">          0 : {}</span>
+<span class="lineNum">     184 </span>                :            : 
+<span class="lineNum">     185 </span>                :            : /*
+<span class="lineNum">     186 </span>                :            :  * =========================================================================
+<span class="lineNum">     187 </span>                :            :  * mutexes
+<span class="lineNum">     188 </span>                :            :  * =========================================================================
+<span class="lineNum">     189 </span>                :            :  */
+<a name="190"><span class="lineNum">     190 </span>                :            : </a>
+<span class="lineNum">     191 </span>                :            : void
+<span class="lineNum">     192 </span>                :<span class="lineCov"> 1055844869 : mutex_init(kmutex_t *mp, char *name, int type, void *cookie)</span>
+<span class="lineNum">     193 </span>                :            : {
+<span class="lineNum">     194 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1055873087 times"> + </span>]:<span class="lineCov"> 1055844869 :         VERIFY0(pthread_mutex_init(&amp;mp-&gt;m_lock, NULL));</span>
+<span class="lineNum">     195 </span>                :<span class="lineCov"> 2111746174 :         memset(&amp;mp-&gt;m_owner, 0, sizeof (pthread_t));</span>
+<span class="lineNum">     196 </span>                :<span class="lineCov"> 1055873087 : }</span>
+<a name="197"><span class="lineNum">     197 </span>                :            : </a>
+<span class="lineNum">     198 </span>                :            : void
+<span class="lineNum">     199 </span>                :<span class="lineCov"> 1048289314 : mutex_destroy(kmutex_t *mp)</span>
+<span class="lineNum">     200 </span>                :            : {
+<span class="lineNum">     201 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1048293846 times"> + </span>]:<span class="lineCov"> 1048289314 :         VERIFY0(pthread_mutex_destroy(&amp;mp-&gt;m_lock));</span>
+<span class="lineNum">     202 </span>                :<span class="lineCov"> 1048293846 : }</span>
+<a name="203"><span class="lineNum">     203 </span>                :            : </a>
+<span class="lineNum">     204 </span>                :            : void
+<span class="lineNum">     205 </span>                :<span class="lineCov"> 3152251582 : mutex_enter(kmutex_t *mp)</span>
+<span class="lineNum">     206 </span>                :            : {
+<span class="lineNum">     207 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 3159018856 times"> + </span>]:<span class="lineCov"> 3152251582 :         VERIFY0(pthread_mutex_lock(&amp;mp-&gt;m_lock));</span>
+<span class="lineNum">     208 </span>                :<span class="lineCov"> 3159018856 :         mp-&gt;m_owner = pthread_self();</span>
+<span class="lineNum">     209 </span>                :<span class="lineCov"> 3159156708 : }</span>
+<a name="210"><span class="lineNum">     210 </span>                :            : </a>
+<span class="lineNum">     211 </span>                :            : int
+<span class="lineNum">     212 </span>                :<span class="lineCov"> 1023304408 : mutex_tryenter(kmutex_t *mp)</span>
+<span class="lineNum">     213 </span>                :            : {
+<span class="lineNum">     214 </span>                :            :         int error;
+<span class="lineNum">     215 </span>                :            : 
+<span class="lineNum">     216 </span>                :<span class="lineCov"> 1023304408 :         error = pthread_mutex_trylock(&amp;mp-&gt;m_lock);</span>
+<span class="lineNum">     217 </span>        [<span class="branchCov" title="Branch 0 was taken 1023304385 times"> + </span><span class="branchCov" title="Branch 1 was taken 23 times"> + </span>]:<span class="lineCov"> 1023304408 :         if (error == 0) {</span>
+<span class="lineNum">     218 </span>                :<span class="lineCov"> 1023304385 :                 mp-&gt;m_owner = pthread_self();</span>
+<span class="lineNum">     219 </span>                :<span class="lineCov"> 1023304385 :                 return (1);</span>
+<span class="lineNum">     220 </span>                :            :         } else {
+<span class="lineNum">     221 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 23 times"> + </span>]:<span class="lineCov">         23 :                 VERIFY3S(error, ==, EBUSY);</span>
+<span class="lineNum">     222 </span>                :            :                 return (0);
+<span class="lineNum">     223 </span>                :            :         }
+<span class="lineNum">     224 </span>                :            : }
+<a name="225"><span class="lineNum">     225 </span>                :            : </a>
+<span class="lineNum">     226 </span>                :            : void
+<span class="lineNum">     227 </span>                :<span class="lineCov"> 4177370715 : mutex_exit(kmutex_t *mp)</span>
+<span class="lineNum">     228 </span>                :            : {
+<span class="lineNum">     229 </span>                :<span class="lineCov"> 8354741430 :         memset(&amp;mp-&gt;m_owner, 0, sizeof (pthread_t));</span>
+<span class="lineNum">     230 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 4182242252 times"> + </span>]:<span class="lineCov"> 4177370715 :         VERIFY0(pthread_mutex_unlock(&amp;mp-&gt;m_lock));</span>
+<span class="lineNum">     231 </span>                :<span class="lineCov"> 4182242252 : }</span>
+<span class="lineNum">     232 </span>                :            : 
+<span class="lineNum">     233 </span>                :            : /*
+<span class="lineNum">     234 </span>                :            :  * =========================================================================
+<span class="lineNum">     235 </span>                :            :  * rwlocks
+<span class="lineNum">     236 </span>                :            :  * =========================================================================
+<span class="lineNum">     237 </span>                :            :  */
+<a name="238"><span class="lineNum">     238 </span>                :            : </a>
+<span class="lineNum">     239 </span>                :            : void
+<span class="lineNum">     240 </span>                :<span class="lineCov">    1641164 : rw_init(krwlock_t *rwlp, char *name, int type, void *arg)</span>
+<span class="lineNum">     241 </span>                :            : {
+<span class="lineNum">     242 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1641016 times"> + </span>]:<span class="lineCov">    1641164 :         VERIFY0(pthread_rwlock_init(&amp;rwlp-&gt;rw_lock, NULL));</span>
+<span class="lineNum">     243 </span>                :<span class="lineCov">    1641016 :         rwlp-&gt;rw_readers = 0;</span>
+<span class="lineNum">     244 </span>                :<span class="lineCov">    1641016 :         rwlp-&gt;rw_owner = 0;</span>
+<span class="lineNum">     245 </span>                :<span class="lineCov">    1641016 : }</span>
+<a name="246"><span class="lineNum">     246 </span>                :            : </a>
+<span class="lineNum">     247 </span>                :            : void
+<span class="lineNum">     248 </span>                :<span class="lineCov">    1638031 : rw_destroy(krwlock_t *rwlp)</span>
+<span class="lineNum">     249 </span>                :            : {
+<span class="lineNum">     250 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1638089 times"> + </span>]:<span class="lineCov">    1638031 :         VERIFY0(pthread_rwlock_destroy(&amp;rwlp-&gt;rw_lock));</span>
+<span class="lineNum">     251 </span>                :<span class="lineCov">    1638089 : }</span>
+<a name="252"><span class="lineNum">     252 </span>                :            : </a>
+<span class="lineNum">     253 </span>                :            : void
+<span class="lineNum">     254 </span>                :<span class="lineCov">   54003780 : rw_enter(krwlock_t *rwlp, krw_t rw)</span>
+<span class="lineNum">     255 </span>                :            : {
+<span class="lineNum">     256 </span>        [<span class="branchCov" title="Branch 0 was taken 51464271 times"> + </span><span class="branchCov" title="Branch 1 was taken 2539509 times"> + </span>]:<span class="lineCov">   54003780 :         if (rw == RW_READER) {</span>
+<span class="lineNum">     257 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 51529163 times"> + </span>]:<span class="lineCov">   51464271 :                 VERIFY0(pthread_rwlock_rdlock(&amp;rwlp-&gt;rw_lock));</span>
+<span class="lineNum">     258 </span>                :<span class="lineCov">   51529163 :                 atomic_inc_uint(&amp;rwlp-&gt;rw_readers);</span>
+<span class="lineNum">     259 </span>                :            :         } else {
+<span class="lineNum">     260 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 2540769 times"> + </span>]:<span class="lineCov">    2539509 :                 VERIFY0(pthread_rwlock_wrlock(&amp;rwlp-&gt;rw_lock));</span>
+<span class="lineNum">     261 </span>                :<span class="lineCov">    2540769 :                 rwlp-&gt;rw_owner = pthread_self();</span>
+<span class="lineNum">     262 </span>                :            :         }
+<span class="lineNum">     263 </span>                :<span class="lineCov">   54102377 : }</span>
+<a name="264"><span class="lineNum">     264 </span>                :            : </a>
+<span class="lineNum">     265 </span>                :            : void
+<span class="lineNum">     266 </span>                :<span class="lineCov">   54020076 : rw_exit(krwlock_t *rwlp)</span>
+<span class="lineNum">     267 </span>                :            : {
+<span class="lineNum">     268 </span>        [<span class="branchCov" title="Branch 0 was taken 51479808 times"> + </span><span class="branchCov" title="Branch 1 was taken 2540268 times"> + </span>]:<span class="lineCov">   54020076 :         if (RW_READ_HELD(rwlp))</span>
+<span class="lineNum">     269 </span>                :<span class="lineCov">   51479808 :                 atomic_dec_uint(&amp;rwlp-&gt;rw_readers);</span>
+<span class="lineNum">     270 </span>                :            :         else
+<span class="lineNum">     271 </span>                :<span class="lineCov">    2540268 :                 rwlp-&gt;rw_owner = 0;</span>
+<span class="lineNum">     272 </span>                :            : 
+<span class="lineNum">     273 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 54076190 times"> + </span>]:<span class="lineCov">   54108038 :         VERIFY0(pthread_rwlock_unlock(&amp;rwlp-&gt;rw_lock));</span>
+<span class="lineNum">     274 </span>                :<span class="lineCov">   54076190 : }</span>
+<a name="275"><span class="lineNum">     275 </span>                :            : </a>
+<span class="lineNum">     276 </span>                :            : int
+<span class="lineNum">     277 </span>                :<span class="lineNoCov">          0 : rw_tryenter(krwlock_t *rwlp, krw_t rw)</span>
+<span class="lineNum">     278 </span>                :            : {
+<span class="lineNum">     279 </span>                :            :         int error;
+<span class="lineNum">     280 </span>                :            : 
+<span class="lineNum">     281 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rw == RW_READER)</span>
+<span class="lineNum">     282 </span>                :<span class="lineNoCov">          0 :                 error = pthread_rwlock_tryrdlock(&amp;rwlp-&gt;rw_lock);</span>
+<span class="lineNum">     283 </span>                :            :         else
+<span class="lineNum">     284 </span>                :<span class="lineNoCov">          0 :                 error = pthread_rwlock_trywrlock(&amp;rwlp-&gt;rw_lock);</span>
+<span class="lineNum">     285 </span>                :            : 
+<span class="lineNum">     286 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error == 0) {</span>
+<span class="lineNum">     287 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (rw == RW_READER)</span>
+<span class="lineNum">     288 </span>                :<span class="lineNoCov">          0 :                         atomic_inc_uint(&amp;rwlp-&gt;rw_readers);</span>
+<span class="lineNum">     289 </span>                :            :                 else
+<span class="lineNum">     290 </span>                :<span class="lineNoCov">          0 :                         rwlp-&gt;rw_owner = pthread_self();</span>
+<span class="lineNum">     291 </span>                :            : 
+<span class="lineNum">     292 </span>                :            :                 return (1);
+<span class="lineNum">     293 </span>                :            :         }
+<span class="lineNum">     294 </span>                :            : 
+<span class="lineNum">     295 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY3S(error, ==, EBUSY);</span>
+<span class="lineNum">     296 </span>                :            : 
+<span class="lineNum">     297 </span>                :            :         return (0);
+<span class="lineNum">     298 </span>                :            : }
+<a name="299"><span class="lineNum">     299 </span>                :            : </a>
+<span class="lineNum">     300 </span>                :            : int
+<span class="lineNum">     301 </span>                :<span class="lineCov">    2753877 : rw_tryupgrade(krwlock_t *rwlp)</span>
+<span class="lineNum">     302 </span>                :            : {
+<span class="lineNum">     303 </span>                :<span class="lineCov">    2753877 :         return (0);</span>
+<span class="lineNum">     304 </span>                :            : }
+<span class="lineNum">     305 </span>                :            : 
+<span class="lineNum">     306 </span>                :            : /*
+<span class="lineNum">     307 </span>                :            :  * =========================================================================
+<span class="lineNum">     308 </span>                :            :  * condition variables
+<span class="lineNum">     309 </span>                :            :  * =========================================================================
+<span class="lineNum">     310 </span>                :            :  */
+<a name="311"><span class="lineNum">     311 </span>                :            : </a>
+<span class="lineNum">     312 </span>                :            : void
+<span class="lineNum">     313 </span>                :<span class="lineCov">  518804682 : cv_init(kcondvar_t *cv, char *name, int type, void *arg)</span>
+<span class="lineNum">     314 </span>                :            : {
+<span class="lineNum">     315 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 518806196 times"> + </span>]:<span class="lineCov">  518804682 :         VERIFY0(pthread_cond_init(cv, NULL));</span>
+<span class="lineNum">     316 </span>                :<span class="lineCov">  518806196 : }</span>
+<a name="317"><span class="lineNum">     317 </span>                :            : </a>
+<span class="lineNum">     318 </span>                :            : void
+<span class="lineNum">     319 </span>                :<span class="lineCov">  518773432 : cv_destroy(kcondvar_t *cv)</span>
+<span class="lineNum">     320 </span>                :            : {
+<span class="lineNum">     321 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 518789425 times"> + </span>]:<span class="lineCov">  518773432 :         VERIFY0(pthread_cond_destroy(cv));</span>
+<span class="lineNum">     322 </span>                :<span class="lineCov">  518789425 : }</span>
+<a name="323"><span class="lineNum">     323 </span>                :            : </a>
+<span class="lineNum">     324 </span>                :            : void
+<span class="lineNum">     325 </span>                :<span class="lineCov">   17001816 : cv_wait(kcondvar_t *cv, kmutex_t *mp)</span>
+<span class="lineNum">     326 </span>                :            : {
+<span class="lineNum">     327 </span>                :<span class="lineCov">   34003632 :         memset(&amp;mp-&gt;m_owner, 0, sizeof (pthread_t));</span>
+<span class="lineNum">     328 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 16932096 times"> + </span>]:<span class="lineCov">   17001816 :         VERIFY0(pthread_cond_wait(cv, &amp;mp-&gt;m_lock));</span>
+<span class="lineNum">     329 </span>                :<span class="lineCov">   16932096 :         mp-&gt;m_owner = pthread_self();</span>
+<span class="lineNum">     330 </span>                :<span class="lineCov">   16935582 : }</span>
+<a name="331"><span class="lineNum">     331 </span>                :            : </a>
+<span class="lineNum">     332 </span>                :            : clock_t
+<span class="lineNum">     333 </span>                :<span class="lineCov">       9784 : cv_timedwait(kcondvar_t *cv, kmutex_t *mp, clock_t abstime)</span>
+<span class="lineNum">     334 </span>                :            : {
+<span class="lineNum">     335 </span>                :            :         int error;
+<span class="lineNum">     336 </span>                :            :         struct timeval tv;
+<span class="lineNum">     337 </span>                :            :         timestruc_t ts;
+<span class="lineNum">     338 </span>                :            :         clock_t delta;
+<span class="lineNum">     339 </span>                :            : 
+<span class="lineNum">     340 </span>                :<span class="lineCov">       9784 :         delta = abstime - ddi_get_lbolt();</span>
+<span class="lineNum">     341 </span>        [<span class="branchCov" title="Branch 0 was taken 9559 times"> + </span><span class="branchCov" title="Branch 1 was taken 225 times"> + </span>]:<span class="lineCov">       9784 :         if (delta &lt;= 0)</span>
+<span class="lineNum">     342 </span>                :            :                 return (-1);
+<span class="lineNum">     343 </span>                :            : 
+<span class="lineNum">     344 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 9559 times"> + </span>]:<span class="lineCov">       9559 :         VERIFY(gettimeofday(&amp;tv, NULL) == 0);</span>
+<span class="lineNum">     345 </span>                :            : 
+<span class="lineNum">     346 </span>                :<span class="lineCov">       9559 :         ts.tv_sec = tv.tv_sec + delta / hz;</span>
+<span class="lineNum">     347 </span>                :<span class="lineCov">       9559 :         ts.tv_nsec = tv.tv_usec * NSEC_PER_USEC + (delta % hz) * (NANOSEC / hz);</span>
+<span class="lineNum">     348 </span>        [<span class="branchCov" title="Branch 0 was taken 2607 times"> + </span><span class="branchCov" title="Branch 1 was taken 6952 times"> + </span>]:<span class="lineCov">       9559 :         if (ts.tv_nsec &gt;= NANOSEC) {</span>
+<span class="lineNum">     349 </span>                :<span class="lineCov">       2607 :                 ts.tv_sec++;</span>
+<span class="lineNum">     350 </span>                :<span class="lineCov">       2607 :                 ts.tv_nsec -= NANOSEC;</span>
+<span class="lineNum">     351 </span>                :            :         }
+<span class="lineNum">     352 </span>                :            : 
+<span class="lineNum">     353 </span>                :<span class="lineCov">      19118 :         memset(&amp;mp-&gt;m_owner, 0, sizeof (pthread_t));</span>
+<span class="lineNum">     354 </span>                :<span class="lineCov">       9559 :         error = pthread_cond_timedwait(cv, &amp;mp-&gt;m_lock, &amp;ts);</span>
+<span class="lineNum">     355 </span>                :<span class="lineCov">       9557 :         mp-&gt;m_owner = pthread_self();</span>
+<span class="lineNum">     356 </span>                :            : 
+<span class="lineNum">     357 </span>        [<span class="branchCov" title="Branch 0 was taken 5796 times"> + </span><span class="branchCov" title="Branch 1 was taken 3761 times"> + </span>]:<span class="lineCov">       9557 :         if (error == ETIMEDOUT)</span>
+<span class="lineNum">     358 </span>                :            :                 return (-1);
+<span class="lineNum">     359 </span>                :            : 
+<span class="lineNum">     360 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5796 times"> + </span>]:<span class="lineCov">       5796 :         VERIFY0(error);</span>
+<span class="lineNum">     361 </span>                :            : 
+<span class="lineNum">     362 </span>                :            :         return (1);
+<span class="lineNum">     363 </span>                :            : }
+<span class="lineNum">     364 </span>                :            : 
+<a name="365"><span class="lineNum">     365 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     366 </span>                :            : clock_t
+<span class="lineNum">     367 </span>                :<span class="lineCov">      30652 : cv_timedwait_hires(kcondvar_t *cv, kmutex_t *mp, hrtime_t tim, hrtime_t res,</span>
+<span class="lineNum">     368 </span>                :            :     int flag)
+<span class="lineNum">     369 </span>                :            : {
+<span class="lineNum">     370 </span>                :            :         int error;
+<span class="lineNum">     371 </span>                :            :         struct timeval tv;
+<span class="lineNum">     372 </span>                :            :         timestruc_t ts;
+<span class="lineNum">     373 </span>                :            :         hrtime_t delta;
+<span class="lineNum">     374 </span>                :            : 
+<span class="lineNum">     375 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 30652 times"> + </span>]:<span class="lineCov">      30652 :         ASSERT(flag == 0 || flag == CALLOUT_FLAG_ABSOLUTE);</span>
+<span class="lineNum">     376 </span>                :            : 
+<span class="lineNum">     377 </span>                :<span class="lineCov">      30652 :         delta = tim;</span>
+<span class="lineNum">     378 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 30652 times"> + </span>]:<span class="lineCov">      30652 :         if (flag &amp; CALLOUT_FLAG_ABSOLUTE)</span>
+<span class="lineNum">     379 </span>                :<span class="lineNoCov">          0 :                 delta -= gethrtime();</span>
+<span class="lineNum">     380 </span>                :            : 
+<span class="lineNum">     381 </span>        [<span class="branchCov" title="Branch 0 was taken 30652 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      30652 :         if (delta &lt;= 0)</span>
+<span class="lineNum">     382 </span>                :            :                 return (-1);
+<span class="lineNum">     383 </span>                :            : 
+<span class="lineNum">     384 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 30652 times"> + </span>]:<span class="lineCov">      30652 :         VERIFY0(gettimeofday(&amp;tv, NULL));</span>
+<span class="lineNum">     385 </span>                :            : 
+<span class="lineNum">     386 </span>                :<span class="lineCov">      30652 :         ts.tv_sec = tv.tv_sec + delta / NANOSEC;</span>
+<span class="lineNum">     387 </span>                :<span class="lineCov">      30652 :         ts.tv_nsec = tv.tv_usec * NSEC_PER_USEC + (delta % NANOSEC);</span>
+<span class="lineNum">     388 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 30652 times"> + </span>]:<span class="lineCov">      30652 :         if (ts.tv_nsec &gt;= NANOSEC) {</span>
+<span class="lineNum">     389 </span>                :<span class="lineNoCov">          0 :                 ts.tv_sec++;</span>
+<span class="lineNum">     390 </span>                :<span class="lineNoCov">          0 :                 ts.tv_nsec -= NANOSEC;</span>
+<span class="lineNum">     391 </span>                :            :         }
+<span class="lineNum">     392 </span>                :            : 
+<span class="lineNum">     393 </span>                :<span class="lineCov">      61304 :         memset(&amp;mp-&gt;m_owner, 0, sizeof (pthread_t));</span>
+<span class="lineNum">     394 </span>                :<span class="lineCov">      30652 :         error = pthread_cond_timedwait(cv, &amp;mp-&gt;m_lock, &amp;ts);</span>
+<span class="lineNum">     395 </span>                :<span class="lineCov">      29753 :         mp-&gt;m_owner = pthread_self();</span>
+<span class="lineNum">     396 </span>                :            : 
+<span class="lineNum">     397 </span>        [<span class="branchCov" title="Branch 0 was taken 25478 times"> + </span><span class="branchCov" title="Branch 1 was taken 4275 times"> + </span>]:<span class="lineCov">      29753 :         if (error == ETIMEDOUT)</span>
+<span class="lineNum">     398 </span>                :            :                 return (-1);
+<span class="lineNum">     399 </span>                :            : 
+<span class="lineNum">     400 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 25478 times"> + </span>]:<span class="lineCov">      25478 :         VERIFY0(error);</span>
+<span class="lineNum">     401 </span>                :            : 
+<span class="lineNum">     402 </span>                :            :         return (1);
+<span class="lineNum">     403 </span>                :            : }
+<a name="404"><span class="lineNum">     404 </span>                :            : </a>
+<span class="lineNum">     405 </span>                :            : void
+<span class="lineNum">     406 </span>                :<span class="lineCov"> 1043612285 : cv_signal(kcondvar_t *cv)</span>
+<span class="lineNum">     407 </span>                :            : {
+<span class="lineNum">     408 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1043613772 times"> + </span>]:<span class="lineCov"> 1043612285 :         VERIFY0(pthread_cond_signal(cv));</span>
+<span class="lineNum">     409 </span>                :<span class="lineCov"> 1043613772 : }</span>
+<a name="410"><span class="lineNum">     410 </span>                :            : </a>
+<span class="lineNum">     411 </span>                :            : void
+<span class="lineNum">     412 </span>                :<span class="lineCov">   20649638 : cv_broadcast(kcondvar_t *cv)</span>
+<span class="lineNum">     413 </span>                :            : {
+<span class="lineNum">     414 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 20656538 times"> + </span>]:<span class="lineCov">   20649638 :         VERIFY0(pthread_cond_broadcast(cv));</span>
+<span class="lineNum">     415 </span>                :<span class="lineCov">   20656538 : }</span>
+<span class="lineNum">     416 </span>                :            : 
+<span class="lineNum">     417 </span>                :            : /*
+<span class="lineNum">     418 </span>                :            :  * =========================================================================
+<span class="lineNum">     419 </span>                :            :  * vnode operations
+<span class="lineNum">     420 </span>                :            :  * =========================================================================
+<span class="lineNum">     421 </span>                :            :  */
+<span class="lineNum">     422 </span>                :            : /*
+<span class="lineNum">     423 </span>                :            :  * Note: for the xxxat() versions of these functions, we assume that the
+<span class="lineNum">     424 </span>                :            :  * starting vp is always rootdir (which is true for spa_directory.c, the only
+<span class="lineNum">     425 </span>                :            :  * ZFS consumer of these interfaces).  We assert this is true, and then emulate
+<span class="lineNum">     426 </span>                :            :  * them by adding '/' in front of the path.
+<span class="lineNum">     427 </span>                :            :  */
+<span class="lineNum">     428 </span>                :            : 
+<a name="429"><span class="lineNum">     429 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     430 </span>                :            : int
+<span class="lineNum">     431 </span>                :<span class="lineCov">       9461 : vn_open(char *path, int x1, int flags, int mode, vnode_t **vpp, int x2, int x3)</span>
+<span class="lineNum">     432 </span>                :            : {
+<span class="lineNum">     433 </span>                :<span class="lineCov">       9461 :         int fd = -1;</span>
+<span class="lineNum">     434 </span>                :<span class="lineCov">       9461 :         int dump_fd = -1;</span>
+<span class="lineNum">     435 </span>                :            :         vnode_t *vp;
+<span class="lineNum">     436 </span>                :<span class="lineCov">       9461 :         int old_umask = 0;</span>
+<span class="lineNum">     437 </span>                :            :         char *realpath;
+<span class="lineNum">     438 </span>                :            :         struct stat64 st;
+<span class="lineNum">     439 </span>                :            :         int err;
+<span class="lineNum">     440 </span>                :            : 
+<span class="lineNum">     441 </span>                :<span class="lineCov">       9461 :         realpath = umem_alloc(MAXPATHLEN, UMEM_NOFAIL);</span>
+<span class="lineNum">     442 </span>                :            : 
+<span class="lineNum">     443 </span>                :            :         /*
+<span class="lineNum">     444 </span>                :            :          * If we're accessing a real disk from userland, we need to use
+<span class="lineNum">     445 </span>                :            :          * the character interface to avoid caching.  This is particularly
+<span class="lineNum">     446 </span>                :            :          * important if we're trying to look at a real in-kernel storage
+<span class="lineNum">     447 </span>                :            :          * pool from userland, e.g. via zdb, because otherwise we won't
+<span class="lineNum">     448 </span>                :            :          * see the changes occurring under the segmap cache.
+<span class="lineNum">     449 </span>                :            :          * On the other hand, the stupid character device returns zero
+<span class="lineNum">     450 </span>                :            :          * for its size.  So -- gag -- we open the block device to get
+<span class="lineNum">     451 </span>                :            :          * its size, and remember it for subsequent VOP_GETATTR().
+<span class="lineNum">     452 </span>                :            :          */
+<span class="lineNum">     453 </span>                :            : #if defined(__sun__) || defined(__sun)
+<span class="lineNum">     454 </span>                :            :         if (strncmp(path, &quot;/dev/&quot;, 5) == 0) {
+<span class="lineNum">     455 </span>                :            : #else
+<span class="lineNum">     456 </span>                :            :         if (0) {
+<span class="lineNum">     457 </span>                :            : #endif
+<span class="lineNum">     458 </span>                :            :                 char *dsk;
+<span class="lineNum">     459 </span>                :            :                 fd = open64(path, O_RDONLY);
+<span class="lineNum">     460 </span>                :            :                 if (fd == -1) {
+<span class="lineNum">     461 </span>                :            :                         err = errno;
+<span class="lineNum">     462 </span>                :            :                         free(realpath);
+<span class="lineNum">     463 </span>                :            :                         return (err);
+<span class="lineNum">     464 </span>                :            :                 }
+<span class="lineNum">     465 </span>                :            :                 if (fstat64(fd, &amp;st) == -1) {
+<span class="lineNum">     466 </span>                :            :                         err = errno;
+<span class="lineNum">     467 </span>                :            :                         close(fd);
+<span class="lineNum">     468 </span>                :            :                         free(realpath);
+<span class="lineNum">     469 </span>                :            :                         return (err);
+<span class="lineNum">     470 </span>                :            :                 }
+<span class="lineNum">     471 </span>                :            :                 close(fd);
+<span class="lineNum">     472 </span>                :            :                 (void) sprintf(realpath, &quot;%s&quot;, path);
+<span class="lineNum">     473 </span>                :            :                 dsk = strstr(path, &quot;/dsk/&quot;);
+<span class="lineNum">     474 </span>                :            :                 if (dsk != NULL)
+<span class="lineNum">     475 </span>                :            :                         (void) sprintf(realpath + (dsk - path) + 1, &quot;r%s&quot;,
+<span class="lineNum">     476 </span>                :            :                             dsk + 1);
+<span class="lineNum">     477 </span>                :            :         } else {
+<span class="lineNum">     478 </span>                :<span class="lineCov">       9449 :                 (void) sprintf(realpath, &quot;%s&quot;, path);</span>
+<span class="lineNum">     479 </span>[<span class="branchCov" title="Branch 0 was taken 8863 times"> + </span><span class="branchCov" title="Branch 1 was taken 586 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 201 times"> + </span><span class="branchCov" title="Branch 4 was taken 8670 times"> + </span>]:<span class="lineCov">       9449 :                 if (!(flags &amp; FCREAT) &amp;&amp; stat64(realpath, &amp;st) == -1) {</span>
+<span class="lineNum">     480 </span>                :<span class="lineCov">        201 :                         err = errno;</span>
+<span class="lineNum">     481 </span>                :<span class="lineCov">        201 :                         free(realpath);</span>
+<span class="lineNum">     482 </span>                :<span class="lineCov">        201 :                         return (err);</span>
+<span class="lineNum">     483 </span>                :            :                 }
+<span class="lineNum">     484 </span>                :            :         }
+<span class="lineNum">     485 </span>                :            : 
+<span class="lineNum">     486 </span>[<span class="branchCov" title="Branch 0 was taken 8671 times"> + </span><span class="branchCov" title="Branch 1 was taken 585 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 272 times"> + </span><span class="branchCov" title="Branch 3 was taken 8399 times"> + </span>]:<span class="lineCov">       9256 :         if (!(flags &amp; FCREAT) &amp;&amp; S_ISBLK(st.st_mode)) {</span>
+<span class="lineNum">     487 </span>                :            : #ifdef __linux__
+<span class="lineNum">     488 </span>                :<span class="lineCov">        272 :                 flags |= O_DIRECT;</span>
+<span class="lineNum">     489 </span>                :            : #endif
+<span class="lineNum">     490 </span>                :            :                 /* We shouldn't be writing to block devices in userspace */
+<span class="lineNum">     491 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 272 times"> + </span>]:<span class="lineCov">        272 :                 VERIFY(!(flags &amp; FWRITE));</span>
+<span class="lineNum">     492 </span>                :            :         }
+<span class="lineNum">     493 </span>                :            : 
+<span class="lineNum">     494 </span>        [<span class="branchCov" title="Branch 0 was taken 587 times"> + </span><span class="branchCov" title="Branch 1 was taken 8669 times"> + </span>]:<span class="lineCov">       9256 :         if (flags &amp; FCREAT)</span>
+<span class="lineNum">     495 </span>                :<span class="lineCov">        587 :                 old_umask = umask(0);</span>
+<span class="lineNum">     496 </span>                :            : 
+<span class="lineNum">     497 </span>                :            :         /*
+<span class="lineNum">     498 </span>                :            :          * The construct 'flags - FREAD' conveniently maps combinations of
+<span class="lineNum">     499 </span>                :            :          * FREAD and FWRITE to the corresponding O_RDONLY, O_WRONLY, and O_RDWR.
+<span class="lineNum">     500 </span>                :            :          */
+<span class="lineNum">     501 </span>                :<span class="lineCov">      18527 :         fd = open64(realpath, flags - FREAD, mode);</span>
+<span class="lineNum">     502 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9271 times"> + </span>]:<span class="lineCov">       9271 :         if (fd == -1) {</span>
+<span class="lineNum">     503 </span>                :<span class="lineNoCov">          0 :                 err = errno;</span>
+<span class="lineNum">     504 </span>                :<span class="lineNoCov">          0 :                 free(realpath);</span>
+<span class="lineNum">     505 </span>                :<span class="lineNoCov">          0 :                 return (err);</span>
+<span class="lineNum">     506 </span>                :            :         }
+<span class="lineNum">     507 </span>                :            : 
+<span class="lineNum">     508 </span>        [<span class="branchCov" title="Branch 0 was taken 587 times"> + </span><span class="branchCov" title="Branch 1 was taken 8684 times"> + </span>]:<span class="lineCov">       9271 :         if (flags &amp; FCREAT)</span>
+<span class="lineNum">     509 </span>                :<span class="lineCov">        587 :                 (void) umask(old_umask);</span>
+<span class="lineNum">     510 </span>                :            : 
+<span class="lineNum">     511 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9271 times"> + </span>]:<span class="lineCov">       9271 :         if (vn_dumpdir != NULL) {</span>
+<span class="lineNum">     512 </span>                :<span class="lineNoCov">          0 :                 char *dumppath = umem_zalloc(MAXPATHLEN, UMEM_NOFAIL);</span>
+<span class="lineNum">     513 </span>                :<span class="lineNoCov">          0 :                 (void) snprintf(dumppath, MAXPATHLEN,</span>
+<span class="lineNum">     514 </span>                :            :                     &quot;%s/%s&quot;, vn_dumpdir, basename(realpath));
+<span class="lineNum">     515 </span>                :<span class="lineNoCov">          0 :                 dump_fd = open64(dumppath, O_CREAT | O_WRONLY, 0666);</span>
+<span class="lineNum">     516 </span>                :<span class="lineNoCov">          0 :                 umem_free(dumppath, MAXPATHLEN);</span>
+<span class="lineNum">     517 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (dump_fd == -1) {</span>
+<span class="lineNum">     518 </span>                :<span class="lineNoCov">          0 :                         err = errno;</span>
+<span class="lineNum">     519 </span>                :<span class="lineNoCov">          0 :                         free(realpath);</span>
+<span class="lineNum">     520 </span>                :<span class="lineNoCov">          0 :                         close(fd);</span>
+<span class="lineNum">     521 </span>                :<span class="lineNoCov">          0 :                         return (err);</span>
+<span class="lineNum">     522 </span>                :            :                 }
+<span class="lineNum">     523 </span>                :            :         } else {
+<span class="lineNum">     524 </span>                :            :                 dump_fd = -1;
+<span class="lineNum">     525 </span>                :            :         }
+<span class="lineNum">     526 </span>                :            : 
+<span class="lineNum">     527 </span>                :<span class="lineCov">       9271 :         free(realpath);</span>
+<span class="lineNum">     528 </span>                :            : 
+<span class="lineNum">     529 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 9258 times"> + </span>]:<span class="lineCov">       9271 :         if (fstat64_blk(fd, &amp;st) == -1) {</span>
+<span class="lineNum">     530 </span>                :<span class="lineNoCov">          0 :                 err = errno;</span>
+<span class="lineNum">     531 </span>                :<span class="lineNoCov">          0 :                 close(fd);</span>
+<span class="lineNum">     532 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (dump_fd != -1)</span>
+<span class="lineNum">     533 </span>                :<span class="lineNoCov">          0 :                         close(dump_fd);</span>
+<span class="lineNum">     534 </span>                :            :                 return (err);
+<span class="lineNum">     535 </span>                :            :         }
+<span class="lineNum">     536 </span>                :            : 
+<span class="lineNum">     537 </span>                :<span class="lineCov">       9258 :         (void) fcntl(fd, F_SETFD, FD_CLOEXEC);</span>
+<span class="lineNum">     538 </span>                :            : 
+<span class="lineNum">     539 </span>                :<span class="lineCov">       9263 :         *vpp = vp = umem_zalloc(sizeof (vnode_t), UMEM_NOFAIL);</span>
+<span class="lineNum">     540 </span>                :            : 
+<span class="lineNum">     541 </span>                :<span class="lineCov">       9256 :         vp-&gt;v_fd = fd;</span>
+<span class="lineNum">     542 </span>                :<span class="lineCov">       9256 :         vp-&gt;v_size = st.st_size;</span>
+<span class="lineNum">     543 </span>                :<span class="lineCov">       9256 :         vp-&gt;v_path = spa_strdup(path);</span>
+<span class="lineNum">     544 </span>                :<span class="lineCov">       9253 :         vp-&gt;v_dump_fd = dump_fd;</span>
+<span class="lineNum">     545 </span>                :            : 
+<span class="lineNum">     546 </span>                :<span class="lineCov">       9253 :         return (0);</span>
+<span class="lineNum">     547 </span>                :            : }
+<span class="lineNum">     548 </span>                :            : 
+<a name="549"><span class="lineNum">     549 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     550 </span>                :            : int
+<span class="lineNum">     551 </span>                :<span class="lineCov">       8882 : vn_openat(char *path, int x1, int flags, int mode, vnode_t **vpp, int x2,</span>
+<span class="lineNum">     552 </span>                :            :     int x3, vnode_t *startvp, int fd)
+<span class="lineNum">     553 </span>                :            : {
+<span class="lineNum">     554 </span>                :<span class="lineCov">       8882 :         char *realpath = umem_alloc(strlen(path) + 2, UMEM_NOFAIL);</span>
+<span class="lineNum">     555 </span>                :            :         int ret;
+<span class="lineNum">     556 </span>                :            : 
+<span class="lineNum">     557 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8884 times"> + </span>]:<span class="lineCov">       8884 :         ASSERT(startvp == rootdir);</span>
+<span class="lineNum">     558 </span>                :<span class="lineCov">       8884 :         (void) sprintf(realpath, &quot;/%s&quot;, path);</span>
+<span class="lineNum">     559 </span>                :            : 
+<span class="lineNum">     560 </span>                :            :         /* fd ignored for now, need if want to simulate nbmand support */
+<span class="lineNum">     561 </span>                :<span class="lineCov">       8884 :         ret = vn_open(realpath, x1, flags, mode, vpp, x2, x3);</span>
+<span class="lineNum">     562 </span>                :            : 
+<span class="lineNum">     563 </span>                :<span class="lineCov">       8863 :         umem_free(realpath, strlen(path) + 2);</span>
+<span class="lineNum">     564 </span>                :            : 
+<span class="lineNum">     565 </span>                :<span class="lineCov">       8864 :         return (ret);</span>
+<span class="lineNum">     566 </span>                :            : }
+<span class="lineNum">     567 </span>                :            : 
+<a name="568"><span class="lineNum">     568 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     569 </span>                :            : int
+<span class="lineNum">     570 </span>                :<span class="lineCov">    4106167 : vn_rdwr(int uio, vnode_t *vp, void *addr, ssize_t len, offset_t offset,</span>
+<span class="lineNum">     571 </span>                :            :     int x1, int x2, rlim64_t x3, void *x4, ssize_t *residp)
+<span class="lineNum">     572 </span>                :            : {
+<span class="lineNum">     573 </span>                :<span class="lineCov">    4106167 :         ssize_t rc, done = 0, split;</span>
+<span class="lineNum">     574 </span>                :            : 
+<span class="lineNum">     575 </span>        [<span class="branchCov" title="Branch 0 was taken 1826107 times"> + </span><span class="branchCov" title="Branch 1 was taken 2280060 times"> + </span>]:<span class="lineCov">    4106167 :         if (uio == UIO_READ) {</span>
+<span class="lineNum">     576 </span>                :<span class="lineCov">    3652553 :                 rc = pread64(vp-&gt;v_fd, addr, len, offset);</span>
+<span class="lineNum">     577 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1826446 times"> + </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineCov">    1826446 :                 if (vp-&gt;v_dump_fd != -1 &amp;&amp; rc != -1) {</span>
+<span class="lineNum">     578 </span>                :            :                         int status;
+<span class="lineNum">     579 </span>                :<span class="lineNoCov">          0 :                         status = pwrite64(vp-&gt;v_dump_fd, addr, rc, offset);</span>
+<span class="lineNum">     580 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(status != -1);</span>
+<span class="lineNum">     581 </span>                :            :                 }
+<span class="lineNum">     582 </span>                :            :         } else {
+<span class="lineNum">     583 </span>                :            :                 /*
+<span class="lineNum">     584 </span>                :            :                  * To simulate partial disk writes, we split writes into two
+<span class="lineNum">     585 </span>                :            :                  * system calls so that the process can be killed in between.
+<span class="lineNum">     586 </span>                :            :                  */
+<span class="lineNum">     587 </span>                :<span class="lineCov">    2280060 :                 int sectors = len &gt;&gt; SPA_MINBLOCKSHIFT;</span>
+<span class="lineNum">     588 </span>           [<span class="branchCov" title="Branch 0 was taken 2280072 times"> + </span>]:<span class="lineCov">    2280060 :                 split = (sectors &gt; 0 ? rand() % sectors : 0) &lt;&lt;</span>
+<span class="lineNum">     589 </span>                :            :                     SPA_MINBLOCKSHIFT;
+<span class="lineNum">     590 </span>                :<span class="lineCov">    2280501 :                 rc = pwrite64(vp-&gt;v_fd, addr, split, offset);</span>
+<span class="lineNum">     591 </span>           [<span class="branchCov" title="Branch 0 was taken 2279130 times"> + </span>]:<span class="lineCov">    2278738 :                 if (rc != -1) {</span>
+<span class="lineNum">     592 </span>                :<span class="lineCov">    2279130 :                         done = rc;</span>
+<span class="lineNum">     593 </span>                :<span class="lineCov">    2279130 :                         rc = pwrite64(vp-&gt;v_fd, (char *)addr + split,</span>
+<span class="lineNum">     594 </span>                :<span class="lineCov">    2279130 :                             len - split, offset + split);</span>
+<span class="lineNum">     595 </span>                :            :                 }
+<span class="lineNum">     596 </span>                :            :         }
+<span class="lineNum">     597 </span>                :            : 
+<span class="lineNum">     598 </span>                :            : #ifdef __linux__
+<span class="lineNum">     599 </span>[<span class="branchCov" title="Branch 0 was taken 50 times"> + </span><span class="branchCov" title="Branch 1 was taken 4106008 times"> + </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 50 times"> + </span>]:<span class="lineCov">    4106058 :         if (rc == -1 &amp;&amp; errno == EINVAL) {</span>
+<span class="lineNum">     600 </span>                :            :                 /*
+<span class="lineNum">     601 </span>                :            :                  * Under Linux, this most likely means an alignment issue
+<span class="lineNum">     602 </span>                :            :                  * (memory or disk) due to O_DIRECT, so we abort() in order to
+<span class="lineNum">     603 </span>                :            :                  * catch the offender.
+<span class="lineNum">     604 </span>                :            :                  */
+<span class="lineNum">     605 </span>                :<span class="lineNoCov">          0 :                 abort();</span>
+<span class="lineNum">     606 </span>                :            :         }
+<span class="lineNum">     607 </span>                :            : #endif
+<span class="lineNum">     608 </span>        [<span class="branchCov" title="Branch 0 was taken 50 times"> + </span><span class="branchCov" title="Branch 1 was taken 4106008 times"> + </span>]:<span class="lineCov">    4106058 :         if (rc == -1)</span>
+<span class="lineNum">     609 </span>                :<span class="lineCov">         50 :                 return (errno);</span>
+<span class="lineNum">     610 </span>                :            : 
+<span class="lineNum">     611 </span>                :<span class="lineCov">    4106008 :         done += rc;</span>
+<span class="lineNum">     612 </span>                :            : 
+<span class="lineNum">     613 </span>        [<span class="branchCov" title="Branch 0 was taken 4105421 times"> + </span><span class="branchCov" title="Branch 1 was taken 587 times"> + </span>]:<span class="lineCov">    4106008 :         if (residp)</span>
+<span class="lineNum">     614 </span>                :<span class="lineCov">    4105421 :                 *residp = len - done;</span>
+<span class="lineNum">     615 </span>        [<span class="branchCov" title="Branch 0 was taken 587 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        587 :         else if (done != len)</span>
+<span class="lineNum">     616 </span>                :            :                 return (EIO);
+<span class="lineNum">     617 </span>                :            :         return (0);
+<span class="lineNum">     618 </span>                :            : }
+<a name="619"><span class="lineNum">     619 </span>                :            : </a>
+<span class="lineNum">     620 </span>                :            : void
+<span class="lineNum">     621 </span>                :<span class="lineCov">       9268 : vn_close(vnode_t *vp)</span>
+<span class="lineNum">     622 </span>                :            : {
+<span class="lineNum">     623 </span>                :<span class="lineCov">       9268 :         close(vp-&gt;v_fd);</span>
+<span class="lineNum">     624 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9268 times"> + </span>]:<span class="lineCov">       9268 :         if (vp-&gt;v_dump_fd != -1)</span>
+<span class="lineNum">     625 </span>                :<span class="lineNoCov">          0 :                 close(vp-&gt;v_dump_fd);</span>
+<span class="lineNum">     626 </span>                :<span class="lineCov">       9268 :         spa_strfree(vp-&gt;v_path);</span>
+<span class="lineNum">     627 </span>                :<span class="lineCov">       9268 :         umem_free(vp, sizeof (vnode_t));</span>
+<span class="lineNum">     628 </span>                :<span class="lineCov">       9268 : }</span>
+<span class="lineNum">     629 </span>                :            : 
+<span class="lineNum">     630 </span>                :            : /*
+<span class="lineNum">     631 </span>                :            :  * At a minimum we need to update the size since vdev_reopen()
+<span class="lineNum">     632 </span>                :            :  * will no longer call vn_openat().
+<a name="633"><span class="lineNum">     633 </span>                :            :  */</a>
+<span class="lineNum">     634 </span>                :            : int
+<span class="lineNum">     635 </span>                :<span class="lineCov">       8313 : fop_getattr(vnode_t *vp, vattr_t *vap)</span>
+<span class="lineNum">     636 </span>                :            : {
+<span class="lineNum">     637 </span>                :            :         struct stat64 st;
+<span class="lineNum">     638 </span>                :            :         int err;
+<span class="lineNum">     639 </span>                :            : 
+<span class="lineNum">     640 </span>        [<span class="branchCov" title="Branch 1 was taken 5 times"> + </span><span class="branchCov" title="Branch 2 was taken 8313 times"> + </span>]:<span class="lineCov">       8313 :         if (fstat64_blk(vp-&gt;v_fd, &amp;st) == -1) {</span>
+<span class="lineNum">     641 </span>                :<span class="lineCov">          5 :                 err = errno;</span>
+<span class="lineNum">     642 </span>                :<span class="lineCov">          5 :                 close(vp-&gt;v_fd);</span>
+<span class="lineNum">     643 </span>                :<span class="lineCov">          5 :                 return (err);</span>
+<span class="lineNum">     644 </span>                :            :         }
+<span class="lineNum">     645 </span>                :            : 
+<span class="lineNum">     646 </span>                :<span class="lineCov">       8313 :         vap-&gt;va_size = st.st_size;</span>
+<span class="lineNum">     647 </span>                :<span class="lineCov">       8313 :         return (0);</span>
+<span class="lineNum">     648 </span>                :            : }
+<span class="lineNum">     649 </span>                :            : 
+<span class="lineNum">     650 </span>                :            : /*
+<span class="lineNum">     651 </span>                :            :  * =========================================================================
+<span class="lineNum">     652 </span>                :            :  * Figure out which debugging statements to print
+<span class="lineNum">     653 </span>                :            :  * =========================================================================
+<span class="lineNum">     654 </span>                :            :  */
+<span class="lineNum">     655 </span>                :            : 
+<span class="lineNum">     656 </span>                :            : static char *dprintf_string;
+<span class="lineNum">     657 </span>                :            : static int dprintf_print_all;
+<a name="658"><span class="lineNum">     658 </span>                :            : </a>
+<span class="lineNum">     659 </span>                :            : int
+<span class="lineNum">     660 </span>                :<span class="lineCov">   10661390 : dprintf_find_string(const char *string)</span>
+<span class="lineNum">     661 </span>                :            : {
+<span class="lineNum">     662 </span>                :<span class="lineCov">   10661390 :         char *tmp_str = dprintf_string;</span>
+<span class="lineNum">     663 </span>                :<span class="lineCov">   10661390 :         int len = strlen(string);</span>
+<span class="lineNum">     664 </span>                :            : 
+<span class="lineNum">     665 </span>                :            :         /*
+<span class="lineNum">     666 </span>                :            :          * Find out if this is a string we want to print.
+<span class="lineNum">     667 </span>                :            :          * String format: file1.c,function_name1,file2.c,file3.c
+<span class="lineNum">     668 </span>                :            :          */
+<span class="lineNum">     669 </span>                :            : 
+<span class="lineNum">     670 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 10662592 times"> + </span>]:<span class="lineCov">   21323982 :         while (tmp_str != NULL) {</span>
+<span class="lineNum">     671 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (strncmp(tmp_str, string, len) == 0 &amp;&amp;</span>
+<span class="lineNum">     672 </span>                :<span class="lineNoCov">          0 :                     (tmp_str[len] == ',' || tmp_str[len] == '\0'))</span>
+<span class="lineNum">     673 </span>                :            :                         return (1);
+<span class="lineNum">     674 </span>                :<span class="lineCov">       1202 :                 tmp_str = strchr(tmp_str, ',');</span>
+<span class="lineNum">     675 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1202 times"> + </span>]:<span class="lineCov">       1202 :                 if (tmp_str != NULL)</span>
+<span class="lineNum">     676 </span>                :<span class="lineCov">   10661390 :                         tmp_str++; /* Get rid of , */</span>
+<span class="lineNum">     677 </span>                :            :         }
+<span class="lineNum">     678 </span>                :            :         return (0);
+<span class="lineNum">     679 </span>                :            : }
+<a name="680"><span class="lineNum">     680 </span>                :            : </a>
+<span class="lineNum">     681 </span>                :            : void
+<span class="lineNum">     682 </span>                :<span class="lineCov">       1072 : dprintf_setup(int *argc, char **argv)</span>
+<span class="lineNum">     683 </span>                :            : {
+<span class="lineNum">     684 </span>                :            :         int i, j;
+<span class="lineNum">     685 </span>                :            : 
+<span class="lineNum">     686 </span>                :            :         /*
+<span class="lineNum">     687 </span>                :            :          * Debugging can be specified two ways: by setting the
+<span class="lineNum">     688 </span>                :            :          * environment variable ZFS_DEBUG, or by including a
+<span class="lineNum">     689 </span>                :            :          * &quot;debug=...&quot;  argument on the command line.  The command
+<span class="lineNum">     690 </span>                :            :          * line setting overrides the environment variable.
+<span class="lineNum">     691 </span>                :            :          */
+<span class="lineNum">     692 </span>                :            : 
+<span class="lineNum">     693 </span>        [<span class="branchCov" title="Branch 0 was taken 4234 times"> + </span><span class="branchCov" title="Branch 1 was taken 1072 times"> + </span>]:<span class="lineCov">       5306 :         for (i = 1; i &lt; *argc; i++) {</span>
+<span class="lineNum">     694 </span>                :<span class="lineCov">       4234 :                 int len = strlen(&quot;debug=&quot;);</span>
+<span class="lineNum">     695 </span>                :            :                 /* First look for a command line argument */
+<span class="lineNum">     696 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4234 times"> + </span>]:<span class="lineCov">       4234 :                 if (strncmp(&quot;debug=&quot;, argv[i], len) == 0) {</span>
+<span class="lineNum">     697 </span>                :<span class="lineNoCov">          0 :                         dprintf_string = argv[i] + len;</span>
+<span class="lineNum">     698 </span>                :            :                         /* Remove from args */
+<span class="lineNum">     699 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         for (j = i; j &lt; *argc; j++)</span>
+<span class="lineNum">     700 </span>                :<span class="lineNoCov">          0 :                                 argv[j] = argv[j+1];</span>
+<span class="lineNum">     701 </span>                :<span class="lineNoCov">          0 :                         argv[j] = NULL;</span>
+<span class="lineNum">     702 </span>                :<span class="lineNoCov">          0 :                         (*argc)--;</span>
+<span class="lineNum">     703 </span>                :            :                 }
+<span class="lineNum">     704 </span>                :            :         }
+<span class="lineNum">     705 </span>                :            : 
+<span class="lineNum">     706 </span>        [<span class="branchCov" title="Branch 0 was taken 1072 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       1072 :         if (dprintf_string == NULL) {</span>
+<span class="lineNum">     707 </span>                :            :                 /* Look for ZFS_DEBUG environment variable */
+<span class="lineNum">     708 </span>                :<span class="lineCov">       1072 :                 dprintf_string = getenv(&quot;ZFS_DEBUG&quot;);</span>
+<span class="lineNum">     709 </span>                :            :         }
+<span class="lineNum">     710 </span>                :            : 
+<span class="lineNum">     711 </span>                :            :         /*
+<span class="lineNum">     712 </span>                :            :          * Are we just turning on all debugging?
+<span class="lineNum">     713 </span>                :            :          */
+<span class="lineNum">     714 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1072 times"> + </span>]:<span class="lineCov">       1072 :         if (dprintf_find_string(&quot;on&quot;))</span>
+<span class="lineNum">     715 </span>                :<span class="lineNoCov">          0 :                 dprintf_print_all = 1;</span>
+<span class="lineNum">     716 </span>                :            : 
+<span class="lineNum">     717 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1072 times"> + </span>]:<span class="lineCov">       1072 :         if (dprintf_string != NULL)</span>
+<span class="lineNum">     718 </span>                :<span class="lineNoCov">          0 :                 zfs_flags |= ZFS_DEBUG_DPRINTF;</span>
+<span class="lineNum">     719 </span>                :<span class="lineCov">       1072 : }</span>
+<span class="lineNum">     720 </span>                :            : 
+<span class="lineNum">     721 </span>                :            : /*
+<span class="lineNum">     722 </span>                :            :  * =========================================================================
+<span class="lineNum">     723 </span>                :            :  * debug printfs
+<span class="lineNum">     724 </span>                :            :  * =========================================================================
+<a name="725"><span class="lineNum">     725 </span>                :            :  */</a>
+<span class="lineNum">     726 </span>                :            : void
+<span class="lineNum">     727 </span>                :<span class="lineCov">    5331893 : __dprintf(const char *file, const char *func, int line, const char *fmt, ...)</span>
+<span class="lineNum">     728 </span>                :            : {
+<span class="lineNum">     729 </span>                :            :         const char *newfile;
+<span class="lineNum">     730 </span>                :            :         va_list adx;
+<span class="lineNum">     731 </span>                :            : 
+<span class="lineNum">     732 </span>                :            :         /*
+<span class="lineNum">     733 </span>                :            :          * Get rid of annoying &quot;../common/&quot; prefix to filename.
+<span class="lineNum">     734 </span>                :            :          */
+<span class="lineNum">     735 </span>                :<span class="lineCov">    5331893 :         newfile = strrchr(file, '/');</span>
+<span class="lineNum">     736 </span>        [<span class="branchCov" title="Branch 0 was taken 5331768 times"> + </span><span class="branchCov" title="Branch 1 was taken 125 times"> + </span>]:<span class="lineCov">    5331893 :         if (newfile != NULL) {</span>
+<span class="lineNum">     737 </span>                :<span class="lineCov">    5331768 :                 newfile = newfile + 1; /* Get rid of leading / */</span>
+<span class="lineNum">     738 </span>                :            :         } else {
+<span class="lineNum">     739 </span>                :            :                 newfile = file;
+<span class="lineNum">     740 </span>                :            :         }
+<span class="lineNum">     741 </span>                :            : 
+<span class="lineNum">     742 </span>        [<span class="branchCov" title="Branch 0 was taken 5333225 times"> + </span><span class="branchCov" title="Branch 2 was taken 5331824 times"> + </span>]:<span class="lineCov">   10663662 :         if (dprintf_print_all ||</span>
+<span class="lineNum">     743 </span>           [<span class="branchCov" title="Branch 2 was taken 5332457 times"> + </span>]:<span class="lineCov">   10665535 :             dprintf_find_string(newfile) ||</span>
+<span class="lineNum">     744 </span>                :<span class="lineCov">    5331824 :             dprintf_find_string(func)) {</span>
+<span class="lineNum">     745 </span>                :            :                 /* Print out just the function name if requested */
+<span class="lineNum">     746 </span>                :<span class="lineNoCov">          0 :                 flockfile(stdout);</span>
+<span class="lineNum">     747 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (dprintf_find_string(&quot;pid&quot;))</span>
+<span class="lineNum">     748 </span>                :<span class="lineNoCov">          0 :                         (void) printf(&quot;%d &quot;, getpid());</span>
+<span class="lineNum">     749 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (dprintf_find_string(&quot;tid&quot;))</span>
+<span class="lineNum">     750 </span>                :<span class="lineNoCov">          0 :                         (void) printf(&quot;%u &quot;, (uint_t)pthread_self());</span>
+<span class="lineNum">     751 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (dprintf_find_string(&quot;cpu&quot;))</span>
+<span class="lineNum">     752 </span>                :            :                         (void) printf(&quot;%u &quot;, getcpuid());
+<span class="lineNum">     753 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (dprintf_find_string(&quot;time&quot;))</span>
+<span class="lineNum">     754 </span>                :<span class="lineNoCov">          0 :                         (void) printf(&quot;%llu &quot;, gethrtime());</span>
+<span class="lineNum">     755 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (dprintf_find_string(&quot;long&quot;))</span>
+<span class="lineNum">     756 </span>                :            :                         (void) printf(&quot;%s, line %d: &quot;, newfile, line);
+<span class="lineNum">     757 </span>                :<span class="lineNoCov">          0 :                 (void) printf(&quot;%s: &quot;, func);</span>
+<span class="lineNum">     758 </span>                :<span class="lineNoCov">          0 :                 va_start(adx, fmt);</span>
+<span class="lineNum">     759 </span>                :<span class="lineNoCov">          0 :                 (void) vprintf(fmt, adx);</span>
+<span class="lineNum">     760 </span>                :<span class="lineNoCov">          0 :                 va_end(adx);</span>
+<span class="lineNum">     761 </span>                :<span class="lineNoCov">          0 :                 funlockfile(stdout);</span>
+<span class="lineNum">     762 </span>                :            :         }
+<span class="lineNum">     763 </span>                :<span class="lineCov">    5332457 : }</span>
+<span class="lineNum">     764 </span>                :            : 
+<span class="lineNum">     765 </span>                :            : /*
+<span class="lineNum">     766 </span>                :            :  * =========================================================================
+<span class="lineNum">     767 </span>                :            :  * cmn_err() and panic()
+<span class="lineNum">     768 </span>                :            :  * =========================================================================
+<span class="lineNum">     769 </span>                :            :  */
+<span class="lineNum">     770 </span>                :            : static char ce_prefix[CE_IGNORE][10] = { &quot;&quot;, &quot;NOTICE: &quot;, &quot;WARNING: &quot;, &quot;&quot; };
+<span class="lineNum">     771 </span>                :            : static char ce_suffix[CE_IGNORE][2] = { &quot;&quot;, &quot;\n&quot;, &quot;\n&quot;, &quot;&quot; };
+<a name="772"><span class="lineNum">     772 </span>                :            : </a>
+<span class="lineNum">     773 </span>                :            : void
+<span class="lineNum">     774 </span>                :<span class="lineNoCov">          0 : vpanic(const char *fmt, va_list adx)</span>
+<span class="lineNum">     775 </span>                :            : {
+<span class="lineNum">     776 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(stderr, &quot;error: &quot;);</span>
+<span class="lineNum">     777 </span>                :<span class="lineNoCov">          0 :         (void) vfprintf(stderr, fmt, adx);</span>
+<span class="lineNum">     778 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(stderr, &quot;\n&quot;);</span>
+<span class="lineNum">     779 </span>                :            : 
+<span class="lineNum">     780 </span>                :<span class="lineNoCov">          0 :         abort();        /* think of it as a &quot;user-level crash dump&quot; */</span>
+<span class="lineNum">     781 </span>                :            : }
+<a name="782"><span class="lineNum">     782 </span>                :            : </a>
+<span class="lineNum">     783 </span>                :            : void
+<span class="lineNum">     784 </span>                :<span class="lineNoCov">          0 : panic(const char *fmt, ...)</span>
+<span class="lineNum">     785 </span>                :            : {
+<span class="lineNum">     786 </span>                :            :         va_list adx;
+<span class="lineNum">     787 </span>                :            : 
+<span class="lineNum">     788 </span>                :<span class="lineNoCov">          0 :         va_start(adx, fmt);</span>
+<span class="lineNum">     789 </span>                :<span class="lineNoCov">          0 :         vpanic(fmt, adx);</span>
+<span class="lineNum">     790 </span>                :<span class="lineNoCov">          0 :         va_end(adx);</span>
+<span class="lineNum">     791 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="792"><span class="lineNum">     792 </span>                :            : </a>
+<span class="lineNum">     793 </span>                :            : void
+<span class="lineNum">     794 </span>                :<span class="lineCov">          8 : vcmn_err(int ce, const char *fmt, va_list adx)</span>
+<span class="lineNum">     795 </span>                :            : {
+<span class="lineNum">     796 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8 times"> + </span>]:<span class="lineCov">          8 :         if (ce == CE_PANIC)</span>
+<span class="lineNum">     797 </span>                :<span class="lineNoCov">          0 :                 vpanic(fmt, adx);</span>
+<span class="lineNum">     798 </span>        [<span class="branchCov" title="Branch 0 was taken 8 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          8 :         if (ce != CE_NOTE) {    /* suppress noise in userland stress testing */</span>
+<span class="lineNum">     799 </span>                :<span class="lineCov">         16 :                 (void) fprintf(stderr, &quot;%s&quot;, ce_prefix[ce]);</span>
+<span class="lineNum">     800 </span>                :<span class="lineCov">         16 :                 (void) vfprintf(stderr, fmt, adx);</span>
+<span class="lineNum">     801 </span>                :<span class="lineCov">          8 :                 (void) fprintf(stderr, &quot;%s&quot;, ce_suffix[ce]);</span>
+<span class="lineNum">     802 </span>                :            :         }
+<span class="lineNum">     803 </span>                :<span class="lineCov">          8 : }</span>
+<span class="lineNum">     804 </span>                :            : 
+<a name="805"><span class="lineNum">     805 </span>                :            : /*PRINTFLIKE2*/</a>
+<span class="lineNum">     806 </span>                :            : void
+<span class="lineNum">     807 </span>                :<span class="lineCov">          8 : cmn_err(int ce, const char *fmt, ...)</span>
+<span class="lineNum">     808 </span>                :            : {
+<span class="lineNum">     809 </span>                :            :         va_list adx;
+<span class="lineNum">     810 </span>                :            : 
+<span class="lineNum">     811 </span>                :<span class="lineCov">          8 :         va_start(adx, fmt);</span>
+<span class="lineNum">     812 </span>                :<span class="lineCov">          8 :         vcmn_err(ce, fmt, adx);</span>
+<span class="lineNum">     813 </span>                :<span class="lineCov">          8 :         va_end(adx);</span>
+<span class="lineNum">     814 </span>                :<span class="lineCov">          8 : }</span>
+<span class="lineNum">     815 </span>                :            : 
+<span class="lineNum">     816 </span>                :            : /*
+<span class="lineNum">     817 </span>                :            :  * =========================================================================
+<span class="lineNum">     818 </span>                :            :  * kobj interfaces
+<span class="lineNum">     819 </span>                :            :  * =========================================================================
+<a name="820"><span class="lineNum">     820 </span>                :            :  */</a>
+<span class="lineNum">     821 </span>                :            : struct _buf *
+<span class="lineNum">     822 </span>                :<span class="lineCov">       1234 : kobj_open_file(char *name)</span>
+<span class="lineNum">     823 </span>                :            : {
+<span class="lineNum">     824 </span>                :            :         struct _buf *file;
+<span class="lineNum">     825 </span>                :            :         vnode_t *vp;
+<span class="lineNum">     826 </span>                :            : 
+<span class="lineNum">     827 </span>                :            :         /* set vp as the _fd field of the file */
+<span class="lineNum">     828 </span>        [<span class="branchCov" title="Branch 1 was taken 1174 times"> + </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">       1234 :         if (vn_openat(name, UIO_SYSSPACE, FREAD, 0, &amp;vp, 0, 0, rootdir,</span>
+<span class="lineNum">     829 </span>                :            :             -1) != 0)
+<span class="lineNum">     830 </span>                :            :                 return ((void *)-1UL);
+<span class="lineNum">     831 </span>                :            : 
+<span class="lineNum">     832 </span>                :<span class="lineCov">       1174 :         file = umem_zalloc(sizeof (struct _buf), UMEM_NOFAIL);</span>
+<span class="lineNum">     833 </span>                :<span class="lineCov">       1174 :         file-&gt;_fd = (intptr_t)vp;</span>
+<span class="lineNum">     834 </span>                :<span class="lineCov">       1174 :         return (file);</span>
+<span class="lineNum">     835 </span>                :            : }
+<a name="836"><span class="lineNum">     836 </span>                :            : </a>
+<span class="lineNum">     837 </span>                :            : int
+<span class="lineNum">     838 </span>                :<span class="lineCov">       1174 : kobj_read_file(struct _buf *file, char *buf, unsigned size, unsigned off)</span>
+<span class="lineNum">     839 </span>                :            : {
+<span class="lineNum">     840 </span>                :<span class="lineCov">       1174 :         ssize_t resid = 0;</span>
+<span class="lineNum">     841 </span>                :            : 
+<span class="lineNum">     842 </span>        [<span class="branchCov" title="Branch 1 was taken 1174 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       1174 :         if (vn_rdwr(UIO_READ, (vnode_t *)file-&gt;_fd, buf, size, (offset_t)off,</span>
+<span class="lineNum">     843 </span>                :            :             UIO_SYSSPACE, 0, 0, 0, &amp;resid) != 0)
+<span class="lineNum">     844 </span>                :            :                 return (-1);
+<span class="lineNum">     845 </span>                :            : 
+<span class="lineNum">     846 </span>                :<span class="lineCov">       1174 :         return (size - resid);</span>
+<span class="lineNum">     847 </span>                :            : }
+<a name="848"><span class="lineNum">     848 </span>                :            : </a>
+<span class="lineNum">     849 </span>                :            : void
+<span class="lineNum">     850 </span>                :<span class="lineCov">       1174 : kobj_close_file(struct _buf *file)</span>
+<span class="lineNum">     851 </span>                :            : {
+<span class="lineNum">     852 </span>                :<span class="lineCov">       1174 :         vn_close((vnode_t *)file-&gt;_fd);</span>
+<span class="lineNum">     853 </span>                :<span class="lineCov">       1174 :         umem_free(file, sizeof (struct _buf));</span>
+<span class="lineNum">     854 </span>                :<span class="lineCov">       1174 : }</span>
+<a name="855"><span class="lineNum">     855 </span>                :            : </a>
+<span class="lineNum">     856 </span>                :            : int
+<span class="lineNum">     857 </span>                :<span class="lineCov">       1174 : kobj_get_filesize(struct _buf *file, uint64_t *size)</span>
+<span class="lineNum">     858 </span>                :            : {
+<span class="lineNum">     859 </span>                :            :         struct stat64 st;
+<span class="lineNum">     860 </span>                :<span class="lineCov">       1174 :         vnode_t *vp = (vnode_t *)file-&gt;_fd;</span>
+<span class="lineNum">     861 </span>                :            : 
+<span class="lineNum">     862 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1174 times"> + </span>]:<span class="lineCov">       1174 :         if (fstat64(vp-&gt;v_fd, &amp;st) == -1) {</span>
+<span class="lineNum">     863 </span>                :<span class="lineNoCov">          0 :                 vn_close(vp);</span>
+<span class="lineNum">     864 </span>                :<span class="lineNoCov">          0 :                 return (errno);</span>
+<span class="lineNum">     865 </span>                :            :         }
+<span class="lineNum">     866 </span>                :<span class="lineCov">       1174 :         *size = st.st_size;</span>
+<span class="lineNum">     867 </span>                :<span class="lineCov">       1174 :         return (0);</span>
+<span class="lineNum">     868 </span>                :            : }
+<span class="lineNum">     869 </span>                :            : 
+<span class="lineNum">     870 </span>                :            : /*
+<span class="lineNum">     871 </span>                :            :  * =========================================================================
+<span class="lineNum">     872 </span>                :            :  * misc routines
+<span class="lineNum">     873 </span>                :            :  * =========================================================================
+<span class="lineNum">     874 </span>                :            :  */
+<a name="875"><span class="lineNum">     875 </span>                :            : </a>
+<span class="lineNum">     876 </span>                :            : void
+<span class="lineNum">     877 </span>                :<span class="lineCov">       3062 : delay(clock_t ticks)</span>
+<span class="lineNum">     878 </span>                :            : {
+<span class="lineNum">     879 </span>                :<span class="lineCov">       6124 :         (void) poll(0, 0, ticks * (1000 / hz));</span>
+<span class="lineNum">     880 </span>                :<span class="lineCov">       3062 : }</span>
+<span class="lineNum">     881 </span>                :            : 
+<span class="lineNum">     882 </span>                :            : /*
+<span class="lineNum">     883 </span>                :            :  * Find highest one bit set.
+<span class="lineNum">     884 </span>                :            :  * Returns bit number + 1 of highest bit that is set, otherwise returns 0.
+<span class="lineNum">     885 </span>                :            :  * The __builtin_clzll() function is supported by both GCC and Clang.
+<a name="886"><span class="lineNum">     886 </span>                :            :  */</a>
+<span class="lineNum">     887 </span>                :            : int
+<span class="lineNum">     888 </span>                :<span class="lineCov">  138660054 : highbit64(uint64_t i)</span>
+<span class="lineNum">     889 </span>                :            : {
+<span class="lineNum">     890 </span>        [<span class="branchCov" title="Branch 0 was taken 138642983 times"> + </span><span class="branchCov" title="Branch 1 was taken 17071 times"> + </span>]:<span class="lineCov">  138660054 :         if (i == 0)</span>
+<span class="lineNum">     891 </span>                :            :         return (0);
+<span class="lineNum">     892 </span>                :            : 
+<span class="lineNum">     893 </span>                :<span class="lineCov">  138642983 :         return (NBBY * sizeof (uint64_t) - __builtin_clzll(i));</span>
+<span class="lineNum">     894 </span>                :            : }
+<span class="lineNum">     895 </span>                :            : 
+<span class="lineNum">     896 </span>                :            : /*
+<span class="lineNum">     897 </span>                :            :  * Find lowest one bit set.
+<span class="lineNum">     898 </span>                :            :  * Returns bit number + 1 of lowest bit that is set, otherwise returns 0.
+<span class="lineNum">     899 </span>                :            :  * The __builtin_ffsll() function is supported by both GCC and Clang.
+<a name="900"><span class="lineNum">     900 </span>                :            :  */</a>
+<span class="lineNum">     901 </span>                :            : int
+<span class="lineNum">     902 </span>                :<span class="lineNoCov">          0 : lowbit64(uint64_t i)</span>
+<span class="lineNum">     903 </span>                :            : {
+<span class="lineNum">     904 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (i == 0)</span>
+<span class="lineNum">     905 </span>                :            :                 return (0);
+<span class="lineNum">     906 </span>                :            : 
+<span class="lineNum">     907 </span>                :<span class="lineNoCov">          0 :         return (__builtin_ffsll(i));</span>
+<span class="lineNum">     908 </span>                :            : }
+<span class="lineNum">     909 </span>                :            : 
+<span class="lineNum">     910 </span>                :            : static int random_fd = -1, urandom_fd = -1;
+<a name="911"><span class="lineNum">     911 </span>                :            : </a>
+<span class="lineNum">     912 </span>                :            : void
+<span class="lineNum">     913 </span>                :<span class="lineCov">       1234 : random_init(void)</span>
+<span class="lineNum">     914 </span>                :            : {
+<span class="lineNum">     915 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         VERIFY((random_fd = open(&quot;/dev/random&quot;, O_RDONLY)) != -1);</span>
+<span class="lineNum">     916 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         VERIFY((urandom_fd = open(&quot;/dev/urandom&quot;, O_RDONLY)) != -1);</span>
+<span class="lineNum">     917 </span>                :<span class="lineCov">       1234 : }</span>
+<a name="918"><span class="lineNum">     918 </span>                :            : </a>
+<span class="lineNum">     919 </span>                :            : void
+<span class="lineNum">     920 </span>                :<span class="lineCov">        785 : random_fini(void)</span>
+<span class="lineNum">     921 </span>                :            : {
+<span class="lineNum">     922 </span>                :<span class="lineCov">        785 :         close(random_fd);</span>
+<span class="lineNum">     923 </span>                :<span class="lineCov">        785 :         close(urandom_fd);</span>
+<span class="lineNum">     924 </span>                :            : 
+<span class="lineNum">     925 </span>                :<span class="lineCov">        785 :         random_fd = -1;</span>
+<span class="lineNum">     926 </span>                :<span class="lineCov">        785 :         urandom_fd = -1;</span>
+<span class="lineNum">     927 </span>                :<span class="lineCov">        785 : }</span>
+<a name="928"><span class="lineNum">     928 </span>                :            : </a>
+<span class="lineNum">     929 </span>                :            : static int
+<span class="lineNum">     930 </span>                :<span class="lineCov">   65038567 : random_get_bytes_common(uint8_t *ptr, size_t len, int fd)</span>
+<span class="lineNum">     931 </span>                :            : {
+<span class="lineNum">     932 </span>                :<span class="lineCov">   65038567 :         size_t resid = len;</span>
+<span class="lineNum">     933 </span>                :            :         ssize_t bytes;
+<span class="lineNum">     934 </span>                :            : 
+<span class="lineNum">     935 </span>        [<span class="branchCov" title="Branch 0 was taken 65038567 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">   65038567 :         ASSERT(fd != -1);</span>
+<span class="lineNum">     936 </span>                :            : 
+<span class="lineNum">     937 </span>        [<span class="branchCov" title="Branch 0 was taken 65038578 times"> + </span><span class="branchCov" title="Branch 1 was taken 65039330 times"> + </span>]:<span class="lineCov">  130077908 :         while (resid != 0) {</span>
+<span class="lineNum">     938 </span>                :<span class="lineCov">   65039341 :                 bytes = read(fd, ptr, resid);</span>
+<span class="lineNum">     939 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 65039341 times"> + </span>]:<span class="lineCov">   65039341 :                 ASSERT3S(bytes, &gt;=, 0);</span>
+<span class="lineNum">     940 </span>                :<span class="lineCov">   65039341 :                 ptr += bytes;</span>
+<span class="lineNum">     941 </span>                :<span class="lineCov">   65039341 :                 resid -= bytes;</span>
+<span class="lineNum">     942 </span>                :            :         }
+<span class="lineNum">     943 </span>                :            : 
+<span class="lineNum">     944 </span>                :<span class="lineCov">   65039330 :         return (0);</span>
+<span class="lineNum">     945 </span>                :            : }
+<a name="946"><span class="lineNum">     946 </span>                :            : </a>
+<span class="lineNum">     947 </span>                :            : int
+<span class="lineNum">     948 </span>                :<span class="lineNoCov">          0 : random_get_bytes(uint8_t *ptr, size_t len)</span>
+<span class="lineNum">     949 </span>                :            : {
+<span class="lineNum">     950 </span>                :<span class="lineNoCov">          0 :         return (random_get_bytes_common(ptr, len, random_fd));</span>
+<span class="lineNum">     951 </span>                :            : }
+<a name="952"><span class="lineNum">     952 </span>                :            : </a>
+<span class="lineNum">     953 </span>                :            : int
+<span class="lineNum">     954 </span>                :<span class="lineCov">   65038468 : random_get_pseudo_bytes(uint8_t *ptr, size_t len)</span>
+<span class="lineNum">     955 </span>                :            : {
+<span class="lineNum">     956 </span>                :<span class="lineCov">   65038468 :         return (random_get_bytes_common(ptr, len, urandom_fd));</span>
+<span class="lineNum">     957 </span>                :            : }
+<a name="958"><span class="lineNum">     958 </span>                :            : </a>
+<span class="lineNum">     959 </span>                :            : int
+<span class="lineNum">     960 </span>                :<span class="lineCov">       8390 : ddi_strtoul(const char *hw_serial, char **nptr, int base, unsigned long *result)</span>
+<span class="lineNum">     961 </span>                :            : {
+<span class="lineNum">     962 </span>                :            :         char *end;
+<span class="lineNum">     963 </span>                :            : 
+<span class="lineNum">     964 </span>                :<span class="lineCov">       8390 :         *result = strtoul(hw_serial, &amp;end, base);</span>
+<span class="lineNum">     965 </span>        [<span class="branchCov" title="Branch 0 was taken 8372 times"> + </span><span class="branchCov" title="Branch 1 was taken 18 times"> + </span>]:<span class="lineCov">       8390 :         if (*result == 0)</span>
+<span class="lineNum">     966 </span>                :<span class="lineCov">       8372 :                 return (errno);</span>
+<span class="lineNum">     967 </span>                :            :         return (0);
+<span class="lineNum">     968 </span>                :            : }
+<a name="969"><span class="lineNum">     969 </span>                :            : </a>
+<span class="lineNum">     970 </span>                :            : int
+<span class="lineNum">     971 </span>                :<span class="lineCov">         82 : ddi_strtoull(const char *str, char **nptr, int base, u_longlong_t *result)</span>
+<span class="lineNum">     972 </span>                :            : {
+<span class="lineNum">     973 </span>                :            :         char *end;
+<span class="lineNum">     974 </span>                :            : 
+<span class="lineNum">     975 </span>                :<span class="lineCov">         82 :         *result = strtoull(str, &amp;end, base);</span>
+<span class="lineNum">     976 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 82 times"> + </span>]:<span class="lineCov">         82 :         if (*result == 0)</span>
+<span class="lineNum">     977 </span>                :<span class="lineNoCov">          0 :                 return (errno);</span>
+<span class="lineNum">     978 </span>                :            :         return (0);
+<span class="lineNum">     979 </span>                :            : }
+<a name="980"><span class="lineNum">     980 </span>                :            : </a>
+<span class="lineNum">     981 </span>                :            : utsname_t *
+<span class="lineNum">     982 </span>                :<span class="lineCov">      16895 : utsname(void)</span>
+<span class="lineNum">     983 </span>                :            : {
+<span class="lineNum">     984 </span>                :<span class="lineCov">      16895 :         return (&amp;hw_utsname);</span>
+<span class="lineNum">     985 </span>                :            : }
+<span class="lineNum">     986 </span>                :            : 
+<span class="lineNum">     987 </span>                :            : /*
+<span class="lineNum">     988 </span>                :            :  * =========================================================================
+<span class="lineNum">     989 </span>                :            :  * kernel emulation setup &amp; teardown
+<span class="lineNum">     990 </span>                :            :  * =========================================================================
+<span class="lineNum">     991 </span>                :            :  */
+<span class="lineNum">     992 </span>                :            : static int
+<span class="lineNum">     993 </span>                :            : umem_out_of_memory(void)
+<span class="lineNum">     994 </span>                :            : {
+<span class="lineNum">     995 </span>                :            :         char errmsg[] = &quot;out of memory -- generating core dump\n&quot;;
+<span class="lineNum">     996 </span>                :            : 
+<span class="lineNum">     997 </span>                :            :         (void) fprintf(stderr, &quot;%s&quot;, errmsg);
+<span class="lineNum">     998 </span>                :            :         abort();
+<span class="lineNum">     999 </span>                :            :         return (0);
+<span class="lineNum">    1000 </span>                :            : }
+<a name="1001"><span class="lineNum">    1001 </span>                :            : </a>
+<span class="lineNum">    1002 </span>                :            : void
+<span class="lineNum">    1003 </span>                :<span class="lineCov">       1234 : kernel_init(int mode)</span>
+<span class="lineNum">    1004 </span>                :            : {
+<span class="lineNum">    1005 </span>                :            :         extern uint_t rrw_tsd_key;
+<span class="lineNum">    1006 </span>                :            : 
+<span class="lineNum">    1007 </span>                :<span class="lineCov">       1234 :         umem_nofail_callback(umem_out_of_memory);</span>
+<span class="lineNum">    1008 </span>                :            : 
+<span class="lineNum">    1009 </span>                :<span class="lineCov">       1234 :         physmem = sysconf(_SC_PHYS_PAGES);</span>
+<span class="lineNum">    1010 </span>                :            : 
+<span class="lineNum">    1011 </span>                :<span class="lineCov">       1234 :         dprintf(&quot;physmem = %llu pages (%.2f GB)\n&quot;, physmem,</span>
+<span class="lineNum">    1012 </span>                :            :             (double)physmem * sysconf(_SC_PAGE_SIZE) / (1ULL &lt;&lt; 30));
+<span class="lineNum">    1013 </span>                :            : 
+<span class="lineNum">    1014 </span>        [<span class="branchCov" title="Branch 0 was taken 207 times"> + </span><span class="branchCov" title="Branch 1 was taken 1027 times"> + </span>]:<span class="lineCov">       1234 :         (void) snprintf(hw_serial, sizeof (hw_serial), &quot;%ld&quot;,</span>
+<span class="lineNum">    1015 </span>                :<span class="lineCov">       1234 :             (mode &amp; FWRITE) ? get_system_hostid() : 0);</span>
+<span class="lineNum">    1016 </span>                :            : 
+<span class="lineNum">    1017 </span>                :<span class="lineCov">       1234 :         random_init();</span>
+<span class="lineNum">    1018 </span>                :            : 
+<span class="lineNum">    1019 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         VERIFY0(uname(&amp;hw_utsname));</span>
+<span class="lineNum">    1020 </span>                :            : 
+<span class="lineNum">    1021 </span>                :<span class="lineCov">       1234 :         system_taskq_init();</span>
+<span class="lineNum">    1022 </span>                :<span class="lineCov">       1234 :         icp_init();</span>
+<span class="lineNum">    1023 </span>                :            : 
+<span class="lineNum">    1024 </span>                :<span class="lineCov">       1234 :         spa_init(mode);</span>
+<span class="lineNum">    1025 </span>                :            : 
+<span class="lineNum">    1026 </span>                :<span class="lineCov">       1234 :         fletcher_4_init();</span>
+<span class="lineNum">    1027 </span>                :            : 
+<span class="lineNum">    1028 </span>                :<span class="lineCov">       1234 :         tsd_create(&amp;rrw_tsd_key, rrw_tsd_destroy);</span>
+<span class="lineNum">    1029 </span>                :<span class="lineCov">       1234 : }</span>
+<a name="1030"><span class="lineNum">    1030 </span>                :            : </a>
+<span class="lineNum">    1031 </span>                :            : void
+<span class="lineNum">    1032 </span>                :<span class="lineCov">        785 : kernel_fini(void)</span>
+<span class="lineNum">    1033 </span>                :            : {
+<span class="lineNum">    1034 </span>                :<span class="lineCov">        785 :         fletcher_4_fini();</span>
+<span class="lineNum">    1035 </span>                :<span class="lineCov">        785 :         spa_fini();</span>
+<span class="lineNum">    1036 </span>                :            : 
+<span class="lineNum">    1037 </span>                :<span class="lineCov">        785 :         icp_fini();</span>
+<span class="lineNum">    1038 </span>                :<span class="lineCov">        785 :         system_taskq_fini();</span>
+<span class="lineNum">    1039 </span>                :            : 
+<span class="lineNum">    1040 </span>                :<span class="lineCov">        785 :         random_fini();</span>
+<span class="lineNum">    1041 </span>                :<span class="lineCov">        785 : }</span>
+<a name="1042"><span class="lineNum">    1042 </span>                :            : </a>
+<span class="lineNum">    1043 </span>                :            : uid_t
+<span class="lineNum">    1044 </span>                :<span class="lineCov">        498 : crgetuid(cred_t *cr)</span>
+<span class="lineNum">    1045 </span>                :            : {
+<span class="lineNum">    1046 </span>                :<span class="lineCov">        498 :         return (0);</span>
+<span class="lineNum">    1047 </span>                :            : }
+<a name="1048"><span class="lineNum">    1048 </span>                :            : </a>
+<span class="lineNum">    1049 </span>                :            : uid_t
+<span class="lineNum">    1050 </span>                :<span class="lineNoCov">          0 : crgetruid(cred_t *cr)</span>
+<span class="lineNum">    1051 </span>                :            : {
+<span class="lineNum">    1052 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">    1053 </span>                :            : }
+<a name="1054"><span class="lineNum">    1054 </span>                :            : </a>
+<span class="lineNum">    1055 </span>                :            : gid_t
+<span class="lineNum">    1056 </span>                :<span class="lineNoCov">          0 : crgetgid(cred_t *cr)</span>
+<span class="lineNum">    1057 </span>                :            : {
+<span class="lineNum">    1058 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">    1059 </span>                :            : }
+<a name="1060"><span class="lineNum">    1060 </span>                :            : </a>
+<span class="lineNum">    1061 </span>                :            : int
+<span class="lineNum">    1062 </span>                :<span class="lineNoCov">          0 : crgetngroups(cred_t *cr)</span>
+<span class="lineNum">    1063 </span>                :            : {
+<span class="lineNum">    1064 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">    1065 </span>                :            : }
+<a name="1066"><span class="lineNum">    1066 </span>                :            : </a>
+<span class="lineNum">    1067 </span>                :            : gid_t *
+<span class="lineNum">    1068 </span>                :<span class="lineNoCov">          0 : crgetgroups(cred_t *cr)</span>
+<span class="lineNum">    1069 </span>                :            : {
+<span class="lineNum">    1070 </span>                :<span class="lineNoCov">          0 :         return (NULL);</span>
+<span class="lineNum">    1071 </span>                :            : }
+<a name="1072"><span class="lineNum">    1072 </span>                :            : </a>
+<span class="lineNum">    1073 </span>                :            : int
+<span class="lineNum">    1074 </span>                :<span class="lineNoCov">          0 : zfs_secpolicy_snapshot_perms(const char *name, cred_t *cr)</span>
+<span class="lineNum">    1075 </span>                :            : {
+<span class="lineNum">    1076 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">    1077 </span>                :            : }
+<a name="1078"><span class="lineNum">    1078 </span>                :            : </a>
+<span class="lineNum">    1079 </span>                :            : int
+<span class="lineNum">    1080 </span>                :<span class="lineNoCov">          0 : zfs_secpolicy_rename_perms(const char *from, const char *to, cred_t *cr)</span>
+<span class="lineNum">    1081 </span>                :            : {
+<span class="lineNum">    1082 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">    1083 </span>                :            : }
+<a name="1084"><span class="lineNum">    1084 </span>                :            : </a>
+<span class="lineNum">    1085 </span>                :            : int
+<span class="lineNum">    1086 </span>                :<span class="lineNoCov">          0 : zfs_secpolicy_destroy_perms(const char *name, cred_t *cr)</span>
+<span class="lineNum">    1087 </span>                :            : {
+<span class="lineNum">    1088 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">    1089 </span>                :            : }
+<a name="1090"><span class="lineNum">    1090 </span>                :            : </a>
+<span class="lineNum">    1091 </span>                :            : int
+<span class="lineNum">    1092 </span>                :<span class="lineNoCov">          0 : secpolicy_zfs(const cred_t *cr)</span>
+<span class="lineNum">    1093 </span>                :            : {
+<span class="lineNum">    1094 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">    1095 </span>                :            : }
+<a name="1096"><span class="lineNum">    1096 </span>                :            : </a>
+<span class="lineNum">    1097 </span>                :            : ksiddomain_t *
+<span class="lineNum">    1098 </span>                :<span class="lineNoCov">          0 : ksid_lookupdomain(const char *dom)</span>
+<span class="lineNum">    1099 </span>                :            : {
+<span class="lineNum">    1100 </span>                :            :         ksiddomain_t *kd;
+<span class="lineNum">    1101 </span>                :            : 
+<span class="lineNum">    1102 </span>                :<span class="lineNoCov">          0 :         kd = umem_zalloc(sizeof (ksiddomain_t), UMEM_NOFAIL);</span>
+<span class="lineNum">    1103 </span>                :<span class="lineNoCov">          0 :         kd-&gt;kd_name = spa_strdup(dom);</span>
+<span class="lineNum">    1104 </span>                :<span class="lineNoCov">          0 :         return (kd);</span>
+<span class="lineNum">    1105 </span>                :            : }
+<a name="1106"><span class="lineNum">    1106 </span>                :            : </a>
+<span class="lineNum">    1107 </span>                :            : void
+<span class="lineNum">    1108 </span>                :<span class="lineNoCov">          0 : ksiddomain_rele(ksiddomain_t *ksid)</span>
+<span class="lineNum">    1109 </span>                :            : {
+<span class="lineNum">    1110 </span>                :<span class="lineNoCov">          0 :         spa_strfree(ksid-&gt;kd_name);</span>
+<span class="lineNum">    1111 </span>                :<span class="lineNoCov">          0 :         umem_free(ksid, sizeof (ksiddomain_t));</span>
+<span class="lineNum">    1112 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="1113"><span class="lineNum">    1113 </span>                :            : </a>
+<span class="lineNum">    1114 </span>                :            : char *
+<span class="lineNum">    1115 </span>                :<span class="lineCov">       8216 : kmem_vasprintf(const char *fmt, va_list adx)</span>
+<span class="lineNum">    1116 </span>                :            : {
+<span class="lineNum">    1117 </span>                :<span class="lineCov">       8216 :         char *buf = NULL;</span>
+<span class="lineNum">    1118 </span>                :            :         va_list adx_copy;
+<span class="lineNum">    1119 </span>                :            : 
+<span class="lineNum">    1120 </span>                :<span class="lineCov">       8216 :         va_copy(adx_copy, adx);</span>
+<span class="lineNum">    1121 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8216 times"> + </span>]:<span class="lineCov">       8216 :         VERIFY(vasprintf(&amp;buf, fmt, adx_copy) != -1);</span>
+<span class="lineNum">    1122 </span>                :<span class="lineCov">       8216 :         va_end(adx_copy);</span>
+<span class="lineNum">    1123 </span>                :            : 
+<span class="lineNum">    1124 </span>                :<span class="lineCov">       8216 :         return (buf);</span>
+<span class="lineNum">    1125 </span>                :            : }
+<a name="1126"><span class="lineNum">    1126 </span>                :            : </a>
+<span class="lineNum">    1127 </span>                :            : char *
+<span class="lineNum">    1128 </span>                :<span class="lineCov">     384477 : kmem_asprintf(const char *fmt, ...)</span>
+<span class="lineNum">    1129 </span>                :            : {
+<span class="lineNum">    1130 </span>                :<span class="lineCov">     384477 :         char *buf = NULL;</span>
+<span class="lineNum">    1131 </span>                :            :         va_list adx;
+<span class="lineNum">    1132 </span>                :            : 
+<span class="lineNum">    1133 </span>                :<span class="lineCov">     384477 :         va_start(adx, fmt);</span>
+<span class="lineNum">    1134 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 384470 times"> + </span>]:<span class="lineCov">     384470 :         VERIFY(vasprintf(&amp;buf, fmt, adx) != -1);</span>
+<span class="lineNum">    1135 </span>                :<span class="lineCov">     384470 :         va_end(adx);</span>
+<span class="lineNum">    1136 </span>                :            : 
+<span class="lineNum">    1137 </span>                :<span class="lineCov">     384470 :         return (buf);</span>
+<span class="lineNum">    1138 </span>                :            : }
+<span class="lineNum">    1139 </span>                :            : 
+<a name="1140"><span class="lineNum">    1140 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">    1141 </span>                :            : int
+<span class="lineNum">    1142 </span>                :<span class="lineNoCov">          0 : zfs_onexit_fd_hold(int fd, minor_t *minorp)</span>
+<span class="lineNum">    1143 </span>                :            : {
+<span class="lineNum">    1144 </span>                :<span class="lineNoCov">          0 :         *minorp = 0;</span>
+<span class="lineNum">    1145 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">    1146 </span>                :            : }
+<span class="lineNum">    1147 </span>                :            : 
+<a name="1148"><span class="lineNum">    1148 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">    1149 </span>                :            : void
+<span class="lineNum">    1150 </span>                :<span class="lineNoCov">          0 : zfs_onexit_fd_rele(int fd)</span>
+<span class="lineNum">    1151 </span>                :            : {
+<span class="lineNum">    1152 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">    1153 </span>                :            : 
+<a name="1154"><span class="lineNum">    1154 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">    1155 </span>                :            : int
+<span class="lineNum">    1156 </span>                :<span class="lineNoCov">          0 : zfs_onexit_add_cb(minor_t minor, void (*func)(void *), void *data,</span>
+<span class="lineNum">    1157 </span>                :            :     uint64_t *action_handle)
+<span class="lineNum">    1158 </span>                :            : {
+<span class="lineNum">    1159 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">    1160 </span>                :            : }
+<span class="lineNum">    1161 </span>                :            : 
+<a name="1162"><span class="lineNum">    1162 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">    1163 </span>                :            : int
+<span class="lineNum">    1164 </span>                :<span class="lineNoCov">          0 : zfs_onexit_del_cb(minor_t minor, uint64_t action_handle, boolean_t fire)</span>
+<span class="lineNum">    1165 </span>                :            : {
+<span class="lineNum">    1166 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">    1167 </span>                :            : }
+<span class="lineNum">    1168 </span>                :            : 
+<a name="1169"><span class="lineNum">    1169 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">    1170 </span>                :            : int
+<span class="lineNum">    1171 </span>                :<span class="lineNoCov">          0 : zfs_onexit_cb_data(minor_t minor, uint64_t action_handle, void **data)</span>
+<span class="lineNum">    1172 </span>                :            : {
+<span class="lineNum">    1173 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">    1174 </span>                :            : }
+<a name="1175"><span class="lineNum">    1175 </span>                :            : </a>
+<span class="lineNum">    1176 </span>                :            : fstrans_cookie_t
+<span class="lineNum">    1177 </span>                :<span class="lineCov">   22965153 : spl_fstrans_mark(void)</span>
+<span class="lineNum">    1178 </span>                :            : {
+<span class="lineNum">    1179 </span>                :<span class="lineCov">   22965153 :         return ((fstrans_cookie_t)0);</span>
+<span class="lineNum">    1180 </span>                :            : }
+<a name="1181"><span class="lineNum">    1181 </span>                :            : </a>
+<span class="lineNum">    1182 </span>                :            : void
+<span class="lineNum">    1183 </span>                :<span class="lineCov">   22972944 : spl_fstrans_unmark(fstrans_cookie_t cookie)</span>
+<span class="lineNum">    1184 </span>                :            : {
+<span class="lineNum">    1185 </span>                :<span class="lineCov">   22972944 : }</span>
+<a name="1186"><span class="lineNum">    1186 </span>                :            : </a>
+<span class="lineNum">    1187 </span>                :            : int
+<span class="lineNum">    1188 </span>                :<span class="lineCov">      67173 : __spl_pf_fstrans_check(void)</span>
+<span class="lineNum">    1189 </span>                :            : {
+<span class="lineNum">    1190 </span>                :<span class="lineCov">      67173 :         return (0);</span>
+<span class="lineNum">    1191 </span>                :            : }
+<span class="lineNum">    1192 </span>                :            : 
+<span class="lineNum">    1193 </span>                :            : void *zvol_tag = &quot;zvol_tag&quot;;
+<a name="1194"><span class="lineNum">    1194 </span>                :            : </a>
+<span class="lineNum">    1195 </span>                :            : void
+<span class="lineNum">    1196 </span>                :<span class="lineCov">       1575 : zvol_create_minors(spa_t *spa, const char *name, boolean_t async)</span>
+<span class="lineNum">    1197 </span>                :            : {
+<span class="lineNum">    1198 </span>                :<span class="lineCov">       1575 : }</span>
+<a name="1199"><span class="lineNum">    1199 </span>                :            : </a>
+<span class="lineNum">    1200 </span>                :            : void
+<span class="lineNum">    1201 </span>                :<span class="lineNoCov">          0 : zvol_remove_minor(spa_t *spa, const char *name, boolean_t async)</span>
+<span class="lineNum">    1202 </span>                :            : {
+<span class="lineNum">    1203 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="1204"><span class="lineNum">    1204 </span>                :            : </a>
+<span class="lineNum">    1205 </span>                :            : void
+<span class="lineNum">    1206 </span>                :<span class="lineCov">        382 : zvol_remove_minors(spa_t *spa, const char *name, boolean_t async)</span>
+<span class="lineNum">    1207 </span>                :            : {
+<span class="lineNum">    1208 </span>                :<span class="lineCov">        382 : }</span>
+<a name="1209"><span class="lineNum">    1209 </span>                :            : </a>
+<span class="lineNum">    1210 </span>                :            : void
+<span class="lineNum">    1211 </span>                :<span class="lineNoCov">          0 : zvol_rename_minors(spa_t *spa, const char *oldname, const char *newname,</span>
+<span class="lineNum">    1212 </span>                :            :     boolean_t async)
+<span class="lineNum">    1213 </span>                :            : {
+<span class="lineNum">    1214 </span>                :<span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

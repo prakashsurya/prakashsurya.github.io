@@ -1,0 +1,882 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/icp/algs/skein/skein_block.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/icp/algs/skein</a> - skein_block.c<span style="font-size: 80%;"> (source / <a href="skein_block.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">47</td>
+            <td class="headerCovTableEntry">147</td>
+            <td class="headerCovTableEntryLo">32.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">33.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntryLo">25.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * Implementation of the Skein block functions.
+<span class="lineNum">       3 </span>                :            :  * Source code author: Doug Whiting, 2008.
+<span class="lineNum">       4 </span>                :            :  * This algorithm and source code is released to the public domain.
+<span class="lineNum">       5 </span>                :            :  * Compile-time switches:
+<span class="lineNum">       6 </span>                :            :  *  SKEIN_USE_ASM  -- set bits (256/512/1024) to select which
+<span class="lineNum">       7 </span>                :            :  *                    versions use ASM code for block processing
+<span class="lineNum">       8 </span>                :            :  *                    [default: use C for all block sizes]
+<span class="lineNum">       9 </span>                :            :  */
+<span class="lineNum">      10 </span>                :            : /* Copyright 2013 Doug Whiting. This code is released to the public domain. */
+<span class="lineNum">      11 </span>                :            : 
+<span class="lineNum">      12 </span>                :            : #include &lt;sys/skein.h&gt;
+<span class="lineNum">      13 </span>                :            : #include &quot;skein_impl.h&quot;
+<span class="lineNum">      14 </span>                :            : #include &lt;sys/isa_defs.h&gt; /* for _ILP32 */
+<span class="lineNum">      15 </span>                :            : 
+<span class="lineNum">      16 </span>                :            : #ifndef SKEIN_USE_ASM
+<span class="lineNum">      17 </span>                :            : #define SKEIN_USE_ASM   (0)     /* default is all C code (no ASM) */
+<span class="lineNum">      18 </span>                :            : #endif
+<span class="lineNum">      19 </span>                :            : 
+<span class="lineNum">      20 </span>                :            : #ifndef SKEIN_LOOP
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * The low-level checksum routines use a lot of stack space. On systems where
+<span class="lineNum">      23 </span>                :            :  * small stacks frame are enforced (like 32-bit kernel builds), do not unroll
+<span class="lineNum">      24 </span>                :            :  * checksum calculations to save stack space.
+<span class="lineNum">      25 </span>                :            :  *
+<span class="lineNum">      26 </span>                :            :  * Even with no loops unrolled, we still can exceed the 1k stack frame limit
+<span class="lineNum">      27 </span>                :            :  * in Skein1024_Process_Block() (it hits 1272 bytes on ARM32).  We can
+<span class="lineNum">      28 </span>                :            :  * safely ignore it though, since that the checksum functions will be called
+<span class="lineNum">      29 </span>                :            :  * from a worker thread that won't be using much stack.  That's why we have
+<span class="lineNum">      30 </span>                :            :  * the #pragma here to ignore the warning.
+<span class="lineNum">      31 </span>                :            :  */
+<span class="lineNum">      32 </span>                :            : #if defined(_ILP32) || defined(__powerpc)       /* Assume small stack */
+<span class="lineNum">      33 </span>                :            : #pragma GCC diagnostic ignored &quot;-Wframe-larger-than=&quot;
+<span class="lineNum">      34 </span>                :            : /*
+<span class="lineNum">      35 </span>                :            :  * We're running on 32-bit, don't unroll loops to save stack frame space
+<span class="lineNum">      36 </span>                :            :  *
+<span class="lineNum">      37 </span>                :            :  * Due to the ways the calculations on SKEIN_LOOP are done in
+<span class="lineNum">      38 </span>                :            :  * Skein_*_Process_Block(), a value of 111 disables unrolling loops
+<span class="lineNum">      39 </span>                :            :  * in any of those functions.
+<span class="lineNum">      40 </span>                :            :  */
+<span class="lineNum">      41 </span>                :            : #define SKEIN_LOOP 111
+<span class="lineNum">      42 </span>                :            : #else
+<span class="lineNum">      43 </span>                :            : /* We're compiling with large stacks */
+<span class="lineNum">      44 </span>                :            : #define SKEIN_LOOP 001          /* default: unroll 256 and 512, but not 1024 */
+<span class="lineNum">      45 </span>                :            : #endif
+<span class="lineNum">      46 </span>                :            : #endif
+<span class="lineNum">      47 </span>                :            : 
+<span class="lineNum">      48 </span>                :            : /* some useful definitions for code here */
+<span class="lineNum">      49 </span>                :            : #define BLK_BITS        (WCNT*64)
+<span class="lineNum">      50 </span>                :            : #define KW_TWK_BASE     (0)
+<span class="lineNum">      51 </span>                :            : #define KW_KEY_BASE     (3)
+<span class="lineNum">      52 </span>                :            : #define ks              (kw + KW_KEY_BASE)
+<span class="lineNum">      53 </span>                :            : #define ts              (kw + KW_TWK_BASE)
+<span class="lineNum">      54 </span>                :            : 
+<span class="lineNum">      55 </span>                :            : /* no debugging in Illumos version */
+<span class="lineNum">      56 </span>                :            : #define DebugSaveTweak(ctx)
+<span class="lineNum">      57 </span>                :            : 
+<span class="lineNum">      58 </span>                :            : /* Skein_256 */
+<a name="59"><span class="lineNum">      59 </span>                :            : #if     !(SKEIN_USE_ASM &amp; 256)</a>
+<span class="lineNum">      60 </span>                :            : void
+<span class="lineNum">      61 </span>                :<span class="lineNoCov">          0 : Skein_256_Process_Block(Skein_256_Ctxt_t *ctx, const uint8_t *blkPtr,</span>
+<span class="lineNum">      62 </span>                :            :     size_t blkCnt, size_t byteCntAdd)
+<span class="lineNum">      63 </span>                :            : {
+<span class="lineNum">      64 </span>                :            :         enum {
+<span class="lineNum">      65 </span>                :            :                 WCNT = SKEIN_256_STATE_WORDS
+<span class="lineNum">      66 </span>                :            :         };
+<span class="lineNum">      67 </span>                :            : #undef  RCNT
+<span class="lineNum">      68 </span>                :            : #define RCNT  (SKEIN_256_ROUNDS_TOTAL / 8)
+<span class="lineNum">      69 </span>                :            : 
+<span class="lineNum">      70 </span>                :            : #ifdef  SKEIN_LOOP              /* configure how much to unroll the loop */
+<span class="lineNum">      71 </span>                :            : #define SKEIN_UNROLL_256 (((SKEIN_LOOP) / 100) % 10)
+<span class="lineNum">      72 </span>                :            : #else
+<span class="lineNum">      73 </span>                :            : #define SKEIN_UNROLL_256 (0)
+<span class="lineNum">      74 </span>                :            : #endif
+<span class="lineNum">      75 </span>                :            : 
+<span class="lineNum">      76 </span>                :            : #if     SKEIN_UNROLL_256
+<span class="lineNum">      77 </span>                :            : #if     (RCNT % SKEIN_UNROLL_256)
+<span class="lineNum">      78 </span>                :            : #error &quot;Invalid SKEIN_UNROLL_256&quot;     /* sanity check on unroll count */
+<span class="lineNum">      79 </span>                :            : #endif
+<span class="lineNum">      80 </span>                :            :         size_t r;
+<span class="lineNum">      81 </span>                :            :         /* key schedule words : chaining vars + tweak + &quot;rotation&quot; */
+<span class="lineNum">      82 </span>                :            :         uint64_t kw[WCNT + 4 + RCNT * 2];
+<span class="lineNum">      83 </span>                :            : #else
+<span class="lineNum">      84 </span>                :            :         uint64_t kw[WCNT + 4];  /* key schedule words : chaining vars + tweak */
+<span class="lineNum">      85 </span>                :            : #endif
+<span class="lineNum">      86 </span>                :            :         /* local copy of context vars, for speed */
+<span class="lineNum">      87 </span>                :            :         uint64_t X0, X1, X2, X3;
+<span class="lineNum">      88 </span>                :            :         uint64_t w[WCNT];               /* local copy of input block */
+<span class="lineNum">      89 </span>                :            : #ifdef  SKEIN_DEBUG
+<span class="lineNum">      90 </span>                :            :         /* use for debugging (help compiler put Xn in registers) */
+<span class="lineNum">      91 </span>                :            :         const uint64_t *Xptr[4];
+<span class="lineNum">      92 </span>                :            :         Xptr[0] = &amp;X0;
+<span class="lineNum">      93 </span>                :            :         Xptr[1] = &amp;X1;
+<span class="lineNum">      94 </span>                :            :         Xptr[2] = &amp;X2;
+<span class="lineNum">      95 </span>                :            :         Xptr[3] = &amp;X3;
+<span class="lineNum">      96 </span>                :            : #endif
+<span class="lineNum">      97 </span>                :            :         Skein_assert(blkCnt != 0);      /* never call with blkCnt == 0! */
+<span class="lineNum">      98 </span>                :<span class="lineNoCov">          0 :         ts[0] = ctx-&gt;h.T[0];</span>
+<span class="lineNum">      99 </span>                :<span class="lineNoCov">          0 :         ts[1] = ctx-&gt;h.T[1];</span>
+<span class="lineNum">     100 </span>                :            :         do {
+<span class="lineNum">     101 </span>                :            :                 /*
+<span class="lineNum">     102 </span>                :            :                  * this implementation only supports 2**64 input bytes
+<span class="lineNum">     103 </span>                :            :                  * (no carry out here)
+<span class="lineNum">     104 </span>                :            :                  */
+<span class="lineNum">     105 </span>                :<span class="lineNoCov">          0 :                 ts[0] += byteCntAdd;    /* update processed length */</span>
+<span class="lineNum">     106 </span>                :            : 
+<span class="lineNum">     107 </span>                :            :                 /* precompute the key schedule for this block */
+<span class="lineNum">     108 </span>                :<span class="lineNoCov">          0 :                 ks[0] = ctx-&gt;X[0];</span>
+<span class="lineNum">     109 </span>                :<span class="lineNoCov">          0 :                 ks[1] = ctx-&gt;X[1];</span>
+<span class="lineNum">     110 </span>                :<span class="lineNoCov">          0 :                 ks[2] = ctx-&gt;X[2];</span>
+<span class="lineNum">     111 </span>                :<span class="lineNoCov">          0 :                 ks[3] = ctx-&gt;X[3];</span>
+<span class="lineNum">     112 </span>                :<span class="lineNoCov">          0 :                 ks[4] = ks[0] ^ ks[1] ^ ks[2] ^ ks[3] ^ SKEIN_KS_PARITY;</span>
+<span class="lineNum">     113 </span>                :            : 
+<span class="lineNum">     114 </span>                :<span class="lineNoCov">          0 :                 ts[2] = ts[0] ^ ts[1];</span>
+<span class="lineNum">     115 </span>                :            : 
+<span class="lineNum">     116 </span>                :            :                 /* get input block in little-endian format */
+<span class="lineNum">     117 </span>                :<span class="lineNoCov">          0 :                 Skein_Get64_LSB_First(w, blkPtr, WCNT);</span>
+<span class="lineNum">     118 </span>                :            :                 DebugSaveTweak(ctx);
+<span class="lineNum">     119 </span>                :            :                 Skein_Show_Block(BLK_BITS, &amp;ctx-&gt;h, ctx-&gt;X, blkPtr, w, ks, ts);
+<span class="lineNum">     120 </span>                :            : 
+<span class="lineNum">     121 </span>                :<span class="lineNoCov">          0 :                 X0 = w[0] + ks[0];      /* do the first full key injection */</span>
+<span class="lineNum">     122 </span>                :<span class="lineNoCov">          0 :                 X1 = w[1] + ks[1] + ts[0];</span>
+<span class="lineNum">     123 </span>                :<span class="lineNoCov">          0 :                 X2 = w[2] + ks[2] + ts[1];</span>
+<span class="lineNum">     124 </span>                :<span class="lineNoCov">          0 :                 X3 = w[3] + ks[3];</span>
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>                :            :                 Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, SKEIN_RND_KEY_INITIAL,
+<span class="lineNum">     127 </span>                :            :                     Xptr);      /* show starting state values */
+<span class="lineNum">     128 </span>                :            : 
+<span class="lineNum">     129 </span>                :<span class="lineNoCov">          0 :                 blkPtr += SKEIN_256_BLOCK_BYTES;</span>
+<span class="lineNum">     130 </span>                :            : 
+<span class="lineNum">     131 </span>                :            :                 /* run the rounds */
+<span class="lineNum">     132 </span>                :            : 
+<span class="lineNum">     133 </span>                :            : #define Round256(p0, p1, p2, p3, ROT, rNum)                          \
+<span class="lineNum">     134 </span>                :            :         X##p0 += X##p1; X##p1 = RotL_64(X##p1, ROT##_0); X##p1 ^= X##p0; \
+<span class="lineNum">     135 </span>                :            :         X##p2 += X##p3; X##p3 = RotL_64(X##p3, ROT##_1); X##p3 ^= X##p2; \
+<span class="lineNum">     136 </span>                :            : 
+<span class="lineNum">     137 </span>                :            : #if     SKEIN_UNROLL_256 == 0
+<span class="lineNum">     138 </span>                :            : #define R256(p0, p1, p2, p3, ROT, rNum)         /* fully unrolled */    \
+<span class="lineNum">     139 </span>                :            :         Round256(p0, p1, p2, p3, ROT, rNum)             \
+<span class="lineNum">     140 </span>                :            :         Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, rNum, Xptr);
+<span class="lineNum">     141 </span>                :            : 
+<span class="lineNum">     142 </span>                :            : #define I256(R)                                                         \
+<span class="lineNum">     143 </span>                :            :         X0 += ks[((R) + 1) % 5]; /* inject the key schedule value */ \
+<span class="lineNum">     144 </span>                :            :         X1 += ks[((R) + 2) % 5] + ts[((R) + 1) % 3];                    \
+<span class="lineNum">     145 </span>                :            :         X2 += ks[((R) + 3) % 5] + ts[((R) + 2) % 3];                    \
+<span class="lineNum">     146 </span>                :            :         X3 += ks[((R) + 4) % 5] + (R) + 1;                      \
+<span class="lineNum">     147 </span>                :            :         Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, SKEIN_RND_KEY_INJECT, Xptr);
+<span class="lineNum">     148 </span>                :            : #else                           /* looping version */
+<span class="lineNum">     149 </span>                :            : #define R256(p0, p1, p2, p3, ROT, rNum)                             \
+<span class="lineNum">     150 </span>                :            :         Round256(p0, p1, p2, p3, ROT, rNum)                             \
+<span class="lineNum">     151 </span>                :            :         Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, 4 * (r - 1) + rNum, Xptr);
+<span class="lineNum">     152 </span>                :            : 
+<span class="lineNum">     153 </span>                :            : #define I256(R)                                                         \
+<span class="lineNum">     154 </span>                :            :         X0 += ks[r + (R) + 0];  /* inject the key schedule value */     \
+<span class="lineNum">     155 </span>                :            :         X1 += ks[r + (R) + 1] + ts[r + (R) + 0];                        \
+<span class="lineNum">     156 </span>                :            :         X2 += ks[r + (R) + 2] + ts[r + (R) + 1];                        \
+<span class="lineNum">     157 </span>                :            :         X3 += ks[r + (R) + 3] + r + (R);                                \
+<span class="lineNum">     158 </span>                :            :         ks[r + (R) + 4] = ks[r + (R) - 1];   /* rotate key schedule */  \
+<span class="lineNum">     159 </span>                :            :         ts[r + (R) + 2] = ts[r + (R) - 1];                      \
+<span class="lineNum">     160 </span>                :            :         Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, SKEIN_RND_KEY_INJECT, Xptr);
+<span class="lineNum">     161 </span>                :            : 
+<span class="lineNum">     162 </span>                :            :                 /* loop thru it */
+<span class="lineNum">     163 </span>                :            :                 for (r = 1; r &lt; 2 * RCNT; r += 2 * SKEIN_UNROLL_256)
+<span class="lineNum">     164 </span>                :            : #endif
+<span class="lineNum">     165 </span>                :            :                 {
+<span class="lineNum">     166 </span>                :            : #define R256_8_rounds(R)                         \
+<span class="lineNum">     167 </span>                :            :         R256(0, 1, 2, 3, R_256_0, 8 * (R) + 1);  \
+<span class="lineNum">     168 </span>                :            :         R256(0, 3, 2, 1, R_256_1, 8 * (R) + 2);  \
+<span class="lineNum">     169 </span>                :            :         R256(0, 1, 2, 3, R_256_2, 8 * (R) + 3);  \
+<span class="lineNum">     170 </span>                :            :         R256(0, 3, 2, 1, R_256_3, 8 * (R) + 4);  \
+<span class="lineNum">     171 </span>                :            :         I256(2 * (R));                           \
+<span class="lineNum">     172 </span>                :            :         R256(0, 1, 2, 3, R_256_4, 8 * (R) + 5);  \
+<span class="lineNum">     173 </span>                :            :         R256(0, 3, 2, 1, R_256_5, 8 * (R) + 6);  \
+<span class="lineNum">     174 </span>                :            :         R256(0, 1, 2, 3, R_256_6, 8 * (R) + 7);  \
+<span class="lineNum">     175 </span>                :            :         R256(0, 3, 2, 1, R_256_7, 8 * (R) + 8);  \
+<span class="lineNum">     176 </span>                :            :         I256(2 * (R) + 1);
+<span class="lineNum">     177 </span>                :            : 
+<span class="lineNum">     178 </span>                :<span class="lineNoCov">          0 :                         R256_8_rounds(0);</span>
+<span class="lineNum">     179 </span>                :            : 
+<span class="lineNum">     180 </span>                :            : #define R256_Unroll_R(NN) \
+<span class="lineNum">     181 </span>                :            :         ((SKEIN_UNROLL_256 == 0 &amp;&amp; SKEIN_256_ROUNDS_TOTAL / 8 &gt; (NN)) || \
+<span class="lineNum">     182 </span>                :            :         (SKEIN_UNROLL_256 &gt; (NN)))
+<span class="lineNum">     183 </span>                :            : 
+<span class="lineNum">     184 </span>                :            : #if     R256_Unroll_R(1)
+<span class="lineNum">     185 </span>                :<span class="lineNoCov">          0 :                         R256_8_rounds(1);</span>
+<span class="lineNum">     186 </span>                :            : #endif
+<span class="lineNum">     187 </span>                :            : #if     R256_Unroll_R(2)
+<span class="lineNum">     188 </span>                :<span class="lineNoCov">          0 :                         R256_8_rounds(2);</span>
+<span class="lineNum">     189 </span>                :            : #endif
+<span class="lineNum">     190 </span>                :            : #if     R256_Unroll_R(3)
+<span class="lineNum">     191 </span>                :<span class="lineNoCov">          0 :                         R256_8_rounds(3);</span>
+<span class="lineNum">     192 </span>                :            : #endif
+<span class="lineNum">     193 </span>                :            : #if     R256_Unroll_R(4)
+<span class="lineNum">     194 </span>                :<span class="lineNoCov">          0 :                         R256_8_rounds(4);</span>
+<span class="lineNum">     195 </span>                :            : #endif
+<span class="lineNum">     196 </span>                :            : #if     R256_Unroll_R(5)
+<span class="lineNum">     197 </span>                :<span class="lineNoCov">          0 :                         R256_8_rounds(5);</span>
+<span class="lineNum">     198 </span>                :            : #endif
+<span class="lineNum">     199 </span>                :            : #if     R256_Unroll_R(6)
+<span class="lineNum">     200 </span>                :<span class="lineNoCov">          0 :                         R256_8_rounds(6);</span>
+<span class="lineNum">     201 </span>                :            : #endif
+<span class="lineNum">     202 </span>                :            : #if     R256_Unroll_R(7)
+<span class="lineNum">     203 </span>                :<span class="lineNoCov">          0 :                         R256_8_rounds(7);</span>
+<span class="lineNum">     204 </span>                :            : #endif
+<span class="lineNum">     205 </span>                :            : #if     R256_Unroll_R(8)
+<span class="lineNum">     206 </span>                :<span class="lineNoCov">          0 :                         R256_8_rounds(8);</span>
+<span class="lineNum">     207 </span>                :            : #endif
+<span class="lineNum">     208 </span>                :            : #if     R256_Unroll_R(9)
+<span class="lineNum">     209 </span>                :            :                         R256_8_rounds(9);
+<span class="lineNum">     210 </span>                :            : #endif
+<span class="lineNum">     211 </span>                :            : #if     R256_Unroll_R(10)
+<span class="lineNum">     212 </span>                :            :                         R256_8_rounds(10);
+<span class="lineNum">     213 </span>                :            : #endif
+<span class="lineNum">     214 </span>                :            : #if     R256_Unroll_R(11)
+<span class="lineNum">     215 </span>                :            :                         R256_8_rounds(11);
+<span class="lineNum">     216 </span>                :            : #endif
+<span class="lineNum">     217 </span>                :            : #if     R256_Unroll_R(12)
+<span class="lineNum">     218 </span>                :            :                         R256_8_rounds(12);
+<span class="lineNum">     219 </span>                :            : #endif
+<span class="lineNum">     220 </span>                :            : #if     R256_Unroll_R(13)
+<span class="lineNum">     221 </span>                :            :                         R256_8_rounds(13);
+<span class="lineNum">     222 </span>                :            : #endif
+<span class="lineNum">     223 </span>                :            : #if     R256_Unroll_R(14)
+<span class="lineNum">     224 </span>                :            :                         R256_8_rounds(14);
+<span class="lineNum">     225 </span>                :            : #endif
+<span class="lineNum">     226 </span>                :            : #if     (SKEIN_UNROLL_256 &gt; 14)
+<span class="lineNum">     227 </span>                :            : #error  &quot;need more unrolling in Skein_256_Process_Block&quot;
+<span class="lineNum">     228 </span>                :            : #endif
+<span class="lineNum">     229 </span>                :            :                 }
+<span class="lineNum">     230 </span>                :            :                 /*
+<span class="lineNum">     231 </span>                :            :                  * do the final &quot;feedforward&quot; xor, update context chaining vars
+<span class="lineNum">     232 </span>                :            :                  */
+<span class="lineNum">     233 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[0] = X0 ^ w[0];</span>
+<span class="lineNum">     234 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[1] = X1 ^ w[1];</span>
+<span class="lineNum">     235 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[2] = X2 ^ w[2];</span>
+<span class="lineNum">     236 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[3] = X3 ^ w[3];</span>
+<span class="lineNum">     237 </span>                :            : 
+<span class="lineNum">     238 </span>                :            :                 Skein_Show_Round(BLK_BITS, &amp;ctx-&gt;h, SKEIN_RND_FEED_FWD, ctx-&gt;X);
+<span class="lineNum">     239 </span>                :            : 
+<span class="lineNum">     240 </span>                :<span class="lineNoCov">          0 :                 ts[1] &amp;= ~SKEIN_T1_FLAG_FIRST;</span>
+<span class="lineNum">     241 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } while (--blkCnt);</span>
+<span class="lineNum">     242 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;h.T[0] = ts[0];</span>
+<span class="lineNum">     243 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;h.T[1] = ts[1];</span>
+<span class="lineNum">     244 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     245 </span>                :            : 
+<span class="lineNum">     246 </span>                :            : #if     defined(SKEIN_CODE_SIZE) || defined(SKEIN_PERF)
+<span class="lineNum">     247 </span>                :            : size_t
+<span class="lineNum">     248 </span>                :            : Skein_256_Process_Block_CodeSize(void)
+<span class="lineNum">     249 </span>                :            : {
+<span class="lineNum">     250 </span>                :            :         return ((uint8_t *)Skein_256_Process_Block_CodeSize) -
+<span class="lineNum">     251 </span>                :            :             ((uint8_t *)Skein_256_Process_Block);
+<span class="lineNum">     252 </span>                :            : }
+<span class="lineNum">     253 </span>                :            : 
+<span class="lineNum">     254 </span>                :            : uint_t
+<span class="lineNum">     255 </span>                :            : Skein_256_Unroll_Cnt(void)
+<span class="lineNum">     256 </span>                :            : {
+<span class="lineNum">     257 </span>                :            :         return (SKEIN_UNROLL_256);
+<span class="lineNum">     258 </span>                :            : }
+<span class="lineNum">     259 </span>                :            : #endif
+<span class="lineNum">     260 </span>                :            : #endif
+<span class="lineNum">     261 </span>                :            : 
+<span class="lineNum">     262 </span>                :            : /* Skein_512 */
+<a name="263"><span class="lineNum">     263 </span>                :            : #if     !(SKEIN_USE_ASM &amp; 512)</a>
+<span class="lineNum">     264 </span>                :            : void
+<span class="lineNum">     265 </span>                :<span class="lineCov">      94742 : Skein_512_Process_Block(Skein_512_Ctxt_t *ctx, const uint8_t *blkPtr,</span>
+<span class="lineNum">     266 </span>                :            :     size_t blkCnt, size_t byteCntAdd)
+<span class="lineNum">     267 </span>                :            : {
+<span class="lineNum">     268 </span>                :            :         enum {
+<span class="lineNum">     269 </span>                :            :                 WCNT = SKEIN_512_STATE_WORDS
+<span class="lineNum">     270 </span>                :            :         };
+<span class="lineNum">     271 </span>                :            : #undef  RCNT
+<span class="lineNum">     272 </span>                :            : #define RCNT  (SKEIN_512_ROUNDS_TOTAL / 8)
+<span class="lineNum">     273 </span>                :            : 
+<span class="lineNum">     274 </span>                :            : #ifdef  SKEIN_LOOP              /* configure how much to unroll the loop */
+<span class="lineNum">     275 </span>                :            : #define SKEIN_UNROLL_512 (((SKEIN_LOOP) / 10) % 10)
+<span class="lineNum">     276 </span>                :            : #else
+<span class="lineNum">     277 </span>                :            : #define SKEIN_UNROLL_512 (0)
+<span class="lineNum">     278 </span>                :            : #endif
+<span class="lineNum">     279 </span>                :            : 
+<span class="lineNum">     280 </span>                :            : #if     SKEIN_UNROLL_512
+<span class="lineNum">     281 </span>                :            : #if     (RCNT % SKEIN_UNROLL_512)
+<span class="lineNum">     282 </span>                :            : #error &quot;Invalid SKEIN_UNROLL_512&quot;     /* sanity check on unroll count */
+<span class="lineNum">     283 </span>                :            : #endif
+<span class="lineNum">     284 </span>                :            :         size_t r;
+<span class="lineNum">     285 </span>                :            :         /* key schedule words : chaining vars + tweak + &quot;rotation&quot; */
+<span class="lineNum">     286 </span>                :            :         uint64_t kw[WCNT + 4 + RCNT * 2];
+<span class="lineNum">     287 </span>                :            : #else
+<span class="lineNum">     288 </span>                :            :         uint64_t kw[WCNT + 4];  /* key schedule words : chaining vars + tweak */
+<span class="lineNum">     289 </span>                :            : #endif
+<span class="lineNum">     290 </span>                :            :         /* local copy of vars, for speed */
+<span class="lineNum">     291 </span>                :            :         uint64_t X0, X1, X2, X3, X4, X5, X6, X7;
+<span class="lineNum">     292 </span>                :            :         uint64_t w[WCNT];               /* local copy of input block */
+<span class="lineNum">     293 </span>                :            : #ifdef  SKEIN_DEBUG
+<span class="lineNum">     294 </span>                :            :         /* use for debugging (help compiler put Xn in registers) */
+<span class="lineNum">     295 </span>                :            :         const uint64_t *Xptr[8];
+<span class="lineNum">     296 </span>                :            :         Xptr[0] = &amp;X0;
+<span class="lineNum">     297 </span>                :            :         Xptr[1] = &amp;X1;
+<span class="lineNum">     298 </span>                :            :         Xptr[2] = &amp;X2;
+<span class="lineNum">     299 </span>                :            :         Xptr[3] = &amp;X3;
+<span class="lineNum">     300 </span>                :            :         Xptr[4] = &amp;X4;
+<span class="lineNum">     301 </span>                :            :         Xptr[5] = &amp;X5;
+<span class="lineNum">     302 </span>                :            :         Xptr[6] = &amp;X6;
+<span class="lineNum">     303 </span>                :            :         Xptr[7] = &amp;X7;
+<span class="lineNum">     304 </span>                :            : #endif
+<span class="lineNum">     305 </span>                :            : 
+<span class="lineNum">     306 </span>                :            :         Skein_assert(blkCnt != 0);      /* never call with blkCnt == 0! */
+<span class="lineNum">     307 </span>                :<span class="lineCov">      94742 :         ts[0] = ctx-&gt;h.T[0];</span>
+<span class="lineNum">     308 </span>                :<span class="lineCov">      94742 :         ts[1] = ctx-&gt;h.T[1];</span>
+<span class="lineNum">     309 </span>                :            :         do {
+<span class="lineNum">     310 </span>                :            :                 /*
+<span class="lineNum">     311 </span>                :            :                  * this implementation only supports 2**64 input bytes
+<span class="lineNum">     312 </span>                :            :                  * (no carry out here)
+<span class="lineNum">     313 </span>                :            :                  */
+<span class="lineNum">     314 </span>                :<span class="lineCov">    2210256 :                 ts[0] += byteCntAdd;    /* update processed length */</span>
+<span class="lineNum">     315 </span>                :            : 
+<span class="lineNum">     316 </span>                :            :                 /* precompute the key schedule for this block */
+<span class="lineNum">     317 </span>                :<span class="lineCov">    2210256 :                 ks[0] = ctx-&gt;X[0];</span>
+<span class="lineNum">     318 </span>                :<span class="lineCov">    2210256 :                 ks[1] = ctx-&gt;X[1];</span>
+<span class="lineNum">     319 </span>                :<span class="lineCov">    2210256 :                 ks[2] = ctx-&gt;X[2];</span>
+<span class="lineNum">     320 </span>                :<span class="lineCov">    2210256 :                 ks[3] = ctx-&gt;X[3];</span>
+<span class="lineNum">     321 </span>                :<span class="lineCov">    2210256 :                 ks[4] = ctx-&gt;X[4];</span>
+<span class="lineNum">     322 </span>                :<span class="lineCov">    2210256 :                 ks[5] = ctx-&gt;X[5];</span>
+<span class="lineNum">     323 </span>                :<span class="lineCov">    2210256 :                 ks[6] = ctx-&gt;X[6];</span>
+<span class="lineNum">     324 </span>                :<span class="lineCov">    2210256 :                 ks[7] = ctx-&gt;X[7];</span>
+<span class="lineNum">     325 </span>                :<span class="lineCov">    4420512 :                 ks[8] = ks[0] ^ ks[1] ^ ks[2] ^ ks[3] ^</span>
+<span class="lineNum">     326 </span>                :<span class="lineCov">    2210256 :                     ks[4] ^ ks[5] ^ ks[6] ^ ks[7] ^ SKEIN_KS_PARITY;</span>
+<span class="lineNum">     327 </span>                :            : 
+<span class="lineNum">     328 </span>                :<span class="lineCov">    2210256 :                 ts[2] = ts[0] ^ ts[1];</span>
+<span class="lineNum">     329 </span>                :            : 
+<span class="lineNum">     330 </span>                :            :                 /* get input block in little-endian format */
+<span class="lineNum">     331 </span>                :<span class="lineCov">    2210256 :                 Skein_Get64_LSB_First(w, blkPtr, WCNT);</span>
+<span class="lineNum">     332 </span>                :            :                 DebugSaveTweak(ctx);
+<span class="lineNum">     333 </span>                :            :                 Skein_Show_Block(BLK_BITS, &amp;ctx-&gt;h, ctx-&gt;X, blkPtr, w, ks, ts);
+<span class="lineNum">     334 </span>                :            : 
+<span class="lineNum">     335 </span>                :<span class="lineCov">    2210256 :                 X0 = w[0] + ks[0];      /* do the first full key injection */</span>
+<span class="lineNum">     336 </span>                :<span class="lineCov">    2210256 :                 X1 = w[1] + ks[1];</span>
+<span class="lineNum">     337 </span>                :<span class="lineCov">    2210256 :                 X2 = w[2] + ks[2];</span>
+<span class="lineNum">     338 </span>                :<span class="lineCov">    2210256 :                 X3 = w[3] + ks[3];</span>
+<span class="lineNum">     339 </span>                :<span class="lineCov">    2210256 :                 X4 = w[4] + ks[4];</span>
+<span class="lineNum">     340 </span>                :<span class="lineCov">    2210256 :                 X5 = w[5] + ks[5] + ts[0];</span>
+<span class="lineNum">     341 </span>                :<span class="lineCov">    2210256 :                 X6 = w[6] + ks[6] + ts[1];</span>
+<span class="lineNum">     342 </span>                :<span class="lineCov">    2210256 :                 X7 = w[7] + ks[7];</span>
+<span class="lineNum">     343 </span>                :            : 
+<span class="lineNum">     344 </span>                :<span class="lineCov">    2210256 :                 blkPtr += SKEIN_512_BLOCK_BYTES;</span>
+<span class="lineNum">     345 </span>                :            : 
+<span class="lineNum">     346 </span>                :            :                 Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, SKEIN_RND_KEY_INITIAL,
+<span class="lineNum">     347 </span>                :            :                     Xptr);
+<span class="lineNum">     348 </span>                :            :                 /* run the rounds */
+<span class="lineNum">     349 </span>                :            : #define Round512(p0, p1, p2, p3, p4, p5, p6, p7, ROT, rNum)             \
+<span class="lineNum">     350 </span>                :            :         X##p0 += X##p1; X##p1 = RotL_64(X##p1, ROT##_0); X##p1 ^= X##p0;\
+<span class="lineNum">     351 </span>                :            :         X##p2 += X##p3; X##p3 = RotL_64(X##p3, ROT##_1); X##p3 ^= X##p2;\
+<span class="lineNum">     352 </span>                :            :         X##p4 += X##p5; X##p5 = RotL_64(X##p5, ROT##_2); X##p5 ^= X##p4;\
+<span class="lineNum">     353 </span>                :            :         X##p6 += X##p7; X##p7 = RotL_64(X##p7, ROT##_3); X##p7 ^= X##p6;
+<span class="lineNum">     354 </span>                :            : 
+<span class="lineNum">     355 </span>                :            : #if     SKEIN_UNROLL_512 == 0
+<span class="lineNum">     356 </span>                :            : #define R512(p0, p1, p2, p3, p4, p5, p6, p7, ROT, rNum) /* unrolled */  \
+<span class="lineNum">     357 </span>                :            :         Round512(p0, p1, p2, p3, p4, p5, p6, p7, ROT, rNum)             \
+<span class="lineNum">     358 </span>                :            :         Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, rNum, Xptr);
+<span class="lineNum">     359 </span>                :            : 
+<span class="lineNum">     360 </span>                :            : #define I512(R)                                                         \
+<span class="lineNum">     361 </span>                :            :         X0 += ks[((R) + 1) % 9];        /* inject the key schedule value */\
+<span class="lineNum">     362 </span>                :            :         X1 += ks[((R) + 2) % 9];                                        \
+<span class="lineNum">     363 </span>                :            :         X2 += ks[((R) + 3) % 9];                                        \
+<span class="lineNum">     364 </span>                :            :         X3 += ks[((R) + 4) % 9];                                        \
+<span class="lineNum">     365 </span>                :            :         X4 += ks[((R) + 5) % 9];                                        \
+<span class="lineNum">     366 </span>                :            :         X5 += ks[((R) + 6) % 9] + ts[((R) + 1) % 3];                    \
+<span class="lineNum">     367 </span>                :            :         X6 += ks[((R) + 7) % 9] + ts[((R) + 2) % 3];                    \
+<span class="lineNum">     368 </span>                :            :         X7 += ks[((R) + 8) % 9] + (R) + 1;                              \
+<span class="lineNum">     369 </span>                :            :         Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, SKEIN_RND_KEY_INJECT, Xptr);
+<span class="lineNum">     370 </span>                :            : #else                           /* looping version */
+<span class="lineNum">     371 </span>                :            : #define R512(p0, p1, p2, p3, p4, p5, p6, p7, ROT, rNum)                 \
+<span class="lineNum">     372 </span>                :            :         Round512(p0, p1, p2, p3, p4, p5, p6, p7, ROT, rNum)             \
+<span class="lineNum">     373 </span>                :            :         Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, 4 * (r - 1) + rNum, Xptr);
+<span class="lineNum">     374 </span>                :            : 
+<span class="lineNum">     375 </span>                :            : #define I512(R)                                                         \
+<span class="lineNum">     376 </span>                :            :         X0 += ks[r + (R) + 0];  /* inject the key schedule value */     \
+<span class="lineNum">     377 </span>                :            :         X1 += ks[r + (R) + 1];                                          \
+<span class="lineNum">     378 </span>                :            :         X2 += ks[r + (R) + 2];                                          \
+<span class="lineNum">     379 </span>                :            :         X3 += ks[r + (R) + 3];                                          \
+<span class="lineNum">     380 </span>                :            :         X4 += ks[r + (R) + 4];                                          \
+<span class="lineNum">     381 </span>                :            :         X5 += ks[r + (R) + 5] + ts[r + (R) + 0];                        \
+<span class="lineNum">     382 </span>                :            :         X6 += ks[r + (R) + 6] + ts[r + (R) + 1];                        \
+<span class="lineNum">     383 </span>                :            :         X7 += ks[r + (R) + 7] + r + (R);                                \
+<span class="lineNum">     384 </span>                :            :         ks[r + (R)+8] = ks[r + (R) - 1];        /* rotate key schedule */\
+<span class="lineNum">     385 </span>                :            :         ts[r + (R)+2] = ts[r + (R) - 1];                                \
+<span class="lineNum">     386 </span>                :            :         Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, SKEIN_RND_KEY_INJECT, Xptr);
+<span class="lineNum">     387 </span>                :            : 
+<span class="lineNum">     388 </span>                :            :                 /* loop thru it */
+<span class="lineNum">     389 </span>                :            :                 for (r = 1; r &lt; 2 * RCNT; r += 2 * SKEIN_UNROLL_512)
+<span class="lineNum">     390 </span>                :            : #endif                          /* end of looped code definitions */
+<span class="lineNum">     391 </span>                :            :                 {
+<span class="lineNum">     392 </span>                :            : #define R512_8_rounds(R)        /* do 8 full rounds */                  \
+<span class="lineNum">     393 </span>                :            :         R512(0, 1, 2, 3, 4, 5, 6, 7, R_512_0, 8 * (R) + 1);             \
+<span class="lineNum">     394 </span>                :            :         R512(2, 1, 4, 7, 6, 5, 0, 3, R_512_1, 8 * (R) + 2);             \
+<span class="lineNum">     395 </span>                :            :         R512(4, 1, 6, 3, 0, 5, 2, 7, R_512_2, 8 * (R) + 3);             \
+<span class="lineNum">     396 </span>                :            :         R512(6, 1, 0, 7, 2, 5, 4, 3, R_512_3, 8 * (R) + 4);             \
+<span class="lineNum">     397 </span>                :            :         I512(2 * (R));                                                  \
+<span class="lineNum">     398 </span>                :            :         R512(0, 1, 2, 3, 4, 5, 6, 7, R_512_4, 8 * (R) + 5);             \
+<span class="lineNum">     399 </span>                :            :         R512(2, 1, 4, 7, 6, 5, 0, 3, R_512_5, 8 * (R) + 6);             \
+<span class="lineNum">     400 </span>                :            :         R512(4, 1, 6, 3, 0, 5, 2, 7, R_512_6, 8 * (R) + 7);             \
+<span class="lineNum">     401 </span>                :            :         R512(6, 1, 0, 7, 2, 5, 4, 3, R_512_7, 8 * (R) + 8);             \
+<span class="lineNum">     402 </span>                :            :         I512(2*(R) + 1);                /* and key injection */
+<span class="lineNum">     403 </span>                :            : 
+<span class="lineNum">     404 </span>                :<span class="lineCov">    2210256 :                         R512_8_rounds(0);</span>
+<span class="lineNum">     405 </span>                :            : 
+<span class="lineNum">     406 </span>                :            : #define R512_Unroll_R(NN) \
+<span class="lineNum">     407 </span>                :            :         ((SKEIN_UNROLL_512 == 0 &amp;&amp; SKEIN_512_ROUNDS_TOTAL / 8 &gt; (NN)) || \
+<span class="lineNum">     408 </span>                :            :         (SKEIN_UNROLL_512 &gt; (NN)))
+<span class="lineNum">     409 </span>                :            : 
+<span class="lineNum">     410 </span>                :            : #if     R512_Unroll_R(1)
+<span class="lineNum">     411 </span>                :<span class="lineCov">    2210256 :                         R512_8_rounds(1);</span>
+<span class="lineNum">     412 </span>                :            : #endif
+<span class="lineNum">     413 </span>                :            : #if     R512_Unroll_R(2)
+<span class="lineNum">     414 </span>                :<span class="lineCov">    2210256 :                         R512_8_rounds(2);</span>
+<span class="lineNum">     415 </span>                :            : #endif
+<span class="lineNum">     416 </span>                :            : #if     R512_Unroll_R(3)
+<span class="lineNum">     417 </span>                :<span class="lineCov">    2210256 :                         R512_8_rounds(3);</span>
+<span class="lineNum">     418 </span>                :            : #endif
+<span class="lineNum">     419 </span>                :            : #if     R512_Unroll_R(4)
+<span class="lineNum">     420 </span>                :<span class="lineCov">    2210256 :                         R512_8_rounds(4);</span>
+<span class="lineNum">     421 </span>                :            : #endif
+<span class="lineNum">     422 </span>                :            : #if     R512_Unroll_R(5)
+<span class="lineNum">     423 </span>                :<span class="lineCov">    2210256 :                         R512_8_rounds(5);</span>
+<span class="lineNum">     424 </span>                :            : #endif
+<span class="lineNum">     425 </span>                :            : #if     R512_Unroll_R(6)
+<span class="lineNum">     426 </span>                :<span class="lineCov">    2210256 :                         R512_8_rounds(6);</span>
+<span class="lineNum">     427 </span>                :            : #endif
+<span class="lineNum">     428 </span>                :            : #if     R512_Unroll_R(7)
+<span class="lineNum">     429 </span>                :<span class="lineCov">    2210256 :                         R512_8_rounds(7);</span>
+<span class="lineNum">     430 </span>                :            : #endif
+<span class="lineNum">     431 </span>                :            : #if     R512_Unroll_R(8)
+<span class="lineNum">     432 </span>                :<span class="lineCov">    2210256 :                         R512_8_rounds(8);</span>
+<span class="lineNum">     433 </span>                :            : #endif
+<span class="lineNum">     434 </span>                :            : #if     R512_Unroll_R(9)
+<span class="lineNum">     435 </span>                :            :                         R512_8_rounds(9);
+<span class="lineNum">     436 </span>                :            : #endif
+<span class="lineNum">     437 </span>                :            : #if     R512_Unroll_R(10)
+<span class="lineNum">     438 </span>                :            :                         R512_8_rounds(10);
+<span class="lineNum">     439 </span>                :            : #endif
+<span class="lineNum">     440 </span>                :            : #if     R512_Unroll_R(11)
+<span class="lineNum">     441 </span>                :            :                         R512_8_rounds(11);
+<span class="lineNum">     442 </span>                :            : #endif
+<span class="lineNum">     443 </span>                :            : #if     R512_Unroll_R(12)
+<span class="lineNum">     444 </span>                :            :                         R512_8_rounds(12);
+<span class="lineNum">     445 </span>                :            : #endif
+<span class="lineNum">     446 </span>                :            : #if     R512_Unroll_R(13)
+<span class="lineNum">     447 </span>                :            :                         R512_8_rounds(13);
+<span class="lineNum">     448 </span>                :            : #endif
+<span class="lineNum">     449 </span>                :            : #if     R512_Unroll_R(14)
+<span class="lineNum">     450 </span>                :            :                         R512_8_rounds(14);
+<span class="lineNum">     451 </span>                :            : #endif
+<span class="lineNum">     452 </span>                :            : #if     (SKEIN_UNROLL_512 &gt; 14)
+<span class="lineNum">     453 </span>                :            : #error &quot;need more unrolling in Skein_512_Process_Block&quot;
+<span class="lineNum">     454 </span>                :            : #endif
+<span class="lineNum">     455 </span>                :            :                 }
+<span class="lineNum">     456 </span>                :            : 
+<span class="lineNum">     457 </span>                :            :                 /*
+<span class="lineNum">     458 </span>                :            :                  * do the final &quot;feedforward&quot; xor, update context chaining vars
+<span class="lineNum">     459 </span>                :            :                  */
+<span class="lineNum">     460 </span>                :<span class="lineCov">    2210256 :                 ctx-&gt;X[0] = X0 ^ w[0];</span>
+<span class="lineNum">     461 </span>                :<span class="lineCov">    2210256 :                 ctx-&gt;X[1] = X1 ^ w[1];</span>
+<span class="lineNum">     462 </span>                :<span class="lineCov">    2210256 :                 ctx-&gt;X[2] = X2 ^ w[2];</span>
+<span class="lineNum">     463 </span>                :<span class="lineCov">    2210256 :                 ctx-&gt;X[3] = X3 ^ w[3];</span>
+<span class="lineNum">     464 </span>                :<span class="lineCov">    2210256 :                 ctx-&gt;X[4] = X4 ^ w[4];</span>
+<span class="lineNum">     465 </span>                :<span class="lineCov">    2210256 :                 ctx-&gt;X[5] = X5 ^ w[5];</span>
+<span class="lineNum">     466 </span>                :<span class="lineCov">    2210256 :                 ctx-&gt;X[6] = X6 ^ w[6];</span>
+<span class="lineNum">     467 </span>                :<span class="lineCov">    2210256 :                 ctx-&gt;X[7] = X7 ^ w[7];</span>
+<span class="lineNum">     468 </span>                :            :                 Skein_Show_Round(BLK_BITS, &amp;ctx-&gt;h, SKEIN_RND_FEED_FWD, ctx-&gt;X);
+<span class="lineNum">     469 </span>                :            : 
+<span class="lineNum">     470 </span>                :<span class="lineCov">    2210256 :                 ts[1] &amp;= ~SKEIN_T1_FLAG_FIRST;</span>
+<span class="lineNum">     471 </span>        [<span class="branchCov" title="Branch 0 was taken 2115514 times"> + </span><span class="branchCov" title="Branch 1 was taken 94742 times"> + </span>]:<span class="lineCov">    2210256 :         } while (--blkCnt);</span>
+<span class="lineNum">     472 </span>                :<span class="lineCov">      94742 :         ctx-&gt;h.T[0] = ts[0];</span>
+<span class="lineNum">     473 </span>                :<span class="lineCov">      94742 :         ctx-&gt;h.T[1] = ts[1];</span>
+<span class="lineNum">     474 </span>                :<span class="lineCov">      94742 : }</span>
+<span class="lineNum">     475 </span>                :            : 
+<span class="lineNum">     476 </span>                :            : #if     defined(SKEIN_CODE_SIZE) || defined(SKEIN_PERF)
+<span class="lineNum">     477 </span>                :            : size_t
+<span class="lineNum">     478 </span>                :            : Skein_512_Process_Block_CodeSize(void)
+<span class="lineNum">     479 </span>                :            : {
+<span class="lineNum">     480 </span>                :            :         return ((uint8_t *)Skein_512_Process_Block_CodeSize) -
+<span class="lineNum">     481 </span>                :            :             ((uint8_t *)Skein_512_Process_Block);
+<span class="lineNum">     482 </span>                :            : }
+<span class="lineNum">     483 </span>                :            : 
+<span class="lineNum">     484 </span>                :            : uint_t
+<span class="lineNum">     485 </span>                :            : Skein_512_Unroll_Cnt(void)
+<span class="lineNum">     486 </span>                :            : {
+<span class="lineNum">     487 </span>                :            :         return (SKEIN_UNROLL_512);
+<span class="lineNum">     488 </span>                :            : }
+<span class="lineNum">     489 </span>                :            : #endif
+<span class="lineNum">     490 </span>                :            : #endif
+<span class="lineNum">     491 </span>                :            : 
+<span class="lineNum">     492 </span>                :            : /*  Skein1024 */
+<a name="493"><span class="lineNum">     493 </span>                :            : #if     !(SKEIN_USE_ASM &amp; 1024)</a>
+<span class="lineNum">     494 </span>                :            : void
+<span class="lineNum">     495 </span>                :<span class="lineNoCov">          0 : Skein1024_Process_Block(Skein1024_Ctxt_t *ctx, const uint8_t *blkPtr,</span>
+<span class="lineNum">     496 </span>                :            :     size_t blkCnt, size_t byteCntAdd)
+<span class="lineNum">     497 </span>                :            : {
+<span class="lineNum">     498 </span>                :            :         /* do it in C, always looping (unrolled is bigger AND slower!) */
+<span class="lineNum">     499 </span>                :            :         enum {
+<span class="lineNum">     500 </span>                :            :                 WCNT = SKEIN1024_STATE_WORDS
+<span class="lineNum">     501 </span>                :            :         };
+<span class="lineNum">     502 </span>                :            : #undef  RCNT
+<span class="lineNum">     503 </span>                :            : #define RCNT  (SKEIN1024_ROUNDS_TOTAL/8)
+<span class="lineNum">     504 </span>                :            : 
+<span class="lineNum">     505 </span>                :            : #ifdef  SKEIN_LOOP              /* configure how much to unroll the loop */
+<span class="lineNum">     506 </span>                :            : #define SKEIN_UNROLL_1024 ((SKEIN_LOOP)%10)
+<span class="lineNum">     507 </span>                :            : #else
+<span class="lineNum">     508 </span>                :            : #define SKEIN_UNROLL_1024 (0)
+<span class="lineNum">     509 </span>                :            : #endif
+<span class="lineNum">     510 </span>                :            : 
+<span class="lineNum">     511 </span>                :            : #if     (SKEIN_UNROLL_1024 != 0)
+<span class="lineNum">     512 </span>                :            : #if     (RCNT % SKEIN_UNROLL_1024)
+<span class="lineNum">     513 </span>                :            : #error &quot;Invalid SKEIN_UNROLL_1024&quot;    /* sanity check on unroll count */
+<span class="lineNum">     514 </span>                :            : #endif
+<span class="lineNum">     515 </span>                :            :         size_t r;
+<span class="lineNum">     516 </span>                :            :         /* key schedule words : chaining vars + tweak + &quot;rotation&quot; */
+<span class="lineNum">     517 </span>                :            :         uint64_t kw[WCNT + 4 + RCNT * 2];
+<span class="lineNum">     518 </span>                :            : #else
+<span class="lineNum">     519 </span>                :            :         uint64_t kw[WCNT + 4];  /* key schedule words : chaining vars + tweak */
+<span class="lineNum">     520 </span>                :            : #endif
+<span class="lineNum">     521 </span>                :            : 
+<span class="lineNum">     522 </span>                :            :         /* local copy of vars, for speed */
+<span class="lineNum">     523 </span>                :            :         uint64_t X00, X01, X02, X03, X04, X05, X06, X07, X08, X09, X10, X11,
+<span class="lineNum">     524 </span>                :            :             X12, X13, X14, X15;
+<span class="lineNum">     525 </span>                :            :         uint64_t w[WCNT];               /* local copy of input block */
+<span class="lineNum">     526 </span>                :            : #ifdef  SKEIN_DEBUG
+<span class="lineNum">     527 </span>                :            :         /* use for debugging (help compiler put Xn in registers) */
+<span class="lineNum">     528 </span>                :            :         const uint64_t *Xptr[16];
+<span class="lineNum">     529 </span>                :            :         Xptr[0] = &amp;X00;
+<span class="lineNum">     530 </span>                :            :         Xptr[1] = &amp;X01;
+<span class="lineNum">     531 </span>                :            :         Xptr[2] = &amp;X02;
+<span class="lineNum">     532 </span>                :            :         Xptr[3] = &amp;X03;
+<span class="lineNum">     533 </span>                :            :         Xptr[4] = &amp;X04;
+<span class="lineNum">     534 </span>                :            :         Xptr[5] = &amp;X05;
+<span class="lineNum">     535 </span>                :            :         Xptr[6] = &amp;X06;
+<span class="lineNum">     536 </span>                :            :         Xptr[7] = &amp;X07;
+<span class="lineNum">     537 </span>                :            :         Xptr[8] = &amp;X08;
+<span class="lineNum">     538 </span>                :            :         Xptr[9] = &amp;X09;
+<span class="lineNum">     539 </span>                :            :         Xptr[10] = &amp;X10;
+<span class="lineNum">     540 </span>                :            :         Xptr[11] = &amp;X11;
+<span class="lineNum">     541 </span>                :            :         Xptr[12] = &amp;X12;
+<span class="lineNum">     542 </span>                :            :         Xptr[13] = &amp;X13;
+<span class="lineNum">     543 </span>                :            :         Xptr[14] = &amp;X14;
+<span class="lineNum">     544 </span>                :            :         Xptr[15] = &amp;X15;
+<span class="lineNum">     545 </span>                :            : #endif
+<span class="lineNum">     546 </span>                :            : 
+<span class="lineNum">     547 </span>                :            :         Skein_assert(blkCnt != 0);      /* never call with blkCnt == 0! */
+<span class="lineNum">     548 </span>                :<span class="lineNoCov">          0 :         ts[0] = ctx-&gt;h.T[0];</span>
+<span class="lineNum">     549 </span>                :<span class="lineNoCov">          0 :         ts[1] = ctx-&gt;h.T[1];</span>
+<span class="lineNum">     550 </span>                :            :         do {
+<span class="lineNum">     551 </span>                :            :                 /*
+<span class="lineNum">     552 </span>                :            :                  * this implementation only supports 2**64 input bytes
+<span class="lineNum">     553 </span>                :            :                  * (no carry out here)
+<span class="lineNum">     554 </span>                :            :                  */
+<span class="lineNum">     555 </span>                :<span class="lineNoCov">          0 :                 ts[0] += byteCntAdd;    /* update processed length */</span>
+<span class="lineNum">     556 </span>                :            : 
+<span class="lineNum">     557 </span>                :            :                 /* precompute the key schedule for this block */
+<span class="lineNum">     558 </span>                :<span class="lineNoCov">          0 :                 ks[0] = ctx-&gt;X[0];</span>
+<span class="lineNum">     559 </span>                :<span class="lineNoCov">          0 :                 ks[1] = ctx-&gt;X[1];</span>
+<span class="lineNum">     560 </span>                :<span class="lineNoCov">          0 :                 ks[2] = ctx-&gt;X[2];</span>
+<span class="lineNum">     561 </span>                :<span class="lineNoCov">          0 :                 ks[3] = ctx-&gt;X[3];</span>
+<span class="lineNum">     562 </span>                :<span class="lineNoCov">          0 :                 ks[4] = ctx-&gt;X[4];</span>
+<span class="lineNum">     563 </span>                :<span class="lineNoCov">          0 :                 ks[5] = ctx-&gt;X[5];</span>
+<span class="lineNum">     564 </span>                :<span class="lineNoCov">          0 :                 ks[6] = ctx-&gt;X[6];</span>
+<span class="lineNum">     565 </span>                :<span class="lineNoCov">          0 :                 ks[7] = ctx-&gt;X[7];</span>
+<span class="lineNum">     566 </span>                :<span class="lineNoCov">          0 :                 ks[8] = ctx-&gt;X[8];</span>
+<span class="lineNum">     567 </span>                :<span class="lineNoCov">          0 :                 ks[9] = ctx-&gt;X[9];</span>
+<span class="lineNum">     568 </span>                :<span class="lineNoCov">          0 :                 ks[10] = ctx-&gt;X[10];</span>
+<span class="lineNum">     569 </span>                :<span class="lineNoCov">          0 :                 ks[11] = ctx-&gt;X[11];</span>
+<span class="lineNum">     570 </span>                :<span class="lineNoCov">          0 :                 ks[12] = ctx-&gt;X[12];</span>
+<span class="lineNum">     571 </span>                :<span class="lineNoCov">          0 :                 ks[13] = ctx-&gt;X[13];</span>
+<span class="lineNum">     572 </span>                :<span class="lineNoCov">          0 :                 ks[14] = ctx-&gt;X[14];</span>
+<span class="lineNum">     573 </span>                :<span class="lineNoCov">          0 :                 ks[15] = ctx-&gt;X[15];</span>
+<span class="lineNum">     574 </span>                :<span class="lineNoCov">          0 :                 ks[16] = ks[0] ^ ks[1] ^ ks[2] ^ ks[3] ^</span>
+<span class="lineNum">     575 </span>                :<span class="lineNoCov">          0 :                     ks[4] ^ ks[5] ^ ks[6] ^ ks[7] ^</span>
+<span class="lineNum">     576 </span>                :<span class="lineNoCov">          0 :                     ks[8] ^ ks[9] ^ ks[10] ^ ks[11] ^</span>
+<span class="lineNum">     577 </span>                :<span class="lineNoCov">          0 :                     ks[12] ^ ks[13] ^ ks[14] ^ ks[15] ^ SKEIN_KS_PARITY;</span>
+<span class="lineNum">     578 </span>                :            : 
+<span class="lineNum">     579 </span>                :<span class="lineNoCov">          0 :                 ts[2] = ts[0] ^ ts[1];</span>
+<span class="lineNum">     580 </span>                :            : 
+<span class="lineNum">     581 </span>                :            :                 /* get input block in little-endian format */
+<span class="lineNum">     582 </span>                :<span class="lineNoCov">          0 :                 Skein_Get64_LSB_First(w, blkPtr, WCNT);</span>
+<span class="lineNum">     583 </span>                :            :                 DebugSaveTweak(ctx);
+<span class="lineNum">     584 </span>                :            :                 Skein_Show_Block(BLK_BITS, &amp;ctx-&gt;h, ctx-&gt;X, blkPtr, w, ks, ts);
+<span class="lineNum">     585 </span>                :            : 
+<span class="lineNum">     586 </span>                :<span class="lineNoCov">          0 :                 X00 = w[0] + ks[0];     /* do the first full key injection */</span>
+<span class="lineNum">     587 </span>                :<span class="lineNoCov">          0 :                 X01 = w[1] + ks[1];</span>
+<span class="lineNum">     588 </span>                :<span class="lineNoCov">          0 :                 X02 = w[2] + ks[2];</span>
+<span class="lineNum">     589 </span>                :<span class="lineNoCov">          0 :                 X03 = w[3] + ks[3];</span>
+<span class="lineNum">     590 </span>                :<span class="lineNoCov">          0 :                 X04 = w[4] + ks[4];</span>
+<span class="lineNum">     591 </span>                :<span class="lineNoCov">          0 :                 X05 = w[5] + ks[5];</span>
+<span class="lineNum">     592 </span>                :<span class="lineNoCov">          0 :                 X06 = w[6] + ks[6];</span>
+<span class="lineNum">     593 </span>                :<span class="lineNoCov">          0 :                 X07 = w[7] + ks[7];</span>
+<span class="lineNum">     594 </span>                :<span class="lineNoCov">          0 :                 X08 = w[8] + ks[8];</span>
+<span class="lineNum">     595 </span>                :<span class="lineNoCov">          0 :                 X09 = w[9] + ks[9];</span>
+<span class="lineNum">     596 </span>                :<span class="lineNoCov">          0 :                 X10 = w[10] + ks[10];</span>
+<span class="lineNum">     597 </span>                :<span class="lineNoCov">          0 :                 X11 = w[11] + ks[11];</span>
+<span class="lineNum">     598 </span>                :<span class="lineNoCov">          0 :                 X12 = w[12] + ks[12];</span>
+<span class="lineNum">     599 </span>                :<span class="lineNoCov">          0 :                 X13 = w[13] + ks[13] + ts[0];</span>
+<span class="lineNum">     600 </span>                :<span class="lineNoCov">          0 :                 X14 = w[14] + ks[14] + ts[1];</span>
+<span class="lineNum">     601 </span>                :<span class="lineNoCov">          0 :                 X15 = w[15] + ks[15];</span>
+<span class="lineNum">     602 </span>                :            : 
+<span class="lineNum">     603 </span>                :            :                 Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, SKEIN_RND_KEY_INITIAL,
+<span class="lineNum">     604 </span>                :            :                     Xptr);
+<span class="lineNum">     605 </span>                :            : 
+<span class="lineNum">     606 </span>                :            : #define Round1024(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pA, pB, pC,   \
+<span class="lineNum">     607 </span>                :            :         pD, pE, pF, ROT, rNum)                                          \
+<span class="lineNum">     608 </span>                :            :         X##p0 += X##p1; X##p1 = RotL_64(X##p1, ROT##_0); X##p1 ^= X##p0;\
+<span class="lineNum">     609 </span>                :            :         X##p2 += X##p3; X##p3 = RotL_64(X##p3, ROT##_1); X##p3 ^= X##p2;\
+<span class="lineNum">     610 </span>                :            :         X##p4 += X##p5; X##p5 = RotL_64(X##p5, ROT##_2); X##p5 ^= X##p4;\
+<span class="lineNum">     611 </span>                :            :         X##p6 += X##p7; X##p7 = RotL_64(X##p7, ROT##_3); X##p7 ^= X##p6;\
+<span class="lineNum">     612 </span>                :            :         X##p8 += X##p9; X##p9 = RotL_64(X##p9, ROT##_4); X##p9 ^= X##p8;\
+<span class="lineNum">     613 </span>                :            :         X##pA += X##pB; X##pB = RotL_64(X##pB, ROT##_5); X##pB ^= X##pA;\
+<span class="lineNum">     614 </span>                :            :         X##pC += X##pD; X##pD = RotL_64(X##pD, ROT##_6); X##pD ^= X##pC;\
+<span class="lineNum">     615 </span>                :            :         X##pE += X##pF; X##pF = RotL_64(X##pF, ROT##_7); X##pF ^= X##pE;
+<span class="lineNum">     616 </span>                :            : 
+<span class="lineNum">     617 </span>                :            : #if     SKEIN_UNROLL_1024 == 0
+<span class="lineNum">     618 </span>                :            : #define R1024(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pA, pB, pC, pD,   \
+<span class="lineNum">     619 </span>                :            :         pE, pF, ROT, rn)                                                \
+<span class="lineNum">     620 </span>                :            :         Round1024(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pA, pB, pC,   \
+<span class="lineNum">     621 </span>                :            :         pD, pE, pF, ROT, rn)                                            \
+<span class="lineNum">     622 </span>                :            :         Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, rn, Xptr);
+<span class="lineNum">     623 </span>                :            : 
+<span class="lineNum">     624 </span>                :            : #define I1024(R)                                                        \
+<span class="lineNum">     625 </span>                :            :         X00 += ks[((R) + 1) % 17];      /* inject the key schedule value */\
+<span class="lineNum">     626 </span>                :            :         X01 += ks[((R) + 2) % 17];                                      \
+<span class="lineNum">     627 </span>                :            :         X02 += ks[((R) + 3) % 17];                                      \
+<span class="lineNum">     628 </span>                :            :         X03 += ks[((R) + 4) % 17];                                      \
+<span class="lineNum">     629 </span>                :            :         X04 += ks[((R) + 5) % 17];                                      \
+<span class="lineNum">     630 </span>                :            :         X05 += ks[((R) + 6) % 17];                                      \
+<span class="lineNum">     631 </span>                :            :         X06 += ks[((R) + 7) % 17];                                      \
+<span class="lineNum">     632 </span>                :            :         X07 += ks[((R) + 8) % 17];                                      \
+<span class="lineNum">     633 </span>                :            :         X08 += ks[((R) + 9) % 17];                                      \
+<span class="lineNum">     634 </span>                :            :         X09 += ks[((R) + 10) % 17];                                     \
+<span class="lineNum">     635 </span>                :            :         X10 += ks[((R) + 11) % 17];                                     \
+<span class="lineNum">     636 </span>                :            :         X11 += ks[((R) + 12) % 17];                                     \
+<span class="lineNum">     637 </span>                :            :         X12 += ks[((R) + 13) % 17];                                     \
+<span class="lineNum">     638 </span>                :            :         X13 += ks[((R) + 14) % 17] + ts[((R) + 1) % 3];                 \
+<span class="lineNum">     639 </span>                :            :         X14 += ks[((R) + 15) % 17] + ts[((R) + 2) % 3];                 \
+<span class="lineNum">     640 </span>                :            :         X15 += ks[((R) + 16) % 17] + (R) +1;                            \
+<span class="lineNum">     641 </span>                :            :         Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, SKEIN_RND_KEY_INJECT, Xptr);
+<span class="lineNum">     642 </span>                :            : #else                           /* looping version */
+<span class="lineNum">     643 </span>                :            : #define R1024(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pA, pB, pC, pD,   \
+<span class="lineNum">     644 </span>                :            :         pE, pF, ROT, rn)                                                \
+<span class="lineNum">     645 </span>                :            :         Round1024(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pA, pB, pC,   \
+<span class="lineNum">     646 </span>                :            :         pD, pE, pF, ROT, rn)                                            \
+<span class="lineNum">     647 </span>                :            :         Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, 4 * (r - 1) + rn, Xptr);
+<span class="lineNum">     648 </span>                :            : 
+<span class="lineNum">     649 </span>                :            : #define I1024(R)                                                        \
+<span class="lineNum">     650 </span>                :            :         X00 += ks[r + (R) + 0]; /* inject the key schedule value */     \
+<span class="lineNum">     651 </span>                :            :         X01 += ks[r + (R) + 1];                                         \
+<span class="lineNum">     652 </span>                :            :         X02 += ks[r + (R) + 2];                                         \
+<span class="lineNum">     653 </span>                :            :         X03 += ks[r + (R) + 3];                                         \
+<span class="lineNum">     654 </span>                :            :         X04 += ks[r + (R) + 4];                                         \
+<span class="lineNum">     655 </span>                :            :         X05 += ks[r + (R) + 5];                                         \
+<span class="lineNum">     656 </span>                :            :         X06 += ks[r + (R) + 6];                                         \
+<span class="lineNum">     657 </span>                :            :         X07 += ks[r + (R) + 7];                                         \
+<span class="lineNum">     658 </span>                :            :         X08 += ks[r + (R) + 8];                                         \
+<span class="lineNum">     659 </span>                :            :         X09 += ks[r + (R) + 9];                                         \
+<span class="lineNum">     660 </span>                :            :         X10 += ks[r + (R) + 10];                                        \
+<span class="lineNum">     661 </span>                :            :         X11 += ks[r + (R) + 11];                                        \
+<span class="lineNum">     662 </span>                :            :         X12 += ks[r + (R) + 12];                                        \
+<span class="lineNum">     663 </span>                :            :         X13 += ks[r + (R) + 13] + ts[r + (R) + 0];                      \
+<span class="lineNum">     664 </span>                :            :         X14 += ks[r + (R) + 14] + ts[r + (R) + 1];                      \
+<span class="lineNum">     665 </span>                :            :         X15 += ks[r + (R) + 15] +  r + (R);                             \
+<span class="lineNum">     666 </span>                :            :         ks[r + (R) + 16] = ks[r + (R) - 1];     /* rotate key schedule */\
+<span class="lineNum">     667 </span>                :            :         ts[r + (R) + 2] = ts[r + (R) - 1];                              \
+<span class="lineNum">     668 </span>                :            :         Skein_Show_R_Ptr(BLK_BITS, &amp;ctx-&gt;h, SKEIN_RND_KEY_INJECT, Xptr);
+<span class="lineNum">     669 </span>                :            : 
+<span class="lineNum">     670 </span>                :            :                 /* loop thru it */
+<span class="lineNum">     671 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 for (r = 1; r &lt;= 2 * RCNT; r += 2 * SKEIN_UNROLL_1024)</span>
+<span class="lineNum">     672 </span>                :            : #endif
+<span class="lineNum">     673 </span>                :            :                 {
+<span class="lineNum">     674 </span>                :            : #define R1024_8_rounds(R)       /* do 8 full rounds */                  \
+<span class="lineNum">     675 </span>                :            :         R1024(00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13,   \
+<span class="lineNum">     676 </span>                :            :             14, 15, R1024_0, 8 * (R) + 1);                              \
+<span class="lineNum">     677 </span>                :            :         R1024(00, 09, 02, 13, 06, 11, 04, 15, 10, 07, 12, 03, 14, 05,   \
+<span class="lineNum">     678 </span>                :            :             08, 01, R1024_1, 8 * (R) + 2);                              \
+<span class="lineNum">     679 </span>                :            :         R1024(00, 07, 02, 05, 04, 03, 06, 01, 12, 15, 14, 13, 08, 11,   \
+<span class="lineNum">     680 </span>                :            :             10, 09, R1024_2, 8 * (R) + 3);                              \
+<span class="lineNum">     681 </span>                :            :         R1024(00, 15, 02, 11, 06, 13, 04, 09, 14, 01, 08, 05, 10, 03,   \
+<span class="lineNum">     682 </span>                :            :             12, 07, R1024_3, 8 * (R) + 4);                              \
+<span class="lineNum">     683 </span>                :            :         I1024(2 * (R));                                                 \
+<span class="lineNum">     684 </span>                :            :         R1024(00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13,   \
+<span class="lineNum">     685 </span>                :            :             14, 15, R1024_4, 8 * (R) + 5);                              \
+<span class="lineNum">     686 </span>                :            :         R1024(00, 09, 02, 13, 06, 11, 04, 15, 10, 07, 12, 03, 14, 05,   \
+<span class="lineNum">     687 </span>                :            :             08, 01, R1024_5, 8 * (R) + 6);                              \
+<span class="lineNum">     688 </span>                :            :         R1024(00, 07, 02, 05, 04, 03, 06, 01, 12, 15, 14, 13, 08, 11,   \
+<span class="lineNum">     689 </span>                :            :             10, 09, R1024_6, 8 * (R) + 7);                              \
+<span class="lineNum">     690 </span>                :            :         R1024(00, 15, 02, 11, 06, 13, 04, 09, 14, 01, 08, 05, 10, 03,   \
+<span class="lineNum">     691 </span>                :            :             12, 07, R1024_7, 8 * (R) + 8);                              \
+<span class="lineNum">     692 </span>                :            :         I1024(2 * (R) + 1);
+<span class="lineNum">     693 </span>                :            : 
+<span class="lineNum">     694 </span>                :<span class="lineNoCov">          0 :                         R1024_8_rounds(0);</span>
+<span class="lineNum">     695 </span>                :            : 
+<span class="lineNum">     696 </span>                :            : #define R1024_Unroll_R(NN)                                              \
+<span class="lineNum">     697 </span>                :            :         ((SKEIN_UNROLL_1024 == 0 &amp;&amp; SKEIN1024_ROUNDS_TOTAL/8 &gt; (NN)) ||      \
+<span class="lineNum">     698 </span>                :            :         (SKEIN_UNROLL_1024 &gt; (NN)))
+<span class="lineNum">     699 </span>                :            : 
+<span class="lineNum">     700 </span>                :            : #if     R1024_Unroll_R(1)
+<span class="lineNum">     701 </span>                :            :                         R1024_8_rounds(1);
+<span class="lineNum">     702 </span>                :            : #endif
+<span class="lineNum">     703 </span>                :            : #if     R1024_Unroll_R(2)
+<span class="lineNum">     704 </span>                :            :                         R1024_8_rounds(2);
+<span class="lineNum">     705 </span>                :            : #endif
+<span class="lineNum">     706 </span>                :            : #if     R1024_Unroll_R(3)
+<span class="lineNum">     707 </span>                :            :                         R1024_8_rounds(3);
+<span class="lineNum">     708 </span>                :            : #endif
+<span class="lineNum">     709 </span>                :            : #if     R1024_Unroll_R(4)
+<span class="lineNum">     710 </span>                :            :                         R1024_8_rounds(4);
+<span class="lineNum">     711 </span>                :            : #endif
+<span class="lineNum">     712 </span>                :            : #if     R1024_Unroll_R(5)
+<span class="lineNum">     713 </span>                :            :                         R1024_8_rounds(5);
+<span class="lineNum">     714 </span>                :            : #endif
+<span class="lineNum">     715 </span>                :            : #if     R1024_Unroll_R(6)
+<span class="lineNum">     716 </span>                :            :                         R1024_8_rounds(6);
+<span class="lineNum">     717 </span>                :            : #endif
+<span class="lineNum">     718 </span>                :            : #if     R1024_Unroll_R(7)
+<span class="lineNum">     719 </span>                :            :                         R1024_8_rounds(7);
+<span class="lineNum">     720 </span>                :            : #endif
+<span class="lineNum">     721 </span>                :            : #if     R1024_Unroll_R(8)
+<span class="lineNum">     722 </span>                :            :                         R1024_8_rounds(8);
+<span class="lineNum">     723 </span>                :            : #endif
+<span class="lineNum">     724 </span>                :            : #if     R1024_Unroll_R(9)
+<span class="lineNum">     725 </span>                :            :                         R1024_8_rounds(9);
+<span class="lineNum">     726 </span>                :            : #endif
+<span class="lineNum">     727 </span>                :            : #if     R1024_Unroll_R(10)
+<span class="lineNum">     728 </span>                :            :                         R1024_8_rounds(10);
+<span class="lineNum">     729 </span>                :            : #endif
+<span class="lineNum">     730 </span>                :            : #if     R1024_Unroll_R(11)
+<span class="lineNum">     731 </span>                :            :                         R1024_8_rounds(11);
+<span class="lineNum">     732 </span>                :            : #endif
+<span class="lineNum">     733 </span>                :            : #if     R1024_Unroll_R(12)
+<span class="lineNum">     734 </span>                :            :                         R1024_8_rounds(12);
+<span class="lineNum">     735 </span>                :            : #endif
+<span class="lineNum">     736 </span>                :            : #if     R1024_Unroll_R(13)
+<span class="lineNum">     737 </span>                :            :                         R1024_8_rounds(13);
+<span class="lineNum">     738 </span>                :            : #endif
+<span class="lineNum">     739 </span>                :            : #if     R1024_Unroll_R(14)
+<span class="lineNum">     740 </span>                :            :                         R1024_8_rounds(14);
+<span class="lineNum">     741 </span>                :            : #endif
+<span class="lineNum">     742 </span>                :            : #if     (SKEIN_UNROLL_1024 &gt; 14)
+<span class="lineNum">     743 </span>                :            : #error  &quot;need more unrolling in Skein_1024_Process_Block&quot;
+<span class="lineNum">     744 </span>                :            : #endif
+<span class="lineNum">     745 </span>                :            :                 }
+<span class="lineNum">     746 </span>                :            :                 /*
+<span class="lineNum">     747 </span>                :            :                  * do the final &quot;feedforward&quot; xor, update context chaining vars
+<span class="lineNum">     748 </span>                :            :                  */
+<span class="lineNum">     749 </span>                :            : 
+<span class="lineNum">     750 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[0] = X00 ^ w[0];</span>
+<span class="lineNum">     751 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[1] = X01 ^ w[1];</span>
+<span class="lineNum">     752 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[2] = X02 ^ w[2];</span>
+<span class="lineNum">     753 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[3] = X03 ^ w[3];</span>
+<span class="lineNum">     754 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[4] = X04 ^ w[4];</span>
+<span class="lineNum">     755 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[5] = X05 ^ w[5];</span>
+<span class="lineNum">     756 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[6] = X06 ^ w[6];</span>
+<span class="lineNum">     757 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[7] = X07 ^ w[7];</span>
+<span class="lineNum">     758 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[8] = X08 ^ w[8];</span>
+<span class="lineNum">     759 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[9] = X09 ^ w[9];</span>
+<span class="lineNum">     760 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[10] = X10 ^ w[10];</span>
+<span class="lineNum">     761 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[11] = X11 ^ w[11];</span>
+<span class="lineNum">     762 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[12] = X12 ^ w[12];</span>
+<span class="lineNum">     763 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[13] = X13 ^ w[13];</span>
+<span class="lineNum">     764 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[14] = X14 ^ w[14];</span>
+<span class="lineNum">     765 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;X[15] = X15 ^ w[15];</span>
+<span class="lineNum">     766 </span>                :            : 
+<span class="lineNum">     767 </span>                :            :                 Skein_Show_Round(BLK_BITS, &amp;ctx-&gt;h, SKEIN_RND_FEED_FWD, ctx-&gt;X);
+<span class="lineNum">     768 </span>                :            : 
+<span class="lineNum">     769 </span>                :<span class="lineNoCov">          0 :                 ts[1] &amp;= ~SKEIN_T1_FLAG_FIRST;</span>
+<span class="lineNum">     770 </span>                :<span class="lineNoCov">          0 :                 blkPtr += SKEIN1024_BLOCK_BYTES;</span>
+<span class="lineNum">     771 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } while (--blkCnt);</span>
+<span class="lineNum">     772 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;h.T[0] = ts[0];</span>
+<span class="lineNum">     773 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;h.T[1] = ts[1];</span>
+<span class="lineNum">     774 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     775 </span>                :            : 
+<span class="lineNum">     776 </span>                :            : #if     defined(SKEIN_CODE_SIZE) || defined(SKEIN_PERF)
+<span class="lineNum">     777 </span>                :            : size_t
+<span class="lineNum">     778 </span>                :            : Skein1024_Process_Block_CodeSize(void)
+<span class="lineNum">     779 </span>                :            : {
+<span class="lineNum">     780 </span>                :            :         return ((uint8_t *)Skein1024_Process_Block_CodeSize) -
+<span class="lineNum">     781 </span>                :            :             ((uint8_t *)Skein1024_Process_Block);
+<span class="lineNum">     782 </span>                :            : }
+<span class="lineNum">     783 </span>                :            : 
+<span class="lineNum">     784 </span>                :            : uint_t
+<span class="lineNum">     785 </span>                :            : Skein1024_Unroll_Cnt(void)
+<span class="lineNum">     786 </span>                :            : {
+<span class="lineNum">     787 </span>                :            :         return (SKEIN_UNROLL_1024);
+<span class="lineNum">     788 </span>                :            : }
+<span class="lineNum">     789 </span>                :            : #endif
+<span class="lineNum">     790 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

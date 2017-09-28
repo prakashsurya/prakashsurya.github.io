@@ -1,0 +1,408 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/refcount.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - refcount.c<span style="font-size: 80%;"> (source / <a href="refcount.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">119</td>
+            <td class="headerCovTableEntry">149</td>
+            <td class="headerCovTableEntryMed">79.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntryHi">94.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">34</td>
+            <td class="headerCovTableEntry">43</td>
+            <td class="headerCovTableEntryMed">79.1 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2012, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/refcount.h&gt;
+<span class="lineNum">      28 </span>                :            : 
+<span class="lineNum">      29 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">      30 </span>                :            : int reference_tracking_enable = FALSE; /* runs out of memory too easily */
+<span class="lineNum">      31 </span>                :            : #else
+<span class="lineNum">      32 </span>                :            : int reference_tracking_enable = TRUE;
+<span class="lineNum">      33 </span>                :            : #endif
+<span class="lineNum">      34 </span>                :            : int reference_history = 3; /* tunable */
+<span class="lineNum">      35 </span>                :            : 
+<span class="lineNum">      36 </span>                :            : #ifdef  ZFS_DEBUG
+<span class="lineNum">      37 </span>                :            : static kmem_cache_t *reference_cache;
+<span class="lineNum">      38 </span>                :            : static kmem_cache_t *reference_history_cache;
+<a name="39"><span class="lineNum">      39 </span>                :            : </a>
+<span class="lineNum">      40 </span>                :            : void
+<span class="lineNum">      41 </span>                :<span class="lineCov">       1234 : refcount_init(void)</span>
+<span class="lineNum">      42 </span>                :            : {
+<span class="lineNum">      43 </span>                :<span class="lineCov">       1234 :         reference_cache = kmem_cache_create(&quot;reference_cache&quot;,</span>
+<span class="lineNum">      44 </span>                :            :             sizeof (reference_t), 0, NULL, NULL, NULL, NULL, NULL, 0);
+<span class="lineNum">      45 </span>                :            : 
+<span class="lineNum">      46 </span>                :<span class="lineCov">       1234 :         reference_history_cache = kmem_cache_create(&quot;reference_history_cache&quot;,</span>
+<span class="lineNum">      47 </span>                :            :             sizeof (uint64_t), 0, NULL, NULL, NULL, NULL, NULL, 0);
+<span class="lineNum">      48 </span>                :<span class="lineCov">       1234 : }</span>
+<a name="49"><span class="lineNum">      49 </span>                :            : </a>
+<span class="lineNum">      50 </span>                :            : void
+<span class="lineNum">      51 </span>                :<span class="lineCov">        785 : refcount_fini(void)</span>
+<span class="lineNum">      52 </span>                :            : {
+<span class="lineNum">      53 </span>                :<span class="lineCov">        785 :         kmem_cache_destroy(reference_cache);</span>
+<span class="lineNum">      54 </span>                :<span class="lineCov">        785 :         kmem_cache_destroy(reference_history_cache);</span>
+<span class="lineNum">      55 </span>                :<span class="lineCov">        785 : }</span>
+<a name="56"><span class="lineNum">      56 </span>                :            : </a>
+<span class="lineNum">      57 </span>                :            : void
+<span class="lineNum">      58 </span>                :<span class="lineCov">  513445910 : refcount_create(refcount_t *rc)</span>
+<span class="lineNum">      59 </span>                :            : {
+<span class="lineNum">      60 </span>                :<span class="lineCov">  513445910 :         mutex_init(&amp;rc-&gt;rc_mtx, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">      61 </span>                :<span class="lineCov">  513440146 :         list_create(&amp;rc-&gt;rc_list, sizeof (reference_t),</span>
+<span class="lineNum">      62 </span>                :            :             offsetof(reference_t, ref_link));
+<span class="lineNum">      63 </span>                :<span class="lineCov">  513433252 :         list_create(&amp;rc-&gt;rc_removed, sizeof (reference_t),</span>
+<span class="lineNum">      64 </span>                :            :             offsetof(reference_t, ref_link));
+<span class="lineNum">      65 </span>                :<span class="lineCov">  513432323 :         rc-&gt;rc_count = 0;</span>
+<span class="lineNum">      66 </span>                :<span class="lineCov">  513432323 :         rc-&gt;rc_removed_count = 0;</span>
+<span class="lineNum">      67 </span>                :<span class="lineCov">  513432323 :         rc-&gt;rc_tracked = reference_tracking_enable;</span>
+<span class="lineNum">      68 </span>                :<span class="lineCov">  513432323 : }</span>
+<a name="69"><span class="lineNum">      69 </span>                :            : </a>
+<span class="lineNum">      70 </span>                :            : void
+<span class="lineNum">      71 </span>                :<span class="lineCov">       7435 : refcount_create_tracked(refcount_t *rc)</span>
+<span class="lineNum">      72 </span>                :            : {
+<span class="lineNum">      73 </span>                :<span class="lineCov">       7435 :         refcount_create(rc);</span>
+<span class="lineNum">      74 </span>                :<span class="lineCov">       7435 :         rc-&gt;rc_tracked = B_TRUE;</span>
+<span class="lineNum">      75 </span>                :<span class="lineCov">       7435 : }</span>
+<a name="76"><span class="lineNum">      76 </span>                :            : </a>
+<span class="lineNum">      77 </span>                :            : void
+<span class="lineNum">      78 </span>                :<span class="lineCov">     293363 : refcount_create_untracked(refcount_t *rc)</span>
+<span class="lineNum">      79 </span>                :            : {
+<span class="lineNum">      80 </span>                :<span class="lineCov">     293363 :         refcount_create(rc);</span>
+<span class="lineNum">      81 </span>                :<span class="lineCov">     293378 :         rc-&gt;rc_tracked = B_FALSE;</span>
+<span class="lineNum">      82 </span>                :<span class="lineCov">     293378 : }</span>
+<a name="83"><span class="lineNum">      83 </span>                :            : </a>
+<span class="lineNum">      84 </span>                :            : void
+<span class="lineNum">      85 </span>                :<span class="lineCov">  513431350 : refcount_destroy_many(refcount_t *rc, uint64_t number)</span>
+<span class="lineNum">      86 </span>                :            : {
+<span class="lineNum">      87 </span>                :            :         reference_t *ref;
+<span class="lineNum">      88 </span>                :            : 
+<span class="lineNum">      89 </span>        [<span class="branchCov" title="Branch 0 was taken 513431350 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">  513431350 :         ASSERT(rc-&gt;rc_count == number);</span>
+<span class="lineNum">      90 </span>        [<span class="branchCov" title="Branch 1 was taken 257671 times"> + </span><span class="branchCov" title="Branch 2 was taken 513430387 times"> + </span>]:<span class="lineCov">  513689040 :         while ((ref = list_head(&amp;rc-&gt;rc_list))) {</span>
+<span class="lineNum">      91 </span>                :<span class="lineCov">     257671 :                 list_remove(&amp;rc-&gt;rc_list, ref);</span>
+<span class="lineNum">      92 </span>                :<span class="lineCov">     257626 :                 kmem_cache_free(reference_cache, ref);</span>
+<span class="lineNum">      93 </span>                :            :         }
+<span class="lineNum">      94 </span>                :<span class="lineCov">  513430387 :         list_destroy(&amp;rc-&gt;rc_list);</span>
+<span class="lineNum">      95 </span>                :            : 
+<span class="lineNum">      96 </span>        [<span class="branchCov" title="Branch 1 was taken 8448328 times"> + </span><span class="branchCov" title="Branch 2 was taken 513431617 times"> + </span>]:<span class="lineCov">  521883747 :         while ((ref = list_head(&amp;rc-&gt;rc_removed))) {</span>
+<span class="lineNum">      97 </span>                :<span class="lineCov">    8448328 :                 list_remove(&amp;rc-&gt;rc_removed, ref);</span>
+<span class="lineNum">      98 </span>                :<span class="lineCov">    8447640 :                 kmem_cache_free(reference_history_cache, ref-&gt;ref_removed);</span>
+<span class="lineNum">      99 </span>                :<span class="lineCov">    8456105 :                 kmem_cache_free(reference_cache, ref);</span>
+<span class="lineNum">     100 </span>                :            :         }
+<span class="lineNum">     101 </span>                :<span class="lineCov">  513431617 :         list_destroy(&amp;rc-&gt;rc_removed);</span>
+<span class="lineNum">     102 </span>                :<span class="lineCov">  513427907 :         mutex_destroy(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     103 </span>                :<span class="lineCov">  513427601 : }</span>
+<a name="104"><span class="lineNum">     104 </span>                :            : </a>
+<span class="lineNum">     105 </span>                :            : void
+<span class="lineNum">     106 </span>                :<span class="lineCov">  513186924 : refcount_destroy(refcount_t *rc)</span>
+<span class="lineNum">     107 </span>                :            : {
+<span class="lineNum">     108 </span>                :<span class="lineCov">  513186924 :         refcount_destroy_many(rc, 0);</span>
+<span class="lineNum">     109 </span>                :<span class="lineCov">  513182851 : }</span>
+<a name="110"><span class="lineNum">     110 </span>                :            : </a>
+<span class="lineNum">     111 </span>                :            : int
+<span class="lineNum">     112 </span>                :<span class="lineCov">  240766378 : refcount_is_zero(refcount_t *rc)</span>
+<span class="lineNum">     113 </span>                :            : {
+<span class="lineNum">     114 </span>                :<span class="lineCov">  240766378 :         return (rc-&gt;rc_count == 0);</span>
+<span class="lineNum">     115 </span>                :            : }
+<a name="116"><span class="lineNum">     116 </span>                :            : </a>
+<span class="lineNum">     117 </span>                :            : int64_t
+<span class="lineNum">     118 </span>                :<span class="lineCov">   97803892 : refcount_count(refcount_t *rc)</span>
+<span class="lineNum">     119 </span>                :            : {
+<span class="lineNum">     120 </span>                :<span class="lineCov">   97803892 :         return (rc-&gt;rc_count);</span>
+<span class="lineNum">     121 </span>                :            : }
+<a name="122"><span class="lineNum">     122 </span>                :            : </a>
+<span class="lineNum">     123 </span>                :            : int64_t
+<span class="lineNum">     124 </span>                :<span class="lineCov">   42858520 : refcount_add_many(refcount_t *rc, uint64_t number, void *holder)</span>
+<span class="lineNum">     125 </span>                :            : {
+<span class="lineNum">     126 </span>                :<span class="lineCov">   42858520 :         reference_t *ref = NULL;</span>
+<span class="lineNum">     127 </span>                :            :         int64_t count;
+<span class="lineNum">     128 </span>                :            : 
+<span class="lineNum">     129 </span>        [<span class="branchCov" title="Branch 0 was taken 23481364 times"> + </span><span class="branchCov" title="Branch 1 was taken 19377156 times"> + </span>]:<span class="lineCov">   42858520 :         if (rc-&gt;rc_tracked) {</span>
+<span class="lineNum">     130 </span>                :<span class="lineCov">   23481364 :                 ref = kmem_cache_alloc(reference_cache, KM_SLEEP);</span>
+<span class="lineNum">     131 </span>                :<span class="lineCov">   23513435 :                 ref-&gt;ref_holder = holder;</span>
+<span class="lineNum">     132 </span>                :<span class="lineCov">   23513435 :                 ref-&gt;ref_number = number;</span>
+<span class="lineNum">     133 </span>                :            :         }
+<span class="lineNum">     134 </span>                :<span class="lineCov">   42890591 :         mutex_enter(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     135 </span>                :            :         ASSERT(rc-&gt;rc_count &gt;= 0);
+<span class="lineNum">     136 </span>        [<span class="branchCov" title="Branch 0 was taken 23529933 times"> + </span><span class="branchCov" title="Branch 1 was taken 19405465 times"> + </span>]:<span class="lineCov">   42935398 :         if (rc-&gt;rc_tracked)</span>
+<span class="lineNum">     137 </span>                :<span class="lineCov">   23529933 :                 list_insert_head(&amp;rc-&gt;rc_list, ref);</span>
+<span class="lineNum">     138 </span>                :<span class="lineCov">   42905139 :         rc-&gt;rc_count += number;</span>
+<span class="lineNum">     139 </span>                :<span class="lineCov">   42905139 :         count = rc-&gt;rc_count;</span>
+<span class="lineNum">     140 </span>                :<span class="lineCov">   42905139 :         mutex_exit(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     141 </span>                :            : 
+<span class="lineNum">     142 </span>                :<span class="lineCov">   42943755 :         return (count);</span>
+<span class="lineNum">     143 </span>                :            : }
+<a name="144"><span class="lineNum">     144 </span>                :            : </a>
+<span class="lineNum">     145 </span>                :            : int64_t
+<span class="lineNum">     146 </span>                :<span class="lineCov">   26032269 : zfs_refcount_add(refcount_t *rc, void *holder)</span>
+<span class="lineNum">     147 </span>                :            : {
+<span class="lineNum">     148 </span>                :<span class="lineCov">   26032269 :         return (refcount_add_many(rc, 1, holder));</span>
+<span class="lineNum">     149 </span>                :            : }
+<a name="150"><span class="lineNum">     150 </span>                :            : </a>
+<span class="lineNum">     151 </span>                :            : int64_t
+<span class="lineNum">     152 </span>                :<span class="lineCov">   42628209 : refcount_remove_many(refcount_t *rc, uint64_t number, void *holder)</span>
+<span class="lineNum">     153 </span>                :            : {
+<span class="lineNum">     154 </span>                :            :         reference_t *ref;
+<span class="lineNum">     155 </span>                :            :         int64_t count;
+<span class="lineNum">     156 </span>                :            : 
+<span class="lineNum">     157 </span>                :<span class="lineCov">   42628209 :         mutex_enter(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     158 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 42698341 times"> + </span>]:<span class="lineCov">   42698341 :         ASSERT(rc-&gt;rc_count &gt;= number);</span>
+<span class="lineNum">     159 </span>                :            : 
+<span class="lineNum">     160 </span>        [<span class="branchCov" title="Branch 0 was taken 19423742 times"> + </span><span class="branchCov" title="Branch 1 was taken 23274599 times"> + </span>]:<span class="lineCov">   42698341 :         if (!rc-&gt;rc_tracked) {</span>
+<span class="lineNum">     161 </span>                :<span class="lineCov">   19423742 :                 rc-&gt;rc_count -= number;</span>
+<span class="lineNum">     162 </span>                :<span class="lineCov">   19423742 :                 count = rc-&gt;rc_count;</span>
+<span class="lineNum">     163 </span>                :<span class="lineCov">   19423742 :                 mutex_exit(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     164 </span>                :<span class="lineCov">   19425913 :                 return (count);</span>
+<span class="lineNum">     165 </span>                :            :         }
+<span class="lineNum">     166 </span>                :            : 
+<span class="lineNum">     167 </span>        [<span class="branchCov" title="Branch 1 was taken 318648231 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">  318882649 :         for (ref = list_head(&amp;rc-&gt;rc_list); ref;</span>
+<span class="lineNum">     168 </span>                :<span class="lineCov">  295383300 :             ref = list_next(&amp;rc-&gt;rc_list, ref)) {</span>
+<span class="lineNum">     169 </span>   [<span class="branchCov" title="Branch 0 was taken 23264096 times"> + </span><span class="branchCov" title="Branch 1 was taken 295384135 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 23264931 times"> + </span>]:<span class="lineCov">  318648231 :                 if (ref-&gt;ref_holder == holder &amp;&amp; ref-&gt;ref_number == number) {</span>
+<span class="lineNum">     170 </span>                :<span class="lineCov">   23264931 :                         list_remove(&amp;rc-&gt;rc_list, ref);</span>
+<span class="lineNum">     171 </span>        [<span class="branchCov" title="Branch 0 was taken 23249271 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">   23249271 :                         if (reference_history &gt; 0) {</span>
+<span class="lineNum">     172 </span>                :<span class="lineCov">   23267753 :                                 ref-&gt;ref_removed =</span>
+<span class="lineNum">     173 </span>                :<span class="lineCov">   23249271 :                                     kmem_cache_alloc(reference_history_cache,</span>
+<span class="lineNum">     174 </span>                :            :                                     KM_SLEEP);
+<span class="lineNum">     175 </span>                :<span class="lineCov">   23267753 :                                 list_insert_head(&amp;rc-&gt;rc_removed, ref);</span>
+<span class="lineNum">     176 </span>                :<span class="lineCov">   23240693 :                                 rc-&gt;rc_removed_count++;</span>
+<span class="lineNum">     177 </span>        [<span class="branchCov" title="Branch 0 was taken 14810090 times"> + </span><span class="branchCov" title="Branch 1 was taken 8430603 times"> + </span>]:<span class="lineCov">   23240693 :                                 if (rc-&gt;rc_removed_count &gt; reference_history) {</span>
+<span class="lineNum">     178 </span>                :<span class="lineCov">   14810090 :                                         ref = list_tail(&amp;rc-&gt;rc_removed);</span>
+<span class="lineNum">     179 </span>                :<span class="lineCov">   14809550 :                                         list_remove(&amp;rc-&gt;rc_removed, ref);</span>
+<span class="lineNum">     180 </span>                :<span class="lineCov">   14802511 :                                         kmem_cache_free(reference_history_cache,</span>
+<span class="lineNum">     181 </span>                :            :                                             ref-&gt;ref_removed);
+<span class="lineNum">     182 </span>                :<span class="lineCov">   14827171 :                                         kmem_cache_free(reference_cache, ref);</span>
+<span class="lineNum">     183 </span>                :<span class="lineCov">   14824581 :                                         rc-&gt;rc_removed_count--;</span>
+<span class="lineNum">     184 </span>                :            :                                 }
+<span class="lineNum">     185 </span>                :            :                         } else {
+<span class="lineNum">     186 </span>                :<span class="lineNoCov">          0 :                                 kmem_cache_free(reference_cache, ref);</span>
+<span class="lineNum">     187 </span>                :            :                         }
+<span class="lineNum">     188 </span>                :<span class="lineCov">   23255184 :                         rc-&gt;rc_count -= number;</span>
+<span class="lineNum">     189 </span>                :<span class="lineCov">   23255184 :                         count = rc-&gt;rc_count;</span>
+<span class="lineNum">     190 </span>                :<span class="lineCov">   23255184 :                         mutex_exit(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     191 </span>                :<span class="lineCov">   23286698 :                         return (count);</span>
+<span class="lineNum">     192 </span>                :            :                 }
+<span class="lineNum">     193 </span>                :            :         }
+<span class="lineNum">     194 </span>                :<span class="lineNoCov">          0 :         panic(&quot;No such hold %p on refcount %llx&quot;, holder,</span>
+<span class="lineNum">     195 </span>                :            :             (u_longlong_t)(uintptr_t)rc);
+<span class="lineNum">     196 </span>                :<span class="lineNoCov">          0 :         return (-1);</span>
+<span class="lineNum">     197 </span>                :            : }
+<a name="198"><span class="lineNum">     198 </span>                :            : </a>
+<span class="lineNum">     199 </span>                :            : int64_t
+<span class="lineNum">     200 </span>                :<span class="lineCov">   26060642 : refcount_remove(refcount_t *rc, void *holder)</span>
+<span class="lineNum">     201 </span>                :            : {
+<span class="lineNum">     202 </span>                :<span class="lineCov">   26060642 :         return (refcount_remove_many(rc, 1, holder));</span>
+<span class="lineNum">     203 </span>                :            : }
+<a name="204"><span class="lineNum">     204 </span>                :            : </a>
+<span class="lineNum">     205 </span>                :            : void
+<span class="lineNum">     206 </span>                :<span class="lineNoCov">          0 : refcount_transfer(refcount_t *dst, refcount_t *src)</span>
+<span class="lineNum">     207 </span>                :            : {
+<span class="lineNum">     208 </span>                :            :         int64_t count, removed_count;
+<span class="lineNum">     209 </span>                :            :         list_t list, removed;
+<span class="lineNum">     210 </span>                :            : 
+<span class="lineNum">     211 </span>                :<span class="lineNoCov">          0 :         list_create(&amp;list, sizeof (reference_t),</span>
+<span class="lineNum">     212 </span>                :            :             offsetof(reference_t, ref_link));
+<span class="lineNum">     213 </span>                :<span class="lineNoCov">          0 :         list_create(&amp;removed, sizeof (reference_t),</span>
+<span class="lineNum">     214 </span>                :            :             offsetof(reference_t, ref_link));
+<span class="lineNum">     215 </span>                :            : 
+<span class="lineNum">     216 </span>                :<span class="lineNoCov">          0 :         mutex_enter(&amp;src-&gt;rc_mtx);</span>
+<span class="lineNum">     217 </span>                :<span class="lineNoCov">          0 :         count = src-&gt;rc_count;</span>
+<span class="lineNum">     218 </span>                :<span class="lineNoCov">          0 :         removed_count = src-&gt;rc_removed_count;</span>
+<span class="lineNum">     219 </span>                :<span class="lineNoCov">          0 :         src-&gt;rc_count = 0;</span>
+<span class="lineNum">     220 </span>                :<span class="lineNoCov">          0 :         src-&gt;rc_removed_count = 0;</span>
+<span class="lineNum">     221 </span>                :<span class="lineNoCov">          0 :         list_move_tail(&amp;list, &amp;src-&gt;rc_list);</span>
+<span class="lineNum">     222 </span>                :<span class="lineNoCov">          0 :         list_move_tail(&amp;removed, &amp;src-&gt;rc_removed);</span>
+<span class="lineNum">     223 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;src-&gt;rc_mtx);</span>
+<span class="lineNum">     224 </span>                :            : 
+<span class="lineNum">     225 </span>                :<span class="lineNoCov">          0 :         mutex_enter(&amp;dst-&gt;rc_mtx);</span>
+<span class="lineNum">     226 </span>                :<span class="lineNoCov">          0 :         dst-&gt;rc_count += count;</span>
+<span class="lineNum">     227 </span>                :<span class="lineNoCov">          0 :         dst-&gt;rc_removed_count += removed_count;</span>
+<span class="lineNum">     228 </span>                :<span class="lineNoCov">          0 :         list_move_tail(&amp;dst-&gt;rc_list, &amp;list);</span>
+<span class="lineNum">     229 </span>                :<span class="lineNoCov">          0 :         list_move_tail(&amp;dst-&gt;rc_removed, &amp;removed);</span>
+<span class="lineNum">     230 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;dst-&gt;rc_mtx);</span>
+<span class="lineNum">     231 </span>                :            : 
+<span class="lineNum">     232 </span>                :<span class="lineNoCov">          0 :         list_destroy(&amp;list);</span>
+<span class="lineNum">     233 </span>                :<span class="lineNoCov">          0 :         list_destroy(&amp;removed);</span>
+<span class="lineNum">     234 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="235"><span class="lineNum">     235 </span>                :            : </a>
+<span class="lineNum">     236 </span>                :            : void
+<span class="lineNum">     237 </span>                :<span class="lineCov">     472636 : refcount_transfer_ownership(refcount_t *rc, void *current_holder,</span>
+<span class="lineNum">     238 </span>                :            :     void *new_holder)
+<span class="lineNum">     239 </span>                :            : {
+<span class="lineNum">     240 </span>                :            :         reference_t *ref;
+<span class="lineNum">     241 </span>                :<span class="lineCov">     472636 :         boolean_t found = B_FALSE;</span>
+<span class="lineNum">     242 </span>                :            : 
+<span class="lineNum">     243 </span>                :<span class="lineCov">     472636 :         mutex_enter(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     244 </span>        [<span class="branchCov" title="Branch 0 was taken 7026 times"> + </span><span class="branchCov" title="Branch 1 was taken 465875 times"> + </span>]:<span class="lineCov">     472901 :         if (!rc-&gt;rc_tracked) {</span>
+<span class="lineNum">     245 </span>                :<span class="lineCov">       7026 :                 mutex_exit(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     246 </span>                :<span class="lineCov">       7026 :                 return;</span>
+<span class="lineNum">     247 </span>                :            :         }
+<span class="lineNum">     248 </span>                :            : 
+<span class="lineNum">     249 </span>        [<span class="branchCov" title="Branch 1 was taken 14942977 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">   14942977 :         for (ref = list_head(&amp;rc-&gt;rc_list); ref;</span>
+<span class="lineNum">     250 </span>                :<span class="lineCov">   14477102 :             ref = list_next(&amp;rc-&gt;rc_list, ref)) {</span>
+<span class="lineNum">     251 </span>        [<span class="branchCov" title="Branch 0 was taken 465875 times"> + </span><span class="branchCov" title="Branch 1 was taken 14477102 times"> + </span>]:<span class="lineCov">   14942977 :                 if (ref-&gt;ref_holder == current_holder) {</span>
+<span class="lineNum">     252 </span>                :<span class="lineCov">     465875 :                         ref-&gt;ref_holder = new_holder;</span>
+<span class="lineNum">     253 </span>                :<span class="lineCov">     465875 :                         found = B_TRUE;</span>
+<span class="lineNum">     254 </span>                :<span class="lineCov">     465875 :                         break;</span>
+<span class="lineNum">     255 </span>                :            :                 }
+<span class="lineNum">     256 </span>                :            :         }
+<span class="lineNum">     257 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 465875 times"> + </span>]:<span class="lineCov">     465875 :         ASSERT(found);</span>
+<span class="lineNum">     258 </span>                :<span class="lineCov">     465875 :         mutex_exit(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     259 </span>                :            : }
+<span class="lineNum">     260 </span>                :            : 
+<span class="lineNum">     261 </span>                :            : /*
+<span class="lineNum">     262 </span>                :            :  * If tracking is enabled, return true if a reference exists that matches
+<span class="lineNum">     263 </span>                :            :  * the &quot;holder&quot; tag. If tracking is disabled, then return true if a reference
+<span class="lineNum">     264 </span>                :            :  * might be held.
+<a name="265"><span class="lineNum">     265 </span>                :            :  */</a>
+<span class="lineNum">     266 </span>                :            : boolean_t
+<span class="lineNum">     267 </span>                :<span class="lineCov">       2632 : refcount_held(refcount_t *rc, void *holder)</span>
+<span class="lineNum">     268 </span>                :            : {
+<span class="lineNum">     269 </span>                :            :         reference_t *ref;
+<span class="lineNum">     270 </span>                :            : 
+<span class="lineNum">     271 </span>                :<span class="lineCov">       2632 :         mutex_enter(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     272 </span>                :            : 
+<span class="lineNum">     273 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2633 times"> + </span>]:<span class="lineCov">       2633 :         if (!rc-&gt;rc_tracked) {</span>
+<span class="lineNum">     274 </span>                :<span class="lineNoCov">          0 :                 mutex_exit(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     275 </span>                :<span class="lineNoCov">          0 :                 return (rc-&gt;rc_count &gt; 0);</span>
+<span class="lineNum">     276 </span>                :            :         }
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>        [<span class="branchCov" title="Branch 1 was taken 38562 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">      38562 :         for (ref = list_head(&amp;rc-&gt;rc_list); ref;</span>
+<span class="lineNum">     279 </span>                :<span class="lineCov">      35929 :             ref = list_next(&amp;rc-&gt;rc_list, ref)) {</span>
+<span class="lineNum">     280 </span>        [<span class="branchCov" title="Branch 0 was taken 2633 times"> + </span><span class="branchCov" title="Branch 1 was taken 35929 times"> + </span>]:<span class="lineCov">      38562 :                 if (ref-&gt;ref_holder == holder) {</span>
+<span class="lineNum">     281 </span>                :<span class="lineCov">       2633 :                         mutex_exit(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     282 </span>                :<span class="lineCov">       2633 :                         return (B_TRUE);</span>
+<span class="lineNum">     283 </span>                :            :                 }
+<span class="lineNum">     284 </span>                :            :         }
+<span class="lineNum">     285 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     286 </span>                :<span class="lineNoCov">          0 :         return (B_FALSE);</span>
+<span class="lineNum">     287 </span>                :            : }
+<span class="lineNum">     288 </span>                :            : 
+<span class="lineNum">     289 </span>                :            : /*
+<span class="lineNum">     290 </span>                :            :  * If tracking is enabled, return true if a reference does not exist that
+<span class="lineNum">     291 </span>                :            :  * matches the &quot;holder&quot; tag. If tracking is disabled, always return true
+<span class="lineNum">     292 </span>                :            :  * since the reference might not be held.
+<a name="293"><span class="lineNum">     293 </span>                :            :  */</a>
+<span class="lineNum">     294 </span>                :            : boolean_t
+<span class="lineNum">     295 </span>                :<span class="lineCov">    5403947 : refcount_not_held(refcount_t *rc, void *holder)</span>
+<span class="lineNum">     296 </span>                :            : {
+<span class="lineNum">     297 </span>                :            :         reference_t *ref;
+<span class="lineNum">     298 </span>                :            : 
+<span class="lineNum">     299 </span>                :<span class="lineCov">    5403947 :         mutex_enter(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     300 </span>                :            : 
+<span class="lineNum">     301 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5407777 times"> + </span>]:<span class="lineCov">    5407777 :         if (!rc-&gt;rc_tracked) {</span>
+<span class="lineNum">     302 </span>                :<span class="lineNoCov">          0 :                 mutex_exit(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     303 </span>                :<span class="lineNoCov">          0 :                 return (B_TRUE);</span>
+<span class="lineNum">     304 </span>                :            :         }
+<span class="lineNum">     305 </span>                :            : 
+<span class="lineNum">     306 </span>        [<span class="branchCov" title="Branch 1 was taken 62002464 times"> + </span><span class="branchCov" title="Branch 2 was taken 5406233 times"> + </span>]:<span class="lineCov">   67405642 :         for (ref = list_head(&amp;rc-&gt;rc_list); ref;</span>
+<span class="lineNum">     307 </span>                :<span class="lineCov">   61996469 :             ref = list_next(&amp;rc-&gt;rc_list, ref)) {</span>
+<span class="lineNum">     308 </span>        [<span class="branchCov" title="Branch 0 was taken 5995 times"> + </span><span class="branchCov" title="Branch 1 was taken 61996469 times"> + </span>]:<span class="lineCov">   62002464 :                 if (ref-&gt;ref_holder == holder) {</span>
+<span class="lineNum">     309 </span>                :<span class="lineCov">       5995 :                         mutex_exit(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     310 </span>                :<span class="lineNoCov">          0 :                         return (B_FALSE);</span>
+<span class="lineNum">     311 </span>                :            :                 }
+<span class="lineNum">     312 </span>                :            :         }
+<span class="lineNum">     313 </span>                :<span class="lineCov">    5406233 :         mutex_exit(&amp;rc-&gt;rc_mtx);</span>
+<span class="lineNum">     314 </span>                :<span class="lineCov">    5406188 :         return (B_TRUE);</span>
+<span class="lineNum">     315 </span>                :            : }
+<span class="lineNum">     316 </span>                :            : #endif  /* ZFS_DEBUG */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

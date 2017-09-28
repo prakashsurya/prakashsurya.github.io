@@ -1,0 +1,1023 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/cmd/zed/zed_event.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/cmd/zed</a> - zed_event.c<span style="font-size: 80%;"> (source / <a href="zed_event.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">174</td>
+            <td class="headerCovTableEntry">394</td>
+            <td class="headerCovTableEntryLo">44.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntryLo">57.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">103</td>
+            <td class="headerCovTableEntry">284</td>
+            <td class="headerCovTableEntryLo">36.3 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * This file is part of the ZFS Event Daemon (ZED)
+<span class="lineNum">       3 </span>                :            :  * for ZFS on Linux (ZoL) &lt;http://zfsonlinux.org/&gt;.
+<span class="lineNum">       4 </span>                :            :  * Developed at Lawrence Livermore National Laboratory (LLNL-CODE-403049).
+<span class="lineNum">       5 </span>                :            :  * Copyright (C) 2013-2014 Lawrence Livermore National Security, LLC.
+<span class="lineNum">       6 </span>                :            :  * Refer to the ZoL git commit log for authoritative copyright attribution.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       9 </span>                :            :  * Common Development and Distribution License Version 1.0 (CDDL-1.0).
+<span class="lineNum">      10 </span>                :            :  * You can obtain a copy of the license from the top-level file
+<span class="lineNum">      11 </span>                :            :  * &quot;OPENSOLARIS.LICENSE&quot; or at &lt;http://opensource.org/licenses/CDDL-1.0&gt;.
+<span class="lineNum">      12 </span>                :            :  * You may not use this file except in compliance with the license.
+<span class="lineNum">      13 </span>                :            :  */
+<span class="lineNum">      14 </span>                :            : 
+<span class="lineNum">      15 </span>                :            : #include &lt;ctype.h&gt;
+<span class="lineNum">      16 </span>                :            : #include &lt;errno.h&gt;
+<span class="lineNum">      17 </span>                :            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      18 </span>                :            : #include &lt;libzfs.h&gt;                       /* FIXME: Replace with libzfs_core. */
+<span class="lineNum">      19 </span>                :            : #include &lt;paths.h&gt;
+<span class="lineNum">      20 </span>                :            : #include &lt;stdarg.h&gt;
+<span class="lineNum">      21 </span>                :            : #include &lt;stdio.h&gt;
+<span class="lineNum">      22 </span>                :            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      23 </span>                :            : #include &lt;string.h&gt;
+<span class="lineNum">      24 </span>                :            : #include &lt;sys/zfs_ioctl.h&gt;
+<span class="lineNum">      25 </span>                :            : #include &lt;time.h&gt;
+<span class="lineNum">      26 </span>                :            : #include &lt;unistd.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/fm/fs/zfs.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &quot;zed.h&quot;
+<span class="lineNum">      29 </span>                :            : #include &quot;zed_conf.h&quot;
+<span class="lineNum">      30 </span>                :            : #include &quot;zed_disk_event.h&quot;
+<span class="lineNum">      31 </span>                :            : #include &quot;zed_exec.h&quot;
+<span class="lineNum">      32 </span>                :            : #include &quot;zed_file.h&quot;
+<span class="lineNum">      33 </span>                :            : #include &quot;zed_log.h&quot;
+<span class="lineNum">      34 </span>                :            : #include &quot;zed_strings.h&quot;
+<span class="lineNum">      35 </span>                :            : 
+<span class="lineNum">      36 </span>                :            : #include &quot;agents/zfs_agents.h&quot;
+<span class="lineNum">      37 </span>                :            : 
+<span class="lineNum">      38 </span>                :            : #define MAXBUF  4096
+<span class="lineNum">      39 </span>                :            : 
+<span class="lineNum">      40 </span>                :            : /*
+<span class="lineNum">      41 </span>                :            :  * Open the libzfs interface.
+<a name="42"><span class="lineNum">      42 </span>                :            :  */</a>
+<span class="lineNum">      43 </span>                :            : void
+<span class="lineNum">      44 </span>                :<span class="lineCov">          5 : zed_event_init(struct zed_conf *zcp)</span>
+<span class="lineNum">      45 </span>                :            : {
+<span class="lineNum">      46 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5 times"> + </span>]:<span class="lineCov">          5 :         if (!zcp)</span>
+<span class="lineNum">      47 </span>                :<span class="lineNoCov">          0 :                 zed_log_die(&quot;Failed zed_event_init: %s&quot;, strerror(EINVAL));</span>
+<span class="lineNum">      48 </span>                :            : 
+<span class="lineNum">      49 </span>                :<span class="lineCov">          5 :         zcp-&gt;zfs_hdl = libzfs_init();</span>
+<span class="lineNum">      50 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5 times"> + </span>]:<span class="lineCov">          5 :         if (!zcp-&gt;zfs_hdl)</span>
+<span class="lineNum">      51 </span>                :<span class="lineNoCov">          0 :                 zed_log_die(&quot;Failed to initialize libzfs&quot;);</span>
+<span class="lineNum">      52 </span>                :            : 
+<span class="lineNum">      53 </span>                :<span class="lineCov">          5 :         zcp-&gt;zevent_fd = open(ZFS_DEV, O_RDWR);</span>
+<span class="lineNum">      54 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5 times"> + </span>]:<span class="lineCov">          5 :         if (zcp-&gt;zevent_fd &lt; 0)</span>
+<span class="lineNum">      55 </span>                :<span class="lineNoCov">          0 :                 zed_log_die(&quot;Failed to open \&quot;%s\&quot;: %s&quot;,</span>
+<span class="lineNum">      56 </span>                :<span class="lineNoCov">          0 :                     ZFS_DEV, strerror(errno));</span>
+<span class="lineNum">      57 </span>                :            : 
+<span class="lineNum">      58 </span>                :<span class="lineCov">          5 :         zfs_agent_init(zcp-&gt;zfs_hdl);</span>
+<span class="lineNum">      59 </span>                :            : 
+<span class="lineNum">      60 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 5 times"> + </span>]:<span class="lineCov">          5 :         if (zed_disk_event_init() != 0)</span>
+<span class="lineNum">      61 </span>                :<span class="lineNoCov">          0 :                 zed_log_die(&quot;Failed to initialize disk events&quot;);</span>
+<span class="lineNum">      62 </span>                :<span class="lineCov">          5 : }</span>
+<span class="lineNum">      63 </span>                :            : 
+<span class="lineNum">      64 </span>                :            : /*
+<span class="lineNum">      65 </span>                :            :  * Close the libzfs interface.
+<a name="66"><span class="lineNum">      66 </span>                :            :  */</a>
+<span class="lineNum">      67 </span>                :            : void
+<span class="lineNum">      68 </span>                :<span class="lineCov">          5 : zed_event_fini(struct zed_conf *zcp)</span>
+<span class="lineNum">      69 </span>                :            : {
+<span class="lineNum">      70 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5 times"> + </span>]:<span class="lineCov">          5 :         if (!zcp)</span>
+<span class="lineNum">      71 </span>                :<span class="lineNoCov">          0 :                 zed_log_die(&quot;Failed zed_event_fini: %s&quot;, strerror(EINVAL));</span>
+<span class="lineNum">      72 </span>                :            : 
+<span class="lineNum">      73 </span>                :<span class="lineCov">          5 :         zed_disk_event_fini();</span>
+<span class="lineNum">      74 </span>                :<span class="lineCov">          5 :         zfs_agent_fini();</span>
+<span class="lineNum">      75 </span>                :            : 
+<span class="lineNum">      76 </span>        [<span class="branchCov" title="Branch 0 was taken 5 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          5 :         if (zcp-&gt;zevent_fd &gt;= 0) {</span>
+<span class="lineNum">      77 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 5 times"> + </span>]:<span class="lineCov">          5 :                 if (close(zcp-&gt;zevent_fd) &lt; 0)</span>
+<span class="lineNum">      78 </span>                :<span class="lineNoCov">          0 :                         zed_log_msg(LOG_WARNING, &quot;Failed to close \&quot;%s\&quot;: %s&quot;,</span>
+<span class="lineNum">      79 </span>                :<span class="lineNoCov">          0 :                             ZFS_DEV, strerror(errno));</span>
+<span class="lineNum">      80 </span>                :            : 
+<span class="lineNum">      81 </span>                :<span class="lineCov">          5 :                 zcp-&gt;zevent_fd = -1;</span>
+<span class="lineNum">      82 </span>                :            :         }
+<span class="lineNum">      83 </span>        [<span class="branchCov" title="Branch 0 was taken 5 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          5 :         if (zcp-&gt;zfs_hdl) {</span>
+<span class="lineNum">      84 </span>                :<span class="lineCov">          5 :                 libzfs_fini(zcp-&gt;zfs_hdl);</span>
+<span class="lineNum">      85 </span>                :<span class="lineCov">          5 :                 zcp-&gt;zfs_hdl = NULL;</span>
+<span class="lineNum">      86 </span>                :            :         }
+<span class="lineNum">      87 </span>                :<span class="lineCov">          5 : }</span>
+<span class="lineNum">      88 </span>                :            : 
+<span class="lineNum">      89 </span>                :            : /*
+<span class="lineNum">      90 </span>                :            :  * Seek to the event specified by [saved_eid] and [saved_etime].
+<span class="lineNum">      91 </span>                :            :  * This protects against processing a given event more than once.
+<span class="lineNum">      92 </span>                :            :  * Return 0 upon a successful seek to the specified event, or -1 otherwise.
+<span class="lineNum">      93 </span>                :            :  *
+<span class="lineNum">      94 </span>                :            :  * A zevent is considered to be uniquely specified by its (eid,time) tuple.
+<span class="lineNum">      95 </span>                :            :  * The unsigned 64b eid is set to 1 when the kernel module is loaded, and
+<span class="lineNum">      96 </span>                :            :  * incremented by 1 for each new event.  Since the state file can persist
+<span class="lineNum">      97 </span>                :            :  * across a kernel module reload, the time must be checked to ensure a match.
+<a name="98"><span class="lineNum">      98 </span>                :            :  */</a>
+<span class="lineNum">      99 </span>                :            : int
+<span class="lineNum">     100 </span>                :<span class="lineCov">          5 : zed_event_seek(struct zed_conf *zcp, uint64_t saved_eid, int64_t saved_etime[])</span>
+<span class="lineNum">     101 </span>                :            : {
+<span class="lineNum">     102 </span>                :            :         uint64_t eid;
+<span class="lineNum">     103 </span>                :            :         int found;
+<span class="lineNum">     104 </span>                :            :         nvlist_t *nvl;
+<span class="lineNum">     105 </span>                :            :         int n_dropped;
+<span class="lineNum">     106 </span>                :            :         int64_t *etime;
+<span class="lineNum">     107 </span>                :            :         uint_t nelem;
+<span class="lineNum">     108 </span>                :            :         int rv;
+<span class="lineNum">     109 </span>                :            : 
+<span class="lineNum">     110 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5 times"> + </span>]:<span class="lineCov">          5 :         if (!zcp) {</span>
+<span class="lineNum">     111 </span>                :<span class="lineNoCov">          0 :                 errno = EINVAL;</span>
+<span class="lineNum">     112 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_ERR, &quot;Failed to seek zevent: %s&quot;,</span>
+<span class="lineNum">     113 </span>                :            :                     strerror(errno));
+<span class="lineNum">     114 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     115 </span>                :            :         }
+<span class="lineNum">     116 </span>                :<span class="lineCov">          5 :         eid = 0;</span>
+<span class="lineNum">     117 </span>                :<span class="lineCov">          5 :         found = 0;</span>
+<span class="lineNum">     118 </span>        [<span class="branchCov" title="Branch 0 was taken 7 times"> + </span><span class="branchCov" title="Branch 1 was taken 5 times"> + </span>]:<span class="lineCov">         12 :         while ((eid &lt; saved_eid) &amp;&amp; !found) {</span>
+<span class="lineNum">     119 </span>                :<span class="lineCov">          7 :                 rv = zpool_events_next(zcp-&gt;zfs_hdl, &amp;nvl, &amp;n_dropped,</span>
+<span class="lineNum">     120 </span>                :            :                     ZEVENT_NONBLOCK, zcp-&gt;zevent_fd);
+<span class="lineNum">     121 </span>                :            : 
+<span class="lineNum">     122 </span>[<span class="branchCov" title="Branch 0 was taken 7 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 7 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">          7 :                 if ((rv != 0) || !nvl)</span>
+<span class="lineNum">     123 </span>                :            :                         break;
+<span class="lineNum">     124 </span>                :            : 
+<span class="lineNum">     125 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 7 times"> + </span>]:<span class="lineCov">          7 :                 if (n_dropped &gt; 0) {</span>
+<span class="lineNum">     126 </span>                :<span class="lineNoCov">          0 :                         zed_log_msg(LOG_WARNING, &quot;Missed %d events&quot;, n_dropped);</span>
+<span class="lineNum">     127 </span>                :            :                         /*
+<span class="lineNum">     128 </span>                :            :                          * FIXME: Increase max size of event nvlist in
+<span class="lineNum">     129 </span>                :            :                          *   /sys/module/zfs/parameters/zfs_zevent_len_max ?
+<span class="lineNum">     130 </span>                :            :                          */
+<span class="lineNum">     131 </span>                :            :                 }
+<span class="lineNum">     132 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 7 times"> + </span>]:<span class="lineCov">          7 :                 if (nvlist_lookup_uint64(nvl, &quot;eid&quot;, &amp;eid) != 0) {</span>
+<span class="lineNum">     133 </span>                :<span class="lineNoCov">          0 :                         zed_log_msg(LOG_WARNING, &quot;Failed to lookup zevent eid&quot;);</span>
+<span class="lineNum">     134 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 7 times"> + </span>]:<span class="lineCov">          7 :                 } else if (nvlist_lookup_int64_array(nvl, &quot;time&quot;,</span>
+<span class="lineNum">     135 </span>                :            :                     &amp;etime, &amp;nelem) != 0) {
+<span class="lineNum">     136 </span>                :<span class="lineNoCov">          0 :                         zed_log_msg(LOG_WARNING,</span>
+<span class="lineNum">     137 </span>                :            :                             &quot;Failed to lookup zevent time (eid=%llu)&quot;, eid);
+<span class="lineNum">     138 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 7 times"> + </span>]:<span class="lineCov">          7 :                 } else if (nelem != 2) {</span>
+<span class="lineNum">     139 </span>                :<span class="lineNoCov">          0 :                         zed_log_msg(LOG_WARNING,</span>
+<span class="lineNum">     140 </span>                :            :                             &quot;Failed to lookup zevent time (eid=%llu, nelem=%u)&quot;,
+<span class="lineNum">     141 </span>                :            :                             eid, nelem);
+<span class="lineNum">     142 </span>[<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 5 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 2 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">          7 :                 } else if ((eid != saved_eid) ||</span>
+<span class="lineNum">     143 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          2 :                     (etime[0] != saved_etime[0]) ||</span>
+<span class="lineNum">     144 </span>                :<span class="lineCov">          2 :                     (etime[1] != saved_etime[1])) {</span>
+<span class="lineNum">     145 </span>                :            :                         /* no-op */
+<span class="lineNum">     146 </span>                :            :                 } else {
+<span class="lineNum">     147 </span>                :<span class="lineCov">          2 :                         found = 1;</span>
+<span class="lineNum">     148 </span>                :            :                 }
+<span class="lineNum">     149 </span>                :<span class="lineCov">          7 :                 free(nvl);</span>
+<span class="lineNum">     150 </span>                :            :         }
+<span class="lineNum">     151 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5 times"> + </span>]:<span class="lineCov">          5 :         if (!found &amp;&amp; (saved_eid &gt; 0)) {</span>
+<span class="lineNum">     152 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (zpool_events_seek(zcp-&gt;zfs_hdl, ZEVENT_SEEK_START,</span>
+<span class="lineNum">     153 </span>                :            :                     zcp-&gt;zevent_fd) &lt; 0)
+<span class="lineNum">     154 </span>                :<span class="lineNoCov">          0 :                         zed_log_msg(LOG_WARNING, &quot;Failed to seek to eid=0&quot;);</span>
+<span class="lineNum">     155 </span>                :            :                 else
+<span class="lineNum">     156 </span>                :<span class="lineNoCov">          0 :                         eid = 0;</span>
+<span class="lineNum">     157 </span>                :            :         }
+<span class="lineNum">     158 </span>                :<span class="lineCov">          5 :         zed_log_msg(LOG_NOTICE, &quot;Processing events since eid=%llu&quot;, eid);</span>
+<span class="lineNum">     159 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchCov" title="Branch 1 was taken 2 times"> + </span>]:<span class="lineCov">          5 :         return (found ? 0 : -1);</span>
+<span class="lineNum">     160 </span>                :            : }
+<span class="lineNum">     161 </span>                :            : 
+<span class="lineNum">     162 </span>                :            : /*
+<span class="lineNum">     163 </span>                :            :  * Return non-zero if nvpair [name] should be formatted in hex; o/w, return 0.
+<a name="164"><span class="lineNum">     164 </span>                :            :  */</a>
+<span class="lineNum">     165 </span>                :            : static int
+<span class="lineNum">     166 </span>                :<span class="lineCov">       1152 : _zed_event_value_is_hex(const char *name)</span>
+<span class="lineNum">     167 </span>                :            : {
+<span class="lineNum">     168 </span>                :<span class="lineCov">       1152 :         const char *hex_suffix[] = {</span>
+<span class="lineNum">     169 </span>                :            :                 &quot;_guid&quot;,
+<span class="lineNum">     170 </span>                :            :                 &quot;_guids&quot;,
+<span class="lineNum">     171 </span>                :            :                 NULL
+<span class="lineNum">     172 </span>                :            :         };
+<span class="lineNum">     173 </span>                :            :         const char **pp;
+<span class="lineNum">     174 </span>                :            :         char *p;
+<span class="lineNum">     175 </span>                :            : 
+<span class="lineNum">     176 </span>        [<span class="branchCov" title="Branch 0 was taken 1152 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       1152 :         if (!name)</span>
+<span class="lineNum">     177 </span>                :            :                 return (0);
+<span class="lineNum">     178 </span>                :            : 
+<span class="lineNum">     179 </span>        [<span class="branchCov" title="Branch 0 was taken 1975 times"> + </span><span class="branchCov" title="Branch 1 was taken 823 times"> + </span>]:<span class="lineCov">       2798 :         for (pp = hex_suffix; *pp; pp++) {</span>
+<span class="lineNum">     180 </span>                :<span class="lineCov">       1975 :                 p = strstr(name, *pp);</span>
+<span class="lineNum">     181 </span>[<span class="branchCov" title="Branch 0 was taken 329 times"> + </span><span class="branchCov" title="Branch 1 was taken 1646 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 329 times"> + </span>]:<span class="lineCov">       1975 :                 if (p &amp;&amp; strlen(p) == strlen(*pp))</span>
+<span class="lineNum">     182 </span>                :            :                         return (1);
+<span class="lineNum">     183 </span>                :            :         }
+<span class="lineNum">     184 </span>                :            :         return (0);
+<span class="lineNum">     185 </span>                :            : }
+<span class="lineNum">     186 </span>                :            : 
+<span class="lineNum">     187 </span>                :            : /*
+<span class="lineNum">     188 </span>                :            :  * Add an environment variable for [eid] to the container [zsp].
+<span class="lineNum">     189 </span>                :            :  *
+<span class="lineNum">     190 </span>                :            :  * The variable name is the concatenation of [prefix] and [name] converted to
+<span class="lineNum">     191 </span>                :            :  * uppercase with non-alphanumeric characters converted to underscores;
+<span class="lineNum">     192 </span>                :            :  * [prefix] is optional, and [name] must begin with an alphabetic character.
+<span class="lineNum">     193 </span>                :            :  * If the converted variable name already exists within the container [zsp],
+<span class="lineNum">     194 </span>                :            :  * its existing value will be replaced with the new value.
+<span class="lineNum">     195 </span>                :            :  *
+<span class="lineNum">     196 </span>                :            :  * The variable value is specified by the format string [fmt].
+<span class="lineNum">     197 </span>                :            :  *
+<span class="lineNum">     198 </span>                :            :  * Returns 0 on success, and -1 on error (with errno set).
+<span class="lineNum">     199 </span>                :            :  *
+<span class="lineNum">     200 </span>                :            :  * All environment variables in [zsp] should be added through this function.
+<a name="201"><span class="lineNum">     201 </span>                :            :  */</a>
+<span class="lineNum">     202 </span>                :            : static int
+<span class="lineNum">     203 </span>                :<span class="lineCov">       8342 : _zed_event_add_var(uint64_t eid, zed_strings_t *zsp,</span>
+<span class="lineNum">     204 </span>                :            :     const char *prefix, const char *name, const char *fmt, ...)
+<span class="lineNum">     205 </span>                :            : {
+<span class="lineNum">     206 </span>                :            :         char keybuf[MAXBUF];
+<span class="lineNum">     207 </span>                :            :         char valbuf[MAXBUF];
+<span class="lineNum">     208 </span>                :            :         char *dstp;
+<span class="lineNum">     209 </span>                :            :         const char *srcp;
+<span class="lineNum">     210 </span>                :            :         const char *lastp;
+<span class="lineNum">     211 </span>                :            :         int n;
+<span class="lineNum">     212 </span>                :            :         int buflen;
+<span class="lineNum">     213 </span>                :            :         va_list vargs;
+<span class="lineNum">     214 </span>                :            : 
+<span class="lineNum">     215 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8342 times"> + </span>]:<span class="lineCov">       8342 :         assert(zsp != NULL);</span>
+<span class="lineNum">     216 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8342 times"> + </span>]:<span class="lineCov">       8342 :         assert(fmt != NULL);</span>
+<span class="lineNum">     217 </span>                :            : 
+<span class="lineNum">     218 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8342 times"> + </span>]:<span class="lineCov">       8342 :         if (!name) {</span>
+<span class="lineNum">     219 </span>                :<span class="lineNoCov">          0 :                 errno = EINVAL;</span>
+<span class="lineNum">     220 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING,</span>
+<span class="lineNum">     221 </span>                :            :                     &quot;Failed to add variable for eid=%llu: Name is empty&quot;, eid);
+<span class="lineNum">     222 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     223 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 8342 times"> + </span>]:<span class="lineCov">       8342 :         } else if (!isalpha(name[0])) {</span>
+<span class="lineNum">     224 </span>                :<span class="lineNoCov">          0 :                 errno = EINVAL;</span>
+<span class="lineNum">     225 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING,</span>
+<span class="lineNum">     226 </span>                :            :                     &quot;Failed to add variable for eid=%llu: &quot;
+<span class="lineNum">     227 </span>                :            :                     &quot;Name \&quot;%s\&quot; is invalid&quot;, eid, name);
+<span class="lineNum">     228 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     229 </span>                :            :         }
+<span class="lineNum">     230 </span>                :            :         /*
+<span class="lineNum">     231 </span>                :            :          * Construct the string key by converting PREFIX (if present) and NAME.
+<span class="lineNum">     232 </span>                :            :          */
+<span class="lineNum">     233 </span>                :<span class="lineCov">       8342 :         dstp = keybuf;</span>
+<span class="lineNum">     234 </span>                :<span class="lineCov">       8342 :         lastp = keybuf + sizeof (keybuf);</span>
+<span class="lineNum">     235 </span>        [<span class="branchCov" title="Branch 0 was taken 5202 times"> + </span><span class="branchCov" title="Branch 1 was taken 3140 times"> + </span>]:<span class="lineCov">       8342 :         if (prefix) {</span>
+<span class="lineNum">     236 </span>[<span class="branchCov" title="Branch 0 was taken 5202 times"> + </span><span class="branchCov" title="Branch 1 was taken 34530 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 34530 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">      42872 :                 for (srcp = prefix; *srcp &amp;&amp; (dstp &lt; lastp); srcp++)</span>
+<span class="lineNum">     237 </span>        [<span class="branchCov" title="Branch 0 was taken 29328 times"> + </span><span class="branchCov" title="Branch 1 was taken 5202 times"> + </span>]:<span class="lineCov">      34530 :                         *dstp++ = isalnum(*srcp) ? toupper(*srcp) : '_';</span>
+<span class="lineNum">     238 </span>                :            :         }
+<span class="lineNum">     239 </span>[<span class="branchCov" title="Branch 0 was taken 63074 times"> + </span><span class="branchCov" title="Branch 1 was taken 8342 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 63074 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">      71416 :         for (srcp = name; *srcp &amp;&amp; (dstp &lt; lastp); srcp++)</span>
+<span class="lineNum">     240 </span>        [<span class="branchCov" title="Branch 0 was taken 58669 times"> + </span><span class="branchCov" title="Branch 1 was taken 4405 times"> + </span>]:<span class="lineCov">      63074 :                 *dstp++ = isalnum(*srcp) ? toupper(*srcp) : '_';</span>
+<span class="lineNum">     241 </span>                :            : 
+<span class="lineNum">     242 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8342 times"> + </span>]:<span class="lineCov">       8342 :         if (dstp == lastp) {</span>
+<span class="lineNum">     243 </span>                :<span class="lineNoCov">          0 :                 errno = ENAMETOOLONG;</span>
+<span class="lineNum">     244 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING,</span>
+<span class="lineNum">     245 </span>                :            :                     &quot;Failed to add variable for eid=%llu: Name too long&quot;, eid);
+<span class="lineNum">     246 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     247 </span>                :            :         }
+<span class="lineNum">     248 </span>                :<span class="lineCov">       8342 :         *dstp = '\0';</span>
+<span class="lineNum">     249 </span>                :            :         /*
+<span class="lineNum">     250 </span>                :            :          * Construct the string specified by &quot;[PREFIX][NAME]=[FMT]&quot;.
+<span class="lineNum">     251 </span>                :            :          */
+<span class="lineNum">     252 </span>                :<span class="lineCov">       8342 :         dstp = valbuf;</span>
+<span class="lineNum">     253 </span>                :<span class="lineCov">       8342 :         buflen = sizeof (valbuf);</span>
+<span class="lineNum">     254 </span>                :<span class="lineCov">       8342 :         n = strlcpy(dstp, keybuf, buflen);</span>
+<span class="lineNum">     255 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8342 times"> + </span>]:<span class="lineCov">       8342 :         if (n &gt;= sizeof (valbuf)) {</span>
+<span class="lineNum">     256 </span>                :<span class="lineNoCov">          0 :                 errno = EMSGSIZE;</span>
+<span class="lineNum">     257 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING, &quot;Failed to add %s for eid=%llu: %s&quot;,</span>
+<span class="lineNum">     258 </span>                :            :                     keybuf, eid, &quot;Exceeded buffer size&quot;);
+<span class="lineNum">     259 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     260 </span>                :            :         }
+<span class="lineNum">     261 </span>                :<span class="lineCov">       8342 :         dstp += n;</span>
+<span class="lineNum">     262 </span>                :<span class="lineCov">       8342 :         buflen -= n;</span>
+<span class="lineNum">     263 </span>                :            : 
+<span class="lineNum">     264 </span>                :<span class="lineCov">       8342 :         *dstp++ = '=';</span>
+<span class="lineNum">     265 </span>                :<span class="lineCov">       8342 :         buflen--;</span>
+<span class="lineNum">     266 </span>                :            : 
+<span class="lineNum">     267 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8342 times"> + </span>]:<span class="lineCov">       8342 :         if (buflen &lt;= 0) {</span>
+<span class="lineNum">     268 </span>                :<span class="lineNoCov">          0 :                 errno = EMSGSIZE;</span>
+<span class="lineNum">     269 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING, &quot;Failed to add %s for eid=%llu: %s&quot;,</span>
+<span class="lineNum">     270 </span>                :            :                     keybuf, eid, &quot;Exceeded buffer size&quot;);
+<span class="lineNum">     271 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     272 </span>                :            :         }
+<span class="lineNum">     273 </span>                :            : 
+<span class="lineNum">     274 </span>                :<span class="lineCov">       8342 :         va_start(vargs, fmt);</span>
+<span class="lineNum">     275 </span>                :<span class="lineCov">      16684 :         n = vsnprintf(dstp, buflen, fmt, vargs);</span>
+<span class="lineNum">     276 </span>                :<span class="lineCov">       8342 :         va_end(vargs);</span>
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8342 times"> + </span>]:<span class="lineCov">       8342 :         if ((n &lt; 0) || (n &gt;= buflen)) {</span>
+<span class="lineNum">     279 </span>                :<span class="lineNoCov">          0 :                 errno = EMSGSIZE;</span>
+<span class="lineNum">     280 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING, &quot;Failed to add %s for eid=%llu: %s&quot;,</span>
+<span class="lineNum">     281 </span>                :            :                     keybuf, eid, &quot;Exceeded buffer size&quot;);
+<span class="lineNum">     282 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     283 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 8342 times"> + </span>]:<span class="lineCov">       8342 :         } else if (zed_strings_add(zsp, keybuf, valbuf) &lt; 0) {</span>
+<span class="lineNum">     284 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING, &quot;Failed to add %s for eid=%llu: %s&quot;,</span>
+<span class="lineNum">     285 </span>                :<span class="lineNoCov">          0 :                     keybuf, eid, strerror(errno));</span>
+<span class="lineNum">     286 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     287 </span>                :            :         }
+<span class="lineNum">     288 </span>                :            :         return (0);
+<span class="lineNum">     289 </span>                :            : }
+<a name="290"><span class="lineNum">     290 </span>                :            : </a>
+<span class="lineNum">     291 </span>                :            : static int
+<span class="lineNum">     292 </span>                :<span class="lineNoCov">          0 : _zed_event_add_array_err(uint64_t eid, const char *name)</span>
+<span class="lineNum">     293 </span>                :            : {
+<span class="lineNum">     294 </span>                :<span class="lineNoCov">          0 :         errno = EMSGSIZE;</span>
+<span class="lineNum">     295 </span>                :<span class="lineNoCov">          0 :         zed_log_msg(LOG_WARNING,</span>
+<span class="lineNum">     296 </span>                :            :             &quot;Failed to convert nvpair \&quot;%s\&quot; for eid=%llu: &quot;
+<span class="lineNum">     297 </span>                :            :             &quot;Exceeded buffer size&quot;, name, eid);
+<span class="lineNum">     298 </span>                :<span class="lineNoCov">          0 :         return (-1);</span>
+<span class="lineNum">     299 </span>                :            : }
+<a name="300"><span class="lineNum">     300 </span>                :            : </a>
+<span class="lineNum">     301 </span>                :            : static int
+<span class="lineNum">     302 </span>                :<span class="lineNoCov">          0 : _zed_event_add_int8_array(uint64_t eid, zed_strings_t *zsp,</span>
+<span class="lineNum">     303 </span>                :            :     const char *prefix, nvpair_t *nvp)
+<span class="lineNum">     304 </span>                :            : {
+<span class="lineNum">     305 </span>                :            :         char buf[MAXBUF];
+<span class="lineNum">     306 </span>                :<span class="lineNoCov">          0 :         int buflen = sizeof (buf);</span>
+<span class="lineNum">     307 </span>                :            :         const char *name;
+<span class="lineNum">     308 </span>                :            :         int8_t *i8p;
+<span class="lineNum">     309 </span>                :            :         uint_t nelem;
+<span class="lineNum">     310 </span>                :            :         uint_t i;
+<span class="lineNum">     311 </span>                :            :         char *p;
+<span class="lineNum">     312 </span>                :            :         int n;
+<span class="lineNum">     313 </span>                :            : 
+<span class="lineNum">     314 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         assert((nvp != NULL) &amp;&amp; (nvpair_type(nvp) == DATA_TYPE_INT8_ARRAY));</span>
+<span class="lineNum">     315 </span>                :            : 
+<span class="lineNum">     316 </span>                :<span class="lineNoCov">          0 :         name = nvpair_name(nvp);</span>
+<span class="lineNum">     317 </span>                :<span class="lineNoCov">          0 :         (void) nvpair_value_int8_array(nvp, &amp;i8p, &amp;nelem);</span>
+<span class="lineNum">     318 </span>[<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0, p = buf; (i &lt; nelem) &amp;&amp; (buflen &gt; 0); i++) {</span>
+<span class="lineNum">     319 </span>                :<span class="lineNoCov">          0 :                 n = snprintf(p, buflen, &quot;%d &quot;, i8p[i]);</span>
+<span class="lineNum">     320 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((n &lt; 0) || (n &gt;= buflen))</span>
+<span class="lineNum">     321 </span>                :<span class="lineNoCov">          0 :                         return (_zed_event_add_array_err(eid, name));</span>
+<span class="lineNum">     322 </span>                :<span class="lineNoCov">          0 :                 p += n;</span>
+<span class="lineNum">     323 </span>                :<span class="lineNoCov">          0 :                 buflen -= n;</span>
+<span class="lineNum">     324 </span>                :            :         }
+<span class="lineNum">     325 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nelem &gt; 0)</span>
+<span class="lineNum">     326 </span>                :<span class="lineNoCov">          0 :                 *--p = '\0';</span>
+<span class="lineNum">     327 </span>                :            : 
+<span class="lineNum">     328 </span>                :<span class="lineNoCov">          0 :         return (_zed_event_add_var(eid, zsp, prefix, name, &quot;%s&quot;, buf));</span>
+<span class="lineNum">     329 </span>                :            : }
+<a name="330"><span class="lineNum">     330 </span>                :            : </a>
+<span class="lineNum">     331 </span>                :            : static int
+<span class="lineNum">     332 </span>                :<span class="lineNoCov">          0 : _zed_event_add_uint8_array(uint64_t eid, zed_strings_t *zsp,</span>
+<span class="lineNum">     333 </span>                :            :     const char *prefix, nvpair_t *nvp)
+<span class="lineNum">     334 </span>                :            : {
+<span class="lineNum">     335 </span>                :            :         char buf[MAXBUF];
+<span class="lineNum">     336 </span>                :<span class="lineNoCov">          0 :         int buflen = sizeof (buf);</span>
+<span class="lineNum">     337 </span>                :            :         const char *name;
+<span class="lineNum">     338 </span>                :            :         uint8_t *u8p;
+<span class="lineNum">     339 </span>                :            :         uint_t nelem;
+<span class="lineNum">     340 </span>                :            :         uint_t i;
+<span class="lineNum">     341 </span>                :            :         char *p;
+<span class="lineNum">     342 </span>                :            :         int n;
+<span class="lineNum">     343 </span>                :            : 
+<span class="lineNum">     344 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         assert((nvp != NULL) &amp;&amp; (nvpair_type(nvp) == DATA_TYPE_UINT8_ARRAY));</span>
+<span class="lineNum">     345 </span>                :            : 
+<span class="lineNum">     346 </span>                :<span class="lineNoCov">          0 :         name = nvpair_name(nvp);</span>
+<span class="lineNum">     347 </span>                :<span class="lineNoCov">          0 :         (void) nvpair_value_uint8_array(nvp, &amp;u8p, &amp;nelem);</span>
+<span class="lineNum">     348 </span>[<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0, p = buf; (i &lt; nelem) &amp;&amp; (buflen &gt; 0); i++) {</span>
+<span class="lineNum">     349 </span>                :<span class="lineNoCov">          0 :                 n = snprintf(p, buflen, &quot;%u &quot;, u8p[i]);</span>
+<span class="lineNum">     350 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((n &lt; 0) || (n &gt;= buflen))</span>
+<span class="lineNum">     351 </span>                :<span class="lineNoCov">          0 :                         return (_zed_event_add_array_err(eid, name));</span>
+<span class="lineNum">     352 </span>                :<span class="lineNoCov">          0 :                 p += n;</span>
+<span class="lineNum">     353 </span>                :<span class="lineNoCov">          0 :                 buflen -= n;</span>
+<span class="lineNum">     354 </span>                :            :         }
+<span class="lineNum">     355 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nelem &gt; 0)</span>
+<span class="lineNum">     356 </span>                :<span class="lineNoCov">          0 :                 *--p = '\0';</span>
+<span class="lineNum">     357 </span>                :            : 
+<span class="lineNum">     358 </span>                :<span class="lineNoCov">          0 :         return (_zed_event_add_var(eid, zsp, prefix, name, &quot;%s&quot;, buf));</span>
+<span class="lineNum">     359 </span>                :            : }
+<a name="360"><span class="lineNum">     360 </span>                :            : </a>
+<span class="lineNum">     361 </span>                :            : static int
+<span class="lineNum">     362 </span>                :<span class="lineNoCov">          0 : _zed_event_add_int16_array(uint64_t eid, zed_strings_t *zsp,</span>
+<span class="lineNum">     363 </span>                :            :     const char *prefix, nvpair_t *nvp)
+<span class="lineNum">     364 </span>                :            : {
+<span class="lineNum">     365 </span>                :            :         char buf[MAXBUF];
+<span class="lineNum">     366 </span>                :<span class="lineNoCov">          0 :         int buflen = sizeof (buf);</span>
+<span class="lineNum">     367 </span>                :            :         const char *name;
+<span class="lineNum">     368 </span>                :            :         int16_t *i16p;
+<span class="lineNum">     369 </span>                :            :         uint_t nelem;
+<span class="lineNum">     370 </span>                :            :         uint_t i;
+<span class="lineNum">     371 </span>                :            :         char *p;
+<span class="lineNum">     372 </span>                :            :         int n;
+<span class="lineNum">     373 </span>                :            : 
+<span class="lineNum">     374 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         assert((nvp != NULL) &amp;&amp; (nvpair_type(nvp) == DATA_TYPE_INT16_ARRAY));</span>
+<span class="lineNum">     375 </span>                :            : 
+<span class="lineNum">     376 </span>                :<span class="lineNoCov">          0 :         name = nvpair_name(nvp);</span>
+<span class="lineNum">     377 </span>                :<span class="lineNoCov">          0 :         (void) nvpair_value_int16_array(nvp, &amp;i16p, &amp;nelem);</span>
+<span class="lineNum">     378 </span>[<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0, p = buf; (i &lt; nelem) &amp;&amp; (buflen &gt; 0); i++) {</span>
+<span class="lineNum">     379 </span>                :<span class="lineNoCov">          0 :                 n = snprintf(p, buflen, &quot;%d &quot;, i16p[i]);</span>
+<span class="lineNum">     380 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((n &lt; 0) || (n &gt;= buflen))</span>
+<span class="lineNum">     381 </span>                :<span class="lineNoCov">          0 :                         return (_zed_event_add_array_err(eid, name));</span>
+<span class="lineNum">     382 </span>                :<span class="lineNoCov">          0 :                 p += n;</span>
+<span class="lineNum">     383 </span>                :<span class="lineNoCov">          0 :                 buflen -= n;</span>
+<span class="lineNum">     384 </span>                :            :         }
+<span class="lineNum">     385 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nelem &gt; 0)</span>
+<span class="lineNum">     386 </span>                :<span class="lineNoCov">          0 :                 *--p = '\0';</span>
+<span class="lineNum">     387 </span>                :            : 
+<span class="lineNum">     388 </span>                :<span class="lineNoCov">          0 :         return (_zed_event_add_var(eid, zsp, prefix, name, &quot;%s&quot;, buf));</span>
+<span class="lineNum">     389 </span>                :            : }
+<a name="390"><span class="lineNum">     390 </span>                :            : </a>
+<span class="lineNum">     391 </span>                :            : static int
+<span class="lineNum">     392 </span>                :<span class="lineNoCov">          0 : _zed_event_add_uint16_array(uint64_t eid, zed_strings_t *zsp,</span>
+<span class="lineNum">     393 </span>                :            :     const char *prefix, nvpair_t *nvp)
+<span class="lineNum">     394 </span>                :            : {
+<span class="lineNum">     395 </span>                :            :         char buf[MAXBUF];
+<span class="lineNum">     396 </span>                :<span class="lineNoCov">          0 :         int buflen = sizeof (buf);</span>
+<span class="lineNum">     397 </span>                :            :         const char *name;
+<span class="lineNum">     398 </span>                :            :         uint16_t *u16p;
+<span class="lineNum">     399 </span>                :            :         uint_t nelem;
+<span class="lineNum">     400 </span>                :            :         uint_t i;
+<span class="lineNum">     401 </span>                :            :         char *p;
+<span class="lineNum">     402 </span>                :            :         int n;
+<span class="lineNum">     403 </span>                :            : 
+<span class="lineNum">     404 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         assert((nvp != NULL) &amp;&amp; (nvpair_type(nvp) == DATA_TYPE_UINT16_ARRAY));</span>
+<span class="lineNum">     405 </span>                :            : 
+<span class="lineNum">     406 </span>                :<span class="lineNoCov">          0 :         name = nvpair_name(nvp);</span>
+<span class="lineNum">     407 </span>                :<span class="lineNoCov">          0 :         (void) nvpair_value_uint16_array(nvp, &amp;u16p, &amp;nelem);</span>
+<span class="lineNum">     408 </span>[<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0, p = buf; (i &lt; nelem) &amp;&amp; (buflen &gt; 0); i++) {</span>
+<span class="lineNum">     409 </span>                :<span class="lineNoCov">          0 :                 n = snprintf(p, buflen, &quot;%u &quot;, u16p[i]);</span>
+<span class="lineNum">     410 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((n &lt; 0) || (n &gt;= buflen))</span>
+<span class="lineNum">     411 </span>                :<span class="lineNoCov">          0 :                         return (_zed_event_add_array_err(eid, name));</span>
+<span class="lineNum">     412 </span>                :<span class="lineNoCov">          0 :                 p += n;</span>
+<span class="lineNum">     413 </span>                :<span class="lineNoCov">          0 :                 buflen -= n;</span>
+<span class="lineNum">     414 </span>                :            :         }
+<span class="lineNum">     415 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nelem &gt; 0)</span>
+<span class="lineNum">     416 </span>                :<span class="lineNoCov">          0 :                 *--p = '\0';</span>
+<span class="lineNum">     417 </span>                :            : 
+<span class="lineNum">     418 </span>                :<span class="lineNoCov">          0 :         return (_zed_event_add_var(eid, zsp, prefix, name, &quot;%s&quot;, buf));</span>
+<span class="lineNum">     419 </span>                :            : }
+<a name="420"><span class="lineNum">     420 </span>                :            : </a>
+<span class="lineNum">     421 </span>                :            : static int
+<span class="lineNum">     422 </span>                :<span class="lineNoCov">          0 : _zed_event_add_int32_array(uint64_t eid, zed_strings_t *zsp,</span>
+<span class="lineNum">     423 </span>                :            :     const char *prefix, nvpair_t *nvp)
+<span class="lineNum">     424 </span>                :            : {
+<span class="lineNum">     425 </span>                :            :         char buf[MAXBUF];
+<span class="lineNum">     426 </span>                :<span class="lineNoCov">          0 :         int buflen = sizeof (buf);</span>
+<span class="lineNum">     427 </span>                :            :         const char *name;
+<span class="lineNum">     428 </span>                :            :         int32_t *i32p;
+<span class="lineNum">     429 </span>                :            :         uint_t nelem;
+<span class="lineNum">     430 </span>                :            :         uint_t i;
+<span class="lineNum">     431 </span>                :            :         char *p;
+<span class="lineNum">     432 </span>                :            :         int n;
+<span class="lineNum">     433 </span>                :            : 
+<span class="lineNum">     434 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         assert((nvp != NULL) &amp;&amp; (nvpair_type(nvp) == DATA_TYPE_INT32_ARRAY));</span>
+<span class="lineNum">     435 </span>                :            : 
+<span class="lineNum">     436 </span>                :<span class="lineNoCov">          0 :         name = nvpair_name(nvp);</span>
+<span class="lineNum">     437 </span>                :<span class="lineNoCov">          0 :         (void) nvpair_value_int32_array(nvp, &amp;i32p, &amp;nelem);</span>
+<span class="lineNum">     438 </span>[<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0, p = buf; (i &lt; nelem) &amp;&amp; (buflen &gt; 0); i++) {</span>
+<span class="lineNum">     439 </span>                :<span class="lineNoCov">          0 :                 n = snprintf(p, buflen, &quot;%d &quot;, i32p[i]);</span>
+<span class="lineNum">     440 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((n &lt; 0) || (n &gt;= buflen))</span>
+<span class="lineNum">     441 </span>                :<span class="lineNoCov">          0 :                         return (_zed_event_add_array_err(eid, name));</span>
+<span class="lineNum">     442 </span>                :<span class="lineNoCov">          0 :                 p += n;</span>
+<span class="lineNum">     443 </span>                :<span class="lineNoCov">          0 :                 buflen -= n;</span>
+<span class="lineNum">     444 </span>                :            :         }
+<span class="lineNum">     445 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nelem &gt; 0)</span>
+<span class="lineNum">     446 </span>                :<span class="lineNoCov">          0 :                 *--p = '\0';</span>
+<span class="lineNum">     447 </span>                :            : 
+<span class="lineNum">     448 </span>                :<span class="lineNoCov">          0 :         return (_zed_event_add_var(eid, zsp, prefix, name, &quot;%s&quot;, buf));</span>
+<span class="lineNum">     449 </span>                :            : }
+<a name="450"><span class="lineNum">     450 </span>                :            : </a>
+<span class="lineNum">     451 </span>                :            : static int
+<span class="lineNum">     452 </span>                :<span class="lineNoCov">          0 : _zed_event_add_uint32_array(uint64_t eid, zed_strings_t *zsp,</span>
+<span class="lineNum">     453 </span>                :            :     const char *prefix, nvpair_t *nvp)
+<span class="lineNum">     454 </span>                :            : {
+<span class="lineNum">     455 </span>                :            :         char buf[MAXBUF];
+<span class="lineNum">     456 </span>                :<span class="lineNoCov">          0 :         int buflen = sizeof (buf);</span>
+<span class="lineNum">     457 </span>                :            :         const char *name;
+<span class="lineNum">     458 </span>                :            :         uint32_t *u32p;
+<span class="lineNum">     459 </span>                :            :         uint_t nelem;
+<span class="lineNum">     460 </span>                :            :         uint_t i;
+<span class="lineNum">     461 </span>                :            :         char *p;
+<span class="lineNum">     462 </span>                :            :         int n;
+<span class="lineNum">     463 </span>                :            : 
+<span class="lineNum">     464 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         assert((nvp != NULL) &amp;&amp; (nvpair_type(nvp) == DATA_TYPE_UINT32_ARRAY));</span>
+<span class="lineNum">     465 </span>                :            : 
+<span class="lineNum">     466 </span>                :<span class="lineNoCov">          0 :         name = nvpair_name(nvp);</span>
+<span class="lineNum">     467 </span>                :<span class="lineNoCov">          0 :         (void) nvpair_value_uint32_array(nvp, &amp;u32p, &amp;nelem);</span>
+<span class="lineNum">     468 </span>[<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0, p = buf; (i &lt; nelem) &amp;&amp; (buflen &gt; 0); i++) {</span>
+<span class="lineNum">     469 </span>                :<span class="lineNoCov">          0 :                 n = snprintf(p, buflen, &quot;%u &quot;, u32p[i]);</span>
+<span class="lineNum">     470 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((n &lt; 0) || (n &gt;= buflen))</span>
+<span class="lineNum">     471 </span>                :<span class="lineNoCov">          0 :                         return (_zed_event_add_array_err(eid, name));</span>
+<span class="lineNum">     472 </span>                :<span class="lineNoCov">          0 :                 p += n;</span>
+<span class="lineNum">     473 </span>                :<span class="lineNoCov">          0 :                 buflen -= n;</span>
+<span class="lineNum">     474 </span>                :            :         }
+<span class="lineNum">     475 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nelem &gt; 0)</span>
+<span class="lineNum">     476 </span>                :<span class="lineNoCov">          0 :                 *--p = '\0';</span>
+<span class="lineNum">     477 </span>                :            : 
+<span class="lineNum">     478 </span>                :<span class="lineNoCov">          0 :         return (_zed_event_add_var(eid, zsp, prefix, name, &quot;%s&quot;, buf));</span>
+<span class="lineNum">     479 </span>                :            : }
+<a name="480"><span class="lineNum">     480 </span>                :            : </a>
+<span class="lineNum">     481 </span>                :            : static int
+<span class="lineNum">     482 </span>                :<span class="lineCov">        314 : _zed_event_add_int64_array(uint64_t eid, zed_strings_t *zsp,</span>
+<span class="lineNum">     483 </span>                :            :     const char *prefix, nvpair_t *nvp)
+<span class="lineNum">     484 </span>                :            : {
+<span class="lineNum">     485 </span>                :            :         char buf[MAXBUF];
+<span class="lineNum">     486 </span>                :<span class="lineCov">        314 :         int buflen = sizeof (buf);</span>
+<span class="lineNum">     487 </span>                :            :         const char *name;
+<span class="lineNum">     488 </span>                :            :         int64_t *i64p;
+<span class="lineNum">     489 </span>                :            :         uint_t nelem;
+<span class="lineNum">     490 </span>                :            :         uint_t i;
+<span class="lineNum">     491 </span>                :            :         char *p;
+<span class="lineNum">     492 </span>                :            :         int n;
+<span class="lineNum">     493 </span>                :            : 
+<span class="lineNum">     494 </span>[<span class="branchCov" title="Branch 0 was taken 314 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 314 times"> + </span>]:<span class="lineCov">        314 :         assert((nvp != NULL) &amp;&amp; (nvpair_type(nvp) == DATA_TYPE_INT64_ARRAY));</span>
+<span class="lineNum">     495 </span>                :            : 
+<span class="lineNum">     496 </span>                :<span class="lineCov">        314 :         name = nvpair_name(nvp);</span>
+<span class="lineNum">     497 </span>                :<span class="lineCov">        314 :         (void) nvpair_value_int64_array(nvp, &amp;i64p, &amp;nelem);</span>
+<span class="lineNum">     498 </span>[<span class="branchCov" title="Branch 1 was taken 628 times"> + </span><span class="branchCov" title="Branch 2 was taken 314 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 628 times"> + </span><span class="branchNoCov" title="Branch 4 was not taken"> - </span>]:<span class="lineCov">        942 :         for (i = 0, p = buf; (i &lt; nelem) &amp;&amp; (buflen &gt; 0); i++) {</span>
+<span class="lineNum">     499 </span>                :<span class="lineCov">       1256 :                 n = snprintf(p, buflen, &quot;%lld &quot;, (u_longlong_t)i64p[i]);</span>
+<span class="lineNum">     500 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 628 times"> + </span>]:<span class="lineCov">        628 :                 if ((n &lt; 0) || (n &gt;= buflen))</span>
+<span class="lineNum">     501 </span>                :<span class="lineNoCov">          0 :                         return (_zed_event_add_array_err(eid, name));</span>
+<span class="lineNum">     502 </span>                :<span class="lineCov">        628 :                 p += n;</span>
+<span class="lineNum">     503 </span>                :<span class="lineCov">        628 :                 buflen -= n;</span>
+<span class="lineNum">     504 </span>                :            :         }
+<span class="lineNum">     505 </span>        [<span class="branchCov" title="Branch 0 was taken 314 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        314 :         if (nelem &gt; 0)</span>
+<span class="lineNum">     506 </span>                :<span class="lineCov">        314 :                 *--p = '\0';</span>
+<span class="lineNum">     507 </span>                :            : 
+<span class="lineNum">     508 </span>                :<span class="lineCov">        314 :         return (_zed_event_add_var(eid, zsp, prefix, name, &quot;%s&quot;, buf));</span>
+<span class="lineNum">     509 </span>                :            : }
+<a name="510"><span class="lineNum">     510 </span>                :            : </a>
+<span class="lineNum">     511 </span>                :            : static int
+<span class="lineNum">     512 </span>                :<span class="lineNoCov">          0 : _zed_event_add_uint64_array(uint64_t eid, zed_strings_t *zsp,</span>
+<span class="lineNum">     513 </span>                :            :     const char *prefix, nvpair_t *nvp)
+<span class="lineNum">     514 </span>                :            : {
+<span class="lineNum">     515 </span>                :            :         char buf[MAXBUF];
+<span class="lineNum">     516 </span>                :<span class="lineNoCov">          0 :         int buflen = sizeof (buf);</span>
+<span class="lineNum">     517 </span>                :            :         const char *name;
+<span class="lineNum">     518 </span>                :            :         const char *fmt;
+<span class="lineNum">     519 </span>                :            :         uint64_t *u64p;
+<span class="lineNum">     520 </span>                :            :         uint_t nelem;
+<span class="lineNum">     521 </span>                :            :         uint_t i;
+<span class="lineNum">     522 </span>                :            :         char *p;
+<span class="lineNum">     523 </span>                :            :         int n;
+<span class="lineNum">     524 </span>                :            : 
+<span class="lineNum">     525 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         assert((nvp != NULL) &amp;&amp; (nvpair_type(nvp) == DATA_TYPE_UINT64_ARRAY));</span>
+<span class="lineNum">     526 </span>                :            : 
+<span class="lineNum">     527 </span>                :<span class="lineNoCov">          0 :         name = nvpair_name(nvp);</span>
+<span class="lineNum">     528 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         fmt = _zed_event_value_is_hex(name) ? &quot;0x%.16llX &quot; : &quot;%llu &quot;;</span>
+<span class="lineNum">     529 </span>                :<span class="lineNoCov">          0 :         (void) nvpair_value_uint64_array(nvp, &amp;u64p, &amp;nelem);</span>
+<span class="lineNum">     530 </span>[<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0, p = buf; (i &lt; nelem) &amp;&amp; (buflen &gt; 0); i++) {</span>
+<span class="lineNum">     531 </span>                :<span class="lineNoCov">          0 :                 n = snprintf(p, buflen, fmt, (u_longlong_t)u64p[i]);</span>
+<span class="lineNum">     532 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((n &lt; 0) || (n &gt;= buflen))</span>
+<span class="lineNum">     533 </span>                :<span class="lineNoCov">          0 :                         return (_zed_event_add_array_err(eid, name));</span>
+<span class="lineNum">     534 </span>                :<span class="lineNoCov">          0 :                 p += n;</span>
+<span class="lineNum">     535 </span>                :<span class="lineNoCov">          0 :                 buflen -= n;</span>
+<span class="lineNum">     536 </span>                :            :         }
+<span class="lineNum">     537 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nelem &gt; 0)</span>
+<span class="lineNum">     538 </span>                :<span class="lineNoCov">          0 :                 *--p = '\0';</span>
+<span class="lineNum">     539 </span>                :            : 
+<span class="lineNum">     540 </span>                :<span class="lineNoCov">          0 :         return (_zed_event_add_var(eid, zsp, prefix, name, &quot;%s&quot;, buf));</span>
+<span class="lineNum">     541 </span>                :            : }
+<a name="542"><span class="lineNum">     542 </span>                :            : </a>
+<span class="lineNum">     543 </span>                :            : static int
+<span class="lineNum">     544 </span>                :<span class="lineNoCov">          0 : _zed_event_add_string_array(uint64_t eid, zed_strings_t *zsp,</span>
+<span class="lineNum">     545 </span>                :            :     const char *prefix, nvpair_t *nvp)
+<span class="lineNum">     546 </span>                :            : {
+<span class="lineNum">     547 </span>                :            :         char buf[MAXBUF];
+<span class="lineNum">     548 </span>                :<span class="lineNoCov">          0 :         int buflen = sizeof (buf);</span>
+<span class="lineNum">     549 </span>                :            :         const char *name;
+<span class="lineNum">     550 </span>                :            :         char **strp;
+<span class="lineNum">     551 </span>                :            :         uint_t nelem;
+<span class="lineNum">     552 </span>                :            :         uint_t i;
+<span class="lineNum">     553 </span>                :            :         char *p;
+<span class="lineNum">     554 </span>                :            :         int n;
+<span class="lineNum">     555 </span>                :            : 
+<span class="lineNum">     556 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         assert((nvp != NULL) &amp;&amp; (nvpair_type(nvp) == DATA_TYPE_STRING_ARRAY));</span>
+<span class="lineNum">     557 </span>                :            : 
+<span class="lineNum">     558 </span>                :<span class="lineNoCov">          0 :         name = nvpair_name(nvp);</span>
+<span class="lineNum">     559 </span>                :<span class="lineNoCov">          0 :         (void) nvpair_value_string_array(nvp, &amp;strp, &amp;nelem);</span>
+<span class="lineNum">     560 </span>[<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0, p = buf; (i &lt; nelem) &amp;&amp; (buflen &gt; 0); i++) {</span>
+<span class="lineNum">     561 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 n = snprintf(p, buflen, &quot;%s &quot;, strp[i] ? strp[i] : &quot;&lt;NULL&gt;&quot;);</span>
+<span class="lineNum">     562 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((n &lt; 0) || (n &gt;= buflen))</span>
+<span class="lineNum">     563 </span>                :<span class="lineNoCov">          0 :                         return (_zed_event_add_array_err(eid, name));</span>
+<span class="lineNum">     564 </span>                :<span class="lineNoCov">          0 :                 p += n;</span>
+<span class="lineNum">     565 </span>                :<span class="lineNoCov">          0 :                 buflen -= n;</span>
+<span class="lineNum">     566 </span>                :            :         }
+<span class="lineNum">     567 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nelem &gt; 0)</span>
+<span class="lineNum">     568 </span>                :<span class="lineNoCov">          0 :                 *--p = '\0';</span>
+<span class="lineNum">     569 </span>                :            : 
+<span class="lineNum">     570 </span>                :<span class="lineNoCov">          0 :         return (_zed_event_add_var(eid, zsp, prefix, name, &quot;%s&quot;, buf));</span>
+<span class="lineNum">     571 </span>                :            : }
+<span class="lineNum">     572 </span>                :            : 
+<span class="lineNum">     573 </span>                :            : /*
+<span class="lineNum">     574 </span>                :            :  * Convert the nvpair [nvp] to a string which is added to the environment
+<span class="lineNum">     575 </span>                :            :  * of the child process.
+<span class="lineNum">     576 </span>                :            :  * Return 0 on success, -1 on error.
+<span class="lineNum">     577 </span>                :            :  *
+<span class="lineNum">     578 </span>                :            :  * FIXME: Refactor with cmd/zpool/zpool_main.c:zpool_do_events_nvprint()?
+<a name="579"><span class="lineNum">     579 </span>                :            :  */</a>
+<span class="lineNum">     580 </span>                :            : static void
+<span class="lineNum">     581 </span>                :<span class="lineCov">       2983 : _zed_event_add_nvpair(uint64_t eid, zed_strings_t *zsp, nvpair_t *nvp)</span>
+<span class="lineNum">     582 </span>                :            : {
+<span class="lineNum">     583 </span>                :            :         const char *name;
+<span class="lineNum">     584 </span>                :            :         data_type_t type;
+<span class="lineNum">     585 </span>                :<span class="lineCov">       2983 :         const char *prefix = ZEVENT_VAR_PREFIX;</span>
+<span class="lineNum">     586 </span>                :            :         boolean_t b;
+<span class="lineNum">     587 </span>                :            :         double d;
+<span class="lineNum">     588 </span>                :            :         uint8_t i8;
+<span class="lineNum">     589 </span>                :            :         uint16_t i16;
+<span class="lineNum">     590 </span>                :            :         uint32_t i32;
+<span class="lineNum">     591 </span>                :            :         uint64_t i64;
+<span class="lineNum">     592 </span>                :            :         char *str;
+<span class="lineNum">     593 </span>                :            : 
+<span class="lineNum">     594 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2983 times"> + </span>]:<span class="lineCov">       2983 :         assert(zsp != NULL);</span>
+<span class="lineNum">     595 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2983 times"> + </span>]:<span class="lineCov">       2983 :         assert(nvp != NULL);</span>
+<span class="lineNum">     596 </span>                :            : 
+<span class="lineNum">     597 </span>                :<span class="lineCov">       2983 :         name = nvpair_name(nvp);</span>
+<span class="lineNum">     598 </span>                :<span class="lineCov">       2983 :         type = nvpair_type(nvp);</span>
+<span class="lineNum">     599 </span>                :            : 
+<span class="lineNum">     600 </span>  [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span> :<span class="lineCov">       2983 :         switch (type) {</span>
+<span class="lineNum">         </span><span class="branchCov" title="Branch 4 was taken 294 times"> + </span><span class="branchNoCov" title="Branch 5 was not taken"> - </span><span class="branchNoCov" title="Branch 6 was not taken"> - </span><span class="branchCov" title="Branch 7 was taken 314 times"> + </span><span class="branchNoCov" title="Branch 8 was not taken"> - </span> 
+<span class="lineNum">         </span><span class="branchNoCov" title="Branch 9 was not taken"> - </span><span class="branchCov" title="Branch 10 was taken 1152 times"> + </span><span class="branchNoCov" title="Branch 11 was not taken"> - </span><span class="branchNoCov" title="Branch 12 was not taken"> - </span><span class="branchCov" title="Branch 13 was taken 20 times"> + </span> 
+<span class="lineNum">         </span><span class="branchCov" title="Branch 14 was taken 889 times"> + </span><span class="branchNoCov" title="Branch 15 was not taken"> - </span><span class="branchNoCov" title="Branch 16 was not taken"> - </span><span class="branchNoCov" title="Branch 17 was not taken"> - </span><span class="branchNoCov" title="Branch 18 was not taken"> - </span> 
+<span class="lineNum">         </span><span class="branchNoCov" title="Branch 19 was not taken"> - </span><span class="branchNoCov" title="Branch 20 was not taken"> - </span><span class="branchNoCov" title="Branch 21 was not taken"> - </span><span class="branchNoCov" title="Branch 22 was not taken"> - </span><span class="branchCov" title="Branch 23 was taken 314 times"> + </span> 
+<span class="lineNum">         </span>   <span class="branchNoCov" title="Branch 24 was not taken"> - </span><span class="branchNoCov" title="Branch 25 was not taken"> - </span><span class="branchNoCov" title="Branch 26 was not taken"> - </span><span class="branchNoCov" title="Branch 27 was not taken"> - </span>]
+<span class="lineNum">     601 </span>                :            :         case DATA_TYPE_BOOLEAN:
+<span class="lineNum">     602 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name, &quot;%s&quot;, &quot;1&quot;);</span>
+<span class="lineNum">     603 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     604 </span>                :            :         case DATA_TYPE_BOOLEAN_VALUE:
+<span class="lineNum">     605 </span>                :<span class="lineNoCov">          0 :                 (void) nvpair_value_boolean_value(nvp, &amp;b);</span>
+<span class="lineNum">     606 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name, &quot;%s&quot;, b ? &quot;1&quot; : &quot;0&quot;);</span>
+<span class="lineNum">     607 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     608 </span>                :            :         case DATA_TYPE_BYTE:
+<span class="lineNum">     609 </span>                :<span class="lineNoCov">          0 :                 (void) nvpair_value_byte(nvp, &amp;i8);</span>
+<span class="lineNum">     610 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name, &quot;%d&quot;, i8);</span>
+<span class="lineNum">     611 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     612 </span>                :            :         case DATA_TYPE_INT8:
+<span class="lineNum">     613 </span>                :<span class="lineNoCov">          0 :                 (void) nvpair_value_int8(nvp, (int8_t *)&amp;i8);</span>
+<span class="lineNum">     614 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name, &quot;%d&quot;, i8);</span>
+<span class="lineNum">     615 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     616 </span>                :            :         case DATA_TYPE_UINT8:
+<span class="lineNum">     617 </span>                :<span class="lineCov">        294 :                 (void) nvpair_value_uint8(nvp, &amp;i8);</span>
+<span class="lineNum">     618 </span>                :<span class="lineCov">        294 :                 _zed_event_add_var(eid, zsp, prefix, name, &quot;%u&quot;, i8);</span>
+<span class="lineNum">     619 </span>                :<span class="lineCov">        294 :                 break;</span>
+<span class="lineNum">     620 </span>                :            :         case DATA_TYPE_INT16:
+<span class="lineNum">     621 </span>                :<span class="lineNoCov">          0 :                 (void) nvpair_value_int16(nvp, (int16_t *)&amp;i16);</span>
+<span class="lineNum">     622 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name, &quot;%d&quot;, i16);</span>
+<span class="lineNum">     623 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     624 </span>                :            :         case DATA_TYPE_UINT16:
+<span class="lineNum">     625 </span>                :<span class="lineNoCov">          0 :                 (void) nvpair_value_uint16(nvp, &amp;i16);</span>
+<span class="lineNum">     626 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name, &quot;%u&quot;, i16);</span>
+<span class="lineNum">     627 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     628 </span>                :            :         case DATA_TYPE_INT32:
+<span class="lineNum">     629 </span>                :<span class="lineCov">        314 :                 (void) nvpair_value_int32(nvp, (int32_t *)&amp;i32);</span>
+<span class="lineNum">     630 </span>                :<span class="lineCov">        314 :                 _zed_event_add_var(eid, zsp, prefix, name, &quot;%d&quot;, i32);</span>
+<span class="lineNum">     631 </span>                :<span class="lineCov">        314 :                 break;</span>
+<span class="lineNum">     632 </span>                :            :         case DATA_TYPE_UINT32:
+<span class="lineNum">     633 </span>                :<span class="lineNoCov">          0 :                 (void) nvpair_value_uint32(nvp, &amp;i32);</span>
+<span class="lineNum">     634 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name, &quot;%u&quot;, i32);</span>
+<span class="lineNum">     635 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     636 </span>                :            :         case DATA_TYPE_INT64:
+<span class="lineNum">     637 </span>                :<span class="lineNoCov">          0 :                 (void) nvpair_value_int64(nvp, (int64_t *)&amp;i64);</span>
+<span class="lineNum">     638 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name,</span>
+<span class="lineNum">     639 </span>                :            :                     &quot;%lld&quot;, (longlong_t)i64);
+<span class="lineNum">     640 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     641 </span>                :            :         case DATA_TYPE_UINT64:
+<span class="lineNum">     642 </span>                :<span class="lineCov">       1152 :                 (void) nvpair_value_uint64(nvp, &amp;i64);</span>
+<span class="lineNum">     643 </span>        [<span class="branchCov" title="Branch 0 was taken 823 times"> + </span><span class="branchCov" title="Branch 1 was taken 329 times"> + </span>]:<span class="lineCov">       1152 :                 _zed_event_add_var(eid, zsp, prefix, name,</span>
+<span class="lineNum">     644 </span>                :<span class="lineCov">       1152 :                     (_zed_event_value_is_hex(name) ? &quot;0x%.16llX&quot; : &quot;%llu&quot;),</span>
+<span class="lineNum">     645 </span>                :            :                     (u_longlong_t)i64);
+<span class="lineNum">     646 </span>                :            :                 /*
+<span class="lineNum">     647 </span>                :            :                  * shadow readable strings for vdev state pairs
+<span class="lineNum">     648 </span>                :            :                  */
+<span class="lineNum">     649 </span>[<span class="branchCov" title="Branch 0 was taken 1137 times"> + </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 6 times"> + </span><span class="branchCov" title="Branch 3 was taken 1131 times"> + </span>]:<span class="lineCov">       1152 :                 if (strcmp(name, FM_EREPORT_PAYLOAD_ZFS_VDEV_STATE) == 0 ||</span>
+<span class="lineNum">     650 </span>                :<span class="lineCov">         21 :                     strcmp(name, FM_EREPORT_PAYLOAD_ZFS_VDEV_LASTSTATE) == 0) {</span>
+<span class="lineNum">     651 </span>                :            :                         char alt[32];
+<span class="lineNum">     652 </span>                :            : 
+<span class="lineNum">     653 </span>                :<span class="lineCov">         21 :                         (void) snprintf(alt, sizeof (alt), &quot;%s_str&quot;, name);</span>
+<span class="lineNum">     654 </span>                :<span class="lineCov">         21 :                         _zed_event_add_var(eid, zsp, prefix, alt, &quot;%s&quot;,</span>
+<span class="lineNum">     655 </span>                :            :                             zpool_state_to_name(i64, VDEV_AUX_NONE));
+<span class="lineNum">     656 </span>                :            :                 } else
+<span class="lineNum">     657 </span>                :            :                 /*
+<span class="lineNum">     658 </span>                :            :                  * shadow readable strings for pool state
+<span class="lineNum">     659 </span>                :            :                  */
+<span class="lineNum">     660 </span>        [<span class="branchCov" title="Branch 0 was taken 314 times"> + </span><span class="branchCov" title="Branch 1 was taken 817 times"> + </span>]:<span class="lineCov">       1131 :                 if (strcmp(name, FM_EREPORT_PAYLOAD_ZFS_POOL_STATE) == 0) {</span>
+<span class="lineNum">     661 </span>                :            :                         char alt[32];
+<span class="lineNum">     662 </span>                :            : 
+<span class="lineNum">     663 </span>                :<span class="lineCov">        314 :                         (void) snprintf(alt, sizeof (alt), &quot;%s_str&quot;, name);</span>
+<span class="lineNum">     664 </span>                :<span class="lineCov">        314 :                         _zed_event_add_var(eid, zsp, prefix, alt, &quot;%s&quot;,</span>
+<span class="lineNum">     665 </span>                :            :                             zpool_pool_state_to_name(i64));
+<span class="lineNum">     666 </span>                :            :                 }
+<span class="lineNum">     667 </span>                :            :                 break;
+<span class="lineNum">     668 </span>                :            :         case DATA_TYPE_DOUBLE:
+<span class="lineNum">     669 </span>                :<span class="lineNoCov">          0 :                 (void) nvpair_value_double(nvp, &amp;d);</span>
+<span class="lineNum">     670 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name, &quot;%g&quot;, d);</span>
+<span class="lineNum">     671 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     672 </span>                :            :         case DATA_TYPE_HRTIME:
+<span class="lineNum">     673 </span>                :<span class="lineNoCov">          0 :                 (void) nvpair_value_hrtime(nvp, (hrtime_t *)&amp;i64);</span>
+<span class="lineNum">     674 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name,</span>
+<span class="lineNum">     675 </span>                :            :                     &quot;%llu&quot;, (u_longlong_t)i64);
+<span class="lineNum">     676 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     677 </span>                :            :         case DATA_TYPE_NVLIST:
+<span class="lineNum">     678 </span>                :<span class="lineCov">         20 :                 _zed_event_add_var(eid, zsp, prefix, name,</span>
+<span class="lineNum">     679 </span>                :            :                     &quot;%s&quot;, &quot;_NOT_IMPLEMENTED_&quot;);                     /* FIXME */
+<span class="lineNum">     680 </span>                :<span class="lineCov">         20 :                 break;</span>
+<span class="lineNum">     681 </span>                :            :         case DATA_TYPE_STRING:
+<span class="lineNum">     682 </span>                :<span class="lineCov">        889 :                 (void) nvpair_value_string(nvp, &amp;str);</span>
+<span class="lineNum">     683 </span>        [<span class="branchCov" title="Branch 0 was taken 889 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        889 :                 _zed_event_add_var(eid, zsp, prefix, name,</span>
+<span class="lineNum">     684 </span>                :<span class="lineCov">        889 :                     &quot;%s&quot;, (str ? str : &quot;&lt;NULL&gt;&quot;));</span>
+<span class="lineNum">     685 </span>                :<span class="lineCov">        889 :                 break;</span>
+<span class="lineNum">     686 </span>                :            :         case DATA_TYPE_BOOLEAN_ARRAY:
+<span class="lineNum">     687 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name,</span>
+<span class="lineNum">     688 </span>                :            :                     &quot;%s&quot;, &quot;_NOT_IMPLEMENTED_&quot;);                     /* FIXME */
+<span class="lineNum">     689 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     690 </span>                :            :         case DATA_TYPE_BYTE_ARRAY:
+<span class="lineNum">     691 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name,</span>
+<span class="lineNum">     692 </span>                :            :                     &quot;%s&quot;, &quot;_NOT_IMPLEMENTED_&quot;);                     /* FIXME */
+<span class="lineNum">     693 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     694 </span>                :            :         case DATA_TYPE_INT8_ARRAY:
+<span class="lineNum">     695 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_int8_array(eid, zsp, prefix, nvp);</span>
+<span class="lineNum">     696 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     697 </span>                :            :         case DATA_TYPE_UINT8_ARRAY:
+<span class="lineNum">     698 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_uint8_array(eid, zsp, prefix, nvp);</span>
+<span class="lineNum">     699 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     700 </span>                :            :         case DATA_TYPE_INT16_ARRAY:
+<span class="lineNum">     701 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_int16_array(eid, zsp, prefix, nvp);</span>
+<span class="lineNum">     702 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     703 </span>                :            :         case DATA_TYPE_UINT16_ARRAY:
+<span class="lineNum">     704 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_uint16_array(eid, zsp, prefix, nvp);</span>
+<span class="lineNum">     705 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     706 </span>                :            :         case DATA_TYPE_INT32_ARRAY:
+<span class="lineNum">     707 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_int32_array(eid, zsp, prefix, nvp);</span>
+<span class="lineNum">     708 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     709 </span>                :            :         case DATA_TYPE_UINT32_ARRAY:
+<span class="lineNum">     710 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_uint32_array(eid, zsp, prefix, nvp);</span>
+<span class="lineNum">     711 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     712 </span>                :            :         case DATA_TYPE_INT64_ARRAY:
+<span class="lineNum">     713 </span>                :<span class="lineCov">        314 :                 _zed_event_add_int64_array(eid, zsp, prefix, nvp);</span>
+<span class="lineNum">     714 </span>                :<span class="lineCov">        314 :                 break;</span>
+<span class="lineNum">     715 </span>                :            :         case DATA_TYPE_UINT64_ARRAY:
+<span class="lineNum">     716 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_uint64_array(eid, zsp, prefix, nvp);</span>
+<span class="lineNum">     717 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     718 </span>                :            :         case DATA_TYPE_STRING_ARRAY:
+<span class="lineNum">     719 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_string_array(eid, zsp, prefix, nvp);</span>
+<span class="lineNum">     720 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     721 </span>                :            :         case DATA_TYPE_NVLIST_ARRAY:
+<span class="lineNum">     722 </span>                :<span class="lineNoCov">          0 :                 _zed_event_add_var(eid, zsp, prefix, name,</span>
+<span class="lineNum">     723 </span>                :            :                     &quot;%s&quot;, &quot;_NOT_IMPLEMENTED_&quot;);                     /* FIXME */
+<span class="lineNum">     724 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     725 </span>                :            :         default:
+<span class="lineNum">     726 </span>                :<span class="lineNoCov">          0 :                 errno = EINVAL;</span>
+<span class="lineNum">     727 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING,</span>
+<span class="lineNum">     728 </span>                :            :                     &quot;Failed to convert nvpair \&quot;%s\&quot; for eid=%llu: &quot;
+<span class="lineNum">     729 </span>                :            :                     &quot;Unrecognized type=%u&quot;, name, eid, (unsigned int) type);
+<span class="lineNum">     730 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     731 </span>                :            :         }
+<span class="lineNum">     732 </span>                :<span class="lineCov">       2983 : }</span>
+<span class="lineNum">     733 </span>                :            : 
+<span class="lineNum">     734 </span>                :            : /*
+<span class="lineNum">     735 </span>                :            :  * Restrict various environment variables to safe and sane values
+<span class="lineNum">     736 </span>                :            :  * when constructing the environment for the child process.
+<span class="lineNum">     737 </span>                :            :  *
+<span class="lineNum">     738 </span>                :            :  * Reference: Secure Programming Cookbook by Viega &amp; Messier, Section 1.1.
+<a name="739"><span class="lineNum">     739 </span>                :            :  */</a>
+<span class="lineNum">     740 </span>                :            : static void
+<span class="lineNum">     741 </span>                :<span class="lineCov">        314 : _zed_event_add_env_restrict(uint64_t eid, zed_strings_t *zsp)</span>
+<span class="lineNum">     742 </span>                :            : {
+<span class="lineNum">     743 </span>                :<span class="lineCov">        314 :         const char *env_restrict[][2] = {</span>
+<span class="lineNum">     744 </span>                :            :                 { &quot;IFS&quot;,              &quot; \t\n&quot; },
+<span class="lineNum">     745 </span>                :            :                 { &quot;PATH&quot;,             _PATH_STDPATH },
+<span class="lineNum">     746 </span>                :            :                 { &quot;ZDB&quot;,              SBINDIR &quot;/zdb&quot; },
+<span class="lineNum">     747 </span>                :            :                 { &quot;ZED&quot;,              SBINDIR &quot;/zed&quot; },
+<span class="lineNum">     748 </span>                :            :                 { &quot;ZFS&quot;,              SBINDIR &quot;/zfs&quot; },
+<span class="lineNum">     749 </span>                :            :                 { &quot;ZINJECT&quot;,          SBINDIR &quot;/zinject&quot; },
+<span class="lineNum">     750 </span>                :            :                 { &quot;ZPOOL&quot;,            SBINDIR &quot;/zpool&quot; },
+<span class="lineNum">     751 </span>                :            :                 { &quot;ZFS_ALIAS&quot;,                ZFS_META_ALIAS },
+<span class="lineNum">     752 </span>                :            :                 { &quot;ZFS_VERSION&quot;,      ZFS_META_VERSION },
+<span class="lineNum">     753 </span>                :            :                 { &quot;ZFS_RELEASE&quot;,      ZFS_META_RELEASE },
+<span class="lineNum">     754 </span>                :            :                 { NULL,                 NULL }
+<span class="lineNum">     755 </span>                :            :         };
+<span class="lineNum">     756 </span>                :            :         const char *(*pa)[2];
+<span class="lineNum">     757 </span>                :            : 
+<span class="lineNum">     758 </span>        [<span class="branchCov" title="Branch 0 was taken 314 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        314 :         assert(zsp != NULL);</span>
+<span class="lineNum">     759 </span>                :            : 
+<span class="lineNum">     760 </span>        [<span class="branchCov" title="Branch 0 was taken 3140 times"> + </span><span class="branchCov" title="Branch 1 was taken 314 times"> + </span>]:<span class="lineCov">       3454 :         for (pa = env_restrict; *(*pa); pa++) {</span>
+<span class="lineNum">     761 </span>                :<span class="lineCov">       3140 :                 _zed_event_add_var(eid, zsp, NULL, (*pa)[0], &quot;%s&quot;, (*pa)[1]);</span>
+<span class="lineNum">     762 </span>                :            :         }
+<span class="lineNum">     763 </span>                :<span class="lineCov">        314 : }</span>
+<span class="lineNum">     764 </span>                :            : 
+<span class="lineNum">     765 </span>                :            : /*
+<span class="lineNum">     766 </span>                :            :  * Preserve specified variables from the parent environment
+<span class="lineNum">     767 </span>                :            :  * when constructing the environment for the child process.
+<span class="lineNum">     768 </span>                :            :  *
+<span class="lineNum">     769 </span>                :            :  * Reference: Secure Programming Cookbook by Viega &amp; Messier, Section 1.1.
+<a name="770"><span class="lineNum">     770 </span>                :            :  */</a>
+<span class="lineNum">     771 </span>                :            : static void
+<span class="lineNum">     772 </span>                :<span class="lineCov">        314 : _zed_event_add_env_preserve(uint64_t eid, zed_strings_t *zsp)</span>
+<span class="lineNum">     773 </span>                :            : {
+<span class="lineNum">     774 </span>                :<span class="lineCov">        314 :         const char *env_preserve[] = {</span>
+<span class="lineNum">     775 </span>                :            :                 &quot;TZ&quot;,
+<span class="lineNum">     776 </span>                :            :                 NULL
+<span class="lineNum">     777 </span>                :            :         };
+<span class="lineNum">     778 </span>                :            :         const char **keyp;
+<span class="lineNum">     779 </span>                :            :         const char *val;
+<span class="lineNum">     780 </span>                :            : 
+<span class="lineNum">     781 </span>        [<span class="branchCov" title="Branch 0 was taken 314 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        314 :         assert(zsp != NULL);</span>
+<span class="lineNum">     782 </span>                :            : 
+<span class="lineNum">     783 </span>        [<span class="branchCov" title="Branch 0 was taken 314 times"> + </span><span class="branchCov" title="Branch 1 was taken 314 times"> + </span>]:<span class="lineCov">        628 :         for (keyp = env_preserve; *keyp; keyp++) {</span>
+<span class="lineNum">     784 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 314 times"> + </span>]:<span class="lineCov">        314 :                 if ((val = getenv(*keyp)))</span>
+<span class="lineNum">     785 </span>                :<span class="lineNoCov">          0 :                         _zed_event_add_var(eid, zsp, NULL, *keyp, &quot;%s&quot;, val);</span>
+<span class="lineNum">     786 </span>                :            :         }
+<span class="lineNum">     787 </span>                :<span class="lineCov">        314 : }</span>
+<span class="lineNum">     788 </span>                :            : 
+<span class="lineNum">     789 </span>                :            : /*
+<span class="lineNum">     790 </span>                :            :  * Compute the &quot;subclass&quot; by removing the first 3 components of [class]
+<span class="lineNum">     791 </span>                :            :  * (which will always be of the form &quot;*.fs.zfs&quot;).  Return a pointer inside
+<span class="lineNum">     792 </span>                :            :  * the string [class], or NULL if insufficient components exist.
+<a name="793"><span class="lineNum">     793 </span>                :            :  */</a>
+<span class="lineNum">     794 </span>                :            : static const char *
+<span class="lineNum">     795 </span>                :<span class="lineCov">        314 : _zed_event_get_subclass(const char *class)</span>
+<span class="lineNum">     796 </span>                :            : {
+<span class="lineNum">     797 </span>                :            :         const char *p;
+<span class="lineNum">     798 </span>                :            :         int i;
+<span class="lineNum">     799 </span>                :            : 
+<span class="lineNum">     800 </span>        [<span class="branchCov" title="Branch 0 was taken 314 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        314 :         if (!class)</span>
+<span class="lineNum">     801 </span>                :            :                 return (NULL);
+<span class="lineNum">     802 </span>                :            : 
+<span class="lineNum">     803 </span>                :            :         p = class;
+<span class="lineNum">     804 </span>        [<span class="branchCov" title="Branch 0 was taken 942 times"> + </span><span class="branchCov" title="Branch 1 was taken 314 times"> + </span>]:<span class="lineCov">       1256 :         for (i = 0; i &lt; 3; i++) {</span>
+<span class="lineNum">     805 </span>                :<span class="lineCov">        942 :                 p = strchr(p, '.');</span>
+<span class="lineNum">     806 </span>        [<span class="branchCov" title="Branch 0 was taken 942 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        942 :                 if (!p)</span>
+<span class="lineNum">     807 </span>                :            :                         break;
+<span class="lineNum">     808 </span>                :<span class="lineCov">        942 :                 p++;</span>
+<span class="lineNum">     809 </span>                :            :         }
+<span class="lineNum">     810 </span>                :            :         return (p);
+<span class="lineNum">     811 </span>                :            : }
+<span class="lineNum">     812 </span>                :            : 
+<span class="lineNum">     813 </span>                :            : /*
+<span class="lineNum">     814 </span>                :            :  * Convert the zevent time from a 2-element array of 64b integers
+<span class="lineNum">     815 </span>                :            :  * into a more convenient form:
+<span class="lineNum">     816 </span>                :            :  * - TIME_SECS is the second component of the time.
+<span class="lineNum">     817 </span>                :            :  * - TIME_NSECS is the nanosecond component of the time.
+<span class="lineNum">     818 </span>                :            :  * - TIME_STRING is an almost-RFC3339-compliant string representation.
+<a name="819"><span class="lineNum">     819 </span>                :            :  */</a>
+<span class="lineNum">     820 </span>                :            : static void
+<span class="lineNum">     821 </span>                :<span class="lineCov">        314 : _zed_event_add_time_strings(uint64_t eid, zed_strings_t *zsp, int64_t etime[])</span>
+<span class="lineNum">     822 </span>                :            : {
+<span class="lineNum">     823 </span>                :            :         struct tm *stp;
+<span class="lineNum">     824 </span>                :            :         char buf[32];
+<span class="lineNum">     825 </span>                :            : 
+<span class="lineNum">     826 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 314 times"> + </span>]:<span class="lineCov">        314 :         assert(zsp != NULL);</span>
+<span class="lineNum">     827 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 314 times"> + </span>]:<span class="lineCov">        314 :         assert(etime != NULL);</span>
+<span class="lineNum">     828 </span>                :            : 
+<span class="lineNum">     829 </span>                :<span class="lineCov">        314 :         _zed_event_add_var(eid, zsp, ZEVENT_VAR_PREFIX, &quot;TIME_SECS&quot;,</span>
+<span class="lineNum">     830 </span>                :            :             &quot;%lld&quot;, (long long int) etime[0]);
+<span class="lineNum">     831 </span>                :<span class="lineCov">        314 :         _zed_event_add_var(eid, zsp, ZEVENT_VAR_PREFIX, &quot;TIME_NSECS&quot;,</span>
+<span class="lineNum">     832 </span>                :            :             &quot;%lld&quot;, (long long int) etime[1]);
+<span class="lineNum">     833 </span>                :            : 
+<span class="lineNum">     834 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 314 times"> + </span>]:<span class="lineCov">        314 :         if (!(stp = localtime((const time_t *) &amp;etime[0]))) {</span>
+<span class="lineNum">     835 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING, &quot;Failed to add %s%s for eid=%llu: %s&quot;,</span>
+<span class="lineNum">     836 </span>                :            :                     ZEVENT_VAR_PREFIX, &quot;TIME_STRING&quot;, eid, &quot;localtime error&quot;);
+<span class="lineNum">     837 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 314 times"> + </span>]:<span class="lineCov">        314 :         } else if (!strftime(buf, sizeof (buf), &quot;%Y-%m-%d %H:%M:%S%z&quot;, stp)) {</span>
+<span class="lineNum">     838 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING, &quot;Failed to add %s%s for eid=%llu: %s&quot;,</span>
+<span class="lineNum">     839 </span>                :            :                     ZEVENT_VAR_PREFIX, &quot;TIME_STRING&quot;, eid, &quot;strftime error&quot;);
+<span class="lineNum">     840 </span>                :            :         } else {
+<span class="lineNum">     841 </span>                :<span class="lineCov">        314 :                 _zed_event_add_var(eid, zsp, ZEVENT_VAR_PREFIX, &quot;TIME_STRING&quot;,</span>
+<span class="lineNum">     842 </span>                :            :                     &quot;%s&quot;, buf);
+<span class="lineNum">     843 </span>                :            :         }
+<span class="lineNum">     844 </span>                :<span class="lineCov">        314 : }</span>
+<span class="lineNum">     845 </span>                :            : 
+<span class="lineNum">     846 </span>                :            : /*
+<span class="lineNum">     847 </span>                :            :  * Service the next zevent, blocking until one is available.
+<a name="848"><span class="lineNum">     848 </span>                :            :  */</a>
+<span class="lineNum">     849 </span>                :            : void
+<span class="lineNum">     850 </span>                :<span class="lineCov">        316 : zed_event_service(struct zed_conf *zcp)</span>
+<span class="lineNum">     851 </span>                :            : {
+<span class="lineNum">     852 </span>                :            :         nvlist_t *nvl;
+<span class="lineNum">     853 </span>                :            :         nvpair_t *nvp;
+<span class="lineNum">     854 </span>                :            :         int n_dropped;
+<span class="lineNum">     855 </span>                :            :         zed_strings_t *zsp;
+<span class="lineNum">     856 </span>                :            :         uint64_t eid;
+<span class="lineNum">     857 </span>                :            :         int64_t *etime;
+<span class="lineNum">     858 </span>                :            :         uint_t nelem;
+<span class="lineNum">     859 </span>                :            :         char *class;
+<span class="lineNum">     860 </span>                :            :         const char *subclass;
+<span class="lineNum">     861 </span>                :            :         int rv;
+<span class="lineNum">     862 </span>                :            : 
+<span class="lineNum">     863 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 316 times"> + </span>]:<span class="lineCov">        316 :         if (!zcp) {</span>
+<span class="lineNum">     864 </span>                :<span class="lineNoCov">          0 :                 errno = EINVAL;</span>
+<span class="lineNum">     865 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_ERR, &quot;Failed to service zevent: %s&quot;,</span>
+<span class="lineNum">     866 </span>                :            :                     strerror(errno));
+<span class="lineNum">     867 </span>                :<span class="lineCov">          2 :                 return;</span>
+<span class="lineNum">     868 </span>                :            :         }
+<span class="lineNum">     869 </span>                :<span class="lineCov">        316 :         rv = zpool_events_next(zcp-&gt;zfs_hdl, &amp;nvl, &amp;n_dropped, ZEVENT_NONE,</span>
+<span class="lineNum">     870 </span>                :            :             zcp-&gt;zevent_fd);
+<span class="lineNum">     871 </span>                :            : 
+<span class="lineNum">     872 </span>[<span class="branchCov" title="Branch 0 was taken 314 times"> + </span><span class="branchCov" title="Branch 1 was taken 2 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 314 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">        316 :         if ((rv != 0) || !nvl)</span>
+<span class="lineNum">     873 </span>                :            :                 return;
+<span class="lineNum">     874 </span>                :            : 
+<span class="lineNum">     875 </span>        [<span class="branchCov" title="Branch 0 was taken 16 times"> + </span><span class="branchCov" title="Branch 1 was taken 298 times"> + </span>]:<span class="lineCov">        314 :         if (n_dropped &gt; 0) {</span>
+<span class="lineNum">     876 </span>                :<span class="lineCov">         16 :                 zed_log_msg(LOG_WARNING, &quot;Missed %d events&quot;, n_dropped);</span>
+<span class="lineNum">     877 </span>                :            :                 /*
+<span class="lineNum">     878 </span>                :            :                  * FIXME: Increase max size of event nvlist in
+<span class="lineNum">     879 </span>                :            :                  * /sys/module/zfs/parameters/zfs_zevent_len_max ?
+<span class="lineNum">     880 </span>                :            :                  */
+<span class="lineNum">     881 </span>                :            :         }
+<span class="lineNum">     882 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 314 times"> + </span>]:<span class="lineCov">        314 :         if (nvlist_lookup_uint64(nvl, &quot;eid&quot;, &amp;eid) != 0) {</span>
+<span class="lineNum">     883 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING, &quot;Failed to lookup zevent eid&quot;);</span>
+<span class="lineNum">     884 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 314 times"> + </span>]:<span class="lineCov">        314 :         } else if (nvlist_lookup_int64_array(</span>
+<span class="lineNum">     885 </span>                :            :             nvl, &quot;time&quot;, &amp;etime, &amp;nelem) != 0) {
+<span class="lineNum">     886 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING,</span>
+<span class="lineNum">     887 </span>                :            :                     &quot;Failed to lookup zevent time (eid=%llu)&quot;, eid);
+<span class="lineNum">     888 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 314 times"> + </span>]:<span class="lineCov">        314 :         } else if (nelem != 2) {</span>
+<span class="lineNum">     889 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING,</span>
+<span class="lineNum">     890 </span>                :            :                     &quot;Failed to lookup zevent time (eid=%llu, nelem=%u)&quot;,
+<span class="lineNum">     891 </span>                :            :                     eid, nelem);
+<span class="lineNum">     892 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 314 times"> + </span>]:<span class="lineCov">        314 :         } else if (nvlist_lookup_string(nvl, &quot;class&quot;, &amp;class) != 0) {</span>
+<span class="lineNum">     893 </span>                :<span class="lineNoCov">          0 :                 zed_log_msg(LOG_WARNING,</span>
+<span class="lineNum">     894 </span>                :            :                     &quot;Failed to lookup zevent class (eid=%llu)&quot;, eid);
+<span class="lineNum">     895 </span>                :            :         } else {
+<span class="lineNum">     896 </span>                :            :                 /* let internal modules see this event first */
+<span class="lineNum">     897 </span>                :<span class="lineCov">        314 :                 zfs_agent_post_event(class, NULL, nvl);</span>
+<span class="lineNum">     898 </span>                :            : 
+<span class="lineNum">     899 </span>                :<span class="lineCov">        314 :                 zsp = zed_strings_create();</span>
+<span class="lineNum">     900 </span>                :            : 
+<span class="lineNum">     901 </span>                :<span class="lineCov">        314 :                 nvp = NULL;</span>
+<span class="lineNum">     902 </span>        [<span class="branchCov" title="Branch 1 was taken 2983 times"> + </span><span class="branchCov" title="Branch 2 was taken 314 times"> + </span>]:<span class="lineCov">       3297 :                 while ((nvp = nvlist_next_nvpair(nvl, nvp)))</span>
+<span class="lineNum">     903 </span>                :<span class="lineCov">       2983 :                         _zed_event_add_nvpair(eid, zsp, nvp);</span>
+<span class="lineNum">     904 </span>                :            : 
+<span class="lineNum">     905 </span>                :<span class="lineCov">        314 :                 _zed_event_add_env_restrict(eid, zsp);</span>
+<span class="lineNum">     906 </span>                :<span class="lineCov">        314 :                 _zed_event_add_env_preserve(eid, zsp);</span>
+<span class="lineNum">     907 </span>                :            : 
+<span class="lineNum">     908 </span>                :<span class="lineCov">        314 :                 _zed_event_add_var(eid, zsp, ZED_VAR_PREFIX, &quot;PID&quot;,</span>
+<span class="lineNum">     909 </span>                :<span class="lineCov">        314 :                     &quot;%d&quot;, (int)getpid());</span>
+<span class="lineNum">     910 </span>                :<span class="lineCov">        314 :                 _zed_event_add_var(eid, zsp, ZED_VAR_PREFIX, &quot;ZEDLET_DIR&quot;,</span>
+<span class="lineNum">     911 </span>                :            :                     &quot;%s&quot;, zcp-&gt;zedlet_dir);
+<span class="lineNum">     912 </span>                :<span class="lineCov">        314 :                 subclass = _zed_event_get_subclass(class);</span>
+<span class="lineNum">     913 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 314 times"> + </span>]:<span class="lineCov">        314 :                 _zed_event_add_var(eid, zsp, ZEVENT_VAR_PREFIX, &quot;SUBCLASS&quot;,</span>
+<span class="lineNum">     914 </span>                :            :                     &quot;%s&quot;, (subclass ? subclass : class));
+<span class="lineNum">     915 </span>                :            : 
+<span class="lineNum">     916 </span>                :<span class="lineCov">        314 :                 _zed_event_add_time_strings(eid, zsp, etime);</span>
+<span class="lineNum">     917 </span>                :            : 
+<span class="lineNum">     918 </span>                :<span class="lineCov">        314 :                 zed_exec_process(eid, class, subclass,</span>
+<span class="lineNum">     919 </span>                :<span class="lineCov">        314 :                     zcp-&gt;zedlet_dir, zcp-&gt;zedlets, zsp, zcp-&gt;zevent_fd);</span>
+<span class="lineNum">     920 </span>                :            : 
+<span class="lineNum">     921 </span>                :<span class="lineCov">        314 :                 zed_conf_write_state(zcp, eid, etime);</span>
+<span class="lineNum">     922 </span>                :            : 
+<span class="lineNum">     923 </span>                :<span class="lineCov">        314 :                 zed_strings_destroy(zsp);</span>
+<span class="lineNum">     924 </span>                :            :         }
+<span class="lineNum">     925 </span>                :<span class="lineCov">        314 :         nvlist_free(nvl);</span>
+<span class="lineNum">     926 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

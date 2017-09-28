@@ -1,0 +1,1452 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/zap.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - zap.c<span style="font-size: 80%;"> (source / <a href="zap.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">381</td>
+            <td class="headerCovTableEntry">592</td>
+            <td class="headerCovTableEntryLo">64.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">37</td>
+            <td class="headerCovTableEntry">48</td>
+            <td class="headerCovTableEntryMed">77.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">172</td>
+            <td class="headerCovTableEntry">364</td>
+            <td class="headerCovTableEntryLo">47.3 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2012, 2016 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright (c) 2014 Spectra Logic Corporation, All rights reserved.
+<span class="lineNum">      25 </span>                :            :  */
+<span class="lineNum">      26 </span>                :            : 
+<span class="lineNum">      27 </span>                :            : /*
+<span class="lineNum">      28 </span>                :            :  * This file contains the top half of the zfs directory structure
+<span class="lineNum">      29 </span>                :            :  * implementation. The bottom half is in zap_leaf.c.
+<span class="lineNum">      30 </span>                :            :  *
+<span class="lineNum">      31 </span>                :            :  * The zdir is an extendable hash data structure. There is a table of
+<span class="lineNum">      32 </span>                :            :  * pointers to buckets (zap_t-&gt;zd_data-&gt;zd_leafs). The buckets are
+<span class="lineNum">      33 </span>                :            :  * each a constant size and hold a variable number of directory entries.
+<span class="lineNum">      34 </span>                :            :  * The buckets (aka &quot;leaf nodes&quot;) are implemented in zap_leaf.c.
+<span class="lineNum">      35 </span>                :            :  *
+<span class="lineNum">      36 </span>                :            :  * The pointer table holds a power of 2 number of pointers.
+<span class="lineNum">      37 </span>                :            :  * (1&lt;&lt;zap_t-&gt;zd_data-&gt;zd_phys-&gt;zd_prefix_len).  The bucket pointed to
+<span class="lineNum">      38 </span>                :            :  * by the pointer at index i in the table holds entries whose hash value
+<span class="lineNum">      39 </span>                :            :  * has a zd_prefix_len - bit prefix
+<span class="lineNum">      40 </span>                :            :  */
+<span class="lineNum">      41 </span>                :            : 
+<span class="lineNum">      42 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      43 </span>                :            : #include &lt;sys/dmu.h&gt;
+<span class="lineNum">      44 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      45 </span>                :            : #include &lt;sys/zfs_znode.h&gt;
+<span class="lineNum">      46 </span>                :            : #include &lt;sys/fs/zfs.h&gt;
+<span class="lineNum">      47 </span>                :            : #include &lt;sys/zap.h&gt;
+<span class="lineNum">      48 </span>                :            : #include &lt;sys/refcount.h&gt;
+<span class="lineNum">      49 </span>                :            : #include &lt;sys/zap_impl.h&gt;
+<span class="lineNum">      50 </span>                :            : #include &lt;sys/zap_leaf.h&gt;
+<span class="lineNum">      51 </span>                :            : 
+<span class="lineNum">      52 </span>                :            : int fzap_default_block_shift = 14; /* 16k blocksize */
+<span class="lineNum">      53 </span>                :            : 
+<span class="lineNum">      54 </span>                :            : extern inline zap_phys_t *zap_f_phys(zap_t *zap);
+<span class="lineNum">      55 </span>                :            : 
+<span class="lineNum">      56 </span>                :            : static uint64_t zap_allocate_blocks(zap_t *zap, int nblocks);
+<a name="57"><span class="lineNum">      57 </span>                :            : </a>
+<span class="lineNum">      58 </span>                :            : void
+<span class="lineNum">      59 </span>                :<span class="lineNoCov">          0 : fzap_byteswap(void *vbuf, size_t size)</span>
+<span class="lineNum">      60 </span>                :            : {
+<span class="lineNum">      61 </span>                :            :         uint64_t block_type;
+<span class="lineNum">      62 </span>                :            : 
+<span class="lineNum">      63 </span>                :<span class="lineNoCov">          0 :         block_type = *(uint64_t *)vbuf;</span>
+<span class="lineNum">      64 </span>                :            : 
+<span class="lineNum">      65 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (block_type == ZBT_LEAF || block_type == BSWAP_64(ZBT_LEAF))</span>
+<span class="lineNum">      66 </span>                :<span class="lineNoCov">          0 :                 zap_leaf_byteswap(vbuf, size);</span>
+<span class="lineNum">      67 </span>                :            :         else {
+<span class="lineNum">      68 </span>                :            :                 /* it's a ptrtbl block */
+<span class="lineNum">      69 </span>                :<span class="lineNoCov">          0 :                 byteswap_uint64_array(vbuf, size);</span>
+<span class="lineNum">      70 </span>                :            :         }
+<span class="lineNum">      71 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="72"><span class="lineNum">      72 </span>                :            : </a>
+<span class="lineNum">      73 </span>                :            : void
+<span class="lineNum">      74 </span>                :<span class="lineCov">       1954 : fzap_upgrade(zap_t *zap, dmu_tx_t *tx, zap_flags_t flags)</span>
+<span class="lineNum">      75 </span>                :            : {
+<span class="lineNum">      76 </span>                :            :         dmu_buf_t *db;
+<span class="lineNum">      77 </span>                :            :         zap_leaf_t *l;
+<span class="lineNum">      78 </span>                :            :         int i;
+<span class="lineNum">      79 </span>                :            :         zap_phys_t *zp;
+<span class="lineNum">      80 </span>                :            : 
+<span class="lineNum">      81 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 1954 times"> + </span>]:<span class="lineCov">       1954 :         ASSERT(RW_WRITE_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">      82 </span>                :<span class="lineCov">       1954 :         zap-&gt;zap_ismicro = FALSE;</span>
+<span class="lineNum">      83 </span>                :            : 
+<span class="lineNum">      84 </span>                :<span class="lineCov">       1954 :         zap-&gt;zap_dbu.dbu_evict_func_sync = zap_evict_sync;</span>
+<span class="lineNum">      85 </span>                :<span class="lineCov">       1954 :         zap-&gt;zap_dbu.dbu_evict_func_async = NULL;</span>
+<span class="lineNum">      86 </span>                :            : 
+<span class="lineNum">      87 </span>                :<span class="lineCov">       1954 :         mutex_init(&amp;zap-&gt;zap_f.zap_num_entries_mtx, 0, MUTEX_DEFAULT, 0);</span>
+<span class="lineNum">      88 </span>                :<span class="lineCov">       1954 :         zap-&gt;zap_f.zap_block_shift = highbit64(zap-&gt;zap_dbuf-&gt;db_size) - 1;</span>
+<span class="lineNum">      89 </span>                :            : 
+<span class="lineNum">      90 </span>                :<span class="lineCov">       1954 :         zp = zap_f_phys(zap);</span>
+<span class="lineNum">      91 </span>                :            :         /*
+<span class="lineNum">      92 </span>                :            :          * explicitly zero it since it might be coming from an
+<span class="lineNum">      93 </span>                :            :          * initialized microzap
+<span class="lineNum">      94 </span>                :            :          */
+<span class="lineNum">      95 </span>                :<span class="lineCov">       3922 :         bzero(zap-&gt;zap_dbuf-&gt;db_data, zap-&gt;zap_dbuf-&gt;db_size);</span>
+<span class="lineNum">      96 </span>                :<span class="lineCov">       1961 :         zp-&gt;zap_block_type = ZBT_HEADER;</span>
+<span class="lineNum">      97 </span>                :<span class="lineCov">       1961 :         zp-&gt;zap_magic = ZAP_MAGIC;</span>
+<span class="lineNum">      98 </span>                :            : 
+<span class="lineNum">      99 </span>                :<span class="lineCov">       1961 :         zp-&gt;zap_ptrtbl.zt_shift = ZAP_EMBEDDED_PTRTBL_SHIFT(zap);</span>
+<span class="lineNum">     100 </span>                :            : 
+<span class="lineNum">     101 </span>                :<span class="lineCov">       1961 :         zp-&gt;zap_freeblk = 2;         /* block 1 will be the first leaf */</span>
+<span class="lineNum">     102 </span>                :<span class="lineCov">       1961 :         zp-&gt;zap_num_leafs = 1;</span>
+<span class="lineNum">     103 </span>                :<span class="lineCov">       1961 :         zp-&gt;zap_num_entries = 0;</span>
+<span class="lineNum">     104 </span>                :<span class="lineCov">       1961 :         zp-&gt;zap_salt = zap-&gt;zap_salt;</span>
+<span class="lineNum">     105 </span>                :<span class="lineCov">       1961 :         zp-&gt;zap_normflags = zap-&gt;zap_normflags;</span>
+<span class="lineNum">     106 </span>                :<span class="lineCov">       1961 :         zp-&gt;zap_flags = flags;</span>
+<span class="lineNum">     107 </span>                :            : 
+<span class="lineNum">     108 </span>                :            :         /* block 1 will be the first leaf */
+<span class="lineNum">     109 </span>        [<span class="branchCov" title="Branch 0 was taken 1935550 times"> + </span><span class="branchCov" title="Branch 1 was taken 1954 times"> + </span>]:<span class="lineCov">    1937504 :         for (i = 0; i &lt; (1&lt;&lt;zp-&gt;zap_ptrtbl.zt_shift); i++)</span>
+<span class="lineNum">     110 </span>                :<span class="lineCov">    1935550 :                 ZAP_EMBEDDED_PTRTBL_ENT(zap, i) = 1;</span>
+<span class="lineNum">     111 </span>                :            : 
+<span class="lineNum">     112 </span>                :            :         /*
+<span class="lineNum">     113 </span>                :            :          * set up block 1 - the first leaf
+<span class="lineNum">     114 </span>                :            :          */
+<span class="lineNum">     115 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1954 times"> + </span>]:<span class="lineCov">       1954 :         VERIFY(0 == dmu_buf_hold(zap-&gt;zap_objset, zap-&gt;zap_object,</span>
+<span class="lineNum">     116 </span>                :            :             1&lt;&lt;FZAP_BLOCK_SHIFT(zap), FTAG, &amp;db, DMU_READ_NO_PREFETCH));
+<span class="lineNum">     117 </span>                :<span class="lineCov">       1954 :         dmu_buf_will_dirty(db, tx);</span>
+<span class="lineNum">     118 </span>                :            : 
+<span class="lineNum">     119 </span>                :<span class="lineCov">       1954 :         l = kmem_zalloc(sizeof (zap_leaf_t), KM_SLEEP);</span>
+<span class="lineNum">     120 </span>                :<span class="lineCov">       1954 :         l-&gt;l_dbuf = db;</span>
+<span class="lineNum">     121 </span>                :            : 
+<span class="lineNum">     122 </span>                :<span class="lineCov">       1954 :         zap_leaf_init(l, zp-&gt;zap_normflags != 0);</span>
+<span class="lineNum">     123 </span>                :            : 
+<span class="lineNum">     124 </span>                :<span class="lineCov">       1954 :         kmem_free(l, sizeof (zap_leaf_t));</span>
+<span class="lineNum">     125 </span>                :<span class="lineCov">       1954 :         dmu_buf_rele(db, FTAG);</span>
+<span class="lineNum">     126 </span>                :<span class="lineCov">       1954 : }</span>
+<a name="127"><span class="lineNum">     127 </span>                :            : </a>
+<span class="lineNum">     128 </span>                :            : static int
+<span class="lineNum">     129 </span>                :<span class="lineCov">        237 : zap_tryupgradedir(zap_t *zap, dmu_tx_t *tx)</span>
+<span class="lineNum">     130 </span>                :            : {
+<span class="lineNum">     131 </span>        [<span class="branchCov" title="Branch 2 was taken 72 times"> + </span><span class="branchCov" title="Branch 3 was taken 165 times"> + </span>]:<span class="lineCov">        237 :         if (RW_WRITE_HELD(&amp;zap-&gt;zap_rwlock))</span>
+<span class="lineNum">     132 </span>                :            :                 return (1);
+<span class="lineNum">     133 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 72 times"> + </span>]:<span class="lineCov">         72 :         if (rw_tryupgrade(&amp;zap-&gt;zap_rwlock)) {</span>
+<span class="lineNum">     134 </span>                :<span class="lineNoCov">          0 :                 dmu_buf_will_dirty(zap-&gt;zap_dbuf, tx);</span>
+<span class="lineNum">     135 </span>                :<span class="lineNoCov">          0 :                 return (1);</span>
+<span class="lineNum">     136 </span>                :            :         }
+<span class="lineNum">     137 </span>                :            :         return (0);
+<span class="lineNum">     138 </span>                :            : }
+<span class="lineNum">     139 </span>                :            : 
+<span class="lineNum">     140 </span>                :            : /*
+<span class="lineNum">     141 </span>                :            :  * Generic routines for dealing with the pointer &amp; cookie tables.
+<span class="lineNum">     142 </span>                :            :  */
+<a name="143"><span class="lineNum">     143 </span>                :            : </a>
+<span class="lineNum">     144 </span>                :            : static int
+<span class="lineNum">     145 </span>                :<span class="lineNoCov">          0 : zap_table_grow(zap_t *zap, zap_table_phys_t *tbl,</span>
+<span class="lineNum">     146 </span>                :            :     void (*transfer_func)(const uint64_t *src, uint64_t *dst, int n),
+<span class="lineNum">     147 </span>                :            :     dmu_tx_t *tx)
+<span class="lineNum">     148 </span>                :            : {
+<span class="lineNum">     149 </span>                :            :         uint64_t b, newblk;
+<span class="lineNum">     150 </span>                :            :         dmu_buf_t *db_old, *db_new;
+<span class="lineNum">     151 </span>                :            :         int err;
+<span class="lineNum">     152 </span>                :<span class="lineNoCov">          0 :         int bs = FZAP_BLOCK_SHIFT(zap);</span>
+<span class="lineNum">     153 </span>                :<span class="lineNoCov">          0 :         int hepb = 1&lt;&lt;(bs-4);</span>
+<span class="lineNum">     154 </span>                :            :         /* hepb = half the number of entries in a block */
+<span class="lineNum">     155 </span>                :            : 
+<span class="lineNum">     156 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(RW_WRITE_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">     157 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(tbl-&gt;zt_blk != 0);</span>
+<span class="lineNum">     158 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(tbl-&gt;zt_numblks &gt; 0);</span>
+<span class="lineNum">     159 </span>                :            : 
+<span class="lineNum">     160 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tbl-&gt;zt_nextblk != 0) {</span>
+<span class="lineNum">     161 </span>                :            :                 newblk = tbl-&gt;zt_nextblk;
+<span class="lineNum">     162 </span>                :            :         } else {
+<span class="lineNum">     163 </span>                :<span class="lineNoCov">          0 :                 newblk = zap_allocate_blocks(zap, tbl-&gt;zt_numblks * 2);</span>
+<span class="lineNum">     164 </span>                :<span class="lineNoCov">          0 :                 tbl-&gt;zt_nextblk = newblk;</span>
+<span class="lineNum">     165 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT0(tbl-&gt;zt_blks_copied);</span>
+<span class="lineNum">     166 </span>                :<span class="lineNoCov">          0 :                 dmu_prefetch(zap-&gt;zap_objset, zap-&gt;zap_object, 0,</span>
+<span class="lineNum">     167 </span>                :<span class="lineNoCov">          0 :                     tbl-&gt;zt_blk &lt;&lt; bs, tbl-&gt;zt_numblks &lt;&lt; bs,</span>
+<span class="lineNum">     168 </span>                :            :                     ZIO_PRIORITY_SYNC_READ);
+<span class="lineNum">     169 </span>                :            :         }
+<span class="lineNum">     170 </span>                :            : 
+<span class="lineNum">     171 </span>                :            :         /*
+<span class="lineNum">     172 </span>                :            :          * Copy the ptrtbl from the old to new location.
+<span class="lineNum">     173 </span>                :            :          */
+<span class="lineNum">     174 </span>                :            : 
+<span class="lineNum">     175 </span>                :<span class="lineNoCov">          0 :         b = tbl-&gt;zt_blks_copied;</span>
+<span class="lineNum">     176 </span>                :<span class="lineNoCov">          0 :         err = dmu_buf_hold(zap-&gt;zap_objset, zap-&gt;zap_object,</span>
+<span class="lineNum">     177 </span>                :<span class="lineNoCov">          0 :             (tbl-&gt;zt_blk + b) &lt;&lt; bs, FTAG, &amp;db_old, DMU_READ_NO_PREFETCH);</span>
+<span class="lineNum">     178 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (err)</span>
+<span class="lineNum">     179 </span>                :            :                 return (err);
+<span class="lineNum">     180 </span>                :            : 
+<span class="lineNum">     181 </span>                :            :         /* first half of entries in old[b] go to new[2*b+0] */
+<span class="lineNum">     182 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY(0 == dmu_buf_hold(zap-&gt;zap_objset, zap-&gt;zap_object,</span>
+<span class="lineNum">     183 </span>                :            :             (newblk + 2*b+0) &lt;&lt; bs, FTAG, &amp;db_new, DMU_READ_NO_PREFETCH));
+<span class="lineNum">     184 </span>                :<span class="lineNoCov">          0 :         dmu_buf_will_dirty(db_new, tx);</span>
+<span class="lineNum">     185 </span>                :<span class="lineNoCov">          0 :         transfer_func(db_old-&gt;db_data, db_new-&gt;db_data, hepb);</span>
+<span class="lineNum">     186 </span>                :<span class="lineNoCov">          0 :         dmu_buf_rele(db_new, FTAG);</span>
+<span class="lineNum">     187 </span>                :            : 
+<span class="lineNum">     188 </span>                :            :         /* second half of entries in old[b] go to new[2*b+1] */
+<span class="lineNum">     189 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY(0 == dmu_buf_hold(zap-&gt;zap_objset, zap-&gt;zap_object,</span>
+<span class="lineNum">     190 </span>                :            :             (newblk + 2*b+1) &lt;&lt; bs, FTAG, &amp;db_new, DMU_READ_NO_PREFETCH));
+<span class="lineNum">     191 </span>                :<span class="lineNoCov">          0 :         dmu_buf_will_dirty(db_new, tx);</span>
+<span class="lineNum">     192 </span>                :<span class="lineNoCov">          0 :         transfer_func((uint64_t *)db_old-&gt;db_data + hepb,</span>
+<span class="lineNum">     193 </span>                :<span class="lineNoCov">          0 :             db_new-&gt;db_data, hepb);</span>
+<span class="lineNum">     194 </span>                :<span class="lineNoCov">          0 :         dmu_buf_rele(db_new, FTAG);</span>
+<span class="lineNum">     195 </span>                :            : 
+<span class="lineNum">     196 </span>                :<span class="lineNoCov">          0 :         dmu_buf_rele(db_old, FTAG);</span>
+<span class="lineNum">     197 </span>                :            : 
+<span class="lineNum">     198 </span>                :<span class="lineNoCov">          0 :         tbl-&gt;zt_blks_copied++;</span>
+<span class="lineNum">     199 </span>                :            : 
+<span class="lineNum">     200 </span>                :<span class="lineNoCov">          0 :         dprintf(&quot;copied block %llu of %llu\n&quot;,</span>
+<span class="lineNum">     201 </span>                :            :             tbl-&gt;zt_blks_copied, tbl-&gt;zt_numblks);
+<span class="lineNum">     202 </span>                :            : 
+<span class="lineNum">     203 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tbl-&gt;zt_blks_copied == tbl-&gt;zt_numblks) {</span>
+<span class="lineNum">     204 </span>                :<span class="lineNoCov">          0 :                 (void) dmu_free_range(zap-&gt;zap_objset, zap-&gt;zap_object,</span>
+<span class="lineNum">     205 </span>                :<span class="lineNoCov">          0 :                     tbl-&gt;zt_blk &lt;&lt; bs, tbl-&gt;zt_numblks &lt;&lt; bs, tx);</span>
+<span class="lineNum">     206 </span>                :            : 
+<span class="lineNum">     207 </span>                :<span class="lineNoCov">          0 :                 tbl-&gt;zt_blk = newblk;</span>
+<span class="lineNum">     208 </span>                :<span class="lineNoCov">          0 :                 tbl-&gt;zt_numblks *= 2;</span>
+<span class="lineNum">     209 </span>                :<span class="lineNoCov">          0 :                 tbl-&gt;zt_shift++;</span>
+<span class="lineNum">     210 </span>                :<span class="lineNoCov">          0 :                 tbl-&gt;zt_nextblk = 0;</span>
+<span class="lineNum">     211 </span>                :<span class="lineNoCov">          0 :                 tbl-&gt;zt_blks_copied = 0;</span>
+<span class="lineNum">     212 </span>                :            : 
+<span class="lineNum">     213 </span>                :<span class="lineNoCov">          0 :                 dprintf(&quot;finished; numblocks now %llu (%uk entries)\n&quot;,</span>
+<span class="lineNum">     214 </span>                :            :                     tbl-&gt;zt_numblks, 1&lt;&lt;(tbl-&gt;zt_shift-10));
+<span class="lineNum">     215 </span>                :            :         }
+<span class="lineNum">     216 </span>                :            : 
+<span class="lineNum">     217 </span>                :            :         return (0);
+<span class="lineNum">     218 </span>                :            : }
+<a name="219"><span class="lineNum">     219 </span>                :            : </a>
+<span class="lineNum">     220 </span>                :            : static int
+<span class="lineNum">     221 </span>                :<span class="lineNoCov">          0 : zap_table_store(zap_t *zap, zap_table_phys_t *tbl, uint64_t idx, uint64_t val,</span>
+<span class="lineNum">     222 </span>                :            :     dmu_tx_t *tx)
+<span class="lineNum">     223 </span>                :            : {
+<span class="lineNum">     224 </span>                :            :         int err;
+<span class="lineNum">     225 </span>                :            :         uint64_t blk, off;
+<span class="lineNum">     226 </span>                :<span class="lineNoCov">          0 :         int bs = FZAP_BLOCK_SHIFT(zap);</span>
+<span class="lineNum">     227 </span>                :            :         dmu_buf_t *db;
+<span class="lineNum">     228 </span>                :            : 
+<span class="lineNum">     229 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(RW_LOCK_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">     230 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(tbl-&gt;zt_blk != 0);</span>
+<span class="lineNum">     231 </span>                :            : 
+<span class="lineNum">     232 </span>                :<span class="lineNoCov">          0 :         dprintf(&quot;storing %llx at index %llx\n&quot;, val, idx);</span>
+<span class="lineNum">     233 </span>                :            : 
+<span class="lineNum">     234 </span>                :<span class="lineNoCov">          0 :         blk = idx &gt;&gt; (bs-3);</span>
+<span class="lineNum">     235 </span>                :<span class="lineNoCov">          0 :         off = idx &amp; ((1&lt;&lt;(bs-3))-1);</span>
+<span class="lineNum">     236 </span>                :            : 
+<span class="lineNum">     237 </span>                :<span class="lineNoCov">          0 :         err = dmu_buf_hold(zap-&gt;zap_objset, zap-&gt;zap_object,</span>
+<span class="lineNum">     238 </span>                :<span class="lineNoCov">          0 :             (tbl-&gt;zt_blk + blk) &lt;&lt; bs, FTAG, &amp;db, DMU_READ_NO_PREFETCH);</span>
+<span class="lineNum">     239 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (err)</span>
+<span class="lineNum">     240 </span>                :            :                 return (err);
+<span class="lineNum">     241 </span>                :<span class="lineNoCov">          0 :         dmu_buf_will_dirty(db, tx);</span>
+<span class="lineNum">     242 </span>                :            : 
+<span class="lineNum">     243 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tbl-&gt;zt_nextblk != 0) {</span>
+<span class="lineNum">     244 </span>                :<span class="lineNoCov">          0 :                 uint64_t idx2 = idx * 2;</span>
+<span class="lineNum">     245 </span>                :<span class="lineNoCov">          0 :                 uint64_t blk2 = idx2 &gt;&gt; (bs-3);</span>
+<span class="lineNum">     246 </span>                :<span class="lineNoCov">          0 :                 uint64_t off2 = idx2 &amp; ((1&lt;&lt;(bs-3))-1);</span>
+<span class="lineNum">     247 </span>                :            :                 dmu_buf_t *db2;
+<span class="lineNum">     248 </span>                :            : 
+<span class="lineNum">     249 </span>                :<span class="lineNoCov">          0 :                 err = dmu_buf_hold(zap-&gt;zap_objset, zap-&gt;zap_object,</span>
+<span class="lineNum">     250 </span>                :<span class="lineNoCov">          0 :                     (tbl-&gt;zt_nextblk + blk2) &lt;&lt; bs, FTAG, &amp;db2,</span>
+<span class="lineNum">     251 </span>                :            :                     DMU_READ_NO_PREFETCH);
+<span class="lineNum">     252 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (err) {</span>
+<span class="lineNum">     253 </span>                :<span class="lineNoCov">          0 :                         dmu_buf_rele(db, FTAG);</span>
+<span class="lineNum">     254 </span>                :<span class="lineNoCov">          0 :                         return (err);</span>
+<span class="lineNum">     255 </span>                :            :                 }
+<span class="lineNum">     256 </span>                :<span class="lineNoCov">          0 :                 dmu_buf_will_dirty(db2, tx);</span>
+<span class="lineNum">     257 </span>                :<span class="lineNoCov">          0 :                 ((uint64_t *)db2-&gt;db_data)[off2] = val;</span>
+<span class="lineNum">     258 </span>                :<span class="lineNoCov">          0 :                 ((uint64_t *)db2-&gt;db_data)[off2+1] = val;</span>
+<span class="lineNum">     259 </span>                :<span class="lineNoCov">          0 :                 dmu_buf_rele(db2, FTAG);</span>
+<span class="lineNum">     260 </span>                :            :         }
+<span class="lineNum">     261 </span>                :            : 
+<span class="lineNum">     262 </span>                :<span class="lineNoCov">          0 :         ((uint64_t *)db-&gt;db_data)[off] = val;</span>
+<span class="lineNum">     263 </span>                :<span class="lineNoCov">          0 :         dmu_buf_rele(db, FTAG);</span>
+<span class="lineNum">     264 </span>                :            : 
+<span class="lineNum">     265 </span>                :            :         return (0);
+<span class="lineNum">     266 </span>                :            : }
+<a name="267"><span class="lineNum">     267 </span>                :            : </a>
+<span class="lineNum">     268 </span>                :            : static int
+<span class="lineNum">     269 </span>                :<span class="lineNoCov">          0 : zap_table_load(zap_t *zap, zap_table_phys_t *tbl, uint64_t idx, uint64_t *valp)</span>
+<span class="lineNum">     270 </span>                :            : {
+<span class="lineNum">     271 </span>                :            :         uint64_t blk, off;
+<span class="lineNum">     272 </span>                :            :         int err;
+<span class="lineNum">     273 </span>                :            :         dmu_buf_t *db;
+<span class="lineNum">     274 </span>                :            :         dnode_t *dn;
+<span class="lineNum">     275 </span>                :<span class="lineNoCov">          0 :         int bs = FZAP_BLOCK_SHIFT(zap);</span>
+<span class="lineNum">     276 </span>                :            : 
+<span class="lineNum">     277 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(RW_LOCK_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">     278 </span>                :            : 
+<span class="lineNum">     279 </span>                :<span class="lineNoCov">          0 :         blk = idx &gt;&gt; (bs-3);</span>
+<span class="lineNum">     280 </span>                :<span class="lineNoCov">          0 :         off = idx &amp; ((1&lt;&lt;(bs-3))-1);</span>
+<span class="lineNum">     281 </span>                :            : 
+<span class="lineNum">     282 </span>                :            :         /*
+<span class="lineNum">     283 </span>                :            :          * Note: this is equivalent to dmu_buf_hold(), but we use
+<span class="lineNum">     284 </span>                :            :          * _dnode_enter / _by_dnode because it's faster because we don't
+<span class="lineNum">     285 </span>                :            :          * have to hold the dnode.
+<span class="lineNum">     286 </span>                :            :          */
+<span class="lineNum">     287 </span>                :<span class="lineNoCov">          0 :         dn = dmu_buf_dnode_enter(zap-&gt;zap_dbuf);</span>
+<span class="lineNum">     288 </span>                :<span class="lineNoCov">          0 :         err = dmu_buf_hold_by_dnode(dn,</span>
+<span class="lineNum">     289 </span>                :<span class="lineNoCov">          0 :             (tbl-&gt;zt_blk + blk) &lt;&lt; bs, FTAG, &amp;db, DMU_READ_NO_PREFETCH);</span>
+<span class="lineNum">     290 </span>                :<span class="lineNoCov">          0 :         dmu_buf_dnode_exit(zap-&gt;zap_dbuf);</span>
+<span class="lineNum">     291 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (err)</span>
+<span class="lineNum">     292 </span>                :            :                 return (err);
+<span class="lineNum">     293 </span>                :<span class="lineNoCov">          0 :         *valp = ((uint64_t *)db-&gt;db_data)[off];</span>
+<span class="lineNum">     294 </span>                :<span class="lineNoCov">          0 :         dmu_buf_rele(db, FTAG);</span>
+<span class="lineNum">     295 </span>                :            : 
+<span class="lineNum">     296 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tbl-&gt;zt_nextblk != 0) {</span>
+<span class="lineNum">     297 </span>                :            :                 /*
+<span class="lineNum">     298 </span>                :            :                  * read the nextblk for the sake of i/o error checking,
+<span class="lineNum">     299 </span>                :            :                  * so that zap_table_load() will catch errors for
+<span class="lineNum">     300 </span>                :            :                  * zap_table_store.
+<span class="lineNum">     301 </span>                :            :                  */
+<span class="lineNum">     302 </span>                :<span class="lineNoCov">          0 :                 blk = (idx*2) &gt;&gt; (bs-3);</span>
+<span class="lineNum">     303 </span>                :            : 
+<span class="lineNum">     304 </span>                :<span class="lineNoCov">          0 :                 dn = dmu_buf_dnode_enter(zap-&gt;zap_dbuf);</span>
+<span class="lineNum">     305 </span>                :<span class="lineNoCov">          0 :                 err = dmu_buf_hold_by_dnode(dn,</span>
+<span class="lineNum">     306 </span>                :<span class="lineNoCov">          0 :                     (tbl-&gt;zt_nextblk + blk) &lt;&lt; bs, FTAG, &amp;db,</span>
+<span class="lineNum">     307 </span>                :            :                     DMU_READ_NO_PREFETCH);
+<span class="lineNum">     308 </span>                :<span class="lineNoCov">          0 :                 dmu_buf_dnode_exit(zap-&gt;zap_dbuf);</span>
+<span class="lineNum">     309 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (err == 0)</span>
+<span class="lineNum">     310 </span>                :<span class="lineNoCov">          0 :                         dmu_buf_rele(db, FTAG);</span>
+<span class="lineNum">     311 </span>                :            :         }
+<span class="lineNum">     312 </span>                :            :         return (err);
+<span class="lineNum">     313 </span>                :            : }
+<span class="lineNum">     314 </span>                :            : 
+<span class="lineNum">     315 </span>                :            : /*
+<span class="lineNum">     316 </span>                :            :  * Routines for growing the ptrtbl.
+<span class="lineNum">     317 </span>                :            :  */
+<a name="318"><span class="lineNum">     318 </span>                :            : </a>
+<span class="lineNum">     319 </span>                :            : static void
+<span class="lineNum">     320 </span>                :<span class="lineNoCov">          0 : zap_ptrtbl_transfer(const uint64_t *src, uint64_t *dst, int n)</span>
+<span class="lineNum">     321 </span>                :            : {
+<span class="lineNum">     322 </span>                :            :         int i;
+<span class="lineNum">     323 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0; i &lt; n; i++) {</span>
+<span class="lineNum">     324 </span>                :<span class="lineNoCov">          0 :                 uint64_t lb = src[i];</span>
+<span class="lineNum">     325 </span>                :<span class="lineNoCov">          0 :                 dst[2*i+0] = lb;</span>
+<span class="lineNum">     326 </span>                :<span class="lineNoCov">          0 :                 dst[2*i+1] = lb;</span>
+<span class="lineNum">     327 </span>                :            :         }
+<span class="lineNum">     328 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="329"><span class="lineNum">     329 </span>                :            : </a>
+<span class="lineNum">     330 </span>                :            : static int
+<span class="lineNum">     331 </span>                :<span class="lineNoCov">          0 : zap_grow_ptrtbl(zap_t *zap, dmu_tx_t *tx)</span>
+<span class="lineNum">     332 </span>                :            : {
+<span class="lineNum">     333 </span>                :            :         /*
+<span class="lineNum">     334 </span>                :            :          * The pointer table should never use more hash bits than we
+<span class="lineNum">     335 </span>                :            :          * have (otherwise we'd be using useless zero bits to index it).
+<span class="lineNum">     336 </span>                :            :          * If we are within 2 bits of running out, stop growing, since
+<span class="lineNum">     337 </span>                :            :          * this is already an aberrant condition.
+<span class="lineNum">     338 </span>                :            :          */
+<span class="lineNum">     339 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift &gt;= zap_hashbits(zap) - 2)</span>
+<span class="lineNum">     340 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(ENOSPC));</span>
+<span class="lineNum">     341 </span>                :            : 
+<span class="lineNum">     342 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (zap_f_phys(zap)-&gt;zap_ptrtbl.zt_numblks == 0) {</span>
+<span class="lineNum">     343 </span>                :            :                 /*
+<span class="lineNum">     344 </span>                :            :                  * We are outgrowing the &quot;embedded&quot; ptrtbl (the one
+<span class="lineNum">     345 </span>                :            :                  * stored in the header block).  Give it its own entire
+<span class="lineNum">     346 </span>                :            :                  * block, which will double the size of the ptrtbl.
+<span class="lineNum">     347 </span>                :            :                  */
+<span class="lineNum">     348 </span>                :            :                 uint64_t newblk;
+<span class="lineNum">     349 </span>                :            :                 dmu_buf_t *db_new;
+<span class="lineNum">     350 </span>                :            :                 int err;
+<span class="lineNum">     351 </span>                :            : 
+<span class="lineNum">     352 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT3U(zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift, ==,</span>
+<span class="lineNum">     353 </span>                :            :                     ZAP_EMBEDDED_PTRTBL_SHIFT(zap));
+<span class="lineNum">     354 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT0(zap_f_phys(zap)-&gt;zap_ptrtbl.zt_blk);</span>
+<span class="lineNum">     355 </span>                :            : 
+<span class="lineNum">     356 </span>                :<span class="lineNoCov">          0 :                 newblk = zap_allocate_blocks(zap, 1);</span>
+<span class="lineNum">     357 </span>                :<span class="lineNoCov">          0 :                 err = dmu_buf_hold(zap-&gt;zap_objset, zap-&gt;zap_object,</span>
+<span class="lineNum">     358 </span>                :<span class="lineNoCov">          0 :                     newblk &lt;&lt; FZAP_BLOCK_SHIFT(zap), FTAG, &amp;db_new,</span>
+<span class="lineNum">     359 </span>                :            :                     DMU_READ_NO_PREFETCH);
+<span class="lineNum">     360 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (err)</span>
+<span class="lineNum">     361 </span>                :            :                         return (err);
+<span class="lineNum">     362 </span>                :<span class="lineNoCov">          0 :                 dmu_buf_will_dirty(db_new, tx);</span>
+<span class="lineNum">     363 </span>                :<span class="lineNoCov">          0 :                 zap_ptrtbl_transfer(&amp;ZAP_EMBEDDED_PTRTBL_ENT(zap, 0),</span>
+<span class="lineNum">     364 </span>                :<span class="lineNoCov">          0 :                     db_new-&gt;db_data, 1 &lt;&lt; ZAP_EMBEDDED_PTRTBL_SHIFT(zap));</span>
+<span class="lineNum">     365 </span>                :<span class="lineNoCov">          0 :                 dmu_buf_rele(db_new, FTAG);</span>
+<span class="lineNum">     366 </span>                :            : 
+<span class="lineNum">     367 </span>                :<span class="lineNoCov">          0 :                 zap_f_phys(zap)-&gt;zap_ptrtbl.zt_blk = newblk;</span>
+<span class="lineNum">     368 </span>                :<span class="lineNoCov">          0 :                 zap_f_phys(zap)-&gt;zap_ptrtbl.zt_numblks = 1;</span>
+<span class="lineNum">     369 </span>                :<span class="lineNoCov">          0 :                 zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift++;</span>
+<span class="lineNum">     370 </span>                :            : 
+<span class="lineNum">     371 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT3U(1ULL &lt;&lt; zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift, ==,</span>
+<span class="lineNum">     372 </span>                :            :                     zap_f_phys(zap)-&gt;zap_ptrtbl.zt_numblks &lt;&lt;
+<span class="lineNum">     373 </span>                :            :                     (FZAP_BLOCK_SHIFT(zap)-3));
+<span class="lineNum">     374 </span>                :            : 
+<span class="lineNum">     375 </span>                :            :                 return (0);
+<span class="lineNum">     376 </span>                :            :         } else {
+<span class="lineNum">     377 </span>                :<span class="lineNoCov">          0 :                 return (zap_table_grow(zap, &amp;zap_f_phys(zap)-&gt;zap_ptrtbl,</span>
+<span class="lineNum">     378 </span>                :            :                     zap_ptrtbl_transfer, tx));
+<span class="lineNum">     379 </span>                :            :         }
+<span class="lineNum">     380 </span>                :            : }
+<a name="381"><span class="lineNum">     381 </span>                :            : </a>
+<span class="lineNum">     382 </span>                :            : static void
+<span class="lineNum">     383 </span>                :<span class="lineCov">      49830 : zap_increment_num_entries(zap_t *zap, int delta, dmu_tx_t *tx)</span>
+<span class="lineNum">     384 </span>                :            : {
+<span class="lineNum">     385 </span>                :<span class="lineCov">      49830 :         dmu_buf_will_dirty(zap-&gt;zap_dbuf, tx);</span>
+<span class="lineNum">     386 </span>                :<span class="lineCov">      49832 :         mutex_enter(&amp;zap-&gt;zap_f.zap_num_entries_mtx);</span>
+<span class="lineNum">     387 </span>[<span class="branchCov" title="Branch 0 was taken 5999 times"> + </span><span class="branchCov" title="Branch 1 was taken 43833 times"> + </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 5999 times"> + </span>]:<span class="lineCov">      49832 :         ASSERT(delta &gt; 0 || zap_f_phys(zap)-&gt;zap_num_entries &gt;= -delta);</span>
+<span class="lineNum">     388 </span>                :<span class="lineCov">      49832 :         zap_f_phys(zap)-&gt;zap_num_entries += delta;</span>
+<span class="lineNum">     389 </span>                :<span class="lineCov">      49832 :         mutex_exit(&amp;zap-&gt;zap_f.zap_num_entries_mtx);</span>
+<span class="lineNum">     390 </span>                :<span class="lineCov">      49832 : }</span>
+<a name="391"><span class="lineNum">     391 </span>                :            : </a>
+<span class="lineNum">     392 </span>                :            : static uint64_t
+<span class="lineNum">     393 </span>                :<span class="lineCov">        237 : zap_allocate_blocks(zap_t *zap, int nblocks)</span>
+<span class="lineNum">     394 </span>                :            : {
+<span class="lineNum">     395 </span>                :            :         uint64_t newblk;
+<span class="lineNum">     396 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 237 times"> + </span>]:<span class="lineCov">        237 :         ASSERT(RW_WRITE_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">     397 </span>                :<span class="lineCov">        237 :         newblk = zap_f_phys(zap)-&gt;zap_freeblk;</span>
+<span class="lineNum">     398 </span>                :<span class="lineCov">        237 :         zap_f_phys(zap)-&gt;zap_freeblk += nblocks;</span>
+<span class="lineNum">     399 </span>                :<span class="lineCov">        237 :         return (newblk);</span>
+<span class="lineNum">     400 </span>                :            : }
+<a name="401"><span class="lineNum">     401 </span>                :            : </a>
+<span class="lineNum">     402 </span>                :            : static void
+<span class="lineNum">     403 </span>                :<span class="lineCov">       4962 : zap_leaf_evict_sync(void *dbu)</span>
+<span class="lineNum">     404 </span>                :            : {
+<span class="lineNum">     405 </span>                :<span class="lineCov">       4962 :         zap_leaf_t *l = dbu;</span>
+<span class="lineNum">     406 </span>                :            : 
+<span class="lineNum">     407 </span>                :<span class="lineCov">       4962 :         rw_destroy(&amp;l-&gt;l_rwlock);</span>
+<span class="lineNum">     408 </span>                :<span class="lineCov">       4962 :         kmem_free(l, sizeof (zap_leaf_t));</span>
+<span class="lineNum">     409 </span>                :<span class="lineCov">       4962 : }</span>
+<a name="410"><span class="lineNum">     410 </span>                :            : </a>
+<span class="lineNum">     411 </span>                :            : static zap_leaf_t *
+<span class="lineNum">     412 </span>                :<span class="lineCov">        237 : zap_create_leaf(zap_t *zap, dmu_tx_t *tx)</span>
+<span class="lineNum">     413 </span>                :            : {
+<span class="lineNum">     414 </span>                :            :         void *winner;
+<span class="lineNum">     415 </span>                :<span class="lineCov">        237 :         zap_leaf_t *l = kmem_zalloc(sizeof (zap_leaf_t), KM_SLEEP);</span>
+<span class="lineNum">     416 </span>                :            : 
+<span class="lineNum">     417 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 237 times"> + </span>]:<span class="lineCov">        237 :         ASSERT(RW_WRITE_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">     418 </span>                :            : 
+<span class="lineNum">     419 </span>                :<span class="lineCov">        237 :         rw_init(&amp;l-&gt;l_rwlock, NULL, RW_NOLOCKDEP, NULL);</span>
+<span class="lineNum">     420 </span>                :<span class="lineCov">        237 :         rw_enter(&amp;l-&gt;l_rwlock, RW_WRITER);</span>
+<span class="lineNum">     421 </span>                :<span class="lineCov">        237 :         l-&gt;l_blkid = zap_allocate_blocks(zap, 1);</span>
+<span class="lineNum">     422 </span>                :<span class="lineCov">        237 :         l-&gt;l_dbuf = NULL;</span>
+<span class="lineNum">     423 </span>                :            : 
+<span class="lineNum">     424 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 237 times"> + </span>]:<span class="lineCov">        237 :         VERIFY(0 == dmu_buf_hold(zap-&gt;zap_objset, zap-&gt;zap_object,</span>
+<span class="lineNum">     425 </span>                :            :             l-&gt;l_blkid &lt;&lt; FZAP_BLOCK_SHIFT(zap), NULL, &amp;l-&gt;l_dbuf,
+<span class="lineNum">     426 </span>                :            :             DMU_READ_NO_PREFETCH));
+<span class="lineNum">     427 </span>                :<span class="lineCov">        237 :         dmu_buf_init_user(&amp;l-&gt;l_dbu, zap_leaf_evict_sync, NULL, &amp;l-&gt;l_dbuf);</span>
+<span class="lineNum">     428 </span>                :<span class="lineCov">        237 :         winner = dmu_buf_set_user(l-&gt;l_dbuf, &amp;l-&gt;l_dbu);</span>
+<span class="lineNum">     429 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 237 times"> + </span>]:<span class="lineCov">        237 :         ASSERT(winner == NULL);</span>
+<span class="lineNum">     430 </span>                :<span class="lineCov">        237 :         dmu_buf_will_dirty(l-&gt;l_dbuf, tx);</span>
+<span class="lineNum">     431 </span>                :            : 
+<span class="lineNum">     432 </span>                :<span class="lineCov">        237 :         zap_leaf_init(l, zap-&gt;zap_normflags != 0);</span>
+<span class="lineNum">     433 </span>                :            : 
+<span class="lineNum">     434 </span>                :<span class="lineCov">        237 :         zap_f_phys(zap)-&gt;zap_num_leafs++;</span>
+<span class="lineNum">     435 </span>                :            : 
+<span class="lineNum">     436 </span>                :<span class="lineCov">        237 :         return (l);</span>
+<span class="lineNum">     437 </span>                :            : }
+<a name="438"><span class="lineNum">     438 </span>                :            : </a>
+<span class="lineNum">     439 </span>                :            : int
+<span class="lineNum">     440 </span>                :<span class="lineCov">      22849 : fzap_count(zap_t *zap, uint64_t *count)</span>
+<span class="lineNum">     441 </span>                :            : {
+<span class="lineNum">     442 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 22849 times"> + </span>]:<span class="lineCov">      22849 :         ASSERT(!zap-&gt;zap_ismicro);</span>
+<span class="lineNum">     443 </span>                :<span class="lineCov">      22849 :         mutex_enter(&amp;zap-&gt;zap_f.zap_num_entries_mtx); /* unnecessary */</span>
+<span class="lineNum">     444 </span>                :<span class="lineCov">      22849 :         *count = zap_f_phys(zap)-&gt;zap_num_entries;</span>
+<span class="lineNum">     445 </span>                :<span class="lineCov">      22849 :         mutex_exit(&amp;zap-&gt;zap_f.zap_num_entries_mtx);</span>
+<span class="lineNum">     446 </span>                :<span class="lineCov">      22849 :         return (0);</span>
+<span class="lineNum">     447 </span>                :            : }
+<span class="lineNum">     448 </span>                :            : 
+<span class="lineNum">     449 </span>                :            : /*
+<span class="lineNum">     450 </span>                :            :  * Routines for obtaining zap_leaf_t's
+<span class="lineNum">     451 </span>                :            :  */
+<a name="452"><span class="lineNum">     452 </span>                :            : </a>
+<span class="lineNum">     453 </span>                :            : void
+<span class="lineNum">     454 </span>                :<span class="lineCov">     252700 : zap_put_leaf(zap_leaf_t *l)</span>
+<span class="lineNum">     455 </span>                :            : {
+<span class="lineNum">     456 </span>                :<span class="lineCov">     252700 :         rw_exit(&amp;l-&gt;l_rwlock);</span>
+<span class="lineNum">     457 </span>                :<span class="lineCov">     252722 :         dmu_buf_rele(l-&gt;l_dbuf, NULL);</span>
+<span class="lineNum">     458 </span>                :<span class="lineCov">     252726 : }</span>
+<a name="459"><span class="lineNum">     459 </span>                :            : </a>
+<span class="lineNum">     460 </span>                :            : static zap_leaf_t *
+<span class="lineNum">     461 </span>                :<span class="lineCov">       4727 : zap_open_leaf(uint64_t blkid, dmu_buf_t *db)</span>
+<span class="lineNum">     462 </span>                :            : {
+<span class="lineNum">     463 </span>                :            :         zap_leaf_t *l, *winner;
+<span class="lineNum">     464 </span>                :            : 
+<span class="lineNum">     465 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4727 times"> + </span>]:<span class="lineCov">       4727 :         ASSERT(blkid != 0);</span>
+<span class="lineNum">     466 </span>                :            : 
+<span class="lineNum">     467 </span>                :<span class="lineCov">       4727 :         l = kmem_zalloc(sizeof (zap_leaf_t), KM_SLEEP);</span>
+<span class="lineNum">     468 </span>                :<span class="lineCov">       4727 :         rw_init(&amp;l-&gt;l_rwlock, NULL, RW_DEFAULT, NULL);</span>
+<span class="lineNum">     469 </span>                :<span class="lineCov">       4727 :         rw_enter(&amp;l-&gt;l_rwlock, RW_WRITER);</span>
+<span class="lineNum">     470 </span>                :<span class="lineCov">       4727 :         l-&gt;l_blkid = blkid;</span>
+<span class="lineNum">     471 </span>                :<span class="lineCov">       4727 :         l-&gt;l_bs = highbit64(db-&gt;db_size) - 1;</span>
+<span class="lineNum">     472 </span>                :<span class="lineCov">       4727 :         l-&gt;l_dbuf = db;</span>
+<span class="lineNum">     473 </span>                :            : 
+<span class="lineNum">     474 </span>                :<span class="lineCov">       4727 :         dmu_buf_init_user(&amp;l-&gt;l_dbu, zap_leaf_evict_sync, NULL, &amp;l-&gt;l_dbuf);</span>
+<span class="lineNum">     475 </span>                :<span class="lineCov">       4727 :         winner = dmu_buf_set_user(db, &amp;l-&gt;l_dbu);</span>
+<span class="lineNum">     476 </span>                :            : 
+<span class="lineNum">     477 </span>                :<span class="lineCov">       4727 :         rw_exit(&amp;l-&gt;l_rwlock);</span>
+<span class="lineNum">     478 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4727 times"> + </span>]:<span class="lineCov">       4727 :         if (winner != NULL) {</span>
+<span class="lineNum">     479 </span>                :            :                 /* someone else set it first */
+<span class="lineNum">     480 </span>                :<span class="lineNoCov">          0 :                 zap_leaf_evict_sync(&amp;l-&gt;l_dbu);</span>
+<span class="lineNum">     481 </span>                :<span class="lineNoCov">          0 :                 l = winner;</span>
+<span class="lineNum">     482 </span>                :            :         }
+<span class="lineNum">     483 </span>                :            : 
+<span class="lineNum">     484 </span>                :            :         /*
+<span class="lineNum">     485 </span>                :            :          * lhr_pad was previously used for the next leaf in the leaf
+<span class="lineNum">     486 </span>                :            :          * chain.  There should be no chained leafs (as we have removed
+<span class="lineNum">     487 </span>                :            :          * support for them).
+<span class="lineNum">     488 </span>                :            :          */
+<span class="lineNum">     489 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 4727 times"> + </span>]:<span class="lineCov">       4727 :         ASSERT0(zap_leaf_phys(l)-&gt;l_hdr.lh_pad1);</span>
+<span class="lineNum">     490 </span>                :            : 
+<span class="lineNum">     491 </span>                :            :         /*
+<span class="lineNum">     492 </span>                :            :          * There should be more hash entries than there can be
+<span class="lineNum">     493 </span>                :            :          * chunks to put in the hash table
+<span class="lineNum">     494 </span>                :            :          */
+<span class="lineNum">     495 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4727 times"> + </span>]:<span class="lineCov">       4727 :         ASSERT3U(ZAP_LEAF_HASH_NUMENTRIES(l), &gt;, ZAP_LEAF_NUMCHUNKS(l) / 3);</span>
+<span class="lineNum">     496 </span>                :            : 
+<span class="lineNum">     497 </span>                :            :         /* The chunks should begin at the end of the hash table */
+<span class="lineNum">     498 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4727 times"> + </span>]:<span class="lineCov">       4727 :         ASSERT3P(&amp;ZAP_LEAF_CHUNK(l, 0), ==, (zap_leaf_chunk_t *)</span>
+<span class="lineNum">     499 </span>                :            :             &amp;zap_leaf_phys(l)-&gt;l_hash[ZAP_LEAF_HASH_NUMENTRIES(l)]);
+<span class="lineNum">     500 </span>                :            : 
+<span class="lineNum">     501 </span>                :            :         /* The chunks should end at the end of the block */
+<span class="lineNum">     502 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4727 times"> + </span>]:<span class="lineCov">       4727 :         ASSERT3U((uintptr_t)&amp;ZAP_LEAF_CHUNK(l, ZAP_LEAF_NUMCHUNKS(l)) -</span>
+<span class="lineNum">     503 </span>                :            :             (uintptr_t)zap_leaf_phys(l), ==, l-&gt;l_dbuf-&gt;db_size);
+<span class="lineNum">     504 </span>                :            : 
+<span class="lineNum">     505 </span>                :<span class="lineCov">       4727 :         return (l);</span>
+<span class="lineNum">     506 </span>                :            : }
+<a name="507"><span class="lineNum">     507 </span>                :            : </a>
+<span class="lineNum">     508 </span>                :            : static int
+<span class="lineNum">     509 </span>                :<span class="lineCov">     252441 : zap_get_leaf_byblk(zap_t *zap, uint64_t blkid, dmu_tx_t *tx, krw_t lt,</span>
+<span class="lineNum">     510 </span>                :            :     zap_leaf_t **lp)
+<span class="lineNum">     511 </span>                :            : {
+<span class="lineNum">     512 </span>                :            :         dmu_buf_t *db;
+<span class="lineNum">     513 </span>                :            :         zap_leaf_t *l;
+<span class="lineNum">     514 </span>                :<span class="lineCov">     252441 :         int bs = FZAP_BLOCK_SHIFT(zap);</span>
+<span class="lineNum">     515 </span>                :            :         int err;
+<span class="lineNum">     516 </span>                :            :         dnode_t *dn;
+<span class="lineNum">     517 </span>                :            : 
+<span class="lineNum">     518 </span>[<span class="branchCov" title="Branch 0 was taken 26792 times"> + </span><span class="branchCov" title="Branch 1 was taken 225649 times"> + </span>][<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 26792 times"> + </span>]:<span class="lineCov">     252441 :         ASSERT(RW_LOCK_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">     519 </span>                :            : 
+<span class="lineNum">     520 </span>                :            :         /*
+<span class="lineNum">     521 </span>                :            :          * If system crashed just after dmu_free_long_range in zfs_rmnode, we
+<span class="lineNum">     522 </span>                :            :          * would be left with an empty xattr dir in delete queue. blkid=0
+<span class="lineNum">     523 </span>                :            :          * would be passed in when doing zfs_purgedir. If that's the case we
+<span class="lineNum">     524 </span>                :            :          * should just return immediately. The underlying objects should
+<span class="lineNum">     525 </span>                :            :          * already be freed, so this should be perfectly fine.
+<span class="lineNum">     526 </span>                :            :          */
+<span class="lineNum">     527 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 252441 times"> + </span>]:<span class="lineCov">     252441 :         if (blkid == 0)</span>
+<span class="lineNum">     528 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(ENOENT));</span>
+<span class="lineNum">     529 </span>                :            : 
+<span class="lineNum">     530 </span>                :<span class="lineCov">     252441 :         dn = dmu_buf_dnode_enter(zap-&gt;zap_dbuf);</span>
+<span class="lineNum">     531 </span>                :<span class="lineCov">     252495 :         err = dmu_buf_hold_by_dnode(dn,</span>
+<span class="lineNum">     532 </span>                :            :             blkid &lt;&lt; bs, NULL, &amp;db, DMU_READ_NO_PREFETCH);
+<span class="lineNum">     533 </span>                :<span class="lineCov">     252487 :         dmu_buf_dnode_exit(zap-&gt;zap_dbuf);</span>
+<span class="lineNum">     534 </span>           [<span class="branchCov" title="Branch 0 was taken 252490 times"> + </span>]:<span class="lineCov">     252487 :         if (err)</span>
+<span class="lineNum">     535 </span>                :            :                 return (err);
+<span class="lineNum">     536 </span>                :            : 
+<span class="lineNum">     537 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 252490 times"> + </span>]:<span class="lineCov">     252490 :         ASSERT3U(db-&gt;db_object, ==, zap-&gt;zap_object);</span>
+<span class="lineNum">     538 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 252490 times"> + </span>]:<span class="lineCov">     252490 :         ASSERT3U(db-&gt;db_offset, ==, blkid &lt;&lt; bs);</span>
+<span class="lineNum">     539 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 252490 times"> + </span>]:<span class="lineCov">     252490 :         ASSERT3U(db-&gt;db_size, ==, 1 &lt;&lt; bs);</span>
+<span class="lineNum">     540 </span>                :            :         ASSERT(blkid != 0);
+<span class="lineNum">     541 </span>                :            : 
+<span class="lineNum">     542 </span>                :<span class="lineCov">     252490 :         l = dmu_buf_get_user(db);</span>
+<span class="lineNum">     543 </span>                :            : 
+<span class="lineNum">     544 </span>        [<span class="branchCov" title="Branch 0 was taken 4727 times"> + </span><span class="branchCov" title="Branch 1 was taken 247762 times"> + </span>]:<span class="lineCov">     252489 :         if (l == NULL)</span>
+<span class="lineNum">     545 </span>                :<span class="lineCov">       4727 :                 l = zap_open_leaf(blkid, db);</span>
+<span class="lineNum">     546 </span>                :            : 
+<span class="lineNum">     547 </span>                :<span class="lineCov">     252489 :         rw_enter(&amp;l-&gt;l_rwlock, lt);</span>
+<span class="lineNum">     548 </span>                :            :         /*
+<span class="lineNum">     549 </span>                :            :          * Must lock before dirtying, otherwise zap_leaf_phys(l) could change,
+<span class="lineNum">     550 </span>                :            :          * causing ASSERT below to fail.
+<span class="lineNum">     551 </span>                :            :          */
+<span class="lineNum">     552 </span>        [<span class="branchCov" title="Branch 0 was taken 60452 times"> + </span><span class="branchCov" title="Branch 1 was taken 192039 times"> + </span>]:<span class="lineCov">     252491 :         if (lt == RW_WRITER)</span>
+<span class="lineNum">     553 </span>                :<span class="lineCov">      60452 :                 dmu_buf_will_dirty(db, tx);</span>
+<span class="lineNum">     554 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 252494 times"> + </span>]:<span class="lineCov">     252494 :         ASSERT3U(l-&gt;l_blkid, ==, blkid);</span>
+<span class="lineNum">     555 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 252494 times"> + </span>]:<span class="lineCov">     252494 :         ASSERT3P(l-&gt;l_dbuf, ==, db);</span>
+<span class="lineNum">     556 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 252482 times"> + </span>]:<span class="lineCov">     252494 :         ASSERT3U(zap_leaf_phys(l)-&gt;l_hdr.lh_block_type, ==, ZBT_LEAF);</span>
+<span class="lineNum">     557 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 252482 times"> + </span>]:<span class="lineCov">     252482 :         ASSERT3U(zap_leaf_phys(l)-&gt;l_hdr.lh_magic, ==, ZAP_LEAF_MAGIC);</span>
+<span class="lineNum">     558 </span>                :            : 
+<span class="lineNum">     559 </span>                :<span class="lineCov">     252482 :         *lp = l;</span>
+<span class="lineNum">     560 </span>                :<span class="lineCov">     252482 :         return (0);</span>
+<span class="lineNum">     561 </span>                :            : }
+<a name="562"><span class="lineNum">     562 </span>                :            : </a>
+<span class="lineNum">     563 </span>                :            : static int
+<span class="lineNum">     564 </span>                :<span class="lineCov">     286480 : zap_idx_to_blk(zap_t *zap, uint64_t idx, uint64_t *valp)</span>
+<span class="lineNum">     565 </span>                :            : {
+<span class="lineNum">     566 </span>[<span class="branchCov" title="Branch 0 was taken 60808 times"> + </span><span class="branchCov" title="Branch 1 was taken 225672 times"> + </span>][<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 60808 times"> + </span>]:<span class="lineCov">     286480 :         ASSERT(RW_LOCK_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">     567 </span>                :            : 
+<span class="lineNum">     568 </span>        [<span class="branchCov" title="Branch 1 was taken 286461 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">     286480 :         if (zap_f_phys(zap)-&gt;zap_ptrtbl.zt_numblks == 0) {</span>
+<span class="lineNum">     569 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 286461 times"> + </span>]:<span class="lineCov">     286461 :                 ASSERT3U(idx, &lt;,</span>
+<span class="lineNum">     570 </span>                :            :                     (1ULL &lt;&lt; zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift));
+<span class="lineNum">     571 </span>                :<span class="lineCov">     286461 :                 *valp = ZAP_EMBEDDED_PTRTBL_ENT(zap, idx);</span>
+<span class="lineNum">     572 </span>                :<span class="lineCov">     286461 :                 return (0);</span>
+<span class="lineNum">     573 </span>                :            :         } else {
+<span class="lineNum">     574 </span>                :<span class="lineNoCov">          0 :                 return (zap_table_load(zap, &amp;zap_f_phys(zap)-&gt;zap_ptrtbl,</span>
+<span class="lineNum">     575 </span>                :            :                     idx, valp));
+<span class="lineNum">     576 </span>                :            :         }
+<span class="lineNum">     577 </span>                :            : }
+<a name="578"><span class="lineNum">     578 </span>                :            : </a>
+<span class="lineNum">     579 </span>                :            : static int
+<span class="lineNum">     580 </span>                :<span class="lineCov">      34016 : zap_set_idx_to_blk(zap_t *zap, uint64_t idx, uint64_t blk, dmu_tx_t *tx)</span>
+<span class="lineNum">     581 </span>                :            : {
+<span class="lineNum">     582 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 34016 times"> + </span>]:<span class="lineCov">      34016 :         ASSERT(tx != NULL);</span>
+<span class="lineNum">     583 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 34016 times"> + </span>]:<span class="lineCov">      34016 :         ASSERT(RW_WRITE_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">     584 </span>                :            : 
+<span class="lineNum">     585 </span>        [<span class="branchCov" title="Branch 1 was taken 34016 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">      34016 :         if (zap_f_phys(zap)-&gt;zap_ptrtbl.zt_blk == 0) {</span>
+<span class="lineNum">     586 </span>                :<span class="lineCov">      34016 :                 ZAP_EMBEDDED_PTRTBL_ENT(zap, idx) = blk;</span>
+<span class="lineNum">     587 </span>                :<span class="lineCov">      34016 :                 return (0);</span>
+<span class="lineNum">     588 </span>                :            :         } else {
+<span class="lineNum">     589 </span>                :<span class="lineNoCov">          0 :                 return (zap_table_store(zap, &amp;zap_f_phys(zap)-&gt;zap_ptrtbl,</span>
+<span class="lineNum">     590 </span>                :            :                     idx, blk, tx));
+<span class="lineNum">     591 </span>                :            :         }
+<span class="lineNum">     592 </span>                :            : }
+<a name="593"><span class="lineNum">     593 </span>                :            : </a>
+<span class="lineNum">     594 </span>                :            : static int
+<span class="lineNum">     595 </span>                :<span class="lineCov">     252472 : zap_deref_leaf(zap_t *zap, uint64_t h, dmu_tx_t *tx, krw_t lt, zap_leaf_t **lp)</span>
+<span class="lineNum">     596 </span>                :            : {
+<span class="lineNum">     597 </span>                :            :         uint64_t idx, blk;
+<span class="lineNum">     598 </span>                :            :         int err;
+<span class="lineNum">     599 </span>                :            : 
+<span class="lineNum">     600 </span>   [<span class="branchCov" title="Branch 0 was taken 252474 times"> + </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 252462 times"> + </span>]:<span class="lineCov">     252472 :         ASSERT(zap-&gt;zap_dbuf == NULL ||</span>
+<span class="lineNum">     601 </span>                :            :             zap_f_phys(zap) == zap-&gt;zap_dbuf-&gt;db_data);
+<span class="lineNum">     602 </span>                :            : 
+<span class="lineNum">     603 </span>                :            :         /* Reality check for corrupt zap objects (leaf or header). */
+<span class="lineNum">     604 </span>[<span class="branchCov" title="Branch 1 was taken 252468 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchCov" title="Branch 3 was taken 252464 times"> + </span><span class="branchCov" title="Branch 4 was taken 4 times"> + </span>]:<span class="lineCov">     252460 :         if ((zap_f_phys(zap)-&gt;zap_block_type != ZBT_LEAF &amp;&amp;</span>
+<span class="lineNum">     605 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 252464 times"> + </span>]:<span class="lineCov">     252464 :             zap_f_phys(zap)-&gt;zap_block_type != ZBT_HEADER) ||</span>
+<span class="lineNum">     606 </span>                :<span class="lineCov">     252464 :             zap_f_phys(zap)-&gt;zap_magic != ZAP_MAGIC) {</span>
+<span class="lineNum">     607 </span>                :<span class="lineCov">          4 :                 return (SET_ERROR(EIO));</span>
+<span class="lineNum">     608 </span>                :            :         }
+<span class="lineNum">     609 </span>           [<span class="branchCov" title="Branch 0 was taken 252466 times"> + </span>]:<span class="lineCov">     252464 :         idx = ZAP_HASH_IDX(h, zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift);</span>
+<span class="lineNum">     610 </span>                :<span class="lineCov">     252464 :         err = zap_idx_to_blk(zap, idx, &amp;blk);</span>
+<span class="lineNum">     611 </span>        [<span class="branchCov" title="Branch 0 was taken 252449 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">     252449 :         if (err != 0)</span>
+<span class="lineNum">     612 </span>                :            :                 return (err);
+<span class="lineNum">     613 </span>                :<span class="lineCov">     252449 :         err = zap_get_leaf_byblk(zap, blk, tx, lt, lp);</span>
+<span class="lineNum">     614 </span>                :            : 
+<span class="lineNum">     615 </span>[<span class="branchCov" title="Branch 0 was taken 252480 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 3 was taken 33814 times"> + </span><span class="branchCov" title="Branch 4 was taken 218665 times"> + </span>]:<span class="lineCov">     252480 :         ASSERT(err ||</span>
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 5 was not taken"> - </span><span class="branchCov" title="Branch 6 was taken 252479 times"> + </span>]
+<span class="lineNum">     616 </span>                :            :             ZAP_HASH_IDX(h, zap_leaf_phys(*lp)-&gt;l_hdr.lh_prefix_len) ==
+<span class="lineNum">     617 </span>                :            :             zap_leaf_phys(*lp)-&gt;l_hdr.lh_prefix);
+<span class="lineNum">     618 </span>                :            :         return (err);
+<span class="lineNum">     619 </span>                :            : }
+<a name="620"><span class="lineNum">     620 </span>                :            : </a>
+<span class="lineNum">     621 </span>                :            : static int
+<span class="lineNum">     622 </span>                :<span class="lineCov">        237 : zap_expand_leaf(zap_name_t *zn, zap_leaf_t *l,</span>
+<span class="lineNum">     623 </span>                :            :     void *tag, dmu_tx_t *tx, zap_leaf_t **lp)
+<span class="lineNum">     624 </span>                :            : {
+<span class="lineNum">     625 </span>                :<span class="lineCov">        237 :         zap_t *zap = zn-&gt;zn_zap;</span>
+<span class="lineNum">     626 </span>                :<span class="lineCov">        237 :         uint64_t hash = zn-&gt;zn_hash;</span>
+<span class="lineNum">     627 </span>                :            :         zap_leaf_t *nl;
+<span class="lineNum">     628 </span>                :            :         int prefix_diff, i, err;
+<span class="lineNum">     629 </span>                :            :         uint64_t sibling;
+<span class="lineNum">     630 </span>                :<span class="lineCov">        237 :         int old_prefix_len = zap_leaf_phys(l)-&gt;l_hdr.lh_prefix_len;</span>
+<span class="lineNum">     631 </span>                :            : 
+<span class="lineNum">     632 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 237 times"> + </span>]:<span class="lineCov">        237 :         ASSERT3U(old_prefix_len, &lt;=, zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift);</span>
+<span class="lineNum">     633 </span>[<span class="branchCov" title="Branch 0 was taken 165 times"> + </span><span class="branchCov" title="Branch 1 was taken 72 times"> + </span>][<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 165 times"> + </span>]:<span class="lineCov">        237 :         ASSERT(RW_LOCK_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">     634 </span>                :            : 
+<span class="lineNum">     635 </span>[<span class="branchCov" title="Branch 0 was taken 191 times"> + </span><span class="branchCov" title="Branch 1 was taken 46 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 237 times"> + </span>]:<span class="lineCov">        237 :         ASSERT3U(ZAP_HASH_IDX(hash, old_prefix_len), ==,</span>
+<span class="lineNum">     636 </span>                :            :             zap_leaf_phys(l)-&gt;l_hdr.lh_prefix);
+<span class="lineNum">     637 </span>                :            : 
+<span class="lineNum">     638 </span>  [<span class="branchCov" title="Branch 1 was taken 165 times"> + </span><span class="branchCov" title="Branch 2 was taken 72 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 165 times"> + </span>]:<span class="lineCov">        402 :         if (zap_tryupgradedir(zap, tx) == 0 ||</span>
+<span class="lineNum">     639 </span>                :<span class="lineCov">        165 :             old_prefix_len == zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift) {</span>
+<span class="lineNum">     640 </span>                :            :                 /* We failed to upgrade, or need to grow the pointer table */
+<span class="lineNum">     641 </span>                :<span class="lineCov">         72 :                 objset_t *os = zap-&gt;zap_objset;</span>
+<span class="lineNum">     642 </span>                :<span class="lineCov">         72 :                 uint64_t object = zap-&gt;zap_object;</span>
+<span class="lineNum">     643 </span>                :            : 
+<span class="lineNum">     644 </span>                :<span class="lineCov">         72 :                 zap_put_leaf(l);</span>
+<span class="lineNum">     645 </span>                :<span class="lineCov">         72 :                 zap_unlockdir(zap, tag);</span>
+<span class="lineNum">     646 </span>                :<span class="lineCov">         72 :                 err = zap_lockdir(os, object, tx, RW_WRITER,</span>
+<span class="lineNum">     647 </span>                :            :                     FALSE, FALSE, tag, &amp;zn-&gt;zn_zap);
+<span class="lineNum">     648 </span>                :<span class="lineCov">         72 :                 zap = zn-&gt;zn_zap;</span>
+<span class="lineNum">     649 </span>        [<span class="branchCov" title="Branch 0 was taken 72 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         72 :                 if (err)</span>
+<span class="lineNum">     650 </span>                :            :                         return (err);
+<span class="lineNum">     651 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 72 times"> + </span>]:<span class="lineCov">         72 :                 ASSERT(!zap-&gt;zap_ismicro);</span>
+<span class="lineNum">     652 </span>                :            : 
+<span class="lineNum">     653 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 72 times"> + </span>]:<span class="lineCov">         72 :                 while (old_prefix_len ==</span>
+<span class="lineNum">     654 </span>                :<span class="lineCov">         72 :                     zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift) {</span>
+<span class="lineNum">     655 </span>                :<span class="lineNoCov">          0 :                         err = zap_grow_ptrtbl(zap, tx);</span>
+<span class="lineNum">     656 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineCov">         72 :                         if (err)</span>
+<span class="lineNum">     657 </span>                :            :                                 return (err);
+<span class="lineNum">     658 </span>                :            :                 }
+<span class="lineNum">     659 </span>                :            : 
+<span class="lineNum">     660 </span>                :<span class="lineCov">         72 :                 err = zap_deref_leaf(zap, hash, tx, RW_WRITER, &amp;l);</span>
+<span class="lineNum">     661 </span>        [<span class="branchCov" title="Branch 0 was taken 72 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         72 :                 if (err)</span>
+<span class="lineNum">     662 </span>                :            :                         return (err);
+<span class="lineNum">     663 </span>                :            : 
+<span class="lineNum">     664 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 72 times"> + </span>]:<span class="lineCov">         72 :                 if (zap_leaf_phys(l)-&gt;l_hdr.lh_prefix_len != old_prefix_len) {</span>
+<span class="lineNum">     665 </span>                :            :                         /* it split while our locks were down */
+<span class="lineNum">     666 </span>                :<span class="lineNoCov">          0 :                         *lp = l;</span>
+<span class="lineNum">     667 </span>                :<span class="lineNoCov">          0 :                         return (0);</span>
+<span class="lineNum">     668 </span>                :            :                 }
+<span class="lineNum">     669 </span>                :            :         }
+<span class="lineNum">     670 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 237 times"> + </span>]:<span class="lineCov">        237 :         ASSERT(RW_WRITE_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">     671 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 237 times"> + </span>]:<span class="lineCov">        237 :         ASSERT3U(old_prefix_len, &lt;, zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift);</span>
+<span class="lineNum">     672 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 237 times"> + </span>]:<span class="lineCov">        237 :         ASSERT3U(ZAP_HASH_IDX(hash, old_prefix_len), ==,</span>
+<span class="lineNum">     673 </span>                :            :             zap_leaf_phys(l)-&gt;l_hdr.lh_prefix);
+<span class="lineNum">     674 </span>                :            : 
+<span class="lineNum">     675 </span>                :<span class="lineCov">        237 :         prefix_diff = zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift -</span>
+<span class="lineNum">     676 </span>                :            :             (old_prefix_len + 1);
+<span class="lineNum">     677 </span>                :<span class="lineCov">        237 :         sibling = (ZAP_HASH_IDX(hash, old_prefix_len + 1) | 1) &lt;&lt; prefix_diff;</span>
+<span class="lineNum">     678 </span>                :            : 
+<span class="lineNum">     679 </span>                :            :         /* check for i/o errors before doing zap_leaf_split */
+<span class="lineNum">     680 </span>        [<span class="branchCov" title="Branch 0 was taken 34016 times"> + </span><span class="branchCov" title="Branch 1 was taken 237 times"> + </span>]:<span class="lineCov">      34253 :         for (i = 0; i &lt; (1ULL&lt;&lt;prefix_diff); i++) {</span>
+<span class="lineNum">     681 </span>                :            :                 uint64_t blk;
+<span class="lineNum">     682 </span>                :<span class="lineCov">      34016 :                 err = zap_idx_to_blk(zap, sibling+i, &amp;blk);</span>
+<span class="lineNum">     683 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 34016 times"> + </span>]:<span class="lineCov">      34016 :                 if (err)</span>
+<span class="lineNum">     684 </span>                :<span class="lineNoCov">          0 :                         return (err);</span>
+<span class="lineNum">     685 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 34016 times"> + </span>]:<span class="lineCov">      34016 :                 ASSERT3U(blk, ==, l-&gt;l_blkid);</span>
+<span class="lineNum">     686 </span>                :            :         }
+<span class="lineNum">     687 </span>                :            : 
+<span class="lineNum">     688 </span>                :<span class="lineCov">        237 :         nl = zap_create_leaf(zap, tx);</span>
+<span class="lineNum">     689 </span>                :<span class="lineCov">        237 :         zap_leaf_split(l, nl, zap-&gt;zap_normflags != 0);</span>
+<span class="lineNum">     690 </span>                :            : 
+<span class="lineNum">     691 </span>                :            :         /* set sibling pointers */
+<span class="lineNum">     692 </span>        [<span class="branchCov" title="Branch 1 was taken 34016 times"> + </span><span class="branchCov" title="Branch 2 was taken 237 times"> + </span>]:<span class="lineCov">      34253 :         for (i = 0; i &lt; (1ULL &lt;&lt; prefix_diff); i++) {</span>
+<span class="lineNum">     693 </span>                :<span class="lineCov">      34016 :                 err = zap_set_idx_to_blk(zap, sibling+i, nl-&gt;l_blkid, tx);</span>
+<span class="lineNum">     694 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 34016 times"> + </span>]:<span class="lineCov">      34016 :                 ASSERT0(err); /* we checked for i/o errors above */</span>
+<span class="lineNum">     695 </span>                :            :         }
+<span class="lineNum">     696 </span>                :            : 
+<span class="lineNum">     697 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 237 times"> + </span>]:<span class="lineCov">        237 :         ASSERT3U(zap_leaf_phys(l)-&gt;l_hdr.lh_prefix_len, &gt;, 0);</span>
+<span class="lineNum">     698 </span>                :            : 
+<span class="lineNum">     699 </span>        [<span class="branchCov" title="Branch 0 was taken 122 times"> + </span><span class="branchCov" title="Branch 1 was taken 115 times"> + </span>]:<span class="lineCov">        237 :         if (hash &amp; (1ULL &lt;&lt; (64 - zap_leaf_phys(l)-&gt;l_hdr.lh_prefix_len))) {</span>
+<span class="lineNum">     700 </span>                :            :                 /* we want the sibling */
+<span class="lineNum">     701 </span>                :<span class="lineCov">        122 :                 zap_put_leaf(l);</span>
+<span class="lineNum">     702 </span>                :<span class="lineCov">        122 :                 *lp = nl;</span>
+<span class="lineNum">     703 </span>                :            :         } else {
+<span class="lineNum">     704 </span>                :<span class="lineCov">        115 :                 zap_put_leaf(nl);</span>
+<span class="lineNum">     705 </span>                :<span class="lineCov">        115 :                 *lp = l;</span>
+<span class="lineNum">     706 </span>                :            :         }
+<span class="lineNum">     707 </span>                :            : 
+<span class="lineNum">     708 </span>                :            :         return (0);
+<span class="lineNum">     709 </span>                :            : }
+<a name="710"><span class="lineNum">     710 </span>                :            : </a>
+<span class="lineNum">     711 </span>                :            : static void
+<span class="lineNum">     712 </span>                :<span class="lineCov">      51331 : zap_put_leaf_maybe_grow_ptrtbl(zap_name_t *zn, zap_leaf_t *l,</span>
+<span class="lineNum">     713 </span>                :            :     void *tag, dmu_tx_t *tx)
+<span class="lineNum">     714 </span>                :            : {
+<span class="lineNum">     715 </span>                :<span class="lineCov">      51331 :         zap_t *zap = zn-&gt;zn_zap;</span>
+<span class="lineNum">     716 </span>                :<span class="lineCov">      51331 :         int shift = zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift;</span>
+<span class="lineNum">     717 </span>[<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 51331 times"> + </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineCov">      51331 :         int leaffull = (zap_leaf_phys(l)-&gt;l_hdr.lh_prefix_len == shift &amp;&amp;</span>
+<span class="lineNum">     718 </span>                :<span class="lineNoCov">          0 :             zap_leaf_phys(l)-&gt;l_hdr.lh_nfree &lt; ZAP_LEAF_LOW_WATER);</span>
+<span class="lineNum">     719 </span>                :            : 
+<span class="lineNum">     720 </span>                :<span class="lineCov">      51331 :         zap_put_leaf(l);</span>
+<span class="lineNum">     721 </span>                :            : 
+<span class="lineNum">     722 </span>[<span class="branchCov" title="Branch 0 was taken 51332 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 51332 times"> + </span>]:<span class="lineCov">      51332 :         if (leaffull || zap_f_phys(zap)-&gt;zap_ptrtbl.zt_nextblk) {</span>
+<span class="lineNum">     723 </span>                :            :                 int err;
+<span class="lineNum">     724 </span>                :            : 
+<span class="lineNum">     725 </span>                :            :                 /*
+<span class="lineNum">     726 </span>                :            :                  * We are in the middle of growing the pointer table, or
+<span class="lineNum">     727 </span>                :            :                  * this leaf will soon make us grow it.
+<span class="lineNum">     728 </span>                :            :                  */
+<span class="lineNum">     729 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (zap_tryupgradedir(zap, tx) == 0) {</span>
+<span class="lineNum">     730 </span>                :<span class="lineNoCov">          0 :                         objset_t *os = zap-&gt;zap_objset;</span>
+<span class="lineNum">     731 </span>                :<span class="lineNoCov">          0 :                         uint64_t zapobj = zap-&gt;zap_object;</span>
+<span class="lineNum">     732 </span>                :            : 
+<span class="lineNum">     733 </span>                :<span class="lineNoCov">          0 :                         zap_unlockdir(zap, tag);</span>
+<span class="lineNum">     734 </span>                :<span class="lineNoCov">          0 :                         err = zap_lockdir(os, zapobj, tx,</span>
+<span class="lineNum">     735 </span>                :            :                             RW_WRITER, FALSE, FALSE, tag, &amp;zn-&gt;zn_zap);
+<span class="lineNum">     736 </span>                :<span class="lineNoCov">          0 :                         zap = zn-&gt;zn_zap;</span>
+<span class="lineNum">     737 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (err)</span>
+<span class="lineNum">     738 </span>                :            :                                 return;
+<span class="lineNum">     739 </span>                :            :                 }
+<span class="lineNum">     740 </span>                :            : 
+<span class="lineNum">     741 </span>                :            :                 /* could have finished growing while our locks were down */
+<span class="lineNum">     742 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift == shift)</span>
+<span class="lineNum">     743 </span>                :<span class="lineNoCov">          0 :                         (void) zap_grow_ptrtbl(zap, tx);</span>
+<span class="lineNum">     744 </span>                :            :         }
+<span class="lineNum">     745 </span>                :            : }
+<a name="746"><span class="lineNum">     746 </span>                :            : </a>
+<span class="lineNum">     747 </span>                :            : static int
+<span class="lineNum">     748 </span>                :<span class="lineCov">     363310 : fzap_checkname(zap_name_t *zn)</span>
+<span class="lineNum">     749 </span>                :            : {
+<span class="lineNum">     750 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 181655 times"> + </span>]:<span class="lineCov">     181655 :         if (zn-&gt;zn_key_orig_numints * zn-&gt;zn_key_intlen &gt; ZAP_MAXNAMELEN)</span>
+<span class="lineNum">     751 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(ENAMETOOLONG));</span>
+<span class="lineNum">     752 </span>                :            :         return (0);
+<span class="lineNum">     753 </span>                :            : }
+<a name="754"><span class="lineNum">     754 </span>                :            : </a>
+<span class="lineNum">     755 </span>                :            : static int
+<span class="lineNum">     756 </span>[<span class="branchCov" title="Branch 0 was taken 151373 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 23699 times"> + </span><span class="branchCov" title="Branch 3 was taken 127674 times"> + </span>]:<span class="lineCov">     302746 : fzap_checksize(uint64_t integer_size, uint64_t num_integers)</span>
+<span class="lineNum">     757 </span>                :            : {
+<span class="lineNum">     758 </span>                :            :         /* Only integer sizes supported by C */
+<span class="lineNum">     759 </span>                :            :         switch (integer_size) {
+<span class="lineNum">     760 </span>                :            :         case 1:
+<span class="lineNum">     761 </span>                :            :         case 2:
+<span class="lineNum">     762 </span>                :            :         case 4:
+<span class="lineNum">     763 </span>                :            :         case 8:
+<span class="lineNum">     764 </span>                :            :                 break;
+<span class="lineNum">     765 </span>                :            :         default:
+<span class="lineNum">     766 </span>                :<span class="lineCov">      23699 :                 return (SET_ERROR(EINVAL));</span>
+<span class="lineNum">     767 </span>                :            :         }
+<span class="lineNum">     768 </span>                :            : 
+<span class="lineNum">     769 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 127674 times"> + </span>]:<span class="lineCov">     127674 :         if (integer_size * num_integers &gt; ZAP_MAXVALUELEN)</span>
+<span class="lineNum">     770 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(E2BIG));</span>
+<span class="lineNum">     771 </span>                :            : 
+<span class="lineNum">     772 </span>                :            :         return (0);
+<span class="lineNum">     773 </span>                :            : }
+<a name="774"><span class="lineNum">     774 </span>                :            : </a>
+<span class="lineNum">     775 </span>                :            : static int
+<span class="lineNum">     776 </span>                :<span class="lineCov">      60135 : fzap_check(zap_name_t *zn, uint64_t integer_size, uint64_t num_integers)</span>
+<span class="lineNum">     777 </span>                :            : {
+<span class="lineNum">     778 </span>                :            :         int err;
+<span class="lineNum">     779 </span>                :            : 
+<span class="lineNum">     780 </span>           [<span class="branchCov" title="Branch 1 was taken 60137 times"> + </span>]:<span class="lineCov">      60135 :         if ((err = fzap_checkname(zn)) != 0)</span>
+<span class="lineNum">     781 </span>                :            :                 return (err);
+<span class="lineNum">     782 </span>                :<span class="lineCov">      60137 :         return (fzap_checksize(integer_size, num_integers));</span>
+<span class="lineNum">     783 </span>                :            : }
+<span class="lineNum">     784 </span>                :            : 
+<span class="lineNum">     785 </span>                :            : /*
+<span class="lineNum">     786 </span>                :            :  * Routines for manipulating attributes.
+<a name="787"><span class="lineNum">     787 </span>                :            :  */</a>
+<span class="lineNum">     788 </span>                :            : int
+<span class="lineNum">     789 </span>                :<span class="lineCov">     121521 : fzap_lookup(zap_name_t *zn,</span>
+<span class="lineNum">     790 </span>                :            :     uint64_t integer_size, uint64_t num_integers, void *buf,
+<span class="lineNum">     791 </span>                :            :     char *realname, int rn_len, boolean_t *ncp)
+<span class="lineNum">     792 </span>                :            : {
+<span class="lineNum">     793 </span>                :            :         zap_leaf_t *l;
+<span class="lineNum">     794 </span>                :            :         int err;
+<span class="lineNum">     795 </span>                :            :         zap_entry_handle_t zeh;
+<span class="lineNum">     796 </span>                :            : 
+<span class="lineNum">     797 </span>        [<span class="branchCov" title="Branch 1 was taken 121520 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">     121521 :         if ((err = fzap_checkname(zn)) != 0)</span>
+<span class="lineNum">     798 </span>                :            :                 return (err);
+<span class="lineNum">     799 </span>                :            : 
+<span class="lineNum">     800 </span>                :<span class="lineCov">     121520 :         err = zap_deref_leaf(zn-&gt;zn_zap, zn-&gt;zn_hash, NULL, RW_READER, &amp;l);</span>
+<span class="lineNum">     801 </span>           [<span class="branchCov" title="Branch 0 was taken 121525 times"> + </span>]:<span class="lineCov">     121524 :         if (err != 0)</span>
+<span class="lineNum">     802 </span>                :            :                 return (err);
+<span class="lineNum">     803 </span>                :<span class="lineCov">     121525 :         err = zap_leaf_lookup(l, zn, &amp;zeh);</span>
+<span class="lineNum">     804 </span>        [<span class="branchCov" title="Branch 0 was taken 91241 times"> + </span><span class="branchCov" title="Branch 1 was taken 30284 times"> + </span>]:<span class="lineCov">     121525 :         if (err == 0) {</span>
+<span class="lineNum">     805 </span>        [<span class="branchCov" title="Branch 1 was taken 23699 times"> + </span><span class="branchCov" title="Branch 2 was taken 67538 times"> + </span>]:<span class="lineCov">      91241 :                 if ((err = fzap_checksize(integer_size, num_integers)) != 0) {</span>
+<span class="lineNum">     806 </span>                :<span class="lineCov">      23699 :                         zap_put_leaf(l);</span>
+<span class="lineNum">     807 </span>                :<span class="lineCov">      23699 :                         return (err);</span>
+<span class="lineNum">     808 </span>                :            :                 }
+<span class="lineNum">     809 </span>                :            : 
+<span class="lineNum">     810 </span>                :<span class="lineCov">      67538 :                 err = zap_entry_read(&amp;zeh, integer_size, num_integers, buf);</span>
+<span class="lineNum">     811 </span>                :<span class="lineCov">      67537 :                 (void) zap_entry_read_name(zn-&gt;zn_zap, &amp;zeh, rn_len, realname);</span>
+<span class="lineNum">     812 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 67540 times"> + </span>]:<span class="lineCov">      67540 :                 if (ncp) {</span>
+<span class="lineNum">     813 </span>                :<span class="lineNoCov">          0 :                         *ncp = zap_entry_normalization_conflict(&amp;zeh,</span>
+<span class="lineNum">     814 </span>                :<span class="lineNoCov">          0 :                             zn, NULL, zn-&gt;zn_zap);</span>
+<span class="lineNum">     815 </span>                :            :                 }
+<span class="lineNum">     816 </span>                :            :         }
+<span class="lineNum">     817 </span>                :            : 
+<span class="lineNum">     818 </span>                :<span class="lineCov">      97824 :         zap_put_leaf(l);</span>
+<span class="lineNum">     819 </span>                :<span class="lineCov">      97826 :         return (err);</span>
+<span class="lineNum">     820 </span>                :            : }
+<a name="821"><span class="lineNum">     821 </span>                :            : </a>
+<span class="lineNum">     822 </span>                :            : int
+<span class="lineNum">     823 </span>                :<span class="lineCov">      33656 : fzap_add_cd(zap_name_t *zn,</span>
+<span class="lineNum">     824 </span>                :            :     uint64_t integer_size, uint64_t num_integers,
+<span class="lineNum">     825 </span>                :            :     const void *val, uint32_t cd, void *tag, dmu_tx_t *tx)
+<span class="lineNum">     826 </span>                :            : {
+<span class="lineNum">     827 </span>                :            :         zap_leaf_t *l;
+<span class="lineNum">     828 </span>                :            :         int err;
+<span class="lineNum">     829 </span>                :            :         zap_entry_handle_t zeh;
+<span class="lineNum">     830 </span>                :<span class="lineCov">      33656 :         zap_t *zap = zn-&gt;zn_zap;</span>
+<span class="lineNum">     831 </span>                :            : 
+<span class="lineNum">     832 </span>[<span class="branchCov" title="Branch 0 was taken 24986 times"> + </span><span class="branchCov" title="Branch 1 was taken 8670 times"> + </span>][<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 24986 times"> + </span>]:<span class="lineCov">      33656 :         ASSERT(RW_LOCK_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">     833 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 33656 times"> + </span>]:<span class="lineCov">      33656 :         ASSERT(!zap-&gt;zap_ismicro);</span>
+<span class="lineNum">     834 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 33657 times"> + </span>]:<span class="lineCov">      33656 :         ASSERT(fzap_check(zn, integer_size, num_integers) == 0);</span>
+<span class="lineNum">     835 </span>                :            : 
+<span class="lineNum">     836 </span>                :<span class="lineCov">      33657 :         err = zap_deref_leaf(zap, zn-&gt;zn_hash, tx, RW_WRITER, &amp;l);</span>
+<span class="lineNum">     837 </span>        [<span class="branchCov" title="Branch 0 was taken 33657 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      33657 :         if (err != 0)</span>
+<span class="lineNum">     838 </span>                :            :                 return (err);
+<span class="lineNum">     839 </span>                :            : retry:
+<span class="lineNum">     840 </span>                :<span class="lineCov">      33836 :         err = zap_leaf_lookup(l, zn, &amp;zeh);</span>
+<span class="lineNum">     841 </span>        [<span class="branchCov" title="Branch 0 was taken 2952 times"> + </span><span class="branchCov" title="Branch 1 was taken 30885 times"> + </span>]:<span class="lineCov">      33837 :         if (err == 0) {</span>
+<span class="lineNum">     842 </span>                :<span class="lineCov">       2952 :                 err = SET_ERROR(EEXIST);</span>
+<span class="lineNum">     843 </span>                :<span class="lineCov">       2952 :                 goto out;</span>
+<span class="lineNum">     844 </span>                :            :         }
+<span class="lineNum">     845 </span>        [<span class="branchCov" title="Branch 0 was taken 30885 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      30885 :         if (err != ENOENT)</span>
+<span class="lineNum">     846 </span>                :            :                 goto out;
+<span class="lineNum">     847 </span>                :            : 
+<span class="lineNum">     848 </span>                :<span class="lineCov">      30885 :         err = zap_entry_create(l, zn, cd,</span>
+<span class="lineNum">     849 </span>                :            :             integer_size, num_integers, val, &amp;zeh);
+<span class="lineNum">     850 </span>                :            : 
+<span class="lineNum">     851 </span>        [<span class="branchCov" title="Branch 0 was taken 30704 times"> + </span><span class="branchCov" title="Branch 1 was taken 179 times"> + </span>]:<span class="lineCov">      30883 :         if (err == 0) {</span>
+<span class="lineNum">     852 </span>                :<span class="lineCov">      30704 :                 zap_increment_num_entries(zap, 1, tx);</span>
+<span class="lineNum">     853 </span>        [<span class="branchCov" title="Branch 0 was taken 179 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        179 :         } else if (err == EAGAIN) {</span>
+<span class="lineNum">     854 </span>                :<span class="lineCov">        179 :                 err = zap_expand_leaf(zn, l, tag, tx, &amp;l);</span>
+<span class="lineNum">     855 </span>                :<span class="lineCov">        179 :                 zap = zn-&gt;zn_zap;    /* zap_expand_leaf() may change zap */</span>
+<span class="lineNum">     856 </span>        [<span class="branchCov" title="Branch 0 was taken 179 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        179 :                 if (err == 0)</span>
+<span class="lineNum">     857 </span>                :            :                         goto retry;
+<span class="lineNum">     858 </span>                :            :         }
+<span class="lineNum">     859 </span>                :            : 
+<span class="lineNum">     860 </span>                :            : out:
+<span class="lineNum">     861 </span>        [<span class="branchCov" title="Branch 0 was taken 33658 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      33658 :         if (zap != NULL)</span>
+<span class="lineNum">     862 </span>                :<span class="lineCov">      33658 :                 zap_put_leaf_maybe_grow_ptrtbl(zn, l, tag, tx);</span>
+<span class="lineNum">     863 </span>                :            :         return (err);
+<span class="lineNum">     864 </span>                :            : }
+<a name="865"><span class="lineNum">     865 </span>                :            : </a>
+<span class="lineNum">     866 </span>                :            : int
+<span class="lineNum">     867 </span>                :<span class="lineCov">       8807 : fzap_add(zap_name_t *zn,</span>
+<span class="lineNum">     868 </span>                :            :     uint64_t integer_size, uint64_t num_integers,
+<span class="lineNum">     869 </span>                :            :     const void *val, void *tag, dmu_tx_t *tx)
+<span class="lineNum">     870 </span>                :            : {
+<span class="lineNum">     871 </span>                :<span class="lineCov">       8807 :         int err = fzap_check(zn, integer_size, num_integers);</span>
+<span class="lineNum">     872 </span>        [<span class="branchCov" title="Branch 0 was taken 8807 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       8807 :         if (err != 0)</span>
+<span class="lineNum">     873 </span>                :            :                 return (err);
+<span class="lineNum">     874 </span>                :            : 
+<span class="lineNum">     875 </span>                :<span class="lineCov">       8807 :         return (fzap_add_cd(zn, integer_size, num_integers,</span>
+<span class="lineNum">     876 </span>                :            :             val, ZAP_NEED_CD, tag, tx));
+<span class="lineNum">     877 </span>                :            : }
+<a name="878"><span class="lineNum">     878 </span>                :            : </a>
+<span class="lineNum">     879 </span>                :            : int
+<span class="lineNum">     880 </span>                :<span class="lineCov">      17673 : fzap_update(zap_name_t *zn,</span>
+<span class="lineNum">     881 </span>                :            :     int integer_size, uint64_t num_integers, const void *val,
+<span class="lineNum">     882 </span>                :            :     void *tag, dmu_tx_t *tx)
+<span class="lineNum">     883 </span>                :            : {
+<span class="lineNum">     884 </span>                :            :         zap_leaf_t *l;
+<span class="lineNum">     885 </span>                :            :         int err, create;
+<span class="lineNum">     886 </span>                :            :         zap_entry_handle_t zeh;
+<span class="lineNum">     887 </span>                :<span class="lineCov">      17673 :         zap_t *zap = zn-&gt;zn_zap;</span>
+<span class="lineNum">     888 </span>                :            : 
+<span class="lineNum">     889 </span>[<span class="branchCov" title="Branch 0 was taken 1734 times"> + </span><span class="branchCov" title="Branch 1 was taken 15939 times"> + </span>][<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 1734 times"> + </span>]:<span class="lineCov">      17673 :         ASSERT(RW_LOCK_HELD(&amp;zap-&gt;zap_rwlock));</span>
+<span class="lineNum">     890 </span>                :<span class="lineCov">      17673 :         err = fzap_check(zn, integer_size, num_integers);</span>
+<span class="lineNum">     891 </span>        [<span class="branchCov" title="Branch 0 was taken 17673 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      17673 :         if (err != 0)</span>
+<span class="lineNum">     892 </span>                :            :                 return (err);
+<span class="lineNum">     893 </span>                :            : 
+<span class="lineNum">     894 </span>                :<span class="lineCov">      17673 :         err = zap_deref_leaf(zap, zn-&gt;zn_hash, tx, RW_WRITER, &amp;l);</span>
+<span class="lineNum">     895 </span>        [<span class="branchCov" title="Branch 0 was taken 17674 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      17674 :         if (err != 0)</span>
+<span class="lineNum">     896 </span>                :            :                 return (err);
+<span class="lineNum">     897 </span>                :            : retry:
+<span class="lineNum">     898 </span>                :<span class="lineCov">      17732 :         err = zap_leaf_lookup(l, zn, &amp;zeh);</span>
+<span class="lineNum">     899 </span>                :<span class="lineCov">      17732 :         create = (err == ENOENT);</span>
+<span class="lineNum">     900 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 17732 times"> + </span>]:<span class="lineCov">      17732 :         ASSERT(err == 0 || err == ENOENT);</span>
+<span class="lineNum">     901 </span>                :            : 
+<span class="lineNum">     902 </span>        [<span class="branchCov" title="Branch 0 was taken 13185 times"> + </span><span class="branchCov" title="Branch 1 was taken 4547 times"> + </span>]:<span class="lineCov">      17732 :         if (create) {</span>
+<span class="lineNum">     903 </span>                :<span class="lineCov">      13185 :                 err = zap_entry_create(l, zn, ZAP_NEED_CD,</span>
+<span class="lineNum">     904 </span>                :            :                     integer_size, num_integers, val, &amp;zeh);
+<span class="lineNum">     905 </span>        [<span class="branchCov" title="Branch 0 was taken 13127 times"> + </span><span class="branchCov" title="Branch 1 was taken 58 times"> + </span>]:<span class="lineCov">      13185 :                 if (err == 0)</span>
+<span class="lineNum">     906 </span>                :<span class="lineCov">      13127 :                         zap_increment_num_entries(zap, 1, tx);</span>
+<span class="lineNum">     907 </span>                :            :         } else {
+<span class="lineNum">     908 </span>                :<span class="lineCov">       4547 :                 err = zap_entry_update(&amp;zeh, integer_size, num_integers, val);</span>
+<span class="lineNum">     909 </span>                :            :         }
+<span class="lineNum">     910 </span>                :            : 
+<span class="lineNum">     911 </span>        [<span class="branchCov" title="Branch 0 was taken 58 times"> + </span><span class="branchCov" title="Branch 1 was taken 17674 times"> + </span>]:<span class="lineCov">      17732 :         if (err == EAGAIN) {</span>
+<span class="lineNum">     912 </span>                :<span class="lineCov">         58 :                 err = zap_expand_leaf(zn, l, tag, tx, &amp;l);</span>
+<span class="lineNum">     913 </span>                :<span class="lineCov">         58 :                 zap = zn-&gt;zn_zap;    /* zap_expand_leaf() may change zap */</span>
+<span class="lineNum">     914 </span>        [<span class="branchCov" title="Branch 0 was taken 58 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         58 :                 if (err == 0)</span>
+<span class="lineNum">     915 </span>                :            :                         goto retry;
+<span class="lineNum">     916 </span>                :            :         }
+<span class="lineNum">     917 </span>                :            : 
+<span class="lineNum">     918 </span>        [<span class="branchCov" title="Branch 0 was taken 17674 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      17674 :         if (zap != NULL)</span>
+<span class="lineNum">     919 </span>                :<span class="lineCov">      17674 :                 zap_put_leaf_maybe_grow_ptrtbl(zn, l, tag, tx);</span>
+<span class="lineNum">     920 </span>                :            :         return (err);
+<span class="lineNum">     921 </span>                :            : }
+<a name="922"><span class="lineNum">     922 </span>                :            : </a>
+<span class="lineNum">     923 </span>                :            : int
+<span class="lineNum">     924 </span>                :<span class="lineCov">      69857 : fzap_length(zap_name_t *zn,</span>
+<span class="lineNum">     925 </span>                :            :     uint64_t *integer_size, uint64_t *num_integers)
+<span class="lineNum">     926 </span>                :            : {
+<span class="lineNum">     927 </span>                :            :         zap_leaf_t *l;
+<span class="lineNum">     928 </span>                :            :         int err;
+<span class="lineNum">     929 </span>                :            :         zap_entry_handle_t zeh;
+<span class="lineNum">     930 </span>                :            : 
+<span class="lineNum">     931 </span>                :<span class="lineCov">      69857 :         err = zap_deref_leaf(zn-&gt;zn_zap, zn-&gt;zn_hash, NULL, RW_READER, &amp;l);</span>
+<span class="lineNum">     932 </span>        [<span class="branchCov" title="Branch 0 was taken 69852 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">      69853 :         if (err != 0)</span>
+<span class="lineNum">     933 </span>                :            :                 return (err);
+<span class="lineNum">     934 </span>                :<span class="lineCov">      69852 :         err = zap_leaf_lookup(l, zn, &amp;zeh);</span>
+<span class="lineNum">     935 </span>        [<span class="branchCov" title="Branch 0 was taken 47659 times"> + </span><span class="branchCov" title="Branch 1 was taken 22184 times"> + </span>]:<span class="lineCov">      69843 :         if (err != 0)</span>
+<span class="lineNum">     936 </span>                :            :                 goto out;
+<span class="lineNum">     937 </span>                :            : 
+<span class="lineNum">     938 </span>        [<span class="branchCov" title="Branch 0 was taken 47659 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      47659 :         if (integer_size)</span>
+<span class="lineNum">     939 </span>                :<span class="lineCov">      47659 :                 *integer_size = zeh.zeh_integer_size;</span>
+<span class="lineNum">     940 </span>           [<span class="branchCov" title="Branch 0 was taken 47660 times"> + </span>]:<span class="lineCov">      47659 :         if (num_integers)</span>
+<span class="lineNum">     941 </span>                :<span class="lineCov">      47660 :                 *num_integers = zeh.zeh_num_integers;</span>
+<span class="lineNum">     942 </span>                :            : out:
+<span class="lineNum">     943 </span>                :<span class="lineCov">      69843 :         zap_put_leaf(l);</span>
+<span class="lineNum">     944 </span>                :<span class="lineCov">      69858 :         return (err);</span>
+<span class="lineNum">     945 </span>                :            : }
+<a name="946"><span class="lineNum">     946 </span>                :            : </a>
+<span class="lineNum">     947 </span>                :            : int
+<span class="lineNum">     948 </span>                :<span class="lineCov">       9048 : fzap_remove(zap_name_t *zn, dmu_tx_t *tx)</span>
+<span class="lineNum">     949 </span>                :            : {
+<span class="lineNum">     950 </span>                :            :         zap_leaf_t *l;
+<span class="lineNum">     951 </span>                :            :         int err;
+<span class="lineNum">     952 </span>                :            :         zap_entry_handle_t zeh;
+<span class="lineNum">     953 </span>                :            : 
+<span class="lineNum">     954 </span>                :<span class="lineCov">       9048 :         err = zap_deref_leaf(zn-&gt;zn_zap, zn-&gt;zn_hash, tx, RW_WRITER, &amp;l);</span>
+<span class="lineNum">     955 </span>        [<span class="branchCov" title="Branch 0 was taken 9048 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       9048 :         if (err != 0)</span>
+<span class="lineNum">     956 </span>                :            :                 return (err);
+<span class="lineNum">     957 </span>                :<span class="lineCov">       9048 :         err = zap_leaf_lookup(l, zn, &amp;zeh);</span>
+<span class="lineNum">     958 </span>        [<span class="branchCov" title="Branch 0 was taken 5999 times"> + </span><span class="branchCov" title="Branch 1 was taken 3049 times"> + </span>]:<span class="lineCov">       9048 :         if (err == 0) {</span>
+<span class="lineNum">     959 </span>                :<span class="lineCov">       5999 :                 zap_entry_remove(&amp;zeh);</span>
+<span class="lineNum">     960 </span>                :<span class="lineCov">       5999 :                 zap_increment_num_entries(zn-&gt;zn_zap, -1, tx);</span>
+<span class="lineNum">     961 </span>                :            :         }
+<span class="lineNum">     962 </span>                :<span class="lineCov">       9048 :         zap_put_leaf(l);</span>
+<span class="lineNum">     963 </span>                :<span class="lineCov">       9048 :         return (err);</span>
+<span class="lineNum">     964 </span>                :            : }
+<a name="965"><span class="lineNum">     965 </span>                :            : </a>
+<span class="lineNum">     966 </span>                :            : void
+<span class="lineNum">     967 </span>                :<span class="lineNoCov">          0 : fzap_prefetch(zap_name_t *zn)</span>
+<span class="lineNum">     968 </span>                :            : {
+<span class="lineNum">     969 </span>                :            :         uint64_t idx, blk;
+<span class="lineNum">     970 </span>                :<span class="lineNoCov">          0 :         zap_t *zap = zn-&gt;zn_zap;</span>
+<span class="lineNum">     971 </span>                :            :         int bs;
+<span class="lineNum">     972 </span>                :            : 
+<span class="lineNum">     973 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         idx = ZAP_HASH_IDX(zn-&gt;zn_hash,</span>
+<span class="lineNum">     974 </span>                :            :             zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift);
+<span class="lineNum">     975 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (zap_idx_to_blk(zap, idx, &amp;blk) != 0)</span>
+<span class="lineNum">     976 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     977 </span>                :<span class="lineNoCov">          0 :         bs = FZAP_BLOCK_SHIFT(zap);</span>
+<span class="lineNum">     978 </span>                :<span class="lineNoCov">          0 :         dmu_prefetch(zap-&gt;zap_objset, zap-&gt;zap_object, 0, blk &lt;&lt; bs, 1 &lt;&lt; bs,</span>
+<span class="lineNum">     979 </span>                :            :             ZIO_PRIORITY_SYNC_READ);
+<span class="lineNum">     980 </span>                :            : }
+<span class="lineNum">     981 </span>                :            : 
+<span class="lineNum">     982 </span>                :            : /*
+<span class="lineNum">     983 </span>                :            :  * Helper functions for consumers.
+<span class="lineNum">     984 </span>                :            :  */
+<a name="985"><span class="lineNum">     985 </span>                :            : </a>
+<span class="lineNum">     986 </span>                :            : uint64_t
+<span class="lineNum">     987 </span>                :<span class="lineCov">        292 : zap_create_link(objset_t *os, dmu_object_type_t ot, uint64_t parent_obj,</span>
+<span class="lineNum">     988 </span>                :            :     const char *name, dmu_tx_t *tx)
+<span class="lineNum">     989 </span>                :            : {
+<span class="lineNum">     990 </span>                :<span class="lineCov">        292 :         return (zap_create_link_dnsize(os, ot, parent_obj, name, 0, tx));</span>
+<span class="lineNum">     991 </span>                :            : }
+<a name="992"><span class="lineNum">     992 </span>                :            : </a>
+<span class="lineNum">     993 </span>                :            : uint64_t
+<span class="lineNum">     994 </span>                :<span class="lineCov">        292 : zap_create_link_dnsize(objset_t *os, dmu_object_type_t ot, uint64_t parent_obj,</span>
+<span class="lineNum">     995 </span>                :            :     const char *name, int dnodesize, dmu_tx_t *tx)
+<span class="lineNum">     996 </span>                :            : {
+<span class="lineNum">     997 </span>                :            :         uint64_t new_obj;
+<span class="lineNum">     998 </span>                :            : 
+<span class="lineNum">     999 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 292 times"> + </span>]:<span class="lineCov">        292 :         VERIFY((new_obj = zap_create_dnsize(os, ot, DMU_OT_NONE, 0,</span>
+<span class="lineNum">    1000 </span>                :            :             dnodesize, tx)) &gt; 0);
+<span class="lineNum">    1001 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 292 times"> + </span>]:<span class="lineCov">        292 :         VERIFY0(zap_add(os, parent_obj, name, sizeof (uint64_t), 1, &amp;new_obj,</span>
+<span class="lineNum">    1002 </span>                :            :             tx));
+<span class="lineNum">    1003 </span>                :            : 
+<span class="lineNum">    1004 </span>                :<span class="lineCov">        292 :         return (new_obj);</span>
+<span class="lineNum">    1005 </span>                :            : }
+<a name="1006"><span class="lineNum">    1006 </span>                :            : </a>
+<span class="lineNum">    1007 </span>                :            : int
+<span class="lineNum">    1008 </span>                :<span class="lineCov">      22927 : zap_value_search(objset_t *os, uint64_t zapobj, uint64_t value, uint64_t mask,</span>
+<span class="lineNum">    1009 </span>                :            :     char *name)
+<span class="lineNum">    1010 </span>                :            : {
+<span class="lineNum">    1011 </span>                :            :         zap_cursor_t zc;
+<span class="lineNum">    1012 </span>                :            :         zap_attribute_t *za;
+<span class="lineNum">    1013 </span>                :            :         int err;
+<span class="lineNum">    1014 </span>                :            : 
+<span class="lineNum">    1015 </span>        [<span class="branchCov" title="Branch 0 was taken 22909 times"> + </span><span class="branchCov" title="Branch 1 was taken 18 times"> + </span>]:<span class="lineCov">      22927 :         if (mask == 0)</span>
+<span class="lineNum">    1016 </span>                :<span class="lineCov">      22909 :                 mask = -1ULL;</span>
+<span class="lineNum">    1017 </span>                :            : 
+<span class="lineNum">    1018 </span>                :<span class="lineCov">      22927 :         za = kmem_alloc(sizeof (zap_attribute_t), KM_SLEEP);</span>
+<span class="lineNum">    1019 </span>        [<span class="branchCov" title="Branch 2 was taken 110389 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">     110389 :         for (zap_cursor_init(&amp;zc, os, zapobj);</span>
+<span class="lineNum">    1020 </span>                :            :             (err = zap_cursor_retrieve(&amp;zc, za)) == 0;
+<span class="lineNum">    1021 </span>                :<span class="lineCov">      87462 :             zap_cursor_advance(&amp;zc)) {</span>
+<span class="lineNum">    1022 </span>        [<span class="branchCov" title="Branch 0 was taken 22927 times"> + </span><span class="branchCov" title="Branch 1 was taken 87462 times"> + </span>]:<span class="lineCov">     110389 :                 if ((za-&gt;za_first_integer &amp; mask) == (value &amp; mask)) {</span>
+<span class="lineNum">    1023 </span>                :<span class="lineCov">      22927 :                         (void) strcpy(name, za-&gt;za_name);</span>
+<span class="lineNum">    1024 </span>                :            :                         break;
+<span class="lineNum">    1025 </span>                :            :                 }
+<span class="lineNum">    1026 </span>                :            :         }
+<span class="lineNum">    1027 </span>                :<span class="lineCov">      22927 :         zap_cursor_fini(&amp;zc);</span>
+<span class="lineNum">    1028 </span>                :<span class="lineCov">      22927 :         kmem_free(za, sizeof (zap_attribute_t));</span>
+<span class="lineNum">    1029 </span>                :<span class="lineCov">      22927 :         return (err);</span>
+<span class="lineNum">    1030 </span>                :            : }
+<a name="1031"><span class="lineNum">    1031 </span>                :            : </a>
+<span class="lineNum">    1032 </span>                :            : int
+<span class="lineNum">    1033 </span>                :<span class="lineNoCov">          0 : zap_join(objset_t *os, uint64_t fromobj, uint64_t intoobj, dmu_tx_t *tx)</span>
+<span class="lineNum">    1034 </span>                :            : {
+<span class="lineNum">    1035 </span>                :            :         zap_cursor_t zc;
+<span class="lineNum">    1036 </span>                :            :         zap_attribute_t za;
+<span class="lineNum">    1037 </span>                :            :         int err;
+<span class="lineNum">    1038 </span>                :            : 
+<span class="lineNum">    1039 </span>                :<span class="lineNoCov">          0 :         err = 0;</span>
+<span class="lineNum">    1040 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (zap_cursor_init(&amp;zc, os, fromobj);</span>
+<span class="lineNum">    1041 </span>                :<span class="lineNoCov">          0 :             zap_cursor_retrieve(&amp;zc, &amp;za) == 0;</span>
+<span class="lineNum">    1042 </span>                :<span class="lineNoCov">          0 :             (void) zap_cursor_advance(&amp;zc)) {</span>
+<span class="lineNum">    1043 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (za.za_integer_length != 8 || za.za_num_integers != 1) {</span>
+<span class="lineNum">    1044 </span>                :<span class="lineNoCov">          0 :                         err = SET_ERROR(EINVAL);</span>
+<span class="lineNum">    1045 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">    1046 </span>                :            :                 }
+<span class="lineNum">    1047 </span>                :<span class="lineNoCov">          0 :                 err = zap_add(os, intoobj, za.za_name,</span>
+<span class="lineNum">    1048 </span>                :            :                     8, 1, &amp;za.za_first_integer, tx);
+<span class="lineNum">    1049 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (err)</span>
+<span class="lineNum">    1050 </span>                :            :                         break;
+<span class="lineNum">    1051 </span>                :            :         }
+<span class="lineNum">    1052 </span>                :<span class="lineNoCov">          0 :         zap_cursor_fini(&amp;zc);</span>
+<span class="lineNum">    1053 </span>                :<span class="lineNoCov">          0 :         return (err);</span>
+<span class="lineNum">    1054 </span>                :            : }
+<a name="1055"><span class="lineNum">    1055 </span>                :            : </a>
+<span class="lineNum">    1056 </span>                :            : int
+<span class="lineNum">    1057 </span>                :<span class="lineCov">         66 : zap_join_key(objset_t *os, uint64_t fromobj, uint64_t intoobj,</span>
+<span class="lineNum">    1058 </span>                :            :     uint64_t value, dmu_tx_t *tx)
+<span class="lineNum">    1059 </span>                :            : {
+<span class="lineNum">    1060 </span>                :            :         zap_cursor_t zc;
+<span class="lineNum">    1061 </span>                :            :         zap_attribute_t za;
+<span class="lineNum">    1062 </span>                :            :         int err;
+<span class="lineNum">    1063 </span>                :            : 
+<span class="lineNum">    1064 </span>                :<span class="lineCov">         66 :         err = 0;</span>
+<span class="lineNum">    1065 </span>        [<span class="branchCov" title="Branch 1 was taken 835 times"> + </span><span class="branchCov" title="Branch 2 was taken 66 times"> + </span>]:<span class="lineCov">        967 :         for (zap_cursor_init(&amp;zc, os, fromobj);</span>
+<span class="lineNum">    1066 </span>                :<span class="lineCov">        901 :             zap_cursor_retrieve(&amp;zc, &amp;za) == 0;</span>
+<span class="lineNum">    1067 </span>                :<span class="lineCov">        835 :             (void) zap_cursor_advance(&amp;zc)) {</span>
+<span class="lineNum">    1068 </span>[<span class="branchCov" title="Branch 0 was taken 835 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 835 times"> + </span>]:<span class="lineCov">        835 :                 if (za.za_integer_length != 8 || za.za_num_integers != 1) {</span>
+<span class="lineNum">    1069 </span>                :<span class="lineNoCov">          0 :                         err = SET_ERROR(EINVAL);</span>
+<span class="lineNum">    1070 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">    1071 </span>                :            :                 }
+<span class="lineNum">    1072 </span>                :<span class="lineCov">        835 :                 err = zap_add(os, intoobj, za.za_name,</span>
+<span class="lineNum">    1073 </span>                :            :                     8, 1, &amp;value, tx);
+<span class="lineNum">    1074 </span>        [<span class="branchCov" title="Branch 0 was taken 835 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        835 :                 if (err)</span>
+<span class="lineNum">    1075 </span>                :            :                         break;
+<span class="lineNum">    1076 </span>                :            :         }
+<span class="lineNum">    1077 </span>                :<span class="lineCov">         66 :         zap_cursor_fini(&amp;zc);</span>
+<span class="lineNum">    1078 </span>                :<span class="lineCov">         66 :         return (err);</span>
+<span class="lineNum">    1079 </span>                :            : }
+<a name="1080"><span class="lineNum">    1080 </span>                :            : </a>
+<span class="lineNum">    1081 </span>                :            : int
+<span class="lineNum">    1082 </span>                :<span class="lineNoCov">          0 : zap_join_increment(objset_t *os, uint64_t fromobj, uint64_t intoobj,</span>
+<span class="lineNum">    1083 </span>                :            :     dmu_tx_t *tx)
+<span class="lineNum">    1084 </span>                :            : {
+<span class="lineNum">    1085 </span>                :            :         zap_cursor_t zc;
+<span class="lineNum">    1086 </span>                :            :         zap_attribute_t za;
+<span class="lineNum">    1087 </span>                :            :         int err;
+<span class="lineNum">    1088 </span>                :            : 
+<span class="lineNum">    1089 </span>                :<span class="lineNoCov">          0 :         err = 0;</span>
+<span class="lineNum">    1090 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (zap_cursor_init(&amp;zc, os, fromobj);</span>
+<span class="lineNum">    1091 </span>                :<span class="lineNoCov">          0 :             zap_cursor_retrieve(&amp;zc, &amp;za) == 0;</span>
+<span class="lineNum">    1092 </span>                :<span class="lineNoCov">          0 :             (void) zap_cursor_advance(&amp;zc)) {</span>
+<span class="lineNum">    1093 </span>                :<span class="lineNoCov">          0 :                 uint64_t delta = 0;</span>
+<span class="lineNum">    1094 </span>                :            : 
+<span class="lineNum">    1095 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (za.za_integer_length != 8 || za.za_num_integers != 1) {</span>
+<span class="lineNum">    1096 </span>                :<span class="lineNoCov">          0 :                         err = SET_ERROR(EINVAL);</span>
+<span class="lineNum">    1097 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">    1098 </span>                :            :                 }
+<span class="lineNum">    1099 </span>                :            : 
+<span class="lineNum">    1100 </span>                :<span class="lineNoCov">          0 :                 err = zap_lookup(os, intoobj, za.za_name, 8, 1, &amp;delta);</span>
+<span class="lineNum">    1101 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (err != 0 &amp;&amp; err != ENOENT)</span>
+<span class="lineNum">    1102 </span>                :            :                         break;
+<span class="lineNum">    1103 </span>                :<span class="lineNoCov">          0 :                 delta += za.za_first_integer;</span>
+<span class="lineNum">    1104 </span>                :<span class="lineNoCov">          0 :                 err = zap_update(os, intoobj, za.za_name, 8, 1, &amp;delta, tx);</span>
+<span class="lineNum">    1105 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (err)</span>
+<span class="lineNum">    1106 </span>                :            :                         break;
+<span class="lineNum">    1107 </span>                :            :         }
+<span class="lineNum">    1108 </span>                :<span class="lineNoCov">          0 :         zap_cursor_fini(&amp;zc);</span>
+<span class="lineNum">    1109 </span>                :<span class="lineNoCov">          0 :         return (err);</span>
+<span class="lineNum">    1110 </span>                :            : }
+<a name="1111"><span class="lineNum">    1111 </span>                :            : </a>
+<span class="lineNum">    1112 </span>                :            : int
+<span class="lineNum">    1113 </span>                :<span class="lineCov">       1695 : zap_add_int(objset_t *os, uint64_t obj, uint64_t value, dmu_tx_t *tx)</span>
+<span class="lineNum">    1114 </span>                :            : {
+<span class="lineNum">    1115 </span>                :            :         char name[20];
+<span class="lineNum">    1116 </span>                :            : 
+<span class="lineNum">    1117 </span>                :<span class="lineCov">       3390 :         (void) snprintf(name, sizeof (name), &quot;%llx&quot;, (longlong_t)value);</span>
+<span class="lineNum">    1118 </span>                :<span class="lineCov">       1695 :         return (zap_add(os, obj, name, 8, 1, &amp;value, tx));</span>
+<span class="lineNum">    1119 </span>                :            : }
+<a name="1120"><span class="lineNum">    1120 </span>                :            : </a>
+<span class="lineNum">    1121 </span>                :            : int
+<span class="lineNum">    1122 </span>                :<span class="lineCov">       2199 : zap_remove_int(objset_t *os, uint64_t obj, uint64_t value, dmu_tx_t *tx)</span>
+<span class="lineNum">    1123 </span>                :            : {
+<span class="lineNum">    1124 </span>                :            :         char name[20];
+<span class="lineNum">    1125 </span>                :            : 
+<span class="lineNum">    1126 </span>                :<span class="lineCov">       4398 :         (void) snprintf(name, sizeof (name), &quot;%llx&quot;, (longlong_t)value);</span>
+<span class="lineNum">    1127 </span>                :<span class="lineCov">       2199 :         return (zap_remove(os, obj, name, tx));</span>
+<span class="lineNum">    1128 </span>                :            : }
+<a name="1129"><span class="lineNum">    1129 </span>                :            : </a>
+<span class="lineNum">    1130 </span>                :            : int
+<span class="lineNum">    1131 </span>                :<span class="lineCov">       4481 : zap_lookup_int(objset_t *os, uint64_t obj, uint64_t value)</span>
+<span class="lineNum">    1132 </span>                :            : {
+<span class="lineNum">    1133 </span>                :            :         char name[20];
+<span class="lineNum">    1134 </span>                :            : 
+<span class="lineNum">    1135 </span>                :<span class="lineCov">       8962 :         (void) snprintf(name, sizeof (name), &quot;%llx&quot;, (longlong_t)value);</span>
+<span class="lineNum">    1136 </span>                :<span class="lineCov">       4481 :         return (zap_lookup(os, obj, name, 8, 1, &amp;value));</span>
+<span class="lineNum">    1137 </span>                :            : }
+<a name="1138"><span class="lineNum">    1138 </span>                :            : </a>
+<span class="lineNum">    1139 </span>                :            : int
+<span class="lineNum">    1140 </span>                :<span class="lineCov">       1828 : zap_add_int_key(objset_t *os, uint64_t obj,</span>
+<span class="lineNum">    1141 </span>                :            :     uint64_t key, uint64_t value, dmu_tx_t *tx)
+<span class="lineNum">    1142 </span>                :            : {
+<span class="lineNum">    1143 </span>                :            :         char name[20];
+<span class="lineNum">    1144 </span>                :            : 
+<span class="lineNum">    1145 </span>                :<span class="lineCov">       3656 :         (void) snprintf(name, sizeof (name), &quot;%llx&quot;, (longlong_t)key);</span>
+<span class="lineNum">    1146 </span>                :<span class="lineCov">       1828 :         return (zap_add(os, obj, name, 8, 1, &amp;value, tx));</span>
+<span class="lineNum">    1147 </span>                :            : }
+<a name="1148"><span class="lineNum">    1148 </span>                :            : </a>
+<span class="lineNum">    1149 </span>                :            : int
+<span class="lineNum">    1150 </span>                :<span class="lineCov">        494 : zap_update_int_key(objset_t *os, uint64_t obj,</span>
+<span class="lineNum">    1151 </span>                :            :     uint64_t key, uint64_t value, dmu_tx_t *tx)
+<span class="lineNum">    1152 </span>                :            : {
+<span class="lineNum">    1153 </span>                :            :         char name[20];
+<span class="lineNum">    1154 </span>                :            : 
+<span class="lineNum">    1155 </span>                :<span class="lineCov">        988 :         (void) snprintf(name, sizeof (name), &quot;%llx&quot;, (longlong_t)key);</span>
+<span class="lineNum">    1156 </span>                :<span class="lineCov">        494 :         return (zap_update(os, obj, name, 8, 1, &amp;value, tx));</span>
+<span class="lineNum">    1157 </span>                :            : }
+<a name="1158"><span class="lineNum">    1158 </span>                :            : </a>
+<span class="lineNum">    1159 </span>                :            : int
+<span class="lineNum">    1160 </span>                :<span class="lineCov">          5 : zap_lookup_int_key(objset_t *os, uint64_t obj, uint64_t key, uint64_t *valuep)</span>
+<span class="lineNum">    1161 </span>                :            : {
+<span class="lineNum">    1162 </span>                :            :         char name[20];
+<span class="lineNum">    1163 </span>                :            : 
+<span class="lineNum">    1164 </span>                :<span class="lineCov">         10 :         (void) snprintf(name, sizeof (name), &quot;%llx&quot;, (longlong_t)key);</span>
+<span class="lineNum">    1165 </span>                :<span class="lineCov">          5 :         return (zap_lookup(os, obj, name, 8, 1, valuep));</span>
+<span class="lineNum">    1166 </span>                :            : }
+<a name="1167"><span class="lineNum">    1167 </span>                :            : </a>
+<span class="lineNum">    1168 </span>                :            : int
+<span class="lineNum">    1169 </span>                :<span class="lineNoCov">          0 : zap_increment(objset_t *os, uint64_t obj, const char *name, int64_t delta,</span>
+<span class="lineNum">    1170 </span>                :            :     dmu_tx_t *tx)
+<span class="lineNum">    1171 </span>                :            : {
+<span class="lineNum">    1172 </span>                :<span class="lineNoCov">          0 :         uint64_t value = 0;</span>
+<span class="lineNum">    1173 </span>                :            :         int err;
+<span class="lineNum">    1174 </span>                :            : 
+<span class="lineNum">    1175 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (delta == 0)</span>
+<span class="lineNum">    1176 </span>                :            :                 return (0);
+<span class="lineNum">    1177 </span>                :            : 
+<span class="lineNum">    1178 </span>                :<span class="lineNoCov">          0 :         err = zap_lookup(os, obj, name, 8, 1, &amp;value);</span>
+<span class="lineNum">    1179 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (err != 0 &amp;&amp; err != ENOENT)</span>
+<span class="lineNum">    1180 </span>                :            :                 return (err);
+<span class="lineNum">    1181 </span>                :<span class="lineNoCov">          0 :         value += delta;</span>
+<span class="lineNum">    1182 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (value == 0)</span>
+<span class="lineNum">    1183 </span>                :<span class="lineNoCov">          0 :                 err = zap_remove(os, obj, name, tx);</span>
+<span class="lineNum">    1184 </span>                :            :         else
+<span class="lineNum">    1185 </span>                :<span class="lineNoCov">          0 :                 err = zap_update(os, obj, name, 8, 1, &amp;value, tx);</span>
+<span class="lineNum">    1186 </span>                :            :         return (err);
+<span class="lineNum">    1187 </span>                :            : }
+<a name="1188"><span class="lineNum">    1188 </span>                :            : </a>
+<span class="lineNum">    1189 </span>                :            : int
+<span class="lineNum">    1190 </span>                :<span class="lineNoCov">          0 : zap_increment_int(objset_t *os, uint64_t obj, uint64_t key, int64_t delta,</span>
+<span class="lineNum">    1191 </span>                :            :     dmu_tx_t *tx)
+<span class="lineNum">    1192 </span>                :            : {
+<span class="lineNum">    1193 </span>                :            :         char name[20];
+<span class="lineNum">    1194 </span>                :            : 
+<span class="lineNum">    1195 </span>                :<span class="lineNoCov">          0 :         (void) snprintf(name, sizeof (name), &quot;%llx&quot;, (longlong_t)key);</span>
+<span class="lineNum">    1196 </span>                :<span class="lineNoCov">          0 :         return (zap_increment(os, obj, name, delta, tx));</span>
+<span class="lineNum">    1197 </span>                :            : }
+<span class="lineNum">    1198 </span>                :            : 
+<span class="lineNum">    1199 </span>                :            : /*
+<span class="lineNum">    1200 </span>                :            :  * Routines for iterating over the attributes.
+<span class="lineNum">    1201 </span>                :            :  */
+<a name="1202"><span class="lineNum">    1202 </span>                :            : </a>
+<span class="lineNum">    1203 </span>                :            : int
+<span class="lineNum">    1204 </span>                :<span class="lineCov">        744 : fzap_cursor_retrieve(zap_t *zap, zap_cursor_t *zc, zap_attribute_t *za)</span>
+<span class="lineNum">    1205 </span>                :            : {
+<span class="lineNum">    1206 </span>                :<span class="lineCov">        744 :         int err = ENOENT;</span>
+<span class="lineNum">    1207 </span>                :            :         zap_entry_handle_t zeh;
+<span class="lineNum">    1208 </span>                :            :         zap_leaf_t *l;
+<span class="lineNum">    1209 </span>                :            : 
+<span class="lineNum">    1210 </span>                :            :         /* retrieve the next entry at or after zc_hash/zc_cd */
+<span class="lineNum">    1211 </span>                :            :         /* if no entry, return ENOENT */
+<span class="lineNum">    1212 </span>                :            : 
+<span class="lineNum">    1213 </span>[<span class="branchCov" title="Branch 0 was taken 89 times"> + </span><span class="branchCov" title="Branch 1 was taken 655 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 89 times"> + </span>]:<span class="lineCov">        833 :         if (zc-&gt;zc_leaf &amp;&amp;</span>
+<span class="lineNum">    1214 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 89 times"> + </span>]:<span class="lineCov">         89 :             (ZAP_HASH_IDX(zc-&gt;zc_hash,</span>
+<span class="lineNum">    1215 </span>                :            :             zap_leaf_phys(zc-&gt;zc_leaf)-&gt;l_hdr.lh_prefix_len) !=
+<span class="lineNum">    1216 </span>                :<span class="lineCov">         89 :             zap_leaf_phys(zc-&gt;zc_leaf)-&gt;l_hdr.lh_prefix)) {</span>
+<span class="lineNum">    1217 </span>                :<span class="lineNoCov">          0 :                 rw_enter(&amp;zc-&gt;zc_leaf-&gt;l_rwlock, RW_READER);</span>
+<span class="lineNum">    1218 </span>                :<span class="lineNoCov">          0 :                 zap_put_leaf(zc-&gt;zc_leaf);</span>
+<span class="lineNum">    1219 </span>                :<span class="lineCov">        744 :                 zc-&gt;zc_leaf = NULL;</span>
+<span class="lineNum">    1220 </span>                :            :         }
+<span class="lineNum">    1221 </span>                :            : 
+<span class="lineNum">    1222 </span>                :            : again:
+<span class="lineNum">    1223 </span>        [<span class="branchCov" title="Branch 0 was taken 655 times"> + </span><span class="branchCov" title="Branch 1 was taken 89 times"> + </span>]:<span class="lineCov">        744 :         if (zc-&gt;zc_leaf == NULL) {</span>
+<span class="lineNum">    1224 </span>                :<span class="lineCov">        655 :                 err = zap_deref_leaf(zap, zc-&gt;zc_hash, NULL, RW_READER,</span>
+<span class="lineNum">    1225 </span>                :<span class="lineCov">        655 :                     &amp;zc-&gt;zc_leaf);</span>
+<span class="lineNum">    1226 </span>        [<span class="branchCov" title="Branch 0 was taken 655 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        655 :                 if (err != 0)</span>
+<span class="lineNum">    1227 </span>                :            :                         return (err);
+<span class="lineNum">    1228 </span>                :            :         } else {
+<span class="lineNum">    1229 </span>                :<span class="lineCov">         89 :                 rw_enter(&amp;zc-&gt;zc_leaf-&gt;l_rwlock, RW_READER);</span>
+<span class="lineNum">    1230 </span>                :            :         }
+<span class="lineNum">    1231 </span>                :<span class="lineCov">        744 :         l = zc-&gt;zc_leaf;</span>
+<span class="lineNum">    1232 </span>                :            : 
+<span class="lineNum">    1233 </span>                :<span class="lineCov">        744 :         err = zap_leaf_lookup_closest(l, zc-&gt;zc_hash, zc-&gt;zc_cd, &amp;zeh);</span>
+<span class="lineNum">    1234 </span>                :            : 
+<span class="lineNum">    1235 </span>        [<span class="branchCov" title="Branch 0 was taken 245 times"> + </span><span class="branchCov" title="Branch 1 was taken 499 times"> + </span>]:<span class="lineCov">        744 :         if (err == ENOENT) {</span>
+<span class="lineNum">    1236 </span>        [<span class="branchCov" title="Branch 1 was taken 245 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        245 :                 if (zap_leaf_phys(l)-&gt;l_hdr.lh_prefix_len == 0) {</span>
+<span class="lineNum">    1237 </span>                :<span class="lineCov">        245 :                         zc-&gt;zc_hash = -1ULL;</span>
+<span class="lineNum">    1238 </span>                :<span class="lineCov">        245 :                         zc-&gt;zc_cd = 0;</span>
+<span class="lineNum">    1239 </span>                :            :                 } else {
+<span class="lineNum">    1240 </span>                :<span class="lineNoCov">          0 :                         uint64_t nocare = (1ULL &lt;&lt;</span>
+<span class="lineNum">    1241 </span>                :<span class="lineNoCov">          0 :                             (64 - zap_leaf_phys(l)-&gt;l_hdr.lh_prefix_len)) - 1;</span>
+<span class="lineNum">    1242 </span>                :            : 
+<span class="lineNum">    1243 </span>                :<span class="lineNoCov">          0 :                         zc-&gt;zc_hash = (zc-&gt;zc_hash &amp; ~nocare) + nocare + 1;</span>
+<span class="lineNum">    1244 </span>                :<span class="lineNoCov">          0 :                         zc-&gt;zc_cd = 0;</span>
+<span class="lineNum">    1245 </span>                :            : 
+<span class="lineNum">    1246 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (zc-&gt;zc_hash == 0) {</span>
+<span class="lineNum">    1247 </span>                :<span class="lineNoCov">          0 :                                 zc-&gt;zc_hash = -1ULL;</span>
+<span class="lineNum">    1248 </span>                :            :                         } else {
+<span class="lineNum">    1249 </span>                :<span class="lineNoCov">          0 :                                 zap_put_leaf(zc-&gt;zc_leaf);</span>
+<span class="lineNum">    1250 </span>                :<span class="lineNoCov">          0 :                                 zc-&gt;zc_leaf = NULL;</span>
+<span class="lineNum">    1251 </span>                :<span class="lineNoCov">          0 :                                 goto again;</span>
+<span class="lineNum">    1252 </span>                :            :                         }
+<span class="lineNum">    1253 </span>                :            :                 }
+<span class="lineNum">    1254 </span>                :            :         }
+<span class="lineNum">    1255 </span>                :            : 
+<span class="lineNum">    1256 </span>        [<span class="branchCov" title="Branch 0 was taken 499 times"> + </span><span class="branchCov" title="Branch 1 was taken 245 times"> + </span>]:<span class="lineCov">        744 :         if (err == 0) {</span>
+<span class="lineNum">    1257 </span>                :<span class="lineCov">        499 :                 zc-&gt;zc_hash = zeh.zeh_hash;</span>
+<span class="lineNum">    1258 </span>                :<span class="lineCov">        499 :                 zc-&gt;zc_cd = zeh.zeh_cd;</span>
+<span class="lineNum">    1259 </span>                :<span class="lineCov">        499 :                 za-&gt;za_integer_length = zeh.zeh_integer_size;</span>
+<span class="lineNum">    1260 </span>                :<span class="lineCov">        499 :                 za-&gt;za_num_integers = zeh.zeh_num_integers;</span>
+<span class="lineNum">    1261 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 499 times"> + </span>]:<span class="lineCov">        499 :                 if (zeh.zeh_num_integers == 0) {</span>
+<span class="lineNum">    1262 </span>                :<span class="lineNoCov">          0 :                         za-&gt;za_first_integer = 0;</span>
+<span class="lineNum">    1263 </span>                :            :                 } else {
+<span class="lineNum">    1264 </span>                :<span class="lineCov">        499 :                         err = zap_entry_read(&amp;zeh, 8, 1, &amp;za-&gt;za_first_integer);</span>
+<span class="lineNum">    1265 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 499 times"> + </span>]:<span class="lineCov">        499 :                         ASSERT(err == 0 || err == EOVERFLOW);</span>
+<span class="lineNum">    1266 </span>                :            :                 }
+<span class="lineNum">    1267 </span>                :<span class="lineCov">        499 :                 err = zap_entry_read_name(zap, &amp;zeh,</span>
+<span class="lineNum">    1268 </span>                :<span class="lineCov">        499 :                     sizeof (za-&gt;za_name), za-&gt;za_name);</span>
+<span class="lineNum">    1269 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 499 times"> + </span>]:<span class="lineCov">        499 :                 ASSERT(err == 0);</span>
+<span class="lineNum">    1270 </span>                :            : 
+<span class="lineNum">    1271 </span>                :<span class="lineCov">        499 :                 za-&gt;za_normalization_conflict =</span>
+<span class="lineNum">    1272 </span>                :<span class="lineCov">        499 :                     zap_entry_normalization_conflict(&amp;zeh,</span>
+<span class="lineNum">    1273 </span>                :            :                     NULL, za-&gt;za_name, zap);
+<span class="lineNum">    1274 </span>                :            :         }
+<span class="lineNum">    1275 </span>                :<span class="lineCov">        744 :         rw_exit(&amp;zc-&gt;zc_leaf-&gt;l_rwlock);</span>
+<span class="lineNum">    1276 </span>                :<span class="lineCov">        744 :         return (err);</span>
+<span class="lineNum">    1277 </span>                :            : }
+<a name="1278"><span class="lineNum">    1278 </span>                :            : </a>
+<span class="lineNum">    1279 </span>                :            : static void
+<span class="lineNum">    1280 </span>                :<span class="lineCov">          3 : zap_stats_ptrtbl(zap_t *zap, uint64_t *tbl, int len, zap_stats_t *zs)</span>
+<span class="lineNum">    1281 </span>                :            : {
+<span class="lineNum">    1282 </span>                :            :         int i, err;
+<span class="lineNum">    1283 </span>                :<span class="lineCov">          3 :         uint64_t lastblk = 0;</span>
+<span class="lineNum">    1284 </span>                :            : 
+<span class="lineNum">    1285 </span>                :            :         /*
+<span class="lineNum">    1286 </span>                :            :          * NB: if a leaf has more pointers than an entire ptrtbl block
+<span class="lineNum">    1287 </span>                :            :          * can hold, then it'll be accounted for more than once, since
+<span class="lineNum">    1288 </span>                :            :          * we won't have lastblk.
+<span class="lineNum">    1289 </span>                :            :          */
+<span class="lineNum">    1290 </span>        [<span class="branchCov" title="Branch 0 was taken 3072 times"> + </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">       3075 :         for (i = 0; i &lt; len; i++) {</span>
+<span class="lineNum">    1291 </span>                :            :                 zap_leaf_t *l;
+<span class="lineNum">    1292 </span>                :            : 
+<span class="lineNum">    1293 </span>        [<span class="branchCov" title="Branch 0 was taken 3069 times"> + </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">       3072 :                 if (tbl[i] == lastblk)</span>
+<span class="lineNum">    1294 </span>                :<span class="lineCov">       3069 :                         continue;</span>
+<span class="lineNum">    1295 </span>                :<span class="lineCov">          3 :                 lastblk = tbl[i];</span>
+<span class="lineNum">    1296 </span>                :            : 
+<span class="lineNum">    1297 </span>                :<span class="lineCov">          3 :                 err = zap_get_leaf_byblk(zap, tbl[i], NULL, RW_READER, &amp;l);</span>
+<span class="lineNum">    1298 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          3 :                 if (err == 0) {</span>
+<span class="lineNum">    1299 </span>                :<span class="lineCov">          3 :                         zap_leaf_stats(zap, l, zs);</span>
+<span class="lineNum">    1300 </span>                :<span class="lineCov">          3 :                         zap_put_leaf(l);</span>
+<span class="lineNum">    1301 </span>                :            :                 }
+<span class="lineNum">    1302 </span>                :            :         }
+<span class="lineNum">    1303 </span>                :<span class="lineCov">          3 : }</span>
+<a name="1304"><span class="lineNum">    1304 </span>                :            : </a>
+<span class="lineNum">    1305 </span>                :            : void
+<span class="lineNum">    1306 </span>                :<span class="lineCov">          3 : fzap_get_stats(zap_t *zap, zap_stats_t *zs)</span>
+<span class="lineNum">    1307 </span>                :            : {
+<span class="lineNum">    1308 </span>                :<span class="lineCov">          3 :         int bs = FZAP_BLOCK_SHIFT(zap);</span>
+<span class="lineNum">    1309 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_blocksize = 1ULL &lt;&lt; bs;</span>
+<span class="lineNum">    1310 </span>                :            : 
+<span class="lineNum">    1311 </span>                :            :         /*
+<span class="lineNum">    1312 </span>                :            :          * Set zap_phys_t fields
+<span class="lineNum">    1313 </span>                :            :          */
+<span class="lineNum">    1314 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_num_leafs = zap_f_phys(zap)-&gt;zap_num_leafs;</span>
+<span class="lineNum">    1315 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_num_entries = zap_f_phys(zap)-&gt;zap_num_entries;</span>
+<span class="lineNum">    1316 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_num_blocks = zap_f_phys(zap)-&gt;zap_freeblk;</span>
+<span class="lineNum">    1317 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_block_type = zap_f_phys(zap)-&gt;zap_block_type;</span>
+<span class="lineNum">    1318 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_magic = zap_f_phys(zap)-&gt;zap_magic;</span>
+<span class="lineNum">    1319 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_salt = zap_f_phys(zap)-&gt;zap_salt;</span>
+<span class="lineNum">    1320 </span>                :            : 
+<span class="lineNum">    1321 </span>                :            :         /*
+<span class="lineNum">    1322 </span>                :            :          * Set zap_ptrtbl fields
+<span class="lineNum">    1323 </span>                :            :          */
+<span class="lineNum">    1324 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_ptrtbl_len = 1ULL &lt;&lt; zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift;</span>
+<span class="lineNum">    1325 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_ptrtbl_nextblk = zap_f_phys(zap)-&gt;zap_ptrtbl.zt_nextblk;</span>
+<span class="lineNum">    1326 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_ptrtbl_blks_copied =</span>
+<span class="lineNum">    1327 </span>                :<span class="lineCov">          3 :             zap_f_phys(zap)-&gt;zap_ptrtbl.zt_blks_copied;</span>
+<span class="lineNum">    1328 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_ptrtbl_zt_blk = zap_f_phys(zap)-&gt;zap_ptrtbl.zt_blk;</span>
+<span class="lineNum">    1329 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_ptrtbl_zt_numblks = zap_f_phys(zap)-&gt;zap_ptrtbl.zt_numblks;</span>
+<span class="lineNum">    1330 </span>                :<span class="lineCov">          3 :         zs-&gt;zs_ptrtbl_zt_shift = zap_f_phys(zap)-&gt;zap_ptrtbl.zt_shift;</span>
+<span class="lineNum">    1331 </span>                :            : 
+<span class="lineNum">    1332 </span>        [<span class="branchCov" title="Branch 1 was taken 3 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">          3 :         if (zap_f_phys(zap)-&gt;zap_ptrtbl.zt_numblks == 0) {</span>
+<span class="lineNum">    1333 </span>                :            :                 /* the ptrtbl is entirely in the header block. */
+<span class="lineNum">    1334 </span>                :<span class="lineCov">          3 :                 zap_stats_ptrtbl(zap, &amp;ZAP_EMBEDDED_PTRTBL_ENT(zap, 0),</span>
+<span class="lineNum">    1335 </span>                :<span class="lineCov">          3 :                     1 &lt;&lt; ZAP_EMBEDDED_PTRTBL_SHIFT(zap), zs);</span>
+<span class="lineNum">    1336 </span>                :            :         } else {
+<span class="lineNum">    1337 </span>                :            :                 int b;
+<span class="lineNum">    1338 </span>                :            : 
+<span class="lineNum">    1339 </span>                :<span class="lineNoCov">          0 :                 dmu_prefetch(zap-&gt;zap_objset, zap-&gt;zap_object, 0,</span>
+<span class="lineNum">    1340 </span>                :<span class="lineNoCov">          0 :                     zap_f_phys(zap)-&gt;zap_ptrtbl.zt_blk &lt;&lt; bs,</span>
+<span class="lineNum">    1341 </span>                :<span class="lineNoCov">          0 :                     zap_f_phys(zap)-&gt;zap_ptrtbl.zt_numblks &lt;&lt; bs,</span>
+<span class="lineNum">    1342 </span>                :            :                     ZIO_PRIORITY_SYNC_READ);
+<span class="lineNum">    1343 </span>                :            : 
+<span class="lineNum">    1344 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 for (b = 0; b &lt; zap_f_phys(zap)-&gt;zap_ptrtbl.zt_numblks;</span>
+<span class="lineNum">    1345 </span>                :<span class="lineNoCov">          0 :                     b++) {</span>
+<span class="lineNum">    1346 </span>                :            :                         dmu_buf_t *db;
+<span class="lineNum">    1347 </span>                :            :                         int err;
+<span class="lineNum">    1348 </span>                :            : 
+<span class="lineNum">    1349 </span>                :<span class="lineNoCov">          0 :                         err = dmu_buf_hold(zap-&gt;zap_objset, zap-&gt;zap_object,</span>
+<span class="lineNum">    1350 </span>                :<span class="lineNoCov">          0 :                             (zap_f_phys(zap)-&gt;zap_ptrtbl.zt_blk + b) &lt;&lt; bs,</span>
+<span class="lineNum">    1351 </span>                :            :                             FTAG, &amp;db, DMU_READ_NO_PREFETCH);
+<span class="lineNum">    1352 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (err == 0) {</span>
+<span class="lineNum">    1353 </span>                :<span class="lineNoCov">          0 :                                 zap_stats_ptrtbl(zap, db-&gt;db_data,</span>
+<span class="lineNum">    1354 </span>                :<span class="lineNoCov">          0 :                                     1&lt;&lt;(bs-3), zs);</span>
+<span class="lineNum">    1355 </span>                :<span class="lineNoCov">          0 :                                 dmu_buf_rele(db, FTAG);</span>
+<span class="lineNum">    1356 </span>                :            :                         }
+<span class="lineNum">    1357 </span>                :            :                 }
+<span class="lineNum">    1358 </span>                :            :         }
+<span class="lineNum">    1359 </span>                :<span class="lineCov">          3 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

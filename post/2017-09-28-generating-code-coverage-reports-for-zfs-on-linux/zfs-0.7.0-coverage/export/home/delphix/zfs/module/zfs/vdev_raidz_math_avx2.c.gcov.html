@@ -1,0 +1,503 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/vdev_raidz_math_avx2.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - vdev_raidz_math_avx2.c<span style="font-size: 80%;"> (source / <a href="vdev_raidz_math_avx2.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntryLo">9.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (C) 2016 Gvozden Nešković. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  */
+<span class="lineNum">      24 </span>                :            : #include &lt;sys/isa_defs.h&gt;
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : #if defined(__x86_64) &amp;&amp; defined(HAVE_AVX2)
+<span class="lineNum">      27 </span>                :            : 
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;linux/simd_x86.h&gt;
+<span class="lineNum">      30 </span>                :            : 
+<span class="lineNum">      31 </span>                :            : #define __asm __asm__ __volatile__
+<span class="lineNum">      32 </span>                :            : 
+<span class="lineNum">      33 </span>                :            : #define _REG_CNT(_0, _1, _2, _3, _4, _5, _6, _7, N, ...) N
+<span class="lineNum">      34 </span>                :            : #define REG_CNT(r...) _REG_CNT(r, 8, 7, 6, 5, 4, 3, 2, 1)
+<span class="lineNum">      35 </span>                :            : 
+<span class="lineNum">      36 </span>                :            : #define VR0_(REG, ...) &quot;ymm&quot;#REG
+<span class="lineNum">      37 </span>                :            : #define VR1_(_1, REG, ...) &quot;ymm&quot;#REG
+<span class="lineNum">      38 </span>                :            : #define VR2_(_1, _2, REG, ...) &quot;ymm&quot;#REG
+<span class="lineNum">      39 </span>                :            : #define VR3_(_1, _2, _3, REG, ...) &quot;ymm&quot;#REG
+<span class="lineNum">      40 </span>                :            : #define VR4_(_1, _2, _3, _4, REG, ...) &quot;ymm&quot;#REG
+<span class="lineNum">      41 </span>                :            : #define VR5_(_1, _2, _3, _4, _5, REG, ...) &quot;ymm&quot;#REG
+<span class="lineNum">      42 </span>                :            : #define VR6_(_1, _2, _3, _4, _5, _6, REG, ...) &quot;ymm&quot;#REG
+<span class="lineNum">      43 </span>                :            : #define VR7_(_1, _2, _3, _4, _5, _6, _7, REG, ...) &quot;ymm&quot;#REG
+<span class="lineNum">      44 </span>                :            : 
+<span class="lineNum">      45 </span>                :            : #define VR0(r...) VR0_(r)
+<span class="lineNum">      46 </span>                :            : #define VR1(r...) VR1_(r)
+<span class="lineNum">      47 </span>                :            : #define VR2(r...) VR2_(r, 1)
+<span class="lineNum">      48 </span>                :            : #define VR3(r...) VR3_(r, 1, 2)
+<span class="lineNum">      49 </span>                :            : #define VR4(r...) VR4_(r, 1, 2)
+<span class="lineNum">      50 </span>                :            : #define VR5(r...) VR5_(r, 1, 2, 3)
+<span class="lineNum">      51 </span>                :            : #define VR6(r...) VR6_(r, 1, 2, 3, 4)
+<span class="lineNum">      52 </span>                :            : #define VR7(r...) VR7_(r, 1, 2, 3, 4, 5)
+<span class="lineNum">      53 </span>                :            : 
+<span class="lineNum">      54 </span>                :            : #define R_01(REG1, REG2, ...) REG1, REG2
+<span class="lineNum">      55 </span>                :            : #define _R_23(_0, _1, REG2, REG3, ...) REG2, REG3
+<span class="lineNum">      56 </span>                :            : #define R_23(REG...) _R_23(REG, 1, 2, 3)
+<span class="lineNum">      57 </span>                :            : 
+<span class="lineNum">      58 </span>                :            : #define ASM_BUG()       ASSERT(0)
+<span class="lineNum">      59 </span>                :            : 
+<span class="lineNum">      60 </span>                :            : extern const uint8_t gf_clmul_mod_lt[4*256][16];
+<span class="lineNum">      61 </span>                :            : 
+<span class="lineNum">      62 </span>                :            : #define ELEM_SIZE 32
+<span class="lineNum">      63 </span>                :            : 
+<span class="lineNum">      64 </span>                :            : typedef struct v {
+<span class="lineNum">      65 </span>                :            :         uint8_t b[ELEM_SIZE] __attribute__((aligned(ELEM_SIZE)));
+<span class="lineNum">      66 </span>                :            : } v_t;
+<span class="lineNum">      67 </span>                :            : 
+<span class="lineNum">      68 </span>                :            : 
+<span class="lineNum">      69 </span>                :            : #define XOR_ACC(src, r...)                                              \
+<span class="lineNum">      70 </span>                :            : {                                                                       \
+<span class="lineNum">      71 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">      72 </span>                :            :         case 4:                                                         \
+<span class="lineNum">      73 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">      74 </span>                :            :                     &quot;vpxor 0x00(%[SRC]), %%&quot; VR0(r)&quot;, %%&quot; VR0(r) &quot;\n&quot;     \
+<span class="lineNum">      75 </span>                :            :                     &quot;vpxor 0x20(%[SRC]), %%&quot; VR1(r)&quot;, %%&quot; VR1(r) &quot;\n&quot;     \
+<span class="lineNum">      76 </span>                :            :                     &quot;vpxor 0x40(%[SRC]), %%&quot; VR2(r)&quot;, %%&quot; VR2(r) &quot;\n&quot;     \
+<span class="lineNum">      77 </span>                :            :                     &quot;vpxor 0x60(%[SRC]), %%&quot; VR3(r)&quot;, %%&quot; VR3(r) &quot;\n&quot;     \
+<span class="lineNum">      78 </span>                :            :                     : : [SRC] &quot;r&quot; (src));                             \
+<span class="lineNum">      79 </span>                :            :                 break;                                                  \
+<span class="lineNum">      80 </span>                :            :         case 2:                                                         \
+<span class="lineNum">      81 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">      82 </span>                :            :                     &quot;vpxor 0x00(%[SRC]), %%&quot; VR0(r)&quot;, %%&quot; VR0(r) &quot;\n&quot;     \
+<span class="lineNum">      83 </span>                :            :                     &quot;vpxor 0x20(%[SRC]), %%&quot; VR1(r)&quot;, %%&quot; VR1(r) &quot;\n&quot;     \
+<span class="lineNum">      84 </span>                :            :                     : : [SRC] &quot;r&quot; (src));                             \
+<span class="lineNum">      85 </span>                :            :                 break;                                                  \
+<span class="lineNum">      86 </span>                :            :         default:                                                        \
+<span class="lineNum">      87 </span>                :            :                 ASM_BUG();                                              \
+<span class="lineNum">      88 </span>                :            :         }                                                               \
+<span class="lineNum">      89 </span>                :            : }
+<span class="lineNum">      90 </span>                :            : 
+<span class="lineNum">      91 </span>                :            : #define XOR(r...)                                                       \
+<span class="lineNum">      92 </span>                :            : {                                                                       \
+<span class="lineNum">      93 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">      94 </span>                :            :         case 8:                                                         \
+<span class="lineNum">      95 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">      96 </span>                :            :                     &quot;vpxor %&quot; VR0(r) &quot;, %&quot; VR4(r)&quot;, %&quot; VR4(r) &quot;\n&quot;      \
+<span class="lineNum">      97 </span>                :            :                     &quot;vpxor %&quot; VR1(r) &quot;, %&quot; VR5(r)&quot;, %&quot; VR5(r) &quot;\n&quot;      \
+<span class="lineNum">      98 </span>                :            :                     &quot;vpxor %&quot; VR2(r) &quot;, %&quot; VR6(r)&quot;, %&quot; VR6(r) &quot;\n&quot;      \
+<span class="lineNum">      99 </span>                :            :                     &quot;vpxor %&quot; VR3(r) &quot;, %&quot; VR7(r)&quot;, %&quot; VR7(r));           \
+<span class="lineNum">     100 </span>                :            :                 break;                                                  \
+<span class="lineNum">     101 </span>                :            :         case 4:                                                         \
+<span class="lineNum">     102 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     103 </span>                :            :                     &quot;vpxor %&quot; VR0(r) &quot;, %&quot; VR2(r)&quot;, %&quot; VR2(r) &quot;\n&quot;      \
+<span class="lineNum">     104 </span>                :            :                     &quot;vpxor %&quot; VR1(r) &quot;, %&quot; VR3(r)&quot;, %&quot; VR3(r));           \
+<span class="lineNum">     105 </span>                :            :                 break;                                                  \
+<span class="lineNum">     106 </span>                :            :         default:                                                        \
+<span class="lineNum">     107 </span>                :            :                 ASM_BUG();                                              \
+<span class="lineNum">     108 </span>                :            :         }                                                               \
+<span class="lineNum">     109 </span>                :            : }
+<span class="lineNum">     110 </span>                :            : 
+<span class="lineNum">     111 </span>                :            : #define ZERO(r...)      XOR(r, r)
+<span class="lineNum">     112 </span>                :            : 
+<span class="lineNum">     113 </span>                :            : #define COPY(r...)                                                      \
+<span class="lineNum">     114 </span>                :            : {                                                                       \
+<span class="lineNum">     115 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">     116 </span>                :            :         case 8:                                                         \
+<span class="lineNum">     117 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     118 </span>                :            :                     &quot;vmovdqa %&quot; VR0(r) &quot;, %&quot; VR4(r) &quot;\n&quot;          \
+<span class="lineNum">     119 </span>                :            :                     &quot;vmovdqa %&quot; VR1(r) &quot;, %&quot; VR5(r) &quot;\n&quot;          \
+<span class="lineNum">     120 </span>                :            :                     &quot;vmovdqa %&quot; VR2(r) &quot;, %&quot; VR6(r) &quot;\n&quot;          \
+<span class="lineNum">     121 </span>                :            :                     &quot;vmovdqa %&quot; VR3(r) &quot;, %&quot; VR7(r));                       \
+<span class="lineNum">     122 </span>                :            :                 break;                                                  \
+<span class="lineNum">     123 </span>                :            :         case 4:                                                         \
+<span class="lineNum">     124 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     125 </span>                :            :                     &quot;vmovdqa %&quot; VR0(r) &quot;, %&quot; VR2(r) &quot;\n&quot;          \
+<span class="lineNum">     126 </span>                :            :                     &quot;vmovdqa %&quot; VR1(r) &quot;, %&quot; VR3(r));                       \
+<span class="lineNum">     127 </span>                :            :                 break;                                                  \
+<span class="lineNum">     128 </span>                :            :         default:                                                        \
+<span class="lineNum">     129 </span>                :            :                 ASM_BUG();                                              \
+<span class="lineNum">     130 </span>                :            :         }                                                               \
+<span class="lineNum">     131 </span>                :            : }
+<span class="lineNum">     132 </span>                :            : 
+<span class="lineNum">     133 </span>                :            : #define LOAD(src, r...)                                                 \
+<span class="lineNum">     134 </span>                :            : {                                                                       \
+<span class="lineNum">     135 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">     136 </span>                :            :         case 4:                                                         \
+<span class="lineNum">     137 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     138 </span>                :            :                     &quot;vmovdqa 0x00(%[SRC]), %%&quot; VR0(r) &quot;\n&quot;          \
+<span class="lineNum">     139 </span>                :            :                     &quot;vmovdqa 0x20(%[SRC]), %%&quot; VR1(r) &quot;\n&quot;          \
+<span class="lineNum">     140 </span>                :            :                     &quot;vmovdqa 0x40(%[SRC]), %%&quot; VR2(r) &quot;\n&quot;          \
+<span class="lineNum">     141 </span>                :            :                     &quot;vmovdqa 0x60(%[SRC]), %%&quot; VR3(r) &quot;\n&quot;          \
+<span class="lineNum">     142 </span>                :            :                     : : [SRC] &quot;r&quot; (src));                             \
+<span class="lineNum">     143 </span>                :            :                 break;                                                  \
+<span class="lineNum">     144 </span>                :            :         case 2:                                                         \
+<span class="lineNum">     145 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     146 </span>                :            :                     &quot;vmovdqa 0x00(%[SRC]), %%&quot; VR0(r) &quot;\n&quot;          \
+<span class="lineNum">     147 </span>                :            :                     &quot;vmovdqa 0x20(%[SRC]), %%&quot; VR1(r) &quot;\n&quot;          \
+<span class="lineNum">     148 </span>                :            :                     : : [SRC] &quot;r&quot; (src));                             \
+<span class="lineNum">     149 </span>                :            :                 break;                                                  \
+<span class="lineNum">     150 </span>                :            :         default:                                                        \
+<span class="lineNum">     151 </span>                :            :                 ASM_BUG();                                              \
+<span class="lineNum">     152 </span>                :            :         }                                                               \
+<span class="lineNum">     153 </span>                :            : }
+<span class="lineNum">     154 </span>                :            : 
+<span class="lineNum">     155 </span>                :            : #define STORE(dst, r...)                                                \
+<span class="lineNum">     156 </span>                :            : {                                                                       \
+<span class="lineNum">     157 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">     158 </span>                :            :         case 4:                                                         \
+<span class="lineNum">     159 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     160 </span>                :            :                     &quot;vmovdqa %%&quot; VR0(r) &quot;, 0x00(%[DST])\n&quot;          \
+<span class="lineNum">     161 </span>                :            :                     &quot;vmovdqa %%&quot; VR1(r) &quot;, 0x20(%[DST])\n&quot;          \
+<span class="lineNum">     162 </span>                :            :                     &quot;vmovdqa %%&quot; VR2(r) &quot;, 0x40(%[DST])\n&quot;          \
+<span class="lineNum">     163 </span>                :            :                     &quot;vmovdqa %%&quot; VR3(r) &quot;, 0x60(%[DST])\n&quot;          \
+<span class="lineNum">     164 </span>                :            :                     : : [DST] &quot;r&quot; (dst));                             \
+<span class="lineNum">     165 </span>                :            :                 break;                                                  \
+<span class="lineNum">     166 </span>                :            :         case 2:                                                         \
+<span class="lineNum">     167 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     168 </span>                :            :                     &quot;vmovdqa %%&quot; VR0(r) &quot;, 0x00(%[DST])\n&quot;          \
+<span class="lineNum">     169 </span>                :            :                     &quot;vmovdqa %%&quot; VR1(r) &quot;, 0x20(%[DST])\n&quot;          \
+<span class="lineNum">     170 </span>                :            :                     : : [DST] &quot;r&quot; (dst));                             \
+<span class="lineNum">     171 </span>                :            :                 break;                                                  \
+<span class="lineNum">     172 </span>                :            :         default:                                                        \
+<span class="lineNum">     173 </span>                :            :                 ASM_BUG();                                              \
+<span class="lineNum">     174 </span>                :            :         }                                                               \
+<span class="lineNum">     175 </span>                :            : }
+<span class="lineNum">     176 </span>                :            : 
+<span class="lineNum">     177 </span>                :            : #define FLUSH()                                                         \
+<span class="lineNum">     178 </span>                :            : {                                                                       \
+<span class="lineNum">     179 </span>                :            :         __asm(&quot;vzeroupper&quot;);                                          \
+<span class="lineNum">     180 </span>                :            : }
+<span class="lineNum">     181 </span>                :            : 
+<span class="lineNum">     182 </span>                :            : #define MUL2_SETUP()                                                    \
+<span class="lineNum">     183 </span>                :            : {                                                                       \
+<span class="lineNum">     184 </span>                :            :         __asm(&quot;vmovq %0,   %%xmm14&quot; :: &quot;r&quot;(0x1d1d1d1d1d1d1d1d));    \
+<span class="lineNum">     185 </span>                :            :         __asm(&quot;vpbroadcastq %xmm14, %ymm14&quot;);                         \
+<span class="lineNum">     186 </span>                :            :         __asm(&quot;vpxor        %ymm15, %ymm15 ,%ymm15&quot;);                 \
+<span class="lineNum">     187 </span>                :            : }
+<span class="lineNum">     188 </span>                :            : 
+<span class="lineNum">     189 </span>                :            : #define _MUL2(r...)                                                     \
+<span class="lineNum">     190 </span>                :            : {                                                                       \
+<span class="lineNum">     191 </span>                :            :         switch  (REG_CNT(r)) {                                          \
+<span class="lineNum">     192 </span>                :            :         case 2:                                                         \
+<span class="lineNum">     193 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     194 </span>                :            :                     &quot;vpcmpgtb %&quot; VR0(r)&quot;, %ymm15,     %ymm12\n&quot;             \
+<span class="lineNum">     195 </span>                :            :                     &quot;vpcmpgtb %&quot; VR1(r)&quot;, %ymm15,     %ymm13\n&quot;             \
+<span class="lineNum">     196 </span>                :            :                     &quot;vpaddb   %&quot; VR0(r)&quot;, %&quot; VR0(r)&quot;, %&quot; VR0(r) &quot;\n&quot;    \
+<span class="lineNum">     197 </span>                :            :                     &quot;vpaddb   %&quot; VR1(r)&quot;, %&quot; VR1(r)&quot;, %&quot; VR1(r) &quot;\n&quot;    \
+<span class="lineNum">     198 </span>                :            :                     &quot;vpand    %ymm14,     %ymm12,     %ymm12\n&quot;               \
+<span class="lineNum">     199 </span>                :            :                     &quot;vpand    %ymm14,     %ymm13,     %ymm13\n&quot;               \
+<span class="lineNum">     200 </span>                :            :                     &quot;vpxor    %ymm12,     %&quot; VR0(r)&quot;, %&quot; VR0(r) &quot;\n&quot;      \
+<span class="lineNum">     201 </span>                :            :                     &quot;vpxor    %ymm13,     %&quot; VR1(r)&quot;, %&quot; VR1(r));   \
+<span class="lineNum">     202 </span>                :            :                 break;                                                  \
+<span class="lineNum">     203 </span>                :            :         default:                                                        \
+<span class="lineNum">     204 </span>                :            :                 ASM_BUG();                                              \
+<span class="lineNum">     205 </span>                :            :         }                                                               \
+<span class="lineNum">     206 </span>                :            : }
+<span class="lineNum">     207 </span>                :            : 
+<span class="lineNum">     208 </span>                :            : #define MUL2(r...)                                                      \
+<span class="lineNum">     209 </span>                :            : {                                                                       \
+<span class="lineNum">     210 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">     211 </span>                :            :         case 4:                                                         \
+<span class="lineNum">     212 </span>                :            :             _MUL2(R_01(r));                                             \
+<span class="lineNum">     213 </span>                :            :             _MUL2(R_23(r));                                             \
+<span class="lineNum">     214 </span>                :            :             break;                                                      \
+<span class="lineNum">     215 </span>                :            :         case 2:                                                         \
+<span class="lineNum">     216 </span>                :            :             _MUL2(r);                                                   \
+<span class="lineNum">     217 </span>                :            :             break;                                                      \
+<span class="lineNum">     218 </span>                :            :         default:                                                        \
+<span class="lineNum">     219 </span>                :            :                 ASM_BUG();                                              \
+<span class="lineNum">     220 </span>                :            :         }                                                               \
+<span class="lineNum">     221 </span>                :            : }
+<span class="lineNum">     222 </span>                :            : 
+<span class="lineNum">     223 </span>                :            : #define MUL4(r...)                                                      \
+<span class="lineNum">     224 </span>                :            : {                                                                       \
+<span class="lineNum">     225 </span>                :            :         MUL2(r);                                                        \
+<span class="lineNum">     226 </span>                :            :         MUL2(r);                                                        \
+<span class="lineNum">     227 </span>                :            : }
+<span class="lineNum">     228 </span>                :            : 
+<span class="lineNum">     229 </span>                :            : #define _0f             &quot;ymm15&quot;
+<span class="lineNum">     230 </span>                :            : #define _as             &quot;ymm14&quot;
+<span class="lineNum">     231 </span>                :            : #define _bs             &quot;ymm13&quot;
+<span class="lineNum">     232 </span>                :            : #define _ltmod          &quot;ymm12&quot;
+<span class="lineNum">     233 </span>                :            : #define _ltmul          &quot;ymm11&quot;
+<span class="lineNum">     234 </span>                :            : #define _ta             &quot;ymm10&quot;
+<span class="lineNum">     235 </span>                :            : #define _tb             &quot;ymm15&quot;
+<span class="lineNum">     236 </span>                :            : 
+<span class="lineNum">     237 </span>                :            : static const uint8_t __attribute__((aligned(32))) _mul_mask = 0x0F;
+<span class="lineNum">     238 </span>                :            : 
+<span class="lineNum">     239 </span>                :            : #define _MULx2(c, r...)                                                 \
+<span class="lineNum">     240 </span>                :            : {                                                                       \
+<span class="lineNum">     241 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">     242 </span>                :            :         case 2:                                                         \
+<span class="lineNum">     243 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     244 </span>                :            :                     &quot;vpbroadcastb (%[mask]), %%&quot; _0f &quot;\n&quot;           \
+<span class="lineNum">     245 </span>                :            :                     /* upper bits */                                    \
+<span class="lineNum">     246 </span>                :            :                     &quot;vbroadcasti128 0x00(%[lt]), %%&quot; _ltmod &quot;\n&quot;    \
+<span class="lineNum">     247 </span>                :            :                     &quot;vbroadcasti128 0x10(%[lt]), %%&quot; _ltmul &quot;\n&quot;    \
+<span class="lineNum">     248 </span>                :            :                                                                         \
+<span class="lineNum">     249 </span>                :            :                     &quot;vpsraw $0x4, %%&quot; VR0(r) &quot;, %%&quot;_as &quot;\n&quot;               \
+<span class="lineNum">     250 </span>                :            :                     &quot;vpsraw $0x4, %%&quot; VR1(r) &quot;, %%&quot;_bs &quot;\n&quot;               \
+<span class="lineNum">     251 </span>                :            :                     &quot;vpand %%&quot; _0f &quot;, %%&quot; VR0(r) &quot;, %%&quot; VR0(r) &quot;\n&quot;     \
+<span class="lineNum">     252 </span>                :            :                     &quot;vpand %%&quot; _0f &quot;, %%&quot; VR1(r) &quot;, %%&quot; VR1(r) &quot;\n&quot;     \
+<span class="lineNum">     253 </span>                :            :                     &quot;vpand %%&quot; _0f &quot;, %%&quot; _as &quot;, %%&quot; _as &quot;\n&quot;           \
+<span class="lineNum">     254 </span>                :            :                     &quot;vpand %%&quot; _0f &quot;, %%&quot; _bs &quot;, %%&quot; _bs &quot;\n&quot;           \
+<span class="lineNum">     255 </span>                :            :                                                                         \
+<span class="lineNum">     256 </span>                :            :                     &quot;vpshufb %%&quot; _as &quot;, %%&quot; _ltmod &quot;, %%&quot; _ta &quot;\n&quot;      \
+<span class="lineNum">     257 </span>                :            :                     &quot;vpshufb %%&quot; _bs &quot;, %%&quot; _ltmod &quot;, %%&quot; _tb &quot;\n&quot;      \
+<span class="lineNum">     258 </span>                :            :                     &quot;vpshufb %%&quot; _as &quot;, %%&quot; _ltmul &quot;, %%&quot; _as &quot;\n&quot;      \
+<span class="lineNum">     259 </span>                :            :                     &quot;vpshufb %%&quot; _bs &quot;, %%&quot; _ltmul &quot;, %%&quot; _bs &quot;\n&quot;      \
+<span class="lineNum">     260 </span>                :            :                     /* lower bits */                                    \
+<span class="lineNum">     261 </span>                :            :                     &quot;vbroadcasti128 0x20(%[lt]), %%&quot; _ltmod &quot;\n&quot;    \
+<span class="lineNum">     262 </span>                :            :                     &quot;vbroadcasti128 0x30(%[lt]), %%&quot; _ltmul &quot;\n&quot;    \
+<span class="lineNum">     263 </span>                :            :                                                                         \
+<span class="lineNum">     264 </span>                :            :                     &quot;vpxor %%&quot; _ta &quot;, %%&quot; _as &quot;, %%&quot; _as &quot;\n&quot;           \
+<span class="lineNum">     265 </span>                :            :                     &quot;vpxor %%&quot; _tb &quot;, %%&quot; _bs &quot;, %%&quot; _bs &quot;\n&quot;           \
+<span class="lineNum">     266 </span>                :            :                                                                         \
+<span class="lineNum">     267 </span>                :            :                     &quot;vpshufb %%&quot; VR0(r) &quot;, %%&quot; _ltmod &quot;, %%&quot; _ta &quot;\n&quot;   \
+<span class="lineNum">     268 </span>                :            :                     &quot;vpshufb %%&quot; VR1(r) &quot;, %%&quot; _ltmod &quot;, %%&quot; _tb &quot;\n&quot;   \
+<span class="lineNum">     269 </span>                :            :                     &quot;vpshufb %%&quot; VR0(r) &quot;, %%&quot; _ltmul &quot;, %%&quot; VR0(r) &quot;\n&quot;\
+<span class="lineNum">     270 </span>                :            :                     &quot;vpshufb %%&quot; VR1(r) &quot;, %%&quot; _ltmul &quot;, %%&quot; VR1(r) &quot;\n&quot;\
+<span class="lineNum">     271 </span>                :            :                                                                         \
+<span class="lineNum">     272 </span>                :            :                     &quot;vpxor %%&quot; _ta &quot;, %%&quot; VR0(r) &quot;, %%&quot; VR0(r) &quot;\n&quot;     \
+<span class="lineNum">     273 </span>                :            :                     &quot;vpxor %%&quot; _as &quot;, %%&quot; VR0(r) &quot;, %%&quot; VR0(r) &quot;\n&quot;     \
+<span class="lineNum">     274 </span>                :            :                     &quot;vpxor %%&quot; _tb &quot;, %%&quot; VR1(r) &quot;, %%&quot; VR1(r) &quot;\n&quot;     \
+<span class="lineNum">     275 </span>                :            :                     &quot;vpxor %%&quot; _bs &quot;, %%&quot; VR1(r) &quot;, %%&quot; VR1(r) &quot;\n&quot;     \
+<span class="lineNum">     276 </span>                :            :                     : : [mask] &quot;r&quot; (&amp;_mul_mask),                  \
+<span class="lineNum">     277 </span>                :            :                     [lt] &quot;r&quot; (gf_clmul_mod_lt[4*(c)]));                       \
+<span class="lineNum">     278 </span>                :            :                 break;                                                  \
+<span class="lineNum">     279 </span>                :            :         default:                                                        \
+<span class="lineNum">     280 </span>                :            :                 ASM_BUG();                                              \
+<span class="lineNum">     281 </span>                :            :         }                                                               \
+<span class="lineNum">     282 </span>                :            : }
+<span class="lineNum">     283 </span>                :            : 
+<span class="lineNum">     284 </span>                :            : #define MUL(c, r...)                                                    \
+<span class="lineNum">     285 </span>                :            : {                                                                       \
+<span class="lineNum">     286 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">     287 </span>                :            :         case 4:                                                         \
+<span class="lineNum">     288 </span>                :            :                 _MULx2(c, R_01(r));                                     \
+<span class="lineNum">     289 </span>                :            :                 _MULx2(c, R_23(r));                                     \
+<span class="lineNum">     290 </span>                :            :                 break;                                                  \
+<span class="lineNum">     291 </span>                :            :         case 2:                                                         \
+<span class="lineNum">     292 </span>                :            :                 _MULx2(c, R_01(r));                                     \
+<span class="lineNum">     293 </span>                :            :                 break;                                                  \
+<span class="lineNum">     294 </span>                :            :         default:                                                        \
+<span class="lineNum">     295 </span>                :            :                 ASM_BUG();                                              \
+<span class="lineNum">     296 </span>                :            :         }                                                               \
+<span class="lineNum">     297 </span>                :            : }
+<span class="lineNum">     298 </span>                :            : 
+<span class="lineNum">     299 </span>                :            : #define raidz_math_begin()      kfpu_begin()
+<span class="lineNum">     300 </span>                :            : #define raidz_math_end()                                                \
+<span class="lineNum">     301 </span>                :            : {                                                                       \
+<span class="lineNum">     302 </span>                :            :         FLUSH();                                                        \
+<span class="lineNum">     303 </span>                :            :         kfpu_end();                                                     \
+<span class="lineNum">     304 </span>                :            : }
+<span class="lineNum">     305 </span>                :            : 
+<span class="lineNum">     306 </span>                :            : 
+<span class="lineNum">     307 </span>                :            : #define SYN_STRIDE              4
+<span class="lineNum">     308 </span>                :            : 
+<span class="lineNum">     309 </span>                :            : #define ZERO_STRIDE             4
+<span class="lineNum">     310 </span>                :            : #define ZERO_DEFINE()           {}
+<span class="lineNum">     311 </span>                :            : #define ZERO_D                  0, 1, 2, 3
+<span class="lineNum">     312 </span>                :            : 
+<span class="lineNum">     313 </span>                :            : #define COPY_STRIDE             4
+<span class="lineNum">     314 </span>                :            : #define COPY_DEFINE()           {}
+<span class="lineNum">     315 </span>                :            : #define COPY_D                  0, 1, 2, 3
+<span class="lineNum">     316 </span>                :            : 
+<span class="lineNum">     317 </span>                :            : #define ADD_STRIDE              4
+<span class="lineNum">     318 </span>                :            : #define ADD_DEFINE()            {}
+<span class="lineNum">     319 </span>                :            : #define ADD_D                   0, 1, 2, 3
+<span class="lineNum">     320 </span>                :            : 
+<span class="lineNum">     321 </span>                :            : #define MUL_STRIDE              4
+<span class="lineNum">     322 </span>                :            : #define MUL_DEFINE()            {}
+<span class="lineNum">     323 </span>                :            : #define MUL_D                   0, 1, 2, 3
+<span class="lineNum">     324 </span>                :            : 
+<span class="lineNum">     325 </span>                :            : #define GEN_P_STRIDE            4
+<span class="lineNum">     326 </span>                :            : #define GEN_P_DEFINE()          {}
+<span class="lineNum">     327 </span>                :            : #define GEN_P_P                 0, 1, 2, 3
+<span class="lineNum">     328 </span>                :            : 
+<span class="lineNum">     329 </span>                :            : #define GEN_PQ_STRIDE           4
+<span class="lineNum">     330 </span>                :            : #define GEN_PQ_DEFINE()         {}
+<span class="lineNum">     331 </span>                :            : #define GEN_PQ_D                0, 1, 2, 3
+<span class="lineNum">     332 </span>                :            : #define GEN_PQ_C                4, 5, 6, 7
+<span class="lineNum">     333 </span>                :            : 
+<span class="lineNum">     334 </span>                :            : #define GEN_PQR_STRIDE          4
+<span class="lineNum">     335 </span>                :            : #define GEN_PQR_DEFINE()        {}
+<span class="lineNum">     336 </span>                :            : #define GEN_PQR_D               0, 1, 2, 3
+<span class="lineNum">     337 </span>                :            : #define GEN_PQR_C               4, 5, 6, 7
+<span class="lineNum">     338 </span>                :            : 
+<span class="lineNum">     339 </span>                :            : #define SYN_Q_DEFINE()          {}
+<span class="lineNum">     340 </span>                :            : #define SYN_Q_D                 0, 1, 2, 3
+<span class="lineNum">     341 </span>                :            : #define SYN_Q_X                 4, 5, 6, 7
+<span class="lineNum">     342 </span>                :            : 
+<span class="lineNum">     343 </span>                :            : #define SYN_R_DEFINE()          {}
+<span class="lineNum">     344 </span>                :            : #define SYN_R_D                 0, 1, 2, 3
+<span class="lineNum">     345 </span>                :            : #define SYN_R_X                 4, 5, 6, 7
+<span class="lineNum">     346 </span>                :            : 
+<span class="lineNum">     347 </span>                :            : #define SYN_PQ_DEFINE()         {}
+<span class="lineNum">     348 </span>                :            : #define SYN_PQ_D                0, 1, 2, 3
+<span class="lineNum">     349 </span>                :            : #define SYN_PQ_X                4, 5, 6, 7
+<span class="lineNum">     350 </span>                :            : 
+<span class="lineNum">     351 </span>                :            : #define REC_PQ_STRIDE           2
+<span class="lineNum">     352 </span>                :            : #define REC_PQ_DEFINE()         {}
+<span class="lineNum">     353 </span>                :            : #define REC_PQ_X                0, 1
+<span class="lineNum">     354 </span>                :            : #define REC_PQ_Y                2, 3
+<span class="lineNum">     355 </span>                :            : #define REC_PQ_T                4, 5
+<span class="lineNum">     356 </span>                :            : 
+<span class="lineNum">     357 </span>                :            : #define SYN_PR_DEFINE()         {}
+<span class="lineNum">     358 </span>                :            : #define SYN_PR_D                0, 1, 2, 3
+<span class="lineNum">     359 </span>                :            : #define SYN_PR_X                4, 5, 6, 7
+<span class="lineNum">     360 </span>                :            : 
+<span class="lineNum">     361 </span>                :            : #define REC_PR_STRIDE           2
+<span class="lineNum">     362 </span>                :            : #define REC_PR_DEFINE()         {}
+<span class="lineNum">     363 </span>                :            : #define REC_PR_X                0, 1
+<span class="lineNum">     364 </span>                :            : #define REC_PR_Y                2, 3
+<span class="lineNum">     365 </span>                :            : #define REC_PR_T                4, 5
+<span class="lineNum">     366 </span>                :            : 
+<span class="lineNum">     367 </span>                :            : #define SYN_QR_DEFINE()         {}
+<span class="lineNum">     368 </span>                :            : #define SYN_QR_D                0, 1, 2, 3
+<span class="lineNum">     369 </span>                :            : #define SYN_QR_X                4, 5, 6, 7
+<span class="lineNum">     370 </span>                :            : 
+<span class="lineNum">     371 </span>                :            : #define REC_QR_STRIDE           2
+<span class="lineNum">     372 </span>                :            : #define REC_QR_DEFINE()         {}
+<span class="lineNum">     373 </span>                :            : #define REC_QR_X                0, 1
+<span class="lineNum">     374 </span>                :            : #define REC_QR_Y                2, 3
+<span class="lineNum">     375 </span>                :            : #define REC_QR_T                4, 5
+<span class="lineNum">     376 </span>                :            : 
+<span class="lineNum">     377 </span>                :            : #define SYN_PQR_DEFINE()        {}
+<span class="lineNum">     378 </span>                :            : #define SYN_PQR_D               0, 1, 2, 3
+<span class="lineNum">     379 </span>                :            : #define SYN_PQR_X               4, 5, 6, 7
+<span class="lineNum">     380 </span>                :            : 
+<span class="lineNum">     381 </span>                :            : #define REC_PQR_STRIDE          2
+<span class="lineNum">     382 </span>                :            : #define REC_PQR_DEFINE()        {}
+<span class="lineNum">     383 </span>                :            : #define REC_PQR_X               0, 1
+<span class="lineNum">     384 </span>                :            : #define REC_PQR_Y               2, 3
+<span class="lineNum">     385 </span>                :            : #define REC_PQR_Z               4, 5
+<span class="lineNum">     386 </span>                :            : #define REC_PQR_XS              6, 7
+<span class="lineNum">     387 </span>                :            : #define REC_PQR_YS              8, 9
+<span class="lineNum">     388 </span>                :            : 
+<span class="lineNum">     389 </span>                :            : 
+<span class="lineNum">     390 </span>                :            : #include &lt;sys/vdev_raidz_impl.h&gt;
+<span class="lineNum">     391 </span>                :            : #include &quot;vdev_raidz_math_impl.h&quot;
+<span class="lineNum">     392 </span>                :            : 
+<span class="lineNum">     393 </span>                :<span class="lineNoCov">          0 : DEFINE_GEN_METHODS(avx2);</span>
+<span class="lineNum">     394 </span>                :<span class="lineNoCov">          0 : DEFINE_REC_METHODS(avx2);</span>
+<a name="395"><span class="lineNum">     395 </span>                :            : </a>
+<span class="lineNum">     396 </span>                :            : static boolean_t
+<span class="lineNum">     397 </span>                :<span class="lineCov">       1234 : raidz_will_avx2_work(void)</span>
+<span class="lineNum">     398 </span>                :            : {
+<span class="lineNum">     399 </span>[<span class="branchCov" title="Branch 1 was taken 1234 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchCov" title="Branch 4 was taken 1234 times"> + </span><span class="branchNoCov" title="Branch 5 was not taken"> - </span>]:<span class="lineCov">       1234 :         return (zfs_avx_available() &amp;&amp; zfs_avx2_available());</span>
+<span class="lineNum">     400 </span>                :            : }
+<span class="lineNum">     401 </span>                :            : 
+<span class="lineNum">     402 </span>                :            : const raidz_impl_ops_t vdev_raidz_avx2_impl = {
+<span class="lineNum">     403 </span>                :            :         .init = NULL,
+<span class="lineNum">     404 </span>                :            :         .fini = NULL,
+<span class="lineNum">     405 </span>                :            :         .gen = RAIDZ_GEN_METHODS(avx2),
+<span class="lineNum">     406 </span>                :            :         .rec = RAIDZ_REC_METHODS(avx2),
+<span class="lineNum">     407 </span>                :            :         .is_supported = &amp;raidz_will_avx2_work,
+<span class="lineNum">     408 </span>                :            :         .name = &quot;avx2&quot;
+<span class="lineNum">     409 </span>                :            : };
+<span class="lineNum">     410 </span>                :            : 
+<span class="lineNum">     411 </span>                :            : #endif /* defined(__x86_64) &amp;&amp; defined(HAVE_AVX2) */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

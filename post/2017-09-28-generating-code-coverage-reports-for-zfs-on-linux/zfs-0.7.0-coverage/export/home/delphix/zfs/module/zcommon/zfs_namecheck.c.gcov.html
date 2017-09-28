@@ -1,0 +1,449 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zcommon/zfs_namecheck.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zcommon</a> - zfs_namecheck.c<span style="font-size: 80%;"> (source / <a href="zfs_namecheck.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">70</td>
+            <td class="headerCovTableEntry">97</td>
+            <td class="headerCovTableEntryLo">72.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryLo">57.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">83</td>
+            <td class="headerCovTableEntry">128</td>
+            <td class="headerCovTableEntryLo">64.8 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : /*
+<span class="lineNum">      26 </span>                :            :  * Copyright (c) 2013 by Delphix. All rights reserved.
+<span class="lineNum">      27 </span>                :            :  */
+<span class="lineNum">      28 </span>                :            : 
+<span class="lineNum">      29 </span>                :            : /*
+<span class="lineNum">      30 </span>                :            :  * Common name validation routines for ZFS.  These routines are shared by the
+<span class="lineNum">      31 </span>                :            :  * userland code as well as the ioctl() layer to ensure that we don't
+<span class="lineNum">      32 </span>                :            :  * inadvertently expose a hole through direct ioctl()s that never gets tested.
+<span class="lineNum">      33 </span>                :            :  * In userland, however, we want significantly more information about _why_ the
+<span class="lineNum">      34 </span>                :            :  * name is invalid.  In the kernel, we only care whether it's valid or not.
+<span class="lineNum">      35 </span>                :            :  * Each routine therefore takes a 'namecheck_err_t' which describes exactly why
+<span class="lineNum">      36 </span>                :            :  * the name failed to validate.
+<span class="lineNum">      37 </span>                :            :  *
+<span class="lineNum">      38 </span>                :            :  * Each function returns 0 on success, -1 on error.
+<span class="lineNum">      39 </span>                :            :  */
+<span class="lineNum">      40 </span>                :            : 
+<span class="lineNum">      41 </span>                :            : #if defined(_KERNEL)
+<span class="lineNum">      42 </span>                :            : #include &lt;sys/systm.h&gt;
+<span class="lineNum">      43 </span>                :            : #else
+<span class="lineNum">      44 </span>                :            : #include &lt;string.h&gt;
+<span class="lineNum">      45 </span>                :            : #endif
+<span class="lineNum">      46 </span>                :            : 
+<span class="lineNum">      47 </span>                :            : #include &lt;sys/dsl_dir.h&gt;
+<span class="lineNum">      48 </span>                :            : #include &lt;sys/param.h&gt;
+<span class="lineNum">      49 </span>                :            : #include &lt;sys/nvpair.h&gt;
+<span class="lineNum">      50 </span>                :            : #include &quot;zfs_namecheck.h&quot;
+<span class="lineNum">      51 </span>                :            : #include &quot;zfs_deleg.h&quot;
+<a name="52"><span class="lineNum">      52 </span>                :            : </a>
+<span class="lineNum">      53 </span>                :            : static int
+<span class="lineNum">      54 </span>                :<span class="lineCov">    1551690 : valid_char(char c)</span>
+<span class="lineNum">      55 </span>                :            : {
+<span class="lineNum">      56 </span>                :<span class="lineCov">    3103380 :         return ((c &gt;= 'a' &amp;&amp; c &lt;= 'z') ||</span>
+<span class="lineNum">      57 </span>        [<span class="branchCov" title="Branch 0 was taken 23287 times"> + </span><span class="branchCov" title="Branch 1 was taken 108379 times"> + </span>]:<span class="lineCov">     131666 :             (c &gt;= 'A' &amp;&amp; c &lt;= 'Z') ||</span>
+<span class="lineNum">      58 </span>                :<span class="lineCov">     131666 :             (c &gt;= '0' &amp;&amp; c &lt;= '9') ||</span>
+<span class="lineNum">      59 </span>[<span class="branchCov" title="Branch 0 was taken 131666 times"> + </span><span class="branchCov" title="Branch 1 was taken 1420024 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 7705 times"> + </span><span class="branchCov" title="Branch 3 was taken 15582 times"> + </span>]:<span class="lineCov">    1574977 :             c == '-' || c == '_' || c == '.' || c == ':' || c == ' ');</span>
+<span class="lineNum">         </span>[<span class="branchCov" title="Branch 4 was taken 306 times"> + </span><span class="branchCov" title="Branch 5 was taken 7399 times"> + </span>][<span class="branchCov" title="Branch 6 was taken 306 times"> + </span><span class="branchNoCov" title="Branch 7 was not taken"> - </span>]
+<span class="lineNum">      60 </span>                :            : }
+<span class="lineNum">      61 </span>                :            : 
+<span class="lineNum">      62 </span>                :            : /*
+<span class="lineNum">      63 </span>                :            :  * Snapshot names must be made up of alphanumeric characters plus the following
+<span class="lineNum">      64 </span>                :            :  * characters:
+<span class="lineNum">      65 </span>                :            :  *
+<span class="lineNum">      66 </span>                :            :  *      [-_.: ]
+<a name="67"><span class="lineNum">      67 </span>                :            :  */</a>
+<span class="lineNum">      68 </span>                :            : int
+<span class="lineNum">      69 </span>                :<span class="lineNoCov">          0 : zfs_component_namecheck(const char *path, namecheck_err_t *why, char *what)</span>
+<span class="lineNum">      70 </span>                :            : {
+<span class="lineNum">      71 </span>                :            :         const char *loc;
+<span class="lineNum">      72 </span>                :            : 
+<span class="lineNum">      73 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (strlen(path) &gt;= ZFS_MAX_DATASET_NAME_LEN) {</span>
+<span class="lineNum">      74 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (why)</span>
+<span class="lineNum">      75 </span>                :<span class="lineNoCov">          0 :                         *why = NAME_ERR_TOOLONG;</span>
+<span class="lineNum">      76 </span>                :            :                 return (-1);
+<span class="lineNum">      77 </span>                :            :         }
+<span class="lineNum">      78 </span>                :            : 
+<span class="lineNum">      79 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (path[0] == '\0') {</span>
+<span class="lineNum">      80 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (why)</span>
+<span class="lineNum">      81 </span>                :<span class="lineNoCov">          0 :                         *why = NAME_ERR_EMPTY_COMPONENT;</span>
+<span class="lineNum">      82 </span>                :            :                 return (-1);
+<span class="lineNum">      83 </span>                :            :         }
+<span class="lineNum">      84 </span>                :            : 
+<span class="lineNum">      85 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (loc = path; *loc; loc++) {</span>
+<span class="lineNum">      86 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (!valid_char(*loc)) {</span>
+<span class="lineNum">      87 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (why) {</span>
+<span class="lineNum">      88 </span>                :<span class="lineNoCov">          0 :                                 *why = NAME_ERR_INVALCHAR;</span>
+<span class="lineNum">      89 </span>                :<span class="lineNoCov">          0 :                                 *what = *loc;</span>
+<span class="lineNum">      90 </span>                :            :                         }
+<span class="lineNum">      91 </span>                :            :                         return (-1);
+<span class="lineNum">      92 </span>                :            :                 }
+<span class="lineNum">      93 </span>                :            :         }
+<span class="lineNum">      94 </span>                :            :         return (0);
+<span class="lineNum">      95 </span>                :            : }
+<span class="lineNum">      96 </span>                :            : 
+<span class="lineNum">      97 </span>                :            : 
+<span class="lineNum">      98 </span>                :            : /*
+<span class="lineNum">      99 </span>                :            :  * Permissions set name must start with the letter '@' followed by the
+<span class="lineNum">     100 </span>                :            :  * same character restrictions as snapshot names, except that the name
+<span class="lineNum">     101 </span>                :            :  * cannot exceed 64 characters.
+<a name="102"><span class="lineNum">     102 </span>                :            :  */</a>
+<span class="lineNum">     103 </span>                :            : int
+<span class="lineNum">     104 </span>                :<span class="lineNoCov">          0 : permset_namecheck(const char *path, namecheck_err_t *why, char *what)</span>
+<span class="lineNum">     105 </span>                :            : {
+<span class="lineNum">     106 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (strlen(path) &gt;= ZFS_PERMSET_MAXLEN) {</span>
+<span class="lineNum">     107 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (why)</span>
+<span class="lineNum">     108 </span>                :<span class="lineNoCov">          0 :                         *why = NAME_ERR_TOOLONG;</span>
+<span class="lineNum">     109 </span>                :            :                 return (-1);
+<span class="lineNum">     110 </span>                :            :         }
+<span class="lineNum">     111 </span>                :            : 
+<span class="lineNum">     112 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (path[0] != '@') {</span>
+<span class="lineNum">     113 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (why) {</span>
+<span class="lineNum">     114 </span>                :<span class="lineNoCov">          0 :                         *why = NAME_ERR_NO_AT;</span>
+<span class="lineNum">     115 </span>                :<span class="lineNoCov">          0 :                         *what = path[0];</span>
+<span class="lineNum">     116 </span>                :            :                 }
+<span class="lineNum">     117 </span>                :            :                 return (-1);
+<span class="lineNum">     118 </span>                :            :         }
+<span class="lineNum">     119 </span>                :            : 
+<span class="lineNum">     120 </span>                :<span class="lineNoCov">          0 :         return (zfs_component_namecheck(&amp;path[1], why, what));</span>
+<span class="lineNum">     121 </span>                :            : }
+<span class="lineNum">     122 </span>                :            : 
+<span class="lineNum">     123 </span>                :            : /*
+<span class="lineNum">     124 </span>                :            :  * Entity names must be of the following form:
+<span class="lineNum">     125 </span>                :            :  *
+<span class="lineNum">     126 </span>                :            :  *      [component/]*[component][(@|#)component]?
+<span class="lineNum">     127 </span>                :            :  *
+<span class="lineNum">     128 </span>                :            :  * Where each component is made up of alphanumeric characters plus the following
+<span class="lineNum">     129 </span>                :            :  * characters:
+<span class="lineNum">     130 </span>                :            :  *
+<span class="lineNum">     131 </span>                :            :  *      [-_.:%]
+<span class="lineNum">     132 </span>                :            :  *
+<span class="lineNum">     133 </span>                :            :  * We allow '%' here as we use that character internally to create unique
+<span class="lineNum">     134 </span>                :            :  * names for temporary clones (for online recv).
+<a name="135"><span class="lineNum">     135 </span>                :            :  */</a>
+<span class="lineNum">     136 </span>                :            : int
+<span class="lineNum">     137 </span>                :<span class="lineCov">      56777 : entity_namecheck(const char *path, namecheck_err_t *why, char *what)</span>
+<span class="lineNum">     138 </span>                :            : {
+<span class="lineNum">     139 </span>                :            :         const char *start, *end, *loc;
+<span class="lineNum">     140 </span>                :            :         int found_delim;
+<span class="lineNum">     141 </span>                :            : 
+<span class="lineNum">     142 </span>                :            :         /*
+<span class="lineNum">     143 </span>                :            :          * Make sure the name is not too long.
+<span class="lineNum">     144 </span>                :            :          */
+<span class="lineNum">     145 </span>        [<span class="branchCov" title="Branch 0 was taken 33 times"> + </span><span class="branchCov" title="Branch 1 was taken 56744 times"> + </span>]:<span class="lineCov">      56777 :         if (strlen(path) &gt;= ZFS_MAX_DATASET_NAME_LEN) {</span>
+<span class="lineNum">     146 </span>        [<span class="branchCov" title="Branch 0 was taken 33 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         33 :                 if (why)</span>
+<span class="lineNum">     147 </span>                :<span class="lineCov">         33 :                         *why = NAME_ERR_TOOLONG;</span>
+<span class="lineNum">     148 </span>                :            :                 return (-1);
+<span class="lineNum">     149 </span>                :            :         }
+<span class="lineNum">     150 </span>                :            : 
+<span class="lineNum">     151 </span>                :            :         /* Explicitly check for a leading slash.  */
+<span class="lineNum">     152 </span>        [<span class="branchCov" title="Branch 0 was taken 10 times"> + </span><span class="branchCov" title="Branch 1 was taken 56734 times"> + </span>]:<span class="lineCov">      56744 :         if (path[0] == '/') {</span>
+<span class="lineNum">     153 </span>        [<span class="branchCov" title="Branch 0 was taken 10 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         10 :                 if (why)</span>
+<span class="lineNum">     154 </span>                :<span class="lineCov">         10 :                         *why = NAME_ERR_LEADING_SLASH;</span>
+<span class="lineNum">     155 </span>                :            :                 return (-1);
+<span class="lineNum">     156 </span>                :            :         }
+<span class="lineNum">     157 </span>                :            : 
+<span class="lineNum">     158 </span>        [<span class="branchCov" title="Branch 0 was taken 56730 times"> + </span><span class="branchCov" title="Branch 1 was taken 4 times"> + </span>]:<span class="lineCov">      56734 :         if (path[0] == '\0') {</span>
+<span class="lineNum">     159 </span>        [<span class="branchCov" title="Branch 0 was taken 4 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          4 :                 if (why)</span>
+<span class="lineNum">     160 </span>                :<span class="lineCov">          4 :                         *why = NAME_ERR_EMPTY_COMPONENT;</span>
+<span class="lineNum">     161 </span>                :            :                 return (-1);
+<span class="lineNum">     162 </span>                :            :         }
+<span class="lineNum">     163 </span>                :            : 
+<span class="lineNum">     164 </span>                :            :         start = path;
+<span class="lineNum">     165 </span>                :            :         found_delim = 0;
+<span class="lineNum">     166 </span>                :            :         for (;;) {
+<span class="lineNum">     167 </span>                :            :                 /* Find the end of this component */
+<span class="lineNum">     168 </span>                :<span class="lineCov">      81195 :                 end = start;</span>
+<span class="lineNum">     169 </span>[<span class="branchCov" title="Branch 0 was taken 1096538 times"> + </span><span class="branchCov" title="Branch 1 was taken 81159 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 1096464 times"> + </span><span class="branchCov" title="Branch 3 was taken 74 times"> + </span>]:<span class="lineCov">    1177697 :                 while (*end != '/' &amp;&amp; *end != '@' &amp;&amp; *end != '#' &amp;&amp;</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 1039772 times"> + </span><span class="branchCov" title="Branch 5 was taken 56692 times"> + </span>]
+<span class="lineNum">     170 </span>                :            :                     *end != '\0')
+<span class="lineNum">     171 </span>                :<span class="lineCov">    1039772 :                         end++;</span>
+<span class="lineNum">     172 </span>                :            : 
+<span class="lineNum">     173 </span>[<span class="branchCov" title="Branch 0 was taken 56692 times"> + </span><span class="branchCov" title="Branch 1 was taken 81233 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 56683 times"> + </span><span class="branchCov" title="Branch 3 was taken 9 times"> + </span>]:<span class="lineCov">     137925 :                 if (*end == '\0' &amp;&amp; end[-1] == '/') {</span>
+<span class="lineNum">     174 </span>                :            :                         /* trailing slashes are not allowed */
+<span class="lineNum">     175 </span>        [<span class="branchCov" title="Branch 0 was taken 9 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          9 :                         if (why)</span>
+<span class="lineNum">     176 </span>                :<span class="lineCov">          9 :                                 *why = NAME_ERR_TRAILING_SLASH;</span>
+<span class="lineNum">     177 </span>                :            :                         return (-1);
+<span class="lineNum">     178 </span>                :            :                 }
+<span class="lineNum">     179 </span>                :            : 
+<span class="lineNum">     180 </span>                :            :                 /* Validate the contents of this component */
+<span class="lineNum">     181 </span>        [<span class="branchCov" title="Branch 0 was taken 1039664 times"> + </span><span class="branchCov" title="Branch 1 was taken 137874 times"> + </span>]:<span class="lineCov">    1177538 :                 for (loc = start; loc != end; loc++) {</span>
+<span class="lineNum">     182 </span>[<span class="branchCov" title="Branch 1 was taken 72 times"> + </span><span class="branchCov" title="Branch 2 was taken 1039592 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 42 times"> + </span><span class="branchCov" title="Branch 4 was taken 30 times"> + </span>]:<span class="lineCov">    1039664 :                         if (!valid_char(*loc) &amp;&amp; *loc != '%') {</span>
+<span class="lineNum">     183 </span>        [<span class="branchCov" title="Branch 0 was taken 42 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         42 :                                 if (why) {</span>
+<span class="lineNum">     184 </span>                :<span class="lineCov">         42 :                                         *why = NAME_ERR_INVALCHAR;</span>
+<span class="lineNum">     185 </span>                :<span class="lineCov">         42 :                                         *what = *loc;</span>
+<span class="lineNum">     186 </span>                :            :                                 }
+<span class="lineNum">     187 </span>                :            :                                 return (-1);
+<span class="lineNum">     188 </span>                :            :                         }
+<span class="lineNum">     189 </span>                :            :                 }
+<span class="lineNum">     190 </span>                :            : 
+<span class="lineNum">     191 </span>                :            :                 /* Snapshot or bookmark delimiter found */
+<span class="lineNum">     192 </span>        [<span class="branchCov" title="Branch 0 was taken 11282 times"> + </span><span class="branchCov" title="Branch 1 was taken 126592 times"> + </span>]:<span class="lineCov">     137874 :                 if (*end == '@' || *end == '#') {</span>
+<span class="lineNum">     193 </span>                :            :                         /* Multiple delimiters are not allowed */
+<span class="lineNum">     194 </span>        [<span class="branchCov" title="Branch 0 was taken 7 times"> + </span><span class="branchCov" title="Branch 1 was taken 11275 times"> + </span>]:<span class="lineCov">      11282 :                         if (found_delim != 0) {</span>
+<span class="lineNum">     195 </span>        [<span class="branchCov" title="Branch 0 was taken 7 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          7 :                                 if (why)</span>
+<span class="lineNum">     196 </span>                :<span class="lineCov">          7 :                                         *why = NAME_ERR_MULTIPLE_DELIMITERS;</span>
+<span class="lineNum">     197 </span>                :            :                                 return (-1);
+<span class="lineNum">     198 </span>                :            :                         }
+<span class="lineNum">     199 </span>                :            : 
+<span class="lineNum">     200 </span>                :            :                         found_delim = 1;
+<span class="lineNum">     201 </span>                :            :                 }
+<span class="lineNum">     202 </span>                :            : 
+<span class="lineNum">     203 </span>                :            :                 /* Zero-length components are not allowed */
+<span class="lineNum">     204 </span>        [<span class="branchCov" title="Branch 0 was taken 28 times"> + </span><span class="branchCov" title="Branch 1 was taken 137839 times"> + </span>]:<span class="lineCov">     137867 :                 if (start == end) {</span>
+<span class="lineNum">     205 </span>        [<span class="branchCov" title="Branch 0 was taken 28 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         28 :                         if (why)</span>
+<span class="lineNum">     206 </span>                :<span class="lineCov">         28 :                                 *why = NAME_ERR_EMPTY_COMPONENT;</span>
+<span class="lineNum">     207 </span>                :            :                         return (-1);
+<span class="lineNum">     208 </span>                :            :                 }
+<span class="lineNum">     209 </span>                :            : 
+<span class="lineNum">     210 </span>                :            :                 /* If we've reached the end of the string, we're OK */
+<span class="lineNum">     211 </span>        [<span class="branchCov" title="Branch 0 was taken 81197 times"> + </span><span class="branchCov" title="Branch 1 was taken 56642 times"> + </span>]:<span class="lineCov">     137839 :                 if (*end == '\0')</span>
+<span class="lineNum">     212 </span>                :            :                         return (0);
+<span class="lineNum">     213 </span>                :            : 
+<span class="lineNum">     214 </span>                :            :                 /*
+<span class="lineNum">     215 </span>                :            :                  * If there is a '/' in a snapshot or bookmark name
+<span class="lineNum">     216 </span>                :            :                  * then report an error
+<span class="lineNum">     217 </span>                :            :                  */
+<span class="lineNum">     218 </span>[<span class="branchCov" title="Branch 0 was taken 69931 times"> + </span><span class="branchCov" title="Branch 1 was taken 11266 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 2 times"> + </span><span class="branchCov" title="Branch 3 was taken 69929 times"> + </span>]:<span class="lineCov">      81197 :                 if (*end == '/' &amp;&amp; found_delim != 0) {</span>
+<span class="lineNum">     219 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          2 :                         if (why)</span>
+<span class="lineNum">     220 </span>                :<span class="lineCov">          2 :                                 *why = NAME_ERR_TRAILING_SLASH;</span>
+<span class="lineNum">     221 </span>                :            :                         return (-1);
+<span class="lineNum">     222 </span>                :            :                 }
+<span class="lineNum">     223 </span>                :            : 
+<span class="lineNum">     224 </span>                :            :                 /* Update to the next component */
+<span class="lineNum">     225 </span>                :<span class="lineCov">      81195 :                 start = end + 1;</span>
+<span class="lineNum">     226 </span>                :            :         }
+<span class="lineNum">     227 </span>                :            : }
+<span class="lineNum">     228 </span>                :            : 
+<span class="lineNum">     229 </span>                :            : /*
+<span class="lineNum">     230 </span>                :            :  * Dataset is any entity, except bookmark
+<a name="231"><span class="lineNum">     231 </span>                :            :  */</a>
+<span class="lineNum">     232 </span>                :            : int
+<span class="lineNum">     233 </span>                :<span class="lineNoCov">          0 : dataset_namecheck(const char *path, namecheck_err_t *why, char *what)</span>
+<span class="lineNum">     234 </span>                :            : {
+<span class="lineNum">     235 </span>                :<span class="lineNoCov">          0 :         int ret = entity_namecheck(path, why, what);</span>
+<span class="lineNum">     236 </span>                :            : 
+<span class="lineNum">     237 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret == 0 &amp;&amp; strchr(path, '#') != NULL) {</span>
+<span class="lineNum">     238 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (why != NULL) {</span>
+<span class="lineNum">     239 </span>                :<span class="lineNoCov">          0 :                         *why = NAME_ERR_INVALCHAR;</span>
+<span class="lineNum">     240 </span>                :<span class="lineNoCov">          0 :                         *what = '#';</span>
+<span class="lineNum">     241 </span>                :            :                 }
+<span class="lineNum">     242 </span>                :            :                 return (-1);
+<span class="lineNum">     243 </span>                :            :         }
+<span class="lineNum">     244 </span>                :            : 
+<span class="lineNum">     245 </span>                :            :         return (ret);
+<span class="lineNum">     246 </span>                :            : }
+<span class="lineNum">     247 </span>                :            : 
+<span class="lineNum">     248 </span>                :            : /*
+<span class="lineNum">     249 </span>                :            :  * mountpoint names must be of the following form:
+<span class="lineNum">     250 </span>                :            :  *
+<span class="lineNum">     251 </span>                :            :  *      /[component][/]*[component][/]
+<a name="252"><span class="lineNum">     252 </span>                :            :  */</a>
+<span class="lineNum">     253 </span>                :            : int
+<span class="lineNum">     254 </span>                :<span class="lineCov">        554 : mountpoint_namecheck(const char *path, namecheck_err_t *why)</span>
+<span class="lineNum">     255 </span>                :            : {
+<span class="lineNum">     256 </span>                :            :         const char *start, *end;
+<span class="lineNum">     257 </span>                :            : 
+<span class="lineNum">     258 </span>                :            :         /*
+<span class="lineNum">     259 </span>                :            :          * Make sure none of the mountpoint component names are too long.
+<span class="lineNum">     260 </span>                :            :          * If a component name is too long then the mkdir of the mountpoint
+<span class="lineNum">     261 </span>                :            :          * will fail but then the mountpoint property will be set to a value
+<span class="lineNum">     262 </span>                :            :          * that can never be mounted.  Better to fail before setting the prop.
+<span class="lineNum">     263 </span>                :            :          * Extra slashes are OK, they will be tossed by the mountpoint mkdir.
+<span class="lineNum">     264 </span>                :            :          */
+<span class="lineNum">     265 </span>                :            : 
+<span class="lineNum">     266 </span>[<span class="branchCov" title="Branch 0 was taken 554 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 76 times"> + </span><span class="branchCov" title="Branch 3 was taken 478 times"> + </span>]:<span class="lineCov">        554 :         if (path == NULL || *path != '/') {</span>
+<span class="lineNum">     267 </span>        [<span class="branchCov" title="Branch 0 was taken 76 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         76 :                 if (why)</span>
+<span class="lineNum">     268 </span>                :<span class="lineCov">         76 :                         *why = NAME_ERR_LEADING_SLASH;</span>
+<span class="lineNum">     269 </span>                :            :                 return (-1);
+<span class="lineNum">     270 </span>                :            :         }
+<span class="lineNum">     271 </span>                :            : 
+<span class="lineNum">     272 </span>                :            :         /* Skip leading slash  */
+<span class="lineNum">     273 </span>                :<span class="lineCov">        478 :         start = &amp;path[1];</span>
+<span class="lineNum">     274 </span>                :            :         do {
+<span class="lineNum">     275 </span>                :<span class="lineCov">       1477 :                 end = start;</span>
+<span class="lineNum">     276 </span>        [<span class="branchCov" title="Branch 0 was taken 8292 times"> + </span><span class="branchCov" title="Branch 1 was taken 1477 times"> + </span>]:<span class="lineCov">       9769 :                 while (*end != '/' &amp;&amp; *end != '\0')</span>
+<span class="lineNum">     277 </span>                :<span class="lineCov">       8292 :                         end++;</span>
+<span class="lineNum">     278 </span>                :            : 
+<span class="lineNum">     279 </span>        [<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchCov" title="Branch 1 was taken 1476 times"> + </span>]:<span class="lineCov">       1477 :                 if (end - start &gt;= ZFS_MAX_DATASET_NAME_LEN) {</span>
+<span class="lineNum">     280 </span>        [<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          1 :                         if (why)</span>
+<span class="lineNum">     281 </span>                :<span class="lineCov">          1 :                                 *why = NAME_ERR_TOOLONG;</span>
+<span class="lineNum">     282 </span>                :            :                         return (-1);
+<span class="lineNum">     283 </span>                :            :                 }
+<span class="lineNum">     284 </span>                :<span class="lineCov">       1476 :                 start = end + 1;</span>
+<span class="lineNum">     285 </span>                :            : 
+<span class="lineNum">     286 </span>        [<span class="branchCov" title="Branch 0 was taken 999 times"> + </span><span class="branchCov" title="Branch 1 was taken 477 times"> + </span>]:<span class="lineCov">       1476 :         } while (*end != '\0');</span>
+<span class="lineNum">     287 </span>                :            : 
+<span class="lineNum">     288 </span>                :            :         return (0);
+<span class="lineNum">     289 </span>                :            : }
+<span class="lineNum">     290 </span>                :            : 
+<span class="lineNum">     291 </span>                :            : /*
+<span class="lineNum">     292 </span>                :            :  * For pool names, we have the same set of valid characters as described in
+<span class="lineNum">     293 </span>                :            :  * dataset names, with the additional restriction that the pool name must begin
+<span class="lineNum">     294 </span>                :            :  * with a letter.  The pool names 'raidz' and 'mirror' are also reserved names
+<span class="lineNum">     295 </span>                :            :  * that cannot be used.
+<a name="296"><span class="lineNum">     296 </span>                :            :  */</a>
+<span class="lineNum">     297 </span>                :            : int
+<span class="lineNum">     298 </span>                :<span class="lineCov">      57027 : pool_namecheck(const char *pool, namecheck_err_t *why, char *what)</span>
+<span class="lineNum">     299 </span>                :            : {
+<span class="lineNum">     300 </span>                :            :         const char *c;
+<span class="lineNum">     301 </span>                :            : 
+<span class="lineNum">     302 </span>                :            :         /*
+<span class="lineNum">     303 </span>                :            :          * Make sure the name is not too long.
+<span class="lineNum">     304 </span>                :            :          * If we're creating a pool with version &gt;= SPA_VERSION_DSL_SCRUB (v11)
+<span class="lineNum">     305 </span>                :            :          * we need to account for additional space needed by the origin ds which
+<span class="lineNum">     306 </span>                :            :          * will also be snapshotted: &quot;poolname&quot;+&quot;/&quot;+&quot;$ORIGIN&quot;+&quot;@&quot;+&quot;$ORIGIN&quot;.
+<span class="lineNum">     307 </span>                :            :          * Play it safe and enforce this limit even if the pool version is &lt; 11
+<span class="lineNum">     308 </span>                :            :          * so it can be upgraded without issues.
+<span class="lineNum">     309 </span>                :            :          */
+<span class="lineNum">     310 </span>        [<span class="branchCov" title="Branch 0 was taken 57025 times"> + </span><span class="branchCov" title="Branch 1 was taken 2 times"> + </span>]:<span class="lineCov">      57027 :         if (strlen(pool) &gt;= (ZFS_MAX_DATASET_NAME_LEN - 2 -</span>
+<span class="lineNum">     311 </span>                :            :             strlen(ORIGIN_DIR_NAME) * 2)) {
+<span class="lineNum">     312 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          2 :                 if (why)</span>
+<span class="lineNum">     313 </span>                :<span class="lineCov">          2 :                         *why = NAME_ERR_TOOLONG;</span>
+<span class="lineNum">     314 </span>                :            :                 return (-1);
+<span class="lineNum">     315 </span>                :            :         }
+<span class="lineNum">     316 </span>                :            : 
+<span class="lineNum">     317 </span>                :            :         c = pool;
+<span class="lineNum">     318 </span>        [<span class="branchCov" title="Branch 0 was taken 512026 times"> + </span><span class="branchCov" title="Branch 1 was taken 56791 times"> + </span>]:<span class="lineCov">     568817 :         while (*c != '\0') {</span>
+<span class="lineNum">     319 </span>        [<span class="branchCov" title="Branch 1 was taken 234 times"> + </span><span class="branchCov" title="Branch 2 was taken 511792 times"> + </span>]:<span class="lineCov">     512026 :                 if (!valid_char(*c)) {</span>
+<span class="lineNum">     320 </span>        [<span class="branchCov" title="Branch 0 was taken 234 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        234 :                         if (why) {</span>
+<span class="lineNum">     321 </span>                :<span class="lineCov">        234 :                                 *why = NAME_ERR_INVALCHAR;</span>
+<span class="lineNum">     322 </span>                :<span class="lineCov">        234 :                                 *what = *c;</span>
+<span class="lineNum">     323 </span>                :            :                         }
+<span class="lineNum">     324 </span>                :            :                         return (-1);
+<span class="lineNum">     325 </span>                :            :                 }
+<span class="lineNum">     326 </span>                :<span class="lineCov">     511792 :                 c++;</span>
+<span class="lineNum">     327 </span>                :            :         }
+<span class="lineNum">     328 </span>                :            : 
+<span class="lineNum">     329 </span>        [<span class="branchCov" title="Branch 0 was taken 63 times"> + </span><span class="branchCov" title="Branch 1 was taken 56728 times"> + </span>]:<span class="lineCov">      56791 :         if (!(*pool &gt;= 'a' &amp;&amp; *pool &lt;= 'z') &amp;&amp;</span>
+<span class="lineNum">     330 </span>                :            :             !(*pool &gt;= 'A' &amp;&amp; *pool &lt;= 'Z')) {
+<span class="lineNum">     331 </span>        [<span class="branchCov" title="Branch 0 was taken 63 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         63 :                 if (why)</span>
+<span class="lineNum">     332 </span>                :<span class="lineCov">         63 :                         *why = NAME_ERR_NOLETTER;</span>
+<span class="lineNum">     333 </span>                :            :                 return (-1);
+<span class="lineNum">     334 </span>                :            :         }
+<span class="lineNum">     335 </span>                :            : 
+<span class="lineNum">     336 </span>[<span class="branchCov" title="Branch 0 was taken 56724 times"> + </span><span class="branchCov" title="Branch 1 was taken 4 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 4 times"> + </span><span class="branchCov" title="Branch 3 was taken 56720 times"> + </span>]:<span class="lineCov">      56728 :         if (strcmp(pool, &quot;mirror&quot;) == 0 || strcmp(pool, &quot;raidz&quot;) == 0) {</span>
+<span class="lineNum">     337 </span>        [<span class="branchCov" title="Branch 0 was taken 8 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          8 :                 if (why)</span>
+<span class="lineNum">     338 </span>                :<span class="lineCov">          8 :                         *why = NAME_ERR_RESERVED;</span>
+<span class="lineNum">     339 </span>                :            :                 return (-1);
+<span class="lineNum">     340 </span>                :            :         }
+<span class="lineNum">     341 </span>                :            : 
+<span class="lineNum">     342 </span>[<span class="branchCov" title="Branch 0 was taken 31 times"> + </span><span class="branchCov" title="Branch 1 was taken 56689 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 13 times"> + </span><span class="branchCov" title="Branch 3 was taken 18 times"> + </span>]:<span class="lineCov">      56720 :         if (pool[0] == 'c' &amp;&amp; (pool[1] &gt;= '0' &amp;&amp; pool[1] &lt;= '9')) {</span>
+<span class="lineNum">     343 </span>        [<span class="branchCov" title="Branch 0 was taken 13 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         13 :                 if (why)</span>
+<span class="lineNum">     344 </span>                :<span class="lineCov">         13 :                         *why = NAME_ERR_DISKLIKE;</span>
+<span class="lineNum">     345 </span>                :            :                 return (-1);
+<span class="lineNum">     346 </span>                :            :         }
+<span class="lineNum">     347 </span>                :            : 
+<span class="lineNum">     348 </span>                :            :         return (0);
+<span class="lineNum">     349 </span>                :            : }
+<span class="lineNum">     350 </span>                :            : 
+<span class="lineNum">     351 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     352 </span>                :            : EXPORT_SYMBOL(pool_namecheck);
+<span class="lineNum">     353 </span>                :            : EXPORT_SYMBOL(dataset_namecheck);
+<span class="lineNum">     354 </span>                :            : EXPORT_SYMBOL(zfs_component_namecheck);
+<span class="lineNum">     355 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

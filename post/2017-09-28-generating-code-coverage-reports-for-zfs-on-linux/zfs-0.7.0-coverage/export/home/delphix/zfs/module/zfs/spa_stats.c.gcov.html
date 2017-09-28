@@ -1,0 +1,1037 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/spa_stats.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - spa_stats.c<span style="font-size: 80%;"> (source / <a href="spa_stats.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">151</td>
+            <td class="headerCovTableEntry">413</td>
+            <td class="headerCovTableEntryLo">36.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">19</td>
+            <td class="headerCovTableEntry">34</td>
+            <td class="headerCovTableEntryLo">55.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">33</td>
+            <td class="headerCovTableEntry">150</td>
+            <td class="headerCovTableEntryLo">22.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      23 </span>                :            : #include &lt;sys/spa_impl.h&gt;
+<span class="lineNum">      24 </span>                :            : #include &lt;sys/vdev_impl.h&gt;
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : /*
+<span class="lineNum">      27 </span>                :            :  * Keeps stats on last N reads per spa_t, disabled by default.
+<span class="lineNum">      28 </span>                :            :  */
+<span class="lineNum">      29 </span>                :            : int zfs_read_history = 0;
+<span class="lineNum">      30 </span>                :            : 
+<span class="lineNum">      31 </span>                :            : /*
+<span class="lineNum">      32 </span>                :            :  * Include cache hits in history, disabled by default.
+<span class="lineNum">      33 </span>                :            :  */
+<span class="lineNum">      34 </span>                :            : int zfs_read_history_hits = 0;
+<span class="lineNum">      35 </span>                :            : 
+<span class="lineNum">      36 </span>                :            : /*
+<span class="lineNum">      37 </span>                :            :  * Keeps stats on the last N txgs, disabled by default.
+<span class="lineNum">      38 </span>                :            :  */
+<span class="lineNum">      39 </span>                :            : int zfs_txg_history = 0;
+<span class="lineNum">      40 </span>                :            : 
+<span class="lineNum">      41 </span>                :            : /*
+<span class="lineNum">      42 </span>                :            :  * Keeps stats on the last N MMP updates, disabled by default.
+<span class="lineNum">      43 </span>                :            :  */
+<span class="lineNum">      44 </span>                :            : int zfs_multihost_history = 0;
+<span class="lineNum">      45 </span>                :            : 
+<span class="lineNum">      46 </span>                :            : /*
+<span class="lineNum">      47 </span>                :            :  * ==========================================================================
+<span class="lineNum">      48 </span>                :            :  * SPA Read History Routines
+<span class="lineNum">      49 </span>                :            :  * ==========================================================================
+<span class="lineNum">      50 </span>                :            :  */
+<span class="lineNum">      51 </span>                :            : 
+<span class="lineNum">      52 </span>                :            : /*
+<span class="lineNum">      53 </span>                :            :  * Read statistics - Information exported regarding each arc_read call
+<span class="lineNum">      54 </span>                :            :  */
+<span class="lineNum">      55 </span>                :            : typedef struct spa_read_history {
+<span class="lineNum">      56 </span>                :            :         uint64_t        uid;            /* unique identifier */
+<span class="lineNum">      57 </span>                :            :         hrtime_t        start;          /* time read completed */
+<span class="lineNum">      58 </span>                :            :         uint64_t        objset;         /* read from this objset */
+<span class="lineNum">      59 </span>                :            :         uint64_t        object;         /* read of this object number */
+<span class="lineNum">      60 </span>                :            :         uint64_t        level;          /* block's indirection level */
+<span class="lineNum">      61 </span>                :            :         uint64_t        blkid;          /* read of this block id */
+<span class="lineNum">      62 </span>                :            :         char            origin[24];     /* read originated from here */
+<span class="lineNum">      63 </span>                :            :         uint32_t        aflags;         /* ARC flags (cached, prefetch, etc.) */
+<span class="lineNum">      64 </span>                :            :         pid_t           pid;            /* PID of task doing read */
+<span class="lineNum">      65 </span>                :            :         char            comm[16];       /* process name of task doing read */
+<span class="lineNum">      66 </span>                :            :         list_node_t     srh_link;
+<span class="lineNum">      67 </span>                :            : } spa_read_history_t;
+<a name="68"><span class="lineNum">      68 </span>                :            : </a>
+<span class="lineNum">      69 </span>                :            : static int
+<span class="lineNum">      70 </span>                :<span class="lineNoCov">          0 : spa_read_history_headers(char *buf, size_t size)</span>
+<span class="lineNum">      71 </span>                :            : {
+<span class="lineNum">      72 </span>                :<span class="lineNoCov">          0 :         (void) snprintf(buf, size, &quot;%-8s %-16s %-8s %-8s %-8s %-8s %-8s &quot;</span>
+<span class="lineNum">      73 </span>                :            :             &quot;%-24s %-8s %-16s\n&quot;, &quot;UID&quot;, &quot;start&quot;, &quot;objset&quot;, &quot;object&quot;,
+<span class="lineNum">      74 </span>                :            :             &quot;level&quot;, &quot;blkid&quot;, &quot;aflags&quot;, &quot;origin&quot;, &quot;pid&quot;, &quot;process&quot;);
+<span class="lineNum">      75 </span>                :            : 
+<span class="lineNum">      76 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">      77 </span>                :            : }
+<a name="78"><span class="lineNum">      78 </span>                :            : </a>
+<span class="lineNum">      79 </span>                :            : static int
+<span class="lineNum">      80 </span>                :<span class="lineNoCov">          0 : spa_read_history_data(char *buf, size_t size, void *data)</span>
+<span class="lineNum">      81 </span>                :            : {
+<span class="lineNum">      82 </span>                :<span class="lineNoCov">          0 :         spa_read_history_t *srh = (spa_read_history_t *)data;</span>
+<span class="lineNum">      83 </span>                :            : 
+<span class="lineNum">      84 </span>                :<span class="lineNoCov">          0 :         (void) snprintf(buf, size, &quot;%-8llu %-16llu 0x%-6llx &quot;</span>
+<span class="lineNum">      85 </span>                :            :             &quot;%-8lli %-8lli %-8lli 0x%-6x %-24s %-8i %-16s\n&quot;,
+<span class="lineNum">      86 </span>                :<span class="lineNoCov">          0 :             (u_longlong_t)srh-&gt;uid, srh-&gt;start,</span>
+<span class="lineNum">      87 </span>                :<span class="lineNoCov">          0 :             (longlong_t)srh-&gt;objset, (longlong_t)srh-&gt;object,</span>
+<span class="lineNum">      88 </span>                :<span class="lineNoCov">          0 :             (longlong_t)srh-&gt;level, (longlong_t)srh-&gt;blkid,</span>
+<span class="lineNum">      89 </span>                :<span class="lineNoCov">          0 :             srh-&gt;aflags, srh-&gt;origin, srh-&gt;pid, srh-&gt;comm);</span>
+<span class="lineNum">      90 </span>                :            : 
+<span class="lineNum">      91 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">      92 </span>                :            : }
+<span class="lineNum">      93 </span>                :            : 
+<span class="lineNum">      94 </span>                :            : /*
+<span class="lineNum">      95 </span>                :            :  * Calculate the address for the next spa_stats_history_t entry.  The
+<span class="lineNum">      96 </span>                :            :  * ssh-&gt;lock will be held until ksp-&gt;ks_ndata entries are processed.
+<a name="97"><span class="lineNum">      97 </span>                :            :  */</a>
+<span class="lineNum">      98 </span>                :            : static void *
+<span class="lineNum">      99 </span>                :<span class="lineNoCov">          0 : spa_read_history_addr(kstat_t *ksp, loff_t n)</span>
+<span class="lineNum">     100 </span>                :            : {
+<span class="lineNum">     101 </span>                :<span class="lineNoCov">          0 :         spa_t *spa = ksp-&gt;ks_private;</span>
+<span class="lineNum">     102 </span>                :<span class="lineNoCov">          0 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.read_history;</span>
+<span class="lineNum">     103 </span>                :            : 
+<span class="lineNum">     104 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(MUTEX_HELD(&amp;ssh-&gt;lock));</span>
+<span class="lineNum">     105 </span>                :            : 
+<span class="lineNum">     106 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (n == 0)</span>
+<span class="lineNum">     107 </span>                :<span class="lineNoCov">          0 :                 ssh-&gt;private = list_tail(&amp;ssh-&gt;list);</span>
+<span class="lineNum">     108 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         else if (ssh-&gt;private)</span>
+<span class="lineNum">     109 </span>                :<span class="lineNoCov">          0 :                 ssh-&gt;private = list_prev(&amp;ssh-&gt;list, ssh-&gt;private);</span>
+<span class="lineNum">     110 </span>                :            : 
+<span class="lineNum">     111 </span>                :<span class="lineNoCov">          0 :         return (ssh-&gt;private);</span>
+<span class="lineNum">     112 </span>                :            : }
+<span class="lineNum">     113 </span>                :            : 
+<span class="lineNum">     114 </span>                :            : /*
+<span class="lineNum">     115 </span>                :            :  * When the kstat is written discard all spa_read_history_t entries.  The
+<span class="lineNum">     116 </span>                :            :  * ssh-&gt;lock will be held until ksp-&gt;ks_ndata entries are processed.
+<a name="117"><span class="lineNum">     117 </span>                :            :  */</a>
+<span class="lineNum">     118 </span>                :            : static int
+<span class="lineNum">     119 </span>                :<span class="lineNoCov">          0 : spa_read_history_update(kstat_t *ksp, int rw)</span>
+<span class="lineNum">     120 </span>                :            : {
+<span class="lineNum">     121 </span>                :<span class="lineNoCov">          0 :         spa_t *spa = ksp-&gt;ks_private;</span>
+<span class="lineNum">     122 </span>                :<span class="lineNoCov">          0 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.read_history;</span>
+<span class="lineNum">     123 </span>                :            : 
+<span class="lineNum">     124 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rw == KSTAT_WRITE) {</span>
+<span class="lineNum">     125 </span>                :            :                 spa_read_history_t *srh;
+<span class="lineNum">     126 </span>                :            : 
+<span class="lineNum">     127 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 while ((srh = list_remove_head(&amp;ssh-&gt;list))) {</span>
+<span class="lineNum">     128 </span>                :<span class="lineNoCov">          0 :                         ssh-&gt;size--;</span>
+<span class="lineNum">     129 </span>                :<span class="lineNoCov">          0 :                         kmem_free(srh, sizeof (spa_read_history_t));</span>
+<span class="lineNum">     130 </span>                :            :                 }
+<span class="lineNum">     131 </span>                :            : 
+<span class="lineNum">     132 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT3U(ssh-&gt;size, ==, 0);</span>
+<span class="lineNum">     133 </span>                :            :         }
+<span class="lineNum">     134 </span>                :            : 
+<span class="lineNum">     135 </span>                :<span class="lineNoCov">          0 :         ksp-&gt;ks_ndata = ssh-&gt;size;</span>
+<span class="lineNum">     136 </span>                :<span class="lineNoCov">          0 :         ksp-&gt;ks_data_size = ssh-&gt;size * sizeof (spa_read_history_t);</span>
+<span class="lineNum">     137 </span>                :            : 
+<span class="lineNum">     138 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     139 </span>                :            : }
+<a name="140"><span class="lineNum">     140 </span>                :            : </a>
+<span class="lineNum">     141 </span>                :            : static void
+<span class="lineNum">     142 </span>                :<span class="lineCov">       1864 : spa_read_history_init(spa_t *spa)</span>
+<span class="lineNum">     143 </span>                :            : {
+<span class="lineNum">     144 </span>                :<span class="lineCov">       1864 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.read_history;</span>
+<span class="lineNum">     145 </span>                :            :         char *name;
+<span class="lineNum">     146 </span>                :            :         kstat_t *ksp;
+<span class="lineNum">     147 </span>                :            : 
+<span class="lineNum">     148 </span>                :<span class="lineCov">       1864 :         mutex_init(&amp;ssh-&gt;lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     149 </span>                :<span class="lineCov">       1864 :         list_create(&amp;ssh-&gt;list, sizeof (spa_read_history_t),</span>
+<span class="lineNum">     150 </span>                :            :             offsetof(spa_read_history_t, srh_link));
+<span class="lineNum">     151 </span>                :            : 
+<span class="lineNum">     152 </span>                :<span class="lineCov">       1864 :         ssh-&gt;count = 0;</span>
+<span class="lineNum">     153 </span>                :<span class="lineCov">       1864 :         ssh-&gt;size = 0;</span>
+<span class="lineNum">     154 </span>                :<span class="lineCov">       1864 :         ssh-&gt;private = NULL;</span>
+<span class="lineNum">     155 </span>                :            : 
+<span class="lineNum">     156 </span>                :<span class="lineCov">       1864 :         name = kmem_asprintf(&quot;zfs/%s&quot;, spa_name(spa));</span>
+<span class="lineNum">     157 </span>                :            : 
+<span class="lineNum">     158 </span>                :<span class="lineCov">       1864 :         ksp = kstat_create(name, 0, &quot;reads&quot;, &quot;misc&quot;,</span>
+<span class="lineNum">     159 </span>                :            :             KSTAT_TYPE_RAW, 0, KSTAT_FLAG_VIRTUAL);
+<span class="lineNum">     160 </span>                :<span class="lineCov">       1864 :         ssh-&gt;kstat = ksp;</span>
+<span class="lineNum">     161 </span>                :            : 
+<span class="lineNum">     162 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1864 times"> + </span>]:<span class="lineCov">       1864 :         if (ksp) {</span>
+<span class="lineNum">     163 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_lock = &amp;ssh-&gt;lock;</span>
+<span class="lineNum">     164 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_data = NULL;</span>
+<span class="lineNum">     165 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_private = spa;</span>
+<span class="lineNum">     166 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_update = spa_read_history_update;</span>
+<span class="lineNum">     167 </span>                :<span class="lineNoCov">          0 :                 kstat_set_raw_ops(ksp, spa_read_history_headers,</span>
+<span class="lineNum">     168 </span>                :            :                     spa_read_history_data, spa_read_history_addr);
+<span class="lineNum">     169 </span>                :<span class="lineNoCov">          0 :                 kstat_install(ksp);</span>
+<span class="lineNum">     170 </span>                :            :         }
+<span class="lineNum">     171 </span>                :<span class="lineCov">       1864 :         strfree(name);</span>
+<span class="lineNum">     172 </span>                :<span class="lineCov">       1864 : }</span>
+<a name="173"><span class="lineNum">     173 </span>                :            : </a>
+<span class="lineNum">     174 </span>                :            : static void
+<span class="lineNum">     175 </span>                :<span class="lineCov">       1136 : spa_read_history_destroy(spa_t *spa)</span>
+<span class="lineNum">     176 </span>                :            : {
+<span class="lineNum">     177 </span>                :<span class="lineCov">       1136 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.read_history;</span>
+<span class="lineNum">     178 </span>                :            :         spa_read_history_t *srh;
+<span class="lineNum">     179 </span>                :            :         kstat_t *ksp;
+<span class="lineNum">     180 </span>                :            : 
+<span class="lineNum">     181 </span>                :<span class="lineCov">       1136 :         ksp = ssh-&gt;kstat;</span>
+<span class="lineNum">     182 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1136 times"> + </span>]:<span class="lineCov">       1136 :         if (ksp)</span>
+<span class="lineNum">     183 </span>                :<span class="lineNoCov">          0 :                 kstat_delete(ksp);</span>
+<span class="lineNum">     184 </span>                :            : 
+<span class="lineNum">     185 </span>                :<span class="lineCov">       1136 :         mutex_enter(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     186 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1136 times"> + </span>]:<span class="lineCov">       1136 :         while ((srh = list_remove_head(&amp;ssh-&gt;list))) {</span>
+<span class="lineNum">     187 </span>                :<span class="lineNoCov">          0 :                 ssh-&gt;size--;</span>
+<span class="lineNum">     188 </span>                :<span class="lineNoCov">          0 :                 kmem_free(srh, sizeof (spa_read_history_t));</span>
+<span class="lineNum">     189 </span>                :            :         }
+<span class="lineNum">     190 </span>                :            : 
+<span class="lineNum">     191 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1136 times"> + </span>]:<span class="lineCov">       1136 :         ASSERT3U(ssh-&gt;size, ==, 0);</span>
+<span class="lineNum">     192 </span>                :<span class="lineCov">       1136 :         list_destroy(&amp;ssh-&gt;list);</span>
+<span class="lineNum">     193 </span>                :<span class="lineCov">       1136 :         mutex_exit(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     194 </span>                :            : 
+<span class="lineNum">     195 </span>                :<span class="lineCov">       1136 :         mutex_destroy(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     196 </span>                :<span class="lineCov">       1136 : }</span>
+<a name="197"><span class="lineNum">     197 </span>                :            : </a>
+<span class="lineNum">     198 </span>                :            : void
+<span class="lineNum">     199 </span>                :<span class="lineCov">    1869463 : spa_read_history_add(spa_t *spa, const zbookmark_phys_t *zb, uint32_t aflags)</span>
+<span class="lineNum">     200 </span>                :            : {
+<span class="lineNum">     201 </span>                :<span class="lineCov">    1869463 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.read_history;</span>
+<span class="lineNum">     202 </span>                :            :         spa_read_history_t *srh, *rm;
+<span class="lineNum">     203 </span>                :            : 
+<span class="lineNum">     204 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1869463 times"> + </span>]:<span class="lineCov">    1869463 :         ASSERT3P(spa, !=, NULL);</span>
+<span class="lineNum">     205 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1869463 times"> + </span>]:<span class="lineCov">    1869463 :         ASSERT3P(zb,  !=, NULL);</span>
+<span class="lineNum">     206 </span>                :            : 
+<span class="lineNum">     207 </span>   [<span class="branchCov" title="Branch 0 was taken 1869880 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 417 times"> + </span><span class="branchCov" title="Branch 3 was taken 1869463 times"> + </span>]:<span class="lineCov">    1869463 :         if (zfs_read_history == 0 &amp;&amp; ssh-&gt;size == 0)</span>
+<span class="lineNum">     208 </span>                :            :                 return;
+<span class="lineNum">     209 </span>                :            : 
+<span class="lineNum">     210 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (zfs_read_history_hits == 0 &amp;&amp; (aflags &amp; ARC_FLAG_CACHED))</span>
+<span class="lineNum">     211 </span>                :            :                 return;
+<span class="lineNum">     212 </span>                :            : 
+<span class="lineNum">     213 </span>                :<span class="lineNoCov">          0 :         srh = kmem_zalloc(sizeof (spa_read_history_t), KM_SLEEP);</span>
+<span class="lineNum">     214 </span>                :<span class="lineNoCov">          0 :         strlcpy(srh-&gt;comm, getcomm(), sizeof (srh-&gt;comm));</span>
+<span class="lineNum">     215 </span>                :<span class="lineNoCov">          0 :         srh-&gt;start  = gethrtime();</span>
+<span class="lineNum">     216 </span>                :<span class="lineNoCov">          0 :         srh-&gt;objset = zb-&gt;zb_objset;</span>
+<span class="lineNum">     217 </span>                :<span class="lineNoCov">          0 :         srh-&gt;object = zb-&gt;zb_object;</span>
+<span class="lineNum">     218 </span>                :<span class="lineNoCov">          0 :         srh-&gt;level  = zb-&gt;zb_level;</span>
+<span class="lineNum">     219 </span>                :<span class="lineNoCov">          0 :         srh-&gt;blkid  = zb-&gt;zb_blkid;</span>
+<span class="lineNum">     220 </span>                :<span class="lineNoCov">          0 :         srh-&gt;aflags = aflags;</span>
+<span class="lineNum">     221 </span>                :<span class="lineNoCov">          0 :         srh-&gt;pid    = getpid();</span>
+<span class="lineNum">     222 </span>                :            : 
+<span class="lineNum">     223 </span>                :<span class="lineNoCov">          0 :         mutex_enter(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     224 </span>                :            : 
+<span class="lineNum">     225 </span>                :<span class="lineNoCov">          0 :         srh-&gt;uid = ssh-&gt;count++;</span>
+<span class="lineNum">     226 </span>                :<span class="lineNoCov">          0 :         list_insert_head(&amp;ssh-&gt;list, srh);</span>
+<span class="lineNum">     227 </span>                :<span class="lineNoCov">          0 :         ssh-&gt;size++;</span>
+<span class="lineNum">     228 </span>                :            : 
+<span class="lineNum">     229 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         while (ssh-&gt;size &gt; zfs_read_history) {</span>
+<span class="lineNum">     230 </span>                :<span class="lineNoCov">          0 :                 ssh-&gt;size--;</span>
+<span class="lineNum">     231 </span>                :<span class="lineNoCov">          0 :                 rm = list_remove_tail(&amp;ssh-&gt;list);</span>
+<span class="lineNum">     232 </span>                :<span class="lineNoCov">          0 :                 kmem_free(rm, sizeof (spa_read_history_t));</span>
+<span class="lineNum">     233 </span>                :            :         }
+<span class="lineNum">     234 </span>                :            : 
+<span class="lineNum">     235 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     236 </span>                :            : }
+<span class="lineNum">     237 </span>                :            : 
+<span class="lineNum">     238 </span>                :            : /*
+<span class="lineNum">     239 </span>                :            :  * ==========================================================================
+<span class="lineNum">     240 </span>                :            :  * SPA TXG History Routines
+<span class="lineNum">     241 </span>                :            :  * ==========================================================================
+<span class="lineNum">     242 </span>                :            :  */
+<span class="lineNum">     243 </span>                :            : 
+<span class="lineNum">     244 </span>                :            : /*
+<span class="lineNum">     245 </span>                :            :  * Txg statistics - Information exported regarding each txg sync
+<span class="lineNum">     246 </span>                :            :  */
+<span class="lineNum">     247 </span>                :            : 
+<span class="lineNum">     248 </span>                :            : typedef struct spa_txg_history {
+<span class="lineNum">     249 </span>                :            :         uint64_t        txg;            /* txg id */
+<span class="lineNum">     250 </span>                :            :         txg_state_t     state;          /* active txg state */
+<span class="lineNum">     251 </span>                :            :         uint64_t        nread;          /* number of bytes read */
+<span class="lineNum">     252 </span>                :            :         uint64_t        nwritten;       /* number of bytes written */
+<span class="lineNum">     253 </span>                :            :         uint64_t        reads;          /* number of read operations */
+<span class="lineNum">     254 </span>                :            :         uint64_t        writes;         /* number of write operations */
+<span class="lineNum">     255 </span>                :            :         uint64_t        ndirty;         /* number of dirty bytes */
+<span class="lineNum">     256 </span>                :            :         hrtime_t        times[TXG_STATE_COMMITTED]; /* completion times */
+<span class="lineNum">     257 </span>                :            :         list_node_t     sth_link;
+<span class="lineNum">     258 </span>                :            : } spa_txg_history_t;
+<a name="259"><span class="lineNum">     259 </span>                :            : </a>
+<span class="lineNum">     260 </span>                :            : static int
+<span class="lineNum">     261 </span>                :<span class="lineNoCov">          0 : spa_txg_history_headers(char *buf, size_t size)</span>
+<span class="lineNum">     262 </span>                :            : {
+<span class="lineNum">     263 </span>                :<span class="lineNoCov">          0 :         (void) snprintf(buf, size, &quot;%-8s %-16s %-5s %-12s %-12s %-12s &quot;</span>
+<span class="lineNum">     264 </span>                :            :             &quot;%-8s %-8s %-12s %-12s %-12s %-12s\n&quot;, &quot;txg&quot;, &quot;birth&quot;, &quot;state&quot;,
+<span class="lineNum">     265 </span>                :            :             &quot;ndirty&quot;, &quot;nread&quot;, &quot;nwritten&quot;, &quot;reads&quot;, &quot;writes&quot;,
+<span class="lineNum">     266 </span>                :            :             &quot;otime&quot;, &quot;qtime&quot;, &quot;wtime&quot;, &quot;stime&quot;);
+<span class="lineNum">     267 </span>                :            : 
+<span class="lineNum">     268 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     269 </span>                :            : }
+<a name="270"><span class="lineNum">     270 </span>                :            : </a>
+<span class="lineNum">     271 </span>                :            : static int
+<span class="lineNum">     272 </span>                :<span class="lineNoCov">          0 : spa_txg_history_data(char *buf, size_t size, void *data)</span>
+<span class="lineNum">     273 </span>                :            : {
+<span class="lineNum">     274 </span>                :<span class="lineNoCov">          0 :         spa_txg_history_t *sth = (spa_txg_history_t *)data;</span>
+<span class="lineNum">     275 </span>                :<span class="lineNoCov">          0 :         uint64_t open = 0, quiesce = 0, wait = 0, sync = 0;</span>
+<span class="lineNum">     276 </span>                :            :         char state;
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (sth-&gt;state) {</span>
+<span class="lineNum">     279 </span>                :            :                 case TXG_STATE_BIRTH:           state = 'B';    break;
+<span class="lineNum">     280 </span>                :            :                 case TXG_STATE_OPEN:            state = 'O';    break;
+<span class="lineNum">     281 </span>                :            :                 case TXG_STATE_QUIESCED:        state = 'Q';    break;
+<span class="lineNum">     282 </span>                :            :                 case TXG_STATE_WAIT_FOR_SYNC:   state = 'W';    break;
+<span class="lineNum">     283 </span>                :            :                 case TXG_STATE_SYNCED:          state = 'S';    break;
+<span class="lineNum">     284 </span>                :            :                 case TXG_STATE_COMMITTED:       state = 'C';    break;
+<span class="lineNum">     285 </span>                :            :                 default:                        state = '?';    break;
+<span class="lineNum">     286 </span>                :            :         }
+<span class="lineNum">     287 </span>                :            : 
+<span class="lineNum">     288 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (sth-&gt;times[TXG_STATE_OPEN])</span>
+<span class="lineNum">     289 </span>                :<span class="lineNoCov">          0 :                 open = sth-&gt;times[TXG_STATE_OPEN] -</span>
+<span class="lineNum">     290 </span>                :<span class="lineNoCov">          0 :                     sth-&gt;times[TXG_STATE_BIRTH];</span>
+<span class="lineNum">     291 </span>                :            : 
+<span class="lineNum">     292 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (sth-&gt;times[TXG_STATE_QUIESCED])</span>
+<span class="lineNum">     293 </span>                :<span class="lineNoCov">          0 :                 quiesce = sth-&gt;times[TXG_STATE_QUIESCED] -</span>
+<span class="lineNum">     294 </span>                :            :                     sth-&gt;times[TXG_STATE_OPEN];
+<span class="lineNum">     295 </span>                :            : 
+<span class="lineNum">     296 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (sth-&gt;times[TXG_STATE_WAIT_FOR_SYNC])</span>
+<span class="lineNum">     297 </span>                :<span class="lineNoCov">          0 :                 wait = sth-&gt;times[TXG_STATE_WAIT_FOR_SYNC] -</span>
+<span class="lineNum">     298 </span>                :            :                     sth-&gt;times[TXG_STATE_QUIESCED];
+<span class="lineNum">     299 </span>                :            : 
+<span class="lineNum">     300 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (sth-&gt;times[TXG_STATE_SYNCED])</span>
+<span class="lineNum">     301 </span>                :<span class="lineNoCov">          0 :                 sync = sth-&gt;times[TXG_STATE_SYNCED] -</span>
+<span class="lineNum">     302 </span>                :            :                     sth-&gt;times[TXG_STATE_WAIT_FOR_SYNC];
+<span class="lineNum">     303 </span>                :            : 
+<span class="lineNum">     304 </span>                :<span class="lineNoCov">          0 :         (void) snprintf(buf, size, &quot;%-8llu %-16llu %-5c %-12llu &quot;</span>
+<span class="lineNum">     305 </span>                :            :             &quot;%-12llu %-12llu %-8llu %-8llu %-12llu %-12llu %-12llu %-12llu\n&quot;,
+<span class="lineNum">     306 </span>                :<span class="lineNoCov">          0 :             (longlong_t)sth-&gt;txg, sth-&gt;times[TXG_STATE_BIRTH], state,</span>
+<span class="lineNum">     307 </span>                :<span class="lineNoCov">          0 :             (u_longlong_t)sth-&gt;ndirty,</span>
+<span class="lineNum">     308 </span>                :<span class="lineNoCov">          0 :             (u_longlong_t)sth-&gt;nread, (u_longlong_t)sth-&gt;nwritten,</span>
+<span class="lineNum">     309 </span>                :<span class="lineNoCov">          0 :             (u_longlong_t)sth-&gt;reads, (u_longlong_t)sth-&gt;writes,</span>
+<span class="lineNum">     310 </span>                :            :             (u_longlong_t)open, (u_longlong_t)quiesce, (u_longlong_t)wait,
+<span class="lineNum">     311 </span>                :            :             (u_longlong_t)sync);
+<span class="lineNum">     312 </span>                :            : 
+<span class="lineNum">     313 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     314 </span>                :            : }
+<span class="lineNum">     315 </span>                :            : 
+<span class="lineNum">     316 </span>                :            : /*
+<span class="lineNum">     317 </span>                :            :  * Calculate the address for the next spa_stats_history_t entry.  The
+<span class="lineNum">     318 </span>                :            :  * ssh-&gt;lock will be held until ksp-&gt;ks_ndata entries are processed.
+<a name="319"><span class="lineNum">     319 </span>                :            :  */</a>
+<span class="lineNum">     320 </span>                :            : static void *
+<span class="lineNum">     321 </span>                :<span class="lineNoCov">          0 : spa_txg_history_addr(kstat_t *ksp, loff_t n)</span>
+<span class="lineNum">     322 </span>                :            : {
+<span class="lineNum">     323 </span>                :<span class="lineNoCov">          0 :         spa_t *spa = ksp-&gt;ks_private;</span>
+<span class="lineNum">     324 </span>                :<span class="lineNoCov">          0 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.txg_history;</span>
+<span class="lineNum">     325 </span>                :            : 
+<span class="lineNum">     326 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(MUTEX_HELD(&amp;ssh-&gt;lock));</span>
+<span class="lineNum">     327 </span>                :            : 
+<span class="lineNum">     328 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (n == 0)</span>
+<span class="lineNum">     329 </span>                :<span class="lineNoCov">          0 :                 ssh-&gt;private = list_tail(&amp;ssh-&gt;list);</span>
+<span class="lineNum">     330 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         else if (ssh-&gt;private)</span>
+<span class="lineNum">     331 </span>                :<span class="lineNoCov">          0 :                 ssh-&gt;private = list_prev(&amp;ssh-&gt;list, ssh-&gt;private);</span>
+<span class="lineNum">     332 </span>                :            : 
+<span class="lineNum">     333 </span>                :<span class="lineNoCov">          0 :         return (ssh-&gt;private);</span>
+<span class="lineNum">     334 </span>                :            : }
+<span class="lineNum">     335 </span>                :            : 
+<span class="lineNum">     336 </span>                :            : /*
+<span class="lineNum">     337 </span>                :            :  * When the kstat is written discard all spa_txg_history_t entries.  The
+<span class="lineNum">     338 </span>                :            :  * ssh-&gt;lock will be held until ksp-&gt;ks_ndata entries are processed.
+<a name="339"><span class="lineNum">     339 </span>                :            :  */</a>
+<span class="lineNum">     340 </span>                :            : static int
+<span class="lineNum">     341 </span>                :<span class="lineNoCov">          0 : spa_txg_history_update(kstat_t *ksp, int rw)</span>
+<span class="lineNum">     342 </span>                :            : {
+<span class="lineNum">     343 </span>                :<span class="lineNoCov">          0 :         spa_t *spa = ksp-&gt;ks_private;</span>
+<span class="lineNum">     344 </span>                :<span class="lineNoCov">          0 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.txg_history;</span>
+<span class="lineNum">     345 </span>                :            : 
+<span class="lineNum">     346 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(MUTEX_HELD(&amp;ssh-&gt;lock));</span>
+<span class="lineNum">     347 </span>                :            : 
+<span class="lineNum">     348 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rw == KSTAT_WRITE) {</span>
+<span class="lineNum">     349 </span>                :            :                 spa_txg_history_t *sth;
+<span class="lineNum">     350 </span>                :            : 
+<span class="lineNum">     351 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 while ((sth = list_remove_head(&amp;ssh-&gt;list))) {</span>
+<span class="lineNum">     352 </span>                :<span class="lineNoCov">          0 :                         ssh-&gt;size--;</span>
+<span class="lineNum">     353 </span>                :<span class="lineNoCov">          0 :                         kmem_free(sth, sizeof (spa_txg_history_t));</span>
+<span class="lineNum">     354 </span>                :            :                 }
+<span class="lineNum">     355 </span>                :            : 
+<span class="lineNum">     356 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT3U(ssh-&gt;size, ==, 0);</span>
+<span class="lineNum">     357 </span>                :            :         }
+<span class="lineNum">     358 </span>                :            : 
+<span class="lineNum">     359 </span>                :<span class="lineNoCov">          0 :         ksp-&gt;ks_ndata = ssh-&gt;size;</span>
+<span class="lineNum">     360 </span>                :<span class="lineNoCov">          0 :         ksp-&gt;ks_data_size = ssh-&gt;size * sizeof (spa_txg_history_t);</span>
+<span class="lineNum">     361 </span>                :            : 
+<span class="lineNum">     362 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     363 </span>                :            : }
+<a name="364"><span class="lineNum">     364 </span>                :            : </a>
+<span class="lineNum">     365 </span>                :            : static void
+<span class="lineNum">     366 </span>                :<span class="lineCov">       1864 : spa_txg_history_init(spa_t *spa)</span>
+<span class="lineNum">     367 </span>                :            : {
+<span class="lineNum">     368 </span>                :<span class="lineCov">       1864 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.txg_history;</span>
+<span class="lineNum">     369 </span>                :            :         char *name;
+<span class="lineNum">     370 </span>                :            :         kstat_t *ksp;
+<span class="lineNum">     371 </span>                :            : 
+<span class="lineNum">     372 </span>                :<span class="lineCov">       1864 :         mutex_init(&amp;ssh-&gt;lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     373 </span>                :<span class="lineCov">       1864 :         list_create(&amp;ssh-&gt;list, sizeof (spa_txg_history_t),</span>
+<span class="lineNum">     374 </span>                :            :             offsetof(spa_txg_history_t, sth_link));
+<span class="lineNum">     375 </span>                :            : 
+<span class="lineNum">     376 </span>                :<span class="lineCov">       1864 :         ssh-&gt;count = 0;</span>
+<span class="lineNum">     377 </span>                :<span class="lineCov">       1864 :         ssh-&gt;size = 0;</span>
+<span class="lineNum">     378 </span>                :<span class="lineCov">       1864 :         ssh-&gt;private = NULL;</span>
+<span class="lineNum">     379 </span>                :            : 
+<span class="lineNum">     380 </span>                :<span class="lineCov">       1864 :         name = kmem_asprintf(&quot;zfs/%s&quot;, spa_name(spa));</span>
+<span class="lineNum">     381 </span>                :            : 
+<span class="lineNum">     382 </span>                :<span class="lineCov">       1864 :         ksp = kstat_create(name, 0, &quot;txgs&quot;, &quot;misc&quot;,</span>
+<span class="lineNum">     383 </span>                :            :             KSTAT_TYPE_RAW, 0, KSTAT_FLAG_VIRTUAL);
+<span class="lineNum">     384 </span>                :<span class="lineCov">       1864 :         ssh-&gt;kstat = ksp;</span>
+<span class="lineNum">     385 </span>                :            : 
+<span class="lineNum">     386 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1864 times"> + </span>]:<span class="lineCov">       1864 :         if (ksp) {</span>
+<span class="lineNum">     387 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_lock = &amp;ssh-&gt;lock;</span>
+<span class="lineNum">     388 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_data = NULL;</span>
+<span class="lineNum">     389 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_private = spa;</span>
+<span class="lineNum">     390 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_update = spa_txg_history_update;</span>
+<span class="lineNum">     391 </span>                :<span class="lineNoCov">          0 :                 kstat_set_raw_ops(ksp, spa_txg_history_headers,</span>
+<span class="lineNum">     392 </span>                :            :                     spa_txg_history_data, spa_txg_history_addr);
+<span class="lineNum">     393 </span>                :<span class="lineNoCov">          0 :                 kstat_install(ksp);</span>
+<span class="lineNum">     394 </span>                :            :         }
+<span class="lineNum">     395 </span>                :<span class="lineCov">       1864 :         strfree(name);</span>
+<span class="lineNum">     396 </span>                :<span class="lineCov">       1864 : }</span>
+<a name="397"><span class="lineNum">     397 </span>                :            : </a>
+<span class="lineNum">     398 </span>                :            : static void
+<span class="lineNum">     399 </span>                :<span class="lineCov">       1136 : spa_txg_history_destroy(spa_t *spa)</span>
+<span class="lineNum">     400 </span>                :            : {
+<span class="lineNum">     401 </span>                :<span class="lineCov">       1136 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.txg_history;</span>
+<span class="lineNum">     402 </span>                :            :         spa_txg_history_t *sth;
+<span class="lineNum">     403 </span>                :            :         kstat_t *ksp;
+<span class="lineNum">     404 </span>                :            : 
+<span class="lineNum">     405 </span>                :<span class="lineCov">       1136 :         ksp = ssh-&gt;kstat;</span>
+<span class="lineNum">     406 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1136 times"> + </span>]:<span class="lineCov">       1136 :         if (ksp)</span>
+<span class="lineNum">     407 </span>                :<span class="lineNoCov">          0 :                 kstat_delete(ksp);</span>
+<span class="lineNum">     408 </span>                :            : 
+<span class="lineNum">     409 </span>                :<span class="lineCov">       1136 :         mutex_enter(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     410 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1136 times"> + </span>]:<span class="lineCov">       1136 :         while ((sth = list_remove_head(&amp;ssh-&gt;list))) {</span>
+<span class="lineNum">     411 </span>                :<span class="lineNoCov">          0 :                 ssh-&gt;size--;</span>
+<span class="lineNum">     412 </span>                :<span class="lineNoCov">          0 :                 kmem_free(sth, sizeof (spa_txg_history_t));</span>
+<span class="lineNum">     413 </span>                :            :         }
+<span class="lineNum">     414 </span>                :            : 
+<span class="lineNum">     415 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1136 times"> + </span>]:<span class="lineCov">       1136 :         ASSERT3U(ssh-&gt;size, ==, 0);</span>
+<span class="lineNum">     416 </span>                :<span class="lineCov">       1136 :         list_destroy(&amp;ssh-&gt;list);</span>
+<span class="lineNum">     417 </span>                :<span class="lineCov">       1136 :         mutex_exit(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     418 </span>                :            : 
+<span class="lineNum">     419 </span>                :<span class="lineCov">       1136 :         mutex_destroy(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     420 </span>                :<span class="lineCov">       1136 : }</span>
+<span class="lineNum">     421 </span>                :            : 
+<span class="lineNum">     422 </span>                :            : /*
+<span class="lineNum">     423 </span>                :            :  * Add a new txg to historical record.
+<a name="424"><span class="lineNum">     424 </span>                :            :  */</a>
+<span class="lineNum">     425 </span>                :            : void
+<span class="lineNum">     426 </span>                :<span class="lineCov">      23752 : spa_txg_history_add(spa_t *spa, uint64_t txg, hrtime_t birth_time)</span>
+<span class="lineNum">     427 </span>                :            : {
+<span class="lineNum">     428 </span>                :<span class="lineCov">      23752 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.txg_history;</span>
+<span class="lineNum">     429 </span>                :            :         spa_txg_history_t *sth, *rm;
+<span class="lineNum">     430 </span>                :            : 
+<span class="lineNum">     431 </span>[<span class="branchCov" title="Branch 0 was taken 23752 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 23752 times"> + </span>]:<span class="lineCov">      23752 :         if (zfs_txg_history == 0 &amp;&amp; ssh-&gt;size == 0)</span>
+<span class="lineNum">     432 </span>                :            :                 return;
+<span class="lineNum">     433 </span>                :            : 
+<span class="lineNum">     434 </span>                :<span class="lineNoCov">          0 :         sth = kmem_zalloc(sizeof (spa_txg_history_t), KM_SLEEP);</span>
+<span class="lineNum">     435 </span>                :<span class="lineNoCov">          0 :         sth-&gt;txg = txg;</span>
+<span class="lineNum">     436 </span>                :<span class="lineNoCov">          0 :         sth-&gt;state = TXG_STATE_OPEN;</span>
+<span class="lineNum">     437 </span>                :<span class="lineNoCov">          0 :         sth-&gt;times[TXG_STATE_BIRTH] = birth_time;</span>
+<span class="lineNum">     438 </span>                :            : 
+<span class="lineNum">     439 </span>                :<span class="lineNoCov">          0 :         mutex_enter(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     440 </span>                :            : 
+<span class="lineNum">     441 </span>                :<span class="lineNoCov">          0 :         list_insert_head(&amp;ssh-&gt;list, sth);</span>
+<span class="lineNum">     442 </span>                :<span class="lineNoCov">          0 :         ssh-&gt;size++;</span>
+<span class="lineNum">     443 </span>                :            : 
+<span class="lineNum">     444 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         while (ssh-&gt;size &gt; zfs_txg_history) {</span>
+<span class="lineNum">     445 </span>                :<span class="lineNoCov">          0 :                 ssh-&gt;size--;</span>
+<span class="lineNum">     446 </span>                :<span class="lineNoCov">          0 :                 rm = list_remove_tail(&amp;ssh-&gt;list);</span>
+<span class="lineNum">     447 </span>                :<span class="lineNoCov">          0 :                 kmem_free(rm, sizeof (spa_txg_history_t));</span>
+<span class="lineNum">     448 </span>                :            :         }
+<span class="lineNum">     449 </span>                :            : 
+<span class="lineNum">     450 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     451 </span>                :            : }
+<span class="lineNum">     452 </span>                :            : 
+<span class="lineNum">     453 </span>                :            : /*
+<span class="lineNum">     454 </span>                :            :  * Set txg state completion time and increment current state.
+<a name="455"><span class="lineNum">     455 </span>                :            :  */</a>
+<span class="lineNum">     456 </span>                :            : int
+<span class="lineNum">     457 </span>                :<span class="lineCov">      47504 : spa_txg_history_set(spa_t *spa, uint64_t txg, txg_state_t completed_state,</span>
+<span class="lineNum">     458 </span>                :            :     hrtime_t completed_time)
+<span class="lineNum">     459 </span>                :            : {
+<span class="lineNum">     460 </span>                :<span class="lineCov">      47504 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.txg_history;</span>
+<span class="lineNum">     461 </span>                :            :         spa_txg_history_t *sth;
+<span class="lineNum">     462 </span>                :<span class="lineCov">      47504 :         int error = ENOENT;</span>
+<span class="lineNum">     463 </span>                :            : 
+<span class="lineNum">     464 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 47504 times"> + </span>]:<span class="lineCov">      47504 :         if (zfs_txg_history == 0)</span>
+<span class="lineNum">     465 </span>                :            :                 return (0);
+<span class="lineNum">     466 </span>                :            : 
+<span class="lineNum">     467 </span>                :<span class="lineNoCov">          0 :         mutex_enter(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     468 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (sth = list_head(&amp;ssh-&gt;list); sth != NULL;</span>
+<span class="lineNum">     469 </span>                :<span class="lineNoCov">          0 :             sth = list_next(&amp;ssh-&gt;list, sth)) {</span>
+<span class="lineNum">     470 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (sth-&gt;txg == txg) {</span>
+<span class="lineNum">     471 </span>                :<span class="lineNoCov">          0 :                         sth-&gt;times[completed_state] = completed_time;</span>
+<span class="lineNum">     472 </span>                :<span class="lineNoCov">          0 :                         sth-&gt;state++;</span>
+<span class="lineNum">     473 </span>                :<span class="lineNoCov">          0 :                         error = 0;</span>
+<span class="lineNum">     474 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     475 </span>                :            :                 }
+<span class="lineNum">     476 </span>                :            :         }
+<span class="lineNum">     477 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     478 </span>                :            : 
+<span class="lineNum">     479 </span>                :<span class="lineNoCov">          0 :         return (error);</span>
+<span class="lineNum">     480 </span>                :            : }
+<span class="lineNum">     481 </span>                :            : 
+<span class="lineNum">     482 </span>                :            : /*
+<span class="lineNum">     483 </span>                :            :  * Set txg IO stats.
+<a name="484"><span class="lineNum">     484 </span>                :            :  */</a>
+<span class="lineNum">     485 </span>                :            : static int
+<span class="lineNum">     486 </span>                :<span class="lineNoCov">          0 : spa_txg_history_set_io(spa_t *spa, uint64_t txg, uint64_t nread,</span>
+<span class="lineNum">     487 </span>                :            :     uint64_t nwritten, uint64_t reads, uint64_t writes, uint64_t ndirty)
+<span class="lineNum">     488 </span>                :            : {
+<span class="lineNum">     489 </span>                :<span class="lineNoCov">          0 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.txg_history;</span>
+<span class="lineNum">     490 </span>                :            :         spa_txg_history_t *sth;
+<span class="lineNum">     491 </span>                :<span class="lineNoCov">          0 :         int error = ENOENT;</span>
+<span class="lineNum">     492 </span>                :            : 
+<span class="lineNum">     493 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (zfs_txg_history == 0)</span>
+<span class="lineNum">     494 </span>                :            :                 return (0);
+<span class="lineNum">     495 </span>                :            : 
+<span class="lineNum">     496 </span>                :<span class="lineNoCov">          0 :         mutex_enter(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     497 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (sth = list_head(&amp;ssh-&gt;list); sth != NULL;</span>
+<span class="lineNum">     498 </span>                :<span class="lineNoCov">          0 :             sth = list_next(&amp;ssh-&gt;list, sth)) {</span>
+<span class="lineNum">     499 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (sth-&gt;txg == txg) {</span>
+<span class="lineNum">     500 </span>                :<span class="lineNoCov">          0 :                         sth-&gt;nread = nread;</span>
+<span class="lineNum">     501 </span>                :<span class="lineNoCov">          0 :                         sth-&gt;nwritten = nwritten;</span>
+<span class="lineNum">     502 </span>                :<span class="lineNoCov">          0 :                         sth-&gt;reads = reads;</span>
+<span class="lineNum">     503 </span>                :<span class="lineNoCov">          0 :                         sth-&gt;writes = writes;</span>
+<span class="lineNum">     504 </span>                :<span class="lineNoCov">          0 :                         sth-&gt;ndirty = ndirty;</span>
+<span class="lineNum">     505 </span>                :<span class="lineNoCov">          0 :                         error = 0;</span>
+<span class="lineNum">     506 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     507 </span>                :            :                 }
+<span class="lineNum">     508 </span>                :            :         }
+<span class="lineNum">     509 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     510 </span>                :            : 
+<span class="lineNum">     511 </span>                :<span class="lineNoCov">          0 :         return (error);</span>
+<span class="lineNum">     512 </span>                :            : }
+<a name="513"><span class="lineNum">     513 </span>                :            : </a>
+<span class="lineNum">     514 </span>                :            : txg_stat_t *
+<span class="lineNum">     515 </span>                :<span class="lineCov">      23752 : spa_txg_history_init_io(spa_t *spa, uint64_t txg, dsl_pool_t *dp)</span>
+<span class="lineNum">     516 </span>                :            : {
+<span class="lineNum">     517 </span>                :            :         txg_stat_t *ts;
+<span class="lineNum">     518 </span>                :            : 
+<span class="lineNum">     519 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 23752 times"> + </span>]:<span class="lineCov">      23752 :         if (zfs_txg_history == 0)</span>
+<span class="lineNum">     520 </span>                :            :                 return (NULL);
+<span class="lineNum">     521 </span>                :            : 
+<span class="lineNum">     522 </span>                :<span class="lineNoCov">          0 :         ts = kmem_alloc(sizeof (txg_stat_t), KM_SLEEP);</span>
+<span class="lineNum">     523 </span>                :            : 
+<span class="lineNum">     524 </span>                :<span class="lineNoCov">          0 :         spa_config_enter(spa, SCL_ALL, FTAG, RW_READER);</span>
+<span class="lineNum">     525 </span>                :<span class="lineNoCov">          0 :         vdev_get_stats(spa-&gt;spa_root_vdev, &amp;ts-&gt;vs1);</span>
+<span class="lineNum">     526 </span>                :<span class="lineNoCov">          0 :         spa_config_exit(spa, SCL_ALL, FTAG);</span>
+<span class="lineNum">     527 </span>                :            : 
+<span class="lineNum">     528 </span>                :<span class="lineNoCov">          0 :         ts-&gt;txg = txg;</span>
+<span class="lineNum">     529 </span>                :<span class="lineNoCov">          0 :         ts-&gt;ndirty = dp-&gt;dp_dirty_pertxg[txg &amp; TXG_MASK];</span>
+<span class="lineNum">     530 </span>                :            : 
+<span class="lineNum">     531 </span>                :<span class="lineNoCov">          0 :         spa_txg_history_set(spa, txg, TXG_STATE_WAIT_FOR_SYNC, gethrtime());</span>
+<span class="lineNum">     532 </span>                :            : 
+<span class="lineNum">     533 </span>                :<span class="lineNoCov">          0 :         return (ts);</span>
+<span class="lineNum">     534 </span>                :            : }
+<a name="535"><span class="lineNum">     535 </span>                :            : </a>
+<span class="lineNum">     536 </span>                :            : void
+<span class="lineNum">     537 </span>                :<span class="lineCov">      23751 : spa_txg_history_fini_io(spa_t *spa, txg_stat_t *ts)</span>
+<span class="lineNum">     538 </span>                :            : {
+<span class="lineNum">     539 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 23751 times"> + </span>]:<span class="lineCov">      23751 :         if (ts == NULL)</span>
+<span class="lineNum">     540 </span>                :            :                 return;
+<span class="lineNum">     541 </span>                :            : 
+<span class="lineNum">     542 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (zfs_txg_history == 0) {</span>
+<span class="lineNum">     543 </span>                :<span class="lineNoCov">          0 :                 kmem_free(ts, sizeof (txg_stat_t));</span>
+<span class="lineNum">     544 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     545 </span>                :            :         }
+<span class="lineNum">     546 </span>                :            : 
+<span class="lineNum">     547 </span>                :<span class="lineNoCov">          0 :         spa_config_enter(spa, SCL_ALL, FTAG, RW_READER);</span>
+<span class="lineNum">     548 </span>                :<span class="lineNoCov">          0 :         vdev_get_stats(spa-&gt;spa_root_vdev, &amp;ts-&gt;vs2);</span>
+<span class="lineNum">     549 </span>                :<span class="lineNoCov">          0 :         spa_config_exit(spa, SCL_ALL, FTAG);</span>
+<span class="lineNum">     550 </span>                :            : 
+<span class="lineNum">     551 </span>                :<span class="lineNoCov">          0 :         spa_txg_history_set(spa, ts-&gt;txg, TXG_STATE_SYNCED, gethrtime());</span>
+<span class="lineNum">     552 </span>                :<span class="lineNoCov">          0 :         spa_txg_history_set_io(spa, ts-&gt;txg,</span>
+<span class="lineNum">     553 </span>                :<span class="lineNoCov">          0 :             ts-&gt;vs2.vs_bytes[ZIO_TYPE_READ] - ts-&gt;vs1.vs_bytes[ZIO_TYPE_READ],</span>
+<span class="lineNum">     554 </span>                :<span class="lineNoCov">          0 :             ts-&gt;vs2.vs_bytes[ZIO_TYPE_WRITE] - ts-&gt;vs1.vs_bytes[ZIO_TYPE_WRITE],</span>
+<span class="lineNum">     555 </span>                :<span class="lineNoCov">          0 :             ts-&gt;vs2.vs_ops[ZIO_TYPE_READ] - ts-&gt;vs1.vs_ops[ZIO_TYPE_READ],</span>
+<span class="lineNum">     556 </span>                :<span class="lineNoCov">          0 :             ts-&gt;vs2.vs_ops[ZIO_TYPE_WRITE] - ts-&gt;vs1.vs_ops[ZIO_TYPE_WRITE],</span>
+<span class="lineNum">     557 </span>                :            :             ts-&gt;ndirty);
+<span class="lineNum">     558 </span>                :            : 
+<span class="lineNum">     559 </span>                :<span class="lineNoCov">          0 :         kmem_free(ts, sizeof (txg_stat_t));</span>
+<span class="lineNum">     560 </span>                :            : }
+<span class="lineNum">     561 </span>                :            : 
+<span class="lineNum">     562 </span>                :            : /*
+<span class="lineNum">     563 </span>                :            :  * ==========================================================================
+<span class="lineNum">     564 </span>                :            :  * SPA TX Assign Histogram Routines
+<span class="lineNum">     565 </span>                :            :  * ==========================================================================
+<span class="lineNum">     566 </span>                :            :  */
+<span class="lineNum">     567 </span>                :            : 
+<span class="lineNum">     568 </span>                :            : /*
+<span class="lineNum">     569 </span>                :            :  * Tx statistics - Information exported regarding dmu_tx_assign time.
+<span class="lineNum">     570 </span>                :            :  */
+<span class="lineNum">     571 </span>                :            : 
+<span class="lineNum">     572 </span>                :            : /*
+<span class="lineNum">     573 </span>                :            :  * When the kstat is written zero all buckets.  When the kstat is read
+<span class="lineNum">     574 </span>                :            :  * count the number of trailing buckets set to zero and update ks_ndata
+<span class="lineNum">     575 </span>                :            :  * such that they are not output.
+<a name="576"><span class="lineNum">     576 </span>                :            :  */</a>
+<span class="lineNum">     577 </span>                :            : static int
+<span class="lineNum">     578 </span>                :<span class="lineNoCov">          0 : spa_tx_assign_update(kstat_t *ksp, int rw)</span>
+<span class="lineNum">     579 </span>                :            : {
+<span class="lineNum">     580 </span>                :<span class="lineNoCov">          0 :         spa_t *spa = ksp-&gt;ks_private;</span>
+<span class="lineNum">     581 </span>                :<span class="lineNoCov">          0 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.tx_assign_histogram;</span>
+<span class="lineNum">     582 </span>                :            :         int i;
+<span class="lineNum">     583 </span>                :            : 
+<span class="lineNum">     584 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rw == KSTAT_WRITE) {</span>
+<span class="lineNum">     585 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 for (i = 0; i &lt; ssh-&gt;count; i++)</span>
+<span class="lineNum">     586 </span>                :<span class="lineNoCov">          0 :                         ((kstat_named_t *)ssh-&gt;private)[i].value.ui64 = 0;</span>
+<span class="lineNum">     587 </span>                :            :         }
+<span class="lineNum">     588 </span>                :            : 
+<span class="lineNum">     589 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = ssh-&gt;count; i &gt; 0; i--)</span>
+<span class="lineNum">     590 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (((kstat_named_t *)ssh-&gt;private)[i-1].value.ui64 != 0)</span>
+<span class="lineNum">     591 </span>                :            :                         break;
+<span class="lineNum">     592 </span>                :            : 
+<span class="lineNum">     593 </span>                :<span class="lineNoCov">          0 :         ksp-&gt;ks_ndata = i;</span>
+<span class="lineNum">     594 </span>                :<span class="lineNoCov">          0 :         ksp-&gt;ks_data_size = i * sizeof (kstat_named_t);</span>
+<span class="lineNum">     595 </span>                :            : 
+<span class="lineNum">     596 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     597 </span>                :            : }
+<a name="598"><span class="lineNum">     598 </span>                :            : </a>
+<span class="lineNum">     599 </span>                :            : static void
+<span class="lineNum">     600 </span>                :<span class="lineCov">       1864 : spa_tx_assign_init(spa_t *spa)</span>
+<span class="lineNum">     601 </span>                :            : {
+<span class="lineNum">     602 </span>                :<span class="lineCov">       1864 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.tx_assign_histogram;</span>
+<span class="lineNum">     603 </span>                :            :         char *name;
+<span class="lineNum">     604 </span>                :            :         kstat_named_t *ks;
+<span class="lineNum">     605 </span>                :            :         kstat_t *ksp;
+<span class="lineNum">     606 </span>                :            :         int i;
+<span class="lineNum">     607 </span>                :            : 
+<span class="lineNum">     608 </span>                :<span class="lineCov">       1864 :         mutex_init(&amp;ssh-&gt;lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     609 </span>                :            : 
+<span class="lineNum">     610 </span>                :<span class="lineCov">       1864 :         ssh-&gt;count = 42; /* power of two buckets for 1ns to 2,199s */</span>
+<span class="lineNum">     611 </span>                :<span class="lineCov">       1864 :         ssh-&gt;size = ssh-&gt;count * sizeof (kstat_named_t);</span>
+<span class="lineNum">     612 </span>                :<span class="lineCov">       1864 :         ssh-&gt;private = kmem_alloc(ssh-&gt;size, KM_SLEEP);</span>
+<span class="lineNum">     613 </span>                :            : 
+<span class="lineNum">     614 </span>                :<span class="lineCov">       1864 :         name = kmem_asprintf(&quot;zfs/%s&quot;, spa_name(spa));</span>
+<span class="lineNum">     615 </span>                :            : 
+<span class="lineNum">     616 </span>        [<span class="branchCov" title="Branch 1 was taken 78288 times"> + </span><span class="branchCov" title="Branch 2 was taken 1864 times"> + </span>]:<span class="lineCov">      80152 :         for (i = 0; i &lt; ssh-&gt;count; i++) {</span>
+<span class="lineNum">     617 </span>                :<span class="lineCov">      78288 :                 ks = &amp;((kstat_named_t *)ssh-&gt;private)[i];</span>
+<span class="lineNum">     618 </span>                :<span class="lineCov">      78288 :                 ks-&gt;data_type = KSTAT_DATA_UINT64;</span>
+<span class="lineNum">     619 </span>                :<span class="lineCov">      78288 :                 ks-&gt;value.ui64 = 0;</span>
+<span class="lineNum">     620 </span>                :<span class="lineCov">     156576 :                 (void) snprintf(ks-&gt;name, KSTAT_STRLEN, &quot;%llu ns&quot;,</span>
+<span class="lineNum">     621 </span>                :            :                     (u_longlong_t)1 &lt;&lt; i);
+<span class="lineNum">     622 </span>                :            :         }
+<span class="lineNum">     623 </span>                :            : 
+<span class="lineNum">     624 </span>                :<span class="lineCov">       1864 :         ksp = kstat_create(name, 0, &quot;dmu_tx_assign&quot;, &quot;misc&quot;,</span>
+<span class="lineNum">     625 </span>                :            :             KSTAT_TYPE_NAMED, 0, KSTAT_FLAG_VIRTUAL);
+<span class="lineNum">     626 </span>                :<span class="lineCov">       1864 :         ssh-&gt;kstat = ksp;</span>
+<span class="lineNum">     627 </span>                :            : 
+<span class="lineNum">     628 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1864 times"> + </span>]:<span class="lineCov">       1864 :         if (ksp) {</span>
+<span class="lineNum">     629 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_lock = &amp;ssh-&gt;lock;</span>
+<span class="lineNum">     630 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_data = ssh-&gt;private;</span>
+<span class="lineNum">     631 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_ndata = ssh-&gt;count;</span>
+<span class="lineNum">     632 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_data_size = ssh-&gt;size;</span>
+<span class="lineNum">     633 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_private = spa;</span>
+<span class="lineNum">     634 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_update = spa_tx_assign_update;</span>
+<span class="lineNum">     635 </span>                :<span class="lineNoCov">          0 :                 kstat_install(ksp);</span>
+<span class="lineNum">     636 </span>                :            :         }
+<span class="lineNum">     637 </span>                :<span class="lineCov">       1864 :         strfree(name);</span>
+<span class="lineNum">     638 </span>                :<span class="lineCov">       1864 : }</span>
+<a name="639"><span class="lineNum">     639 </span>                :            : </a>
+<span class="lineNum">     640 </span>                :            : static void
+<span class="lineNum">     641 </span>                :<span class="lineCov">       1136 : spa_tx_assign_destroy(spa_t *spa)</span>
+<span class="lineNum">     642 </span>                :            : {
+<span class="lineNum">     643 </span>                :<span class="lineCov">       1136 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.tx_assign_histogram;</span>
+<span class="lineNum">     644 </span>                :            :         kstat_t *ksp;
+<span class="lineNum">     645 </span>                :            : 
+<span class="lineNum">     646 </span>                :<span class="lineCov">       1136 :         ksp = ssh-&gt;kstat;</span>
+<span class="lineNum">     647 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1136 times"> + </span>]:<span class="lineCov">       1136 :         if (ksp)</span>
+<span class="lineNum">     648 </span>                :<span class="lineNoCov">          0 :                 kstat_delete(ksp);</span>
+<span class="lineNum">     649 </span>                :            : 
+<span class="lineNum">     650 </span>                :<span class="lineCov">       1136 :         kmem_free(ssh-&gt;private, ssh-&gt;size);</span>
+<span class="lineNum">     651 </span>                :<span class="lineCov">       1136 :         mutex_destroy(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     652 </span>                :<span class="lineCov">       1136 : }</span>
+<a name="653"><span class="lineNum">     653 </span>                :            : </a>
+<span class="lineNum">     654 </span>                :            : void
+<span class="lineNum">     655 </span>                :<span class="lineCov">     189259 : spa_tx_assign_add_nsecs(spa_t *spa, uint64_t nsecs)</span>
+<span class="lineNum">     656 </span>                :            : {
+<span class="lineNum">     657 </span>                :<span class="lineCov">     189259 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.tx_assign_histogram;</span>
+<span class="lineNum">     658 </span>                :<span class="lineCov">     189259 :         uint64_t idx = 0;</span>
+<span class="lineNum">     659 </span>                :            : 
+<span class="lineNum">     660 </span>   [<span class="branchCov" title="Branch 0 was taken 4530373 times"> + </span><span class="branchCov" title="Branch 1 was taken 193320 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 4534434 times"> + </span>]:<span class="lineCov">    4723693 :         while (((1ULL &lt;&lt; idx) &lt; nsecs) &amp;&amp; (idx &lt; ssh-&gt;size - 1))</span>
+<span class="lineNum">     661 </span>                :<span class="lineCov">    4534434 :                 idx++;</span>
+<span class="lineNum">     662 </span>                :            : 
+<span class="lineNum">     663 </span>                :<span class="lineCov">     189259 :         atomic_inc_64(&amp;((kstat_named_t *)ssh-&gt;private)[idx].value.ui64);</span>
+<span class="lineNum">     664 </span>                :<span class="lineCov">     189322 : }</span>
+<span class="lineNum">     665 </span>                :            : 
+<span class="lineNum">     666 </span>                :            : /*
+<span class="lineNum">     667 </span>                :            :  * ==========================================================================
+<span class="lineNum">     668 </span>                :            :  * SPA IO History Routines
+<span class="lineNum">     669 </span>                :            :  * ==========================================================================
+<a name="670"><span class="lineNum">     670 </span>                :            :  */</a>
+<span class="lineNum">     671 </span>                :            : static int
+<span class="lineNum">     672 </span>                :<span class="lineNoCov">          0 : spa_io_history_update(kstat_t *ksp, int rw)</span>
+<span class="lineNum">     673 </span>                :            : {
+<span class="lineNum">     674 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rw == KSTAT_WRITE)</span>
+<span class="lineNum">     675 </span>                :<span class="lineNoCov">          0 :                 memset(ksp-&gt;ks_data, 0, ksp-&gt;ks_data_size);</span>
+<span class="lineNum">     676 </span>                :            : 
+<span class="lineNum">     677 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     678 </span>                :            : }
+<a name="679"><span class="lineNum">     679 </span>                :            : </a>
+<span class="lineNum">     680 </span>                :            : static void
+<span class="lineNum">     681 </span>                :<span class="lineCov">       1864 : spa_io_history_init(spa_t *spa)</span>
+<span class="lineNum">     682 </span>                :            : {
+<span class="lineNum">     683 </span>                :<span class="lineCov">       1864 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.io_history;</span>
+<span class="lineNum">     684 </span>                :            :         char *name;
+<span class="lineNum">     685 </span>                :            :         kstat_t *ksp;
+<span class="lineNum">     686 </span>                :            : 
+<span class="lineNum">     687 </span>                :<span class="lineCov">       1864 :         mutex_init(&amp;ssh-&gt;lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     688 </span>                :            : 
+<span class="lineNum">     689 </span>                :<span class="lineCov">       1864 :         name = kmem_asprintf(&quot;zfs/%s&quot;, spa_name(spa));</span>
+<span class="lineNum">     690 </span>                :            : 
+<span class="lineNum">     691 </span>                :<span class="lineCov">       1864 :         ksp = kstat_create(name, 0, &quot;io&quot;, &quot;disk&quot;, KSTAT_TYPE_IO, 1, 0);</span>
+<span class="lineNum">     692 </span>                :<span class="lineCov">       1864 :         ssh-&gt;kstat = ksp;</span>
+<span class="lineNum">     693 </span>                :            : 
+<span class="lineNum">     694 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1864 times"> + </span>]:<span class="lineCov">       1864 :         if (ksp) {</span>
+<span class="lineNum">     695 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_lock = &amp;ssh-&gt;lock;</span>
+<span class="lineNum">     696 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_private = spa;</span>
+<span class="lineNum">     697 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_update = spa_io_history_update;</span>
+<span class="lineNum">     698 </span>                :<span class="lineNoCov">          0 :                 kstat_install(ksp);</span>
+<span class="lineNum">     699 </span>                :            :         }
+<span class="lineNum">     700 </span>                :<span class="lineCov">       1864 :         strfree(name);</span>
+<span class="lineNum">     701 </span>                :<span class="lineCov">       1864 : }</span>
+<a name="702"><span class="lineNum">     702 </span>                :            : </a>
+<span class="lineNum">     703 </span>                :            : static void
+<span class="lineNum">     704 </span>                :<span class="lineCov">       1136 : spa_io_history_destroy(spa_t *spa)</span>
+<span class="lineNum">     705 </span>                :            : {
+<span class="lineNum">     706 </span>                :<span class="lineCov">       1136 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.io_history;</span>
+<span class="lineNum">     707 </span>                :            : 
+<span class="lineNum">     708 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1136 times"> + </span>]:<span class="lineCov">       1136 :         if (ssh-&gt;kstat)</span>
+<span class="lineNum">     709 </span>                :<span class="lineNoCov">          0 :                 kstat_delete(ssh-&gt;kstat);</span>
+<span class="lineNum">     710 </span>                :            : 
+<span class="lineNum">     711 </span>                :<span class="lineCov">       1136 :         mutex_destroy(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     712 </span>                :<span class="lineCov">       1136 : }</span>
+<span class="lineNum">     713 </span>                :            : 
+<span class="lineNum">     714 </span>                :            : /*
+<span class="lineNum">     715 </span>                :            :  * ==========================================================================
+<span class="lineNum">     716 </span>                :            :  * SPA MMP History Routines
+<span class="lineNum">     717 </span>                :            :  * ==========================================================================
+<span class="lineNum">     718 </span>                :            :  */
+<span class="lineNum">     719 </span>                :            : 
+<span class="lineNum">     720 </span>                :            : /*
+<span class="lineNum">     721 </span>                :            :  * MMP statistics - Information exported regarding each MMP update
+<span class="lineNum">     722 </span>                :            :  */
+<span class="lineNum">     723 </span>                :            : 
+<span class="lineNum">     724 </span>                :            : typedef struct spa_mmp_history {
+<span class="lineNum">     725 </span>                :            :         uint64_t        txg;            /* txg of last sync */
+<span class="lineNum">     726 </span>                :            :         uint64_t        timestamp;      /* UTC time of of last sync */
+<span class="lineNum">     727 </span>                :            :         uint64_t        mmp_delay;      /* nanosec since last MMP write */
+<span class="lineNum">     728 </span>                :            :         uint64_t        vdev_guid;      /* unique ID of leaf vdev */
+<span class="lineNum">     729 </span>                :            :         char            *vdev_path;
+<span class="lineNum">     730 </span>                :            :         uint64_t        vdev_label;     /* vdev label */
+<span class="lineNum">     731 </span>                :            :         list_node_t     smh_link;
+<span class="lineNum">     732 </span>                :            : } spa_mmp_history_t;
+<a name="733"><span class="lineNum">     733 </span>                :            : </a>
+<span class="lineNum">     734 </span>                :            : static int
+<span class="lineNum">     735 </span>                :<span class="lineNoCov">          0 : spa_mmp_history_headers(char *buf, size_t size)</span>
+<span class="lineNum">     736 </span>                :            : {
+<span class="lineNum">     737 </span>                :<span class="lineNoCov">          0 :         (void) snprintf(buf, size, &quot;%-10s %-10s %-12s %-24s %-10s %s\n&quot;,</span>
+<span class="lineNum">     738 </span>                :            :             &quot;txg&quot;, &quot;timestamp&quot;, &quot;mmp_delay&quot;, &quot;vdev_guid&quot;, &quot;vdev_label&quot;,
+<span class="lineNum">     739 </span>                :            :             &quot;vdev_path&quot;);
+<span class="lineNum">     740 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     741 </span>                :            : }
+<a name="742"><span class="lineNum">     742 </span>                :            : </a>
+<span class="lineNum">     743 </span>                :            : static int
+<span class="lineNum">     744 </span>                :<span class="lineNoCov">          0 : spa_mmp_history_data(char *buf, size_t size, void *data)</span>
+<span class="lineNum">     745 </span>                :            : {
+<span class="lineNum">     746 </span>                :<span class="lineNoCov">          0 :         spa_mmp_history_t *smh = (spa_mmp_history_t *)data;</span>
+<span class="lineNum">     747 </span>                :            : 
+<span class="lineNum">     748 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         (void) snprintf(buf, size, &quot;%-10llu %-10llu %-12llu %-24llu %-10llu &quot;</span>
+<span class="lineNum">     749 </span>                :            :             &quot;%s\n&quot;,
+<span class="lineNum">     750 </span>                :<span class="lineNoCov">          0 :             (u_longlong_t)smh-&gt;txg, (u_longlong_t)smh-&gt;timestamp,</span>
+<span class="lineNum">     751 </span>                :<span class="lineNoCov">          0 :             (u_longlong_t)smh-&gt;mmp_delay, (u_longlong_t)smh-&gt;vdev_guid,</span>
+<span class="lineNum">     752 </span>                :<span class="lineNoCov">          0 :             (u_longlong_t)smh-&gt;vdev_label,</span>
+<span class="lineNum">     753 </span>                :<span class="lineNoCov">          0 :             (smh-&gt;vdev_path ? smh-&gt;vdev_path : &quot;-&quot;));</span>
+<span class="lineNum">     754 </span>                :            : 
+<span class="lineNum">     755 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     756 </span>                :            : }
+<span class="lineNum">     757 </span>                :            : 
+<span class="lineNum">     758 </span>                :            : /*
+<span class="lineNum">     759 </span>                :            :  * Calculate the address for the next spa_stats_history_t entry.  The
+<span class="lineNum">     760 </span>                :            :  * ssh-&gt;lock will be held until ksp-&gt;ks_ndata entries are processed.
+<a name="761"><span class="lineNum">     761 </span>                :            :  */</a>
+<span class="lineNum">     762 </span>                :            : static void *
+<span class="lineNum">     763 </span>                :<span class="lineNoCov">          0 : spa_mmp_history_addr(kstat_t *ksp, loff_t n)</span>
+<span class="lineNum">     764 </span>                :            : {
+<span class="lineNum">     765 </span>                :<span class="lineNoCov">          0 :         spa_t *spa = ksp-&gt;ks_private;</span>
+<span class="lineNum">     766 </span>                :<span class="lineNoCov">          0 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.mmp_history;</span>
+<span class="lineNum">     767 </span>                :            : 
+<span class="lineNum">     768 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(MUTEX_HELD(&amp;ssh-&gt;lock));</span>
+<span class="lineNum">     769 </span>                :            : 
+<span class="lineNum">     770 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (n == 0)</span>
+<span class="lineNum">     771 </span>                :<span class="lineNoCov">          0 :                 ssh-&gt;private = list_tail(&amp;ssh-&gt;list);</span>
+<span class="lineNum">     772 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         else if (ssh-&gt;private)</span>
+<span class="lineNum">     773 </span>                :<span class="lineNoCov">          0 :                 ssh-&gt;private = list_prev(&amp;ssh-&gt;list, ssh-&gt;private);</span>
+<span class="lineNum">     774 </span>                :            : 
+<span class="lineNum">     775 </span>                :<span class="lineNoCov">          0 :         return (ssh-&gt;private);</span>
+<span class="lineNum">     776 </span>                :            : }
+<span class="lineNum">     777 </span>                :            : 
+<span class="lineNum">     778 </span>                :            : /*
+<span class="lineNum">     779 </span>                :            :  * When the kstat is written discard all spa_mmp_history_t entries.  The
+<span class="lineNum">     780 </span>                :            :  * ssh-&gt;lock will be held until ksp-&gt;ks_ndata entries are processed.
+<a name="781"><span class="lineNum">     781 </span>                :            :  */</a>
+<span class="lineNum">     782 </span>                :            : static int
+<span class="lineNum">     783 </span>                :<span class="lineNoCov">          0 : spa_mmp_history_update(kstat_t *ksp, int rw)</span>
+<span class="lineNum">     784 </span>                :            : {
+<span class="lineNum">     785 </span>                :<span class="lineNoCov">          0 :         spa_t *spa = ksp-&gt;ks_private;</span>
+<span class="lineNum">     786 </span>                :<span class="lineNoCov">          0 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.mmp_history;</span>
+<span class="lineNum">     787 </span>                :            : 
+<span class="lineNum">     788 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(MUTEX_HELD(&amp;ssh-&gt;lock));</span>
+<span class="lineNum">     789 </span>                :            : 
+<span class="lineNum">     790 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rw == KSTAT_WRITE) {</span>
+<span class="lineNum">     791 </span>                :            :                 spa_mmp_history_t *smh;
+<span class="lineNum">     792 </span>                :            : 
+<span class="lineNum">     793 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 while ((smh = list_remove_head(&amp;ssh-&gt;list))) {</span>
+<span class="lineNum">     794 </span>                :<span class="lineNoCov">          0 :                         ssh-&gt;size--;</span>
+<span class="lineNum">     795 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (smh-&gt;vdev_path)</span>
+<span class="lineNum">     796 </span>                :<span class="lineNoCov">          0 :                                 strfree(smh-&gt;vdev_path);</span>
+<span class="lineNum">     797 </span>                :<span class="lineNoCov">          0 :                         kmem_free(smh, sizeof (spa_mmp_history_t));</span>
+<span class="lineNum">     798 </span>                :            :                 }
+<span class="lineNum">     799 </span>                :            : 
+<span class="lineNum">     800 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT3U(ssh-&gt;size, ==, 0);</span>
+<span class="lineNum">     801 </span>                :            :         }
+<span class="lineNum">     802 </span>                :            : 
+<span class="lineNum">     803 </span>                :<span class="lineNoCov">          0 :         ksp-&gt;ks_ndata = ssh-&gt;size;</span>
+<span class="lineNum">     804 </span>                :<span class="lineNoCov">          0 :         ksp-&gt;ks_data_size = ssh-&gt;size * sizeof (spa_mmp_history_t);</span>
+<span class="lineNum">     805 </span>                :            : 
+<span class="lineNum">     806 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     807 </span>                :            : }
+<a name="808"><span class="lineNum">     808 </span>                :            : </a>
+<span class="lineNum">     809 </span>                :            : static void
+<span class="lineNum">     810 </span>                :<span class="lineCov">       1864 : spa_mmp_history_init(spa_t *spa)</span>
+<span class="lineNum">     811 </span>                :            : {
+<span class="lineNum">     812 </span>                :<span class="lineCov">       1864 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.mmp_history;</span>
+<span class="lineNum">     813 </span>                :            :         char *name;
+<span class="lineNum">     814 </span>                :            :         kstat_t *ksp;
+<span class="lineNum">     815 </span>                :            : 
+<span class="lineNum">     816 </span>                :<span class="lineCov">       1864 :         mutex_init(&amp;ssh-&gt;lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     817 </span>                :<span class="lineCov">       1864 :         list_create(&amp;ssh-&gt;list, sizeof (spa_mmp_history_t),</span>
+<span class="lineNum">     818 </span>                :            :             offsetof(spa_mmp_history_t, smh_link));
+<span class="lineNum">     819 </span>                :            : 
+<span class="lineNum">     820 </span>                :<span class="lineCov">       1864 :         ssh-&gt;count = 0;</span>
+<span class="lineNum">     821 </span>                :<span class="lineCov">       1864 :         ssh-&gt;size = 0;</span>
+<span class="lineNum">     822 </span>                :<span class="lineCov">       1864 :         ssh-&gt;private = NULL;</span>
+<span class="lineNum">     823 </span>                :            : 
+<span class="lineNum">     824 </span>                :<span class="lineCov">       1864 :         name = kmem_asprintf(&quot;zfs/%s&quot;, spa_name(spa));</span>
+<span class="lineNum">     825 </span>                :            : 
+<span class="lineNum">     826 </span>                :<span class="lineCov">       1864 :         ksp = kstat_create(name, 0, &quot;multihost&quot;, &quot;misc&quot;,</span>
+<span class="lineNum">     827 </span>                :            :             KSTAT_TYPE_RAW, 0, KSTAT_FLAG_VIRTUAL);
+<span class="lineNum">     828 </span>                :<span class="lineCov">       1864 :         ssh-&gt;kstat = ksp;</span>
+<span class="lineNum">     829 </span>                :            : 
+<span class="lineNum">     830 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1864 times"> + </span>]:<span class="lineCov">       1864 :         if (ksp) {</span>
+<span class="lineNum">     831 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_lock = &amp;ssh-&gt;lock;</span>
+<span class="lineNum">     832 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_data = NULL;</span>
+<span class="lineNum">     833 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_private = spa;</span>
+<span class="lineNum">     834 </span>                :<span class="lineNoCov">          0 :                 ksp-&gt;ks_update = spa_mmp_history_update;</span>
+<span class="lineNum">     835 </span>                :<span class="lineNoCov">          0 :                 kstat_set_raw_ops(ksp, spa_mmp_history_headers,</span>
+<span class="lineNum">     836 </span>                :            :                     spa_mmp_history_data, spa_mmp_history_addr);
+<span class="lineNum">     837 </span>                :<span class="lineNoCov">          0 :                 kstat_install(ksp);</span>
+<span class="lineNum">     838 </span>                :            :         }
+<span class="lineNum">     839 </span>                :<span class="lineCov">       1864 :         strfree(name);</span>
+<span class="lineNum">     840 </span>                :<span class="lineCov">       1864 : }</span>
+<a name="841"><span class="lineNum">     841 </span>                :            : </a>
+<span class="lineNum">     842 </span>                :            : static void
+<span class="lineNum">     843 </span>                :<span class="lineCov">       1136 : spa_mmp_history_destroy(spa_t *spa)</span>
+<span class="lineNum">     844 </span>                :            : {
+<span class="lineNum">     845 </span>                :<span class="lineCov">       1136 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.mmp_history;</span>
+<span class="lineNum">     846 </span>                :            :         spa_mmp_history_t *smh;
+<span class="lineNum">     847 </span>                :            :         kstat_t *ksp;
+<span class="lineNum">     848 </span>                :            : 
+<span class="lineNum">     849 </span>                :<span class="lineCov">       1136 :         ksp = ssh-&gt;kstat;</span>
+<span class="lineNum">     850 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1136 times"> + </span>]:<span class="lineCov">       1136 :         if (ksp)</span>
+<span class="lineNum">     851 </span>                :<span class="lineNoCov">          0 :                 kstat_delete(ksp);</span>
+<span class="lineNum">     852 </span>                :            : 
+<span class="lineNum">     853 </span>                :<span class="lineCov">       1136 :         mutex_enter(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     854 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1136 times"> + </span>]:<span class="lineCov">       1136 :         while ((smh = list_remove_head(&amp;ssh-&gt;list))) {</span>
+<span class="lineNum">     855 </span>                :<span class="lineNoCov">          0 :                 ssh-&gt;size--;</span>
+<span class="lineNum">     856 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (smh-&gt;vdev_path)</span>
+<span class="lineNum">     857 </span>                :<span class="lineNoCov">          0 :                         strfree(smh-&gt;vdev_path);</span>
+<span class="lineNum">     858 </span>                :<span class="lineNoCov">          0 :                 kmem_free(smh, sizeof (spa_mmp_history_t));</span>
+<span class="lineNum">     859 </span>                :            :         }
+<span class="lineNum">     860 </span>                :            : 
+<span class="lineNum">     861 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1136 times"> + </span>]:<span class="lineCov">       1136 :         ASSERT3U(ssh-&gt;size, ==, 0);</span>
+<span class="lineNum">     862 </span>                :<span class="lineCov">       1136 :         list_destroy(&amp;ssh-&gt;list);</span>
+<span class="lineNum">     863 </span>                :<span class="lineCov">       1136 :         mutex_exit(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     864 </span>                :            : 
+<span class="lineNum">     865 </span>                :<span class="lineCov">       1136 :         mutex_destroy(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     866 </span>                :<span class="lineCov">       1136 : }</span>
+<span class="lineNum">     867 </span>                :            : 
+<span class="lineNum">     868 </span>                :            : /*
+<span class="lineNum">     869 </span>                :            :  * Add a new MMP update to historical record.
+<a name="870"><span class="lineNum">     870 </span>                :            :  */</a>
+<span class="lineNum">     871 </span>                :            : void
+<span class="lineNum">     872 </span>                :<span class="lineCov">        718 : spa_mmp_history_add(uint64_t txg, uint64_t timestamp, uint64_t mmp_delay,</span>
+<span class="lineNum">     873 </span>                :            :     vdev_t *vd, int label)
+<span class="lineNum">     874 </span>                :            : {
+<span class="lineNum">     875 </span>                :<span class="lineCov">        718 :         spa_t *spa = vd-&gt;vdev_spa;</span>
+<span class="lineNum">     876 </span>                :<span class="lineCov">        718 :         spa_stats_history_t *ssh = &amp;spa-&gt;spa_stats.mmp_history;</span>
+<span class="lineNum">     877 </span>                :            :         spa_mmp_history_t *smh, *rm;
+<span class="lineNum">     878 </span>                :            : 
+<span class="lineNum">     879 </span>[<span class="branchCov" title="Branch 0 was taken 718 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 718 times"> + </span>]:<span class="lineCov">        718 :         if (zfs_multihost_history == 0 &amp;&amp; ssh-&gt;size == 0)</span>
+<span class="lineNum">     880 </span>                :            :                 return;
+<span class="lineNum">     881 </span>                :            : 
+<span class="lineNum">     882 </span>                :<span class="lineNoCov">          0 :         smh = kmem_zalloc(sizeof (spa_mmp_history_t), KM_SLEEP);</span>
+<span class="lineNum">     883 </span>                :<span class="lineNoCov">          0 :         smh-&gt;txg = txg;</span>
+<span class="lineNum">     884 </span>                :<span class="lineNoCov">          0 :         smh-&gt;timestamp = timestamp;</span>
+<span class="lineNum">     885 </span>                :<span class="lineNoCov">          0 :         smh-&gt;mmp_delay = mmp_delay;</span>
+<span class="lineNum">     886 </span>                :<span class="lineNoCov">          0 :         smh-&gt;vdev_guid = vd-&gt;vdev_guid;</span>
+<span class="lineNum">     887 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (vd-&gt;vdev_path)</span>
+<span class="lineNum">     888 </span>                :<span class="lineNoCov">          0 :                 smh-&gt;vdev_path = strdup(vd-&gt;vdev_path);</span>
+<span class="lineNum">     889 </span>                :<span class="lineNoCov">          0 :         smh-&gt;vdev_label = label;</span>
+<span class="lineNum">     890 </span>                :            : 
+<span class="lineNum">     891 </span>                :<span class="lineNoCov">          0 :         mutex_enter(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     892 </span>                :            : 
+<span class="lineNum">     893 </span>                :<span class="lineNoCov">          0 :         list_insert_head(&amp;ssh-&gt;list, smh);</span>
+<span class="lineNum">     894 </span>                :<span class="lineNoCov">          0 :         ssh-&gt;size++;</span>
+<span class="lineNum">     895 </span>                :            : 
+<span class="lineNum">     896 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         while (ssh-&gt;size &gt; zfs_multihost_history) {</span>
+<span class="lineNum">     897 </span>                :<span class="lineNoCov">          0 :                 ssh-&gt;size--;</span>
+<span class="lineNum">     898 </span>                :<span class="lineNoCov">          0 :                 rm = list_remove_tail(&amp;ssh-&gt;list);</span>
+<span class="lineNum">     899 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (rm-&gt;vdev_path)</span>
+<span class="lineNum">     900 </span>                :<span class="lineNoCov">          0 :                         strfree(rm-&gt;vdev_path);</span>
+<span class="lineNum">     901 </span>                :<span class="lineNoCov">          0 :                 kmem_free(rm, sizeof (spa_mmp_history_t));</span>
+<span class="lineNum">     902 </span>                :            :         }
+<span class="lineNum">     903 </span>                :            : 
+<span class="lineNum">     904 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;ssh-&gt;lock);</span>
+<span class="lineNum">     905 </span>                :            : }
+<a name="906"><span class="lineNum">     906 </span>                :            : </a>
+<span class="lineNum">     907 </span>                :            : void
+<span class="lineNum">     908 </span>                :<span class="lineCov">       1864 : spa_stats_init(spa_t *spa)</span>
+<span class="lineNum">     909 </span>                :            : {
+<span class="lineNum">     910 </span>                :<span class="lineCov">       1864 :         spa_read_history_init(spa);</span>
+<span class="lineNum">     911 </span>                :<span class="lineCov">       1864 :         spa_txg_history_init(spa);</span>
+<span class="lineNum">     912 </span>                :<span class="lineCov">       1864 :         spa_tx_assign_init(spa);</span>
+<span class="lineNum">     913 </span>                :<span class="lineCov">       1864 :         spa_io_history_init(spa);</span>
+<span class="lineNum">     914 </span>                :<span class="lineCov">       1864 :         spa_mmp_history_init(spa);</span>
+<span class="lineNum">     915 </span>                :<span class="lineCov">       1864 : }</span>
+<a name="916"><span class="lineNum">     916 </span>                :            : </a>
+<span class="lineNum">     917 </span>                :            : void
+<span class="lineNum">     918 </span>                :<span class="lineCov">       1136 : spa_stats_destroy(spa_t *spa)</span>
+<span class="lineNum">     919 </span>                :            : {
+<span class="lineNum">     920 </span>                :<span class="lineCov">       1136 :         spa_tx_assign_destroy(spa);</span>
+<span class="lineNum">     921 </span>                :<span class="lineCov">       1136 :         spa_txg_history_destroy(spa);</span>
+<span class="lineNum">     922 </span>                :<span class="lineCov">       1136 :         spa_read_history_destroy(spa);</span>
+<span class="lineNum">     923 </span>                :<span class="lineCov">       1136 :         spa_io_history_destroy(spa);</span>
+<span class="lineNum">     924 </span>                :<span class="lineCov">       1136 :         spa_mmp_history_destroy(spa);</span>
+<span class="lineNum">     925 </span>                :<span class="lineCov">       1136 : }</span>
+<span class="lineNum">     926 </span>                :            : 
+<span class="lineNum">     927 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     928 </span>                :            : /* CSTYLED */
+<span class="lineNum">     929 </span>                :            : module_param(zfs_read_history, int, 0644);
+<span class="lineNum">     930 </span>                :            : MODULE_PARM_DESC(zfs_read_history,
+<span class="lineNum">     931 </span>                :            :         &quot;Historical statistics for the last N reads&quot;);
+<span class="lineNum">     932 </span>                :            : 
+<span class="lineNum">     933 </span>                :            : module_param(zfs_read_history_hits, int, 0644);
+<span class="lineNum">     934 </span>                :            : MODULE_PARM_DESC(zfs_read_history_hits,
+<span class="lineNum">     935 </span>                :            :         &quot;Include cache hits in read history&quot;);
+<span class="lineNum">     936 </span>                :            : 
+<span class="lineNum">     937 </span>                :            : module_param(zfs_txg_history, int, 0644);
+<span class="lineNum">     938 </span>                :            : MODULE_PARM_DESC(zfs_txg_history,
+<span class="lineNum">     939 </span>                :            :         &quot;Historical statistics for the last N txgs&quot;);
+<span class="lineNum">     940 </span>                :            : 
+<span class="lineNum">     941 </span>                :            : module_param(zfs_multihost_history, int, 0644);
+<span class="lineNum">     942 </span>                :            : MODULE_PARM_DESC(zfs_multihost_history,
+<span class="lineNum">     943 </span>                :            :         &quot;Historical statistics for last N multihost writes&quot;);
+<span class="lineNum">     944 </span>                :            : /* END CSTYLED */
+<span class="lineNum">     945 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

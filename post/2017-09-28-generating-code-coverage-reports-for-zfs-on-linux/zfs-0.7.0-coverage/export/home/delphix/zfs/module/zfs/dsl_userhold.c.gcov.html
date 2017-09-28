@@ -1,0 +1,767 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/dsl_userhold.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - dsl_userhold.c<span style="font-size: 80%;"> (source / <a href="dsl_userhold.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">155</td>
+            <td class="headerCovTableEntry">244</td>
+            <td class="headerCovTableEntryLo">63.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntryLo">70.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">66</td>
+            <td class="headerCovTableEntry">148</td>
+            <td class="headerCovTableEntryLo">44.6 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2012, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright (c) 2013 Steven Hartland. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  */
+<span class="lineNum">      26 </span>                :            : 
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/dsl_userhold.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/dsl_dataset.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/dsl_destroy.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/dsl_synctask.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/dmu_tx.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/zfs_onexit.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/dsl_pool.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/dsl_dir.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;sys/zfs_ioctl.h&gt;
+<span class="lineNum">      37 </span>                :            : #include &lt;sys/zap.h&gt;
+<span class="lineNum">      38 </span>                :            : 
+<span class="lineNum">      39 </span>                :            : typedef struct dsl_dataset_user_hold_arg {
+<span class="lineNum">      40 </span>                :            :         nvlist_t *dduha_holds;
+<span class="lineNum">      41 </span>                :            :         nvlist_t *dduha_chkholds;
+<span class="lineNum">      42 </span>                :            :         nvlist_t *dduha_errlist;
+<span class="lineNum">      43 </span>                :            :         minor_t dduha_minor;
+<span class="lineNum">      44 </span>                :            : } dsl_dataset_user_hold_arg_t;
+<span class="lineNum">      45 </span>                :            : 
+<span class="lineNum">      46 </span>                :            : /*
+<span class="lineNum">      47 </span>                :            :  * If you add new checks here, you may need to add additional checks to the
+<span class="lineNum">      48 </span>                :            :  * &quot;temporary&quot; case in snapshot_check() in dmu_objset.c.
+<a name="49"><span class="lineNum">      49 </span>                :            :  */</a>
+<span class="lineNum">      50 </span>                :            : int
+<span class="lineNum">      51 </span>                :<span class="lineCov">         60 : dsl_dataset_user_hold_check_one(dsl_dataset_t *ds, const char *htag,</span>
+<span class="lineNum">      52 </span>                :            :     boolean_t temphold, dmu_tx_t *tx)
+<span class="lineNum">      53 </span>                :            : {
+<span class="lineNum">      54 </span>                :<span class="lineCov">         60 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">      55 </span>                :<span class="lineCov">         60 :         objset_t *mos = dp-&gt;dp_meta_objset;</span>
+<span class="lineNum">      56 </span>                :<span class="lineCov">         60 :         int error = 0;</span>
+<span class="lineNum">      57 </span>                :            : 
+<span class="lineNum">      58 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">         60 :         ASSERT(dsl_pool_config_held(dp));</span>
+<span class="lineNum">      59 </span>                :            : 
+<span class="lineNum">      60 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">         60 :         if (strlen(htag) &gt; MAXNAMELEN)</span>
+<span class="lineNum">      61 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(E2BIG));</span>
+<span class="lineNum">      62 </span>                :            :         /* Tempholds have a more restricted length */
+<span class="lineNum">      63 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineCov">         60 :         if (temphold &amp;&amp; strlen(htag) + MAX_TAG_PREFIX_LEN &gt;= MAXNAMELEN)</span>
+<span class="lineNum">      64 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(E2BIG));</span>
+<span class="lineNum">      65 </span>                :            : 
+<span class="lineNum">      66 </span>                :            :         /* tags must be unique (if ds already exists) */
+<span class="lineNum">      67 </span>[<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 60 times"> + </span>]:<span class="lineCov">         60 :         if (ds != NULL &amp;&amp; dsl_dataset_phys(ds)-&gt;ds_userrefs_obj != 0) {</span>
+<span class="lineNum">      68 </span>                :            :                 uint64_t value;
+<span class="lineNum">      69 </span>                :            : 
+<span class="lineNum">      70 </span>                :<span class="lineNoCov">          0 :                 error = zap_lookup(mos, dsl_dataset_phys(ds)-&gt;ds_userrefs_obj,</span>
+<span class="lineNum">      71 </span>                :            :                     htag, 8, 1, &amp;value);
+<span class="lineNum">      72 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (error == 0)</span>
+<span class="lineNum">      73 </span>                :<span class="lineNoCov">          0 :                         error = SET_ERROR(EEXIST);</span>
+<span class="lineNum">      74 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 else if (error == ENOENT)</span>
+<span class="lineNum">      75 </span>                :<span class="lineNoCov">          0 :                         error = 0;</span>
+<span class="lineNum">      76 </span>                :            :         }
+<span class="lineNum">      77 </span>                :            : 
+<span class="lineNum">      78 </span>                :            :         return (error);
+<span class="lineNum">      79 </span>                :            : }
+<a name="80"><span class="lineNum">      80 </span>                :            : </a>
+<span class="lineNum">      81 </span>                :            : static int
+<span class="lineNum">      82 </span>                :<span class="lineCov">        120 : dsl_dataset_user_hold_check(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">      83 </span>                :            : {
+<span class="lineNum">      84 </span>                :<span class="lineCov">        120 :         dsl_dataset_user_hold_arg_t *dduha = arg;</span>
+<span class="lineNum">      85 </span>                :<span class="lineCov">        120 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">      86 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">      87 </span>                :            : 
+<span class="lineNum">      88 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 120 times"> + </span>]:<span class="lineCov">        120 :         if (spa_version(dp-&gt;dp_spa) &lt; SPA_VERSION_USERREFS)</span>
+<span class="lineNum">      89 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(ENOTSUP));</span>
+<span class="lineNum">      90 </span>                :            : 
+<span class="lineNum">      91 </span>        [<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">        120 :         if (!dmu_tx_is_syncing(tx))</span>
+<span class="lineNum">      92 </span>                :            :                 return (0);
+<span class="lineNum">      93 </span>                :            : 
+<span class="lineNum">      94 </span>        [<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">        120 :         for (pair = nvlist_next_nvpair(dduha-&gt;dduha_holds, NULL);</span>
+<span class="lineNum">      95 </span>                :<span class="lineCov">         60 :             pair != NULL; pair = nvlist_next_nvpair(dduha-&gt;dduha_holds, pair)) {</span>
+<span class="lineNum">      96 </span>                :            :                 dsl_dataset_t *ds;
+<span class="lineNum">      97 </span>                :<span class="lineCov">         60 :                 int error = 0;</span>
+<span class="lineNum">      98 </span>                :            :                 char *htag, *name;
+<span class="lineNum">      99 </span>                :            : 
+<span class="lineNum">     100 </span>                :            :                 /* must be a snapshot */
+<span class="lineNum">     101 </span>                :<span class="lineCov">         60 :                 name = nvpair_name(pair);</span>
+<span class="lineNum">     102 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">         60 :                 if (strchr(name, '@') == NULL)</span>
+<span class="lineNum">     103 </span>                :<span class="lineNoCov">          0 :                         error = SET_ERROR(EINVAL);</span>
+<span class="lineNum">     104 </span>                :            : 
+<span class="lineNum">     105 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         60 :                 if (error == 0)</span>
+<span class="lineNum">     106 </span>                :<span class="lineCov">         60 :                         error = nvpair_value_string(pair, &amp;htag);</span>
+<span class="lineNum">     107 </span>                :            : 
+<span class="lineNum">     108 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         60 :                 if (error == 0)</span>
+<span class="lineNum">     109 </span>                :<span class="lineCov">         60 :                         error = dsl_dataset_hold(dp, name, FTAG, &amp;ds);</span>
+<span class="lineNum">     110 </span>                :            : 
+<span class="lineNum">     111 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         60 :                 if (error == 0) {</span>
+<span class="lineNum">     112 </span>                :<span class="lineCov">         60 :                         error = dsl_dataset_user_hold_check_one(ds, htag,</span>
+<span class="lineNum">     113 </span>                :<span class="lineCov">         60 :                             dduha-&gt;dduha_minor != 0, tx);</span>
+<span class="lineNum">     114 </span>                :<span class="lineCov">         60 :                         dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     115 </span>                :            :                 }
+<span class="lineNum">     116 </span>                :            : 
+<span class="lineNum">     117 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         60 :                 if (error == 0) {</span>
+<span class="lineNum">     118 </span>                :<span class="lineCov">         60 :                         fnvlist_add_string(dduha-&gt;dduha_chkholds, name, htag);</span>
+<span class="lineNum">     119 </span>                :            :                 } else {
+<span class="lineNum">     120 </span>                :            :                         /*
+<span class="lineNum">     121 </span>                :            :                          * We register ENOENT errors so they can be correctly
+<span class="lineNum">     122 </span>                :            :                          * reported if needed, such as when all holds fail.
+<span class="lineNum">     123 </span>                :            :                          */
+<span class="lineNum">     124 </span>                :<span class="lineNoCov">          0 :                         fnvlist_add_int32(dduha-&gt;dduha_errlist, name, error);</span>
+<span class="lineNum">     125 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (error != ENOENT)</span>
+<span class="lineNum">     126 </span>                :<span class="lineNoCov">          0 :                                 return (error);</span>
+<span class="lineNum">     127 </span>                :            :                 }
+<span class="lineNum">     128 </span>                :            :         }
+<span class="lineNum">     129 </span>                :            : 
+<span class="lineNum">     130 </span>                :            :         return (0);
+<span class="lineNum">     131 </span>                :            : }
+<span class="lineNum">     132 </span>                :            : 
+<a name="133"><span class="lineNum">     133 </span>                :            : </a>
+<span class="lineNum">     134 </span>                :            : static void
+<span class="lineNum">     135 </span>                :<span class="lineCov">         60 : dsl_dataset_user_hold_sync_one_impl(nvlist_t *tmpholds, dsl_dataset_t *ds,</span>
+<span class="lineNum">     136 </span>                :            :     const char *htag, minor_t minor, uint64_t now, dmu_tx_t *tx)
+<span class="lineNum">     137 </span>                :            : {
+<span class="lineNum">     138 </span>                :<span class="lineCov">         60 :         dsl_pool_t *dp = ds-&gt;ds_dir-&gt;dd_pool;</span>
+<span class="lineNum">     139 </span>                :<span class="lineCov">         60 :         objset_t *mos = dp-&gt;dp_meta_objset;</span>
+<span class="lineNum">     140 </span>                :            :         uint64_t zapobj;
+<span class="lineNum">     141 </span>                :            : 
+<span class="lineNum">     142 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">         60 :         ASSERT(RRW_WRITE_HELD(&amp;dp-&gt;dp_config_rwlock));</span>
+<span class="lineNum">     143 </span>                :            : 
+<span class="lineNum">     144 </span>        [<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">         60 :         if (dsl_dataset_phys(ds)-&gt;ds_userrefs_obj == 0) {</span>
+<span class="lineNum">     145 </span>                :            :                 /*
+<span class="lineNum">     146 </span>                :            :                  * This is the first user hold for this dataset.  Create
+<span class="lineNum">     147 </span>                :            :                  * the userrefs zap object.
+<span class="lineNum">     148 </span>                :            :                  */
+<span class="lineNum">     149 </span>                :<span class="lineCov">         60 :                 dmu_buf_will_dirty(ds-&gt;ds_dbuf, tx);</span>
+<span class="lineNum">     150 </span>                :<span class="lineCov">        120 :                 zapobj = dsl_dataset_phys(ds)-&gt;ds_userrefs_obj =</span>
+<span class="lineNum">     151 </span>                :<span class="lineCov">         60 :                     zap_create(mos, DMU_OT_USERREFS, DMU_OT_NONE, 0, tx);</span>
+<span class="lineNum">     152 </span>                :            :         } else {
+<span class="lineNum">     153 </span>                :            :                 zapobj = dsl_dataset_phys(ds)-&gt;ds_userrefs_obj;
+<span class="lineNum">     154 </span>                :            :         }
+<span class="lineNum">     155 </span>                :<span class="lineCov">         60 :         ds-&gt;ds_userrefs++;</span>
+<span class="lineNum">     156 </span>                :            : 
+<span class="lineNum">     157 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">         60 :         VERIFY0(zap_add(mos, zapobj, htag, 8, 1, &amp;now, tx));</span>
+<span class="lineNum">     158 </span>                :            : 
+<span class="lineNum">     159 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">         60 :         if (minor != 0) {</span>
+<span class="lineNum">     160 </span>                :            :                 char name[MAXNAMELEN];
+<span class="lineNum">     161 </span>                :            :                 nvlist_t *tags;
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY0(dsl_pool_user_hold(dp, ds-&gt;ds_object,</span>
+<span class="lineNum">     164 </span>                :            :                     htag, now, tx));
+<span class="lineNum">     165 </span>                :<span class="lineNoCov">          0 :                 (void) snprintf(name, sizeof (name), &quot;%llx&quot;,</span>
+<span class="lineNum">     166 </span>                :<span class="lineNoCov">          0 :                     (u_longlong_t)ds-&gt;ds_object);</span>
+<span class="lineNum">     167 </span>                :            : 
+<span class="lineNum">     168 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (nvlist_lookup_nvlist(tmpholds, name, &amp;tags) != 0) {</span>
+<span class="lineNum">     169 </span>                :<span class="lineNoCov">          0 :                         tags = fnvlist_alloc();</span>
+<span class="lineNum">     170 </span>                :<span class="lineNoCov">          0 :                         fnvlist_add_boolean(tags, htag);</span>
+<span class="lineNum">     171 </span>                :<span class="lineNoCov">          0 :                         fnvlist_add_nvlist(tmpholds, name, tags);</span>
+<span class="lineNum">     172 </span>                :<span class="lineNoCov">          0 :                         fnvlist_free(tags);</span>
+<span class="lineNum">     173 </span>                :            :                 } else {
+<span class="lineNum">     174 </span>                :<span class="lineNoCov">          0 :                         fnvlist_add_boolean(tags, htag);</span>
+<span class="lineNum">     175 </span>                :            :                 }
+<span class="lineNum">     176 </span>                :            :         }
+<span class="lineNum">     177 </span>                :            : 
+<span class="lineNum">     178 </span>                :<span class="lineCov">         60 :         spa_history_log_internal_ds(ds, &quot;hold&quot;, tx,</span>
+<span class="lineNum">     179 </span>                :            :             &quot;tag=%s temp=%d refs=%llu&quot;,
+<span class="lineNum">     180 </span>                :            :             htag, minor != 0, ds-&gt;ds_userrefs);
+<span class="lineNum">     181 </span>                :<span class="lineCov">         60 : }</span>
+<span class="lineNum">     182 </span>                :            : 
+<span class="lineNum">     183 </span>                :            : typedef struct zfs_hold_cleanup_arg {
+<span class="lineNum">     184 </span>                :            :         char zhca_spaname[ZFS_MAX_DATASET_NAME_LEN];
+<span class="lineNum">     185 </span>                :            :         uint64_t zhca_spa_load_guid;
+<span class="lineNum">     186 </span>                :            :         nvlist_t *zhca_holds;
+<span class="lineNum">     187 </span>                :            : } zfs_hold_cleanup_arg_t;
+<a name="188"><span class="lineNum">     188 </span>                :            : </a>
+<span class="lineNum">     189 </span>                :            : static void
+<span class="lineNum">     190 </span>                :<span class="lineNoCov">          0 : dsl_dataset_user_release_onexit(void *arg)</span>
+<span class="lineNum">     191 </span>                :            : {
+<span class="lineNum">     192 </span>                :<span class="lineNoCov">          0 :         zfs_hold_cleanup_arg_t *ca = arg;</span>
+<span class="lineNum">     193 </span>                :            :         spa_t *spa;
+<span class="lineNum">     194 </span>                :            :         int error;
+<span class="lineNum">     195 </span>                :            : 
+<span class="lineNum">     196 </span>                :<span class="lineNoCov">          0 :         error = spa_open(ca-&gt;zhca_spaname, &amp;spa, FTAG);</span>
+<span class="lineNum">     197 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error != 0) {</span>
+<span class="lineNum">     198 </span>                :<span class="lineNoCov">          0 :                 zfs_dbgmsg(&quot;couldn't release holds on pool=%s &quot;</span>
+<span class="lineNum">     199 </span>                :            :                     &quot;because pool is no longer loaded&quot;,
+<span class="lineNum">     200 </span>                :            :                     ca-&gt;zhca_spaname);
+<span class="lineNum">     201 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     202 </span>                :            :         }
+<span class="lineNum">     203 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (spa_load_guid(spa) != ca-&gt;zhca_spa_load_guid) {</span>
+<span class="lineNum">     204 </span>                :<span class="lineNoCov">          0 :                 zfs_dbgmsg(&quot;couldn't release holds on pool=%s &quot;</span>
+<span class="lineNum">     205 </span>                :            :                     &quot;because pool is no longer loaded (guid doesn't match)&quot;,
+<span class="lineNum">     206 </span>                :            :                     ca-&gt;zhca_spaname);
+<span class="lineNum">     207 </span>                :<span class="lineNoCov">          0 :                 spa_close(spa, FTAG);</span>
+<span class="lineNum">     208 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     209 </span>                :            :         }
+<span class="lineNum">     210 </span>                :            : 
+<span class="lineNum">     211 </span>                :<span class="lineNoCov">          0 :         (void) dsl_dataset_user_release_tmp(spa_get_dsl(spa), ca-&gt;zhca_holds);</span>
+<span class="lineNum">     212 </span>                :<span class="lineNoCov">          0 :         fnvlist_free(ca-&gt;zhca_holds);</span>
+<span class="lineNum">     213 </span>                :<span class="lineNoCov">          0 :         kmem_free(ca, sizeof (zfs_hold_cleanup_arg_t));</span>
+<span class="lineNum">     214 </span>                :<span class="lineNoCov">          0 :         spa_close(spa, FTAG);</span>
+<span class="lineNum">     215 </span>                :            : }
+<a name="216"><span class="lineNum">     216 </span>                :            : </a>
+<span class="lineNum">     217 </span>                :            : static void
+<span class="lineNum">     218 </span>                :<span class="lineCov">         60 : dsl_onexit_hold_cleanup(spa_t *spa, nvlist_t *holds, minor_t minor)</span>
+<span class="lineNum">     219 </span>                :            : {
+<span class="lineNum">     220 </span>                :            :         zfs_hold_cleanup_arg_t *ca;
+<span class="lineNum">     221 </span>                :            : 
+<span class="lineNum">     222 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineCov">         60 :         if (minor == 0 || nvlist_empty(holds)) {</span>
+<span class="lineNum">     223 </span>                :<span class="lineCov">         60 :                 fnvlist_free(holds);</span>
+<span class="lineNum">     224 </span>                :<span class="lineCov">         60 :                 return;</span>
+<span class="lineNum">     225 </span>                :            :         }
+<span class="lineNum">     226 </span>                :            : 
+<span class="lineNum">     227 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(spa != NULL);</span>
+<span class="lineNum">     228 </span>                :<span class="lineNoCov">          0 :         ca = kmem_alloc(sizeof (*ca), KM_SLEEP);</span>
+<span class="lineNum">     229 </span>                :            : 
+<span class="lineNum">     230 </span>                :<span class="lineNoCov">          0 :         (void) strlcpy(ca-&gt;zhca_spaname, spa_name(spa),</span>
+<span class="lineNum">     231 </span>                :            :             sizeof (ca-&gt;zhca_spaname));
+<span class="lineNum">     232 </span>                :<span class="lineNoCov">          0 :         ca-&gt;zhca_spa_load_guid = spa_load_guid(spa);</span>
+<span class="lineNum">     233 </span>                :<span class="lineNoCov">          0 :         ca-&gt;zhca_holds = holds;</span>
+<span class="lineNum">     234 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(zfs_onexit_add_cb(minor,</span>
+<span class="lineNum">     235 </span>                :            :             dsl_dataset_user_release_onexit, ca, NULL));
+<span class="lineNum">     236 </span>                :            : }
+<a name="237"><span class="lineNum">     237 </span>                :            : </a>
+<span class="lineNum">     238 </span>                :            : void
+<span class="lineNum">     239 </span>                :<span class="lineNoCov">          0 : dsl_dataset_user_hold_sync_one(dsl_dataset_t *ds, const char *htag,</span>
+<span class="lineNum">     240 </span>                :            :     minor_t minor, uint64_t now, dmu_tx_t *tx)
+<span class="lineNum">     241 </span>                :            : {
+<span class="lineNum">     242 </span>                :            :         nvlist_t *tmpholds;
+<span class="lineNum">     243 </span>                :            : 
+<span class="lineNum">     244 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (minor != 0)</span>
+<span class="lineNum">     245 </span>                :<span class="lineNoCov">          0 :                 tmpholds = fnvlist_alloc();</span>
+<span class="lineNum">     246 </span>                :            :         else
+<span class="lineNum">     247 </span>                :            :                 tmpholds = NULL;
+<span class="lineNum">     248 </span>                :<span class="lineNoCov">          0 :         dsl_dataset_user_hold_sync_one_impl(tmpholds, ds, htag, minor, now, tx);</span>
+<span class="lineNum">     249 </span>                :<span class="lineNoCov">          0 :         dsl_onexit_hold_cleanup(dsl_dataset_get_spa(ds), tmpholds, minor);</span>
+<span class="lineNum">     250 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="251"><span class="lineNum">     251 </span>                :            : </a>
+<span class="lineNum">     252 </span>                :            : static void
+<span class="lineNum">     253 </span>                :<span class="lineCov">         60 : dsl_dataset_user_hold_sync(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     254 </span>                :            : {
+<span class="lineNum">     255 </span>                :<span class="lineCov">         60 :         dsl_dataset_user_hold_arg_t *dduha = arg;</span>
+<span class="lineNum">     256 </span>                :<span class="lineCov">         60 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     257 </span>                :            :         nvlist_t *tmpholds;
+<span class="lineNum">     258 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     259 </span>                :<span class="lineCov">         60 :         uint64_t now = gethrestime_sec();</span>
+<span class="lineNum">     260 </span>                :            : 
+<span class="lineNum">     261 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">         60 :         if (dduha-&gt;dduha_minor != 0)</span>
+<span class="lineNum">     262 </span>                :<span class="lineNoCov">          0 :                 tmpholds = fnvlist_alloc();</span>
+<span class="lineNum">     263 </span>                :            :         else
+<span class="lineNum">     264 </span>                :            :                 tmpholds = NULL;
+<span class="lineNum">     265 </span>        [<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">        120 :         for (pair = nvlist_next_nvpair(dduha-&gt;dduha_chkholds, NULL);</span>
+<span class="lineNum">     266 </span>                :            :             pair != NULL;
+<span class="lineNum">     267 </span>                :<span class="lineCov">         60 :             pair = nvlist_next_nvpair(dduha-&gt;dduha_chkholds, pair)) {</span>
+<span class="lineNum">     268 </span>                :            :                 dsl_dataset_t *ds;
+<span class="lineNum">     269 </span>                :            : 
+<span class="lineNum">     270 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 60 times"> + </span>]:<span class="lineCov">         60 :                 VERIFY0(dsl_dataset_hold(dp, nvpair_name(pair), FTAG, &amp;ds));</span>
+<span class="lineNum">     271 </span>                :<span class="lineCov">         60 :                 dsl_dataset_user_hold_sync_one_impl(tmpholds, ds,</span>
+<span class="lineNum">     272 </span>                :<span class="lineCov">         60 :                     fnvpair_value_string(pair), dduha-&gt;dduha_minor, now, tx);</span>
+<span class="lineNum">     273 </span>                :<span class="lineCov">         60 :                 dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     274 </span>                :            :         }
+<span class="lineNum">     275 </span>                :<span class="lineCov">         60 :         dsl_onexit_hold_cleanup(dp-&gt;dp_spa, tmpholds, dduha-&gt;dduha_minor);</span>
+<span class="lineNum">     276 </span>                :<span class="lineCov">         60 : }</span>
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>                :            : /*
+<span class="lineNum">     279 </span>                :            :  * The full semantics of this function are described in the comment above
+<span class="lineNum">     280 </span>                :            :  * lzc_hold().
+<span class="lineNum">     281 </span>                :            :  *
+<span class="lineNum">     282 </span>                :            :  * To summarize:
+<span class="lineNum">     283 </span>                :            :  * holds is nvl of snapname -&gt; holdname
+<span class="lineNum">     284 </span>                :            :  * errlist will be filled in with snapname -&gt; error
+<span class="lineNum">     285 </span>                :            :  *
+<span class="lineNum">     286 </span>                :            :  * The snaphosts must all be in the same pool.
+<span class="lineNum">     287 </span>                :            :  *
+<span class="lineNum">     288 </span>                :            :  * Holds for snapshots that don't exist will be skipped.
+<span class="lineNum">     289 </span>                :            :  *
+<span class="lineNum">     290 </span>                :            :  * If none of the snapshots for requested holds exist then ENOENT will be
+<span class="lineNum">     291 </span>                :            :  * returned.
+<span class="lineNum">     292 </span>                :            :  *
+<span class="lineNum">     293 </span>                :            :  * If cleanup_minor is not 0, the holds will be temporary, which will be cleaned
+<span class="lineNum">     294 </span>                :            :  * up when the process exits.
+<span class="lineNum">     295 </span>                :            :  *
+<span class="lineNum">     296 </span>                :            :  * On success all the holds, for snapshots that existed, will be created and 0
+<span class="lineNum">     297 </span>                :            :  * will be returned.
+<span class="lineNum">     298 </span>                :            :  *
+<span class="lineNum">     299 </span>                :            :  * On failure no holds will be created, the errlist will be filled in,
+<span class="lineNum">     300 </span>                :            :  * and an errno will returned.
+<span class="lineNum">     301 </span>                :            :  *
+<span class="lineNum">     302 </span>                :            :  * In all cases the errlist will contain entries for holds where the snapshot
+<span class="lineNum">     303 </span>                :            :  * didn't exist.
+<a name="304"><span class="lineNum">     304 </span>                :            :  */</a>
+<span class="lineNum">     305 </span>                :            : int
+<span class="lineNum">     306 </span>                :<span class="lineCov">         60 : dsl_dataset_user_hold(nvlist_t *holds, minor_t cleanup_minor, nvlist_t *errlist)</span>
+<span class="lineNum">     307 </span>                :            : {
+<span class="lineNum">     308 </span>                :            :         dsl_dataset_user_hold_arg_t dduha;
+<span class="lineNum">     309 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     310 </span>                :            :         int ret;
+<span class="lineNum">     311 </span>                :            : 
+<span class="lineNum">     312 </span>                :<span class="lineCov">         60 :         pair = nvlist_next_nvpair(holds, NULL);</span>
+<span class="lineNum">     313 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         60 :         if (pair == NULL)</span>
+<span class="lineNum">     314 </span>                :            :                 return (0);
+<span class="lineNum">     315 </span>                :            : 
+<span class="lineNum">     316 </span>                :<span class="lineCov">         60 :         dduha.dduha_holds = holds;</span>
+<span class="lineNum">     317 </span>                :<span class="lineCov">         60 :         dduha.dduha_chkholds = fnvlist_alloc();</span>
+<span class="lineNum">     318 </span>                :<span class="lineCov">         60 :         dduha.dduha_errlist = errlist;</span>
+<span class="lineNum">     319 </span>                :<span class="lineCov">         60 :         dduha.dduha_minor = cleanup_minor;</span>
+<span class="lineNum">     320 </span>                :            : 
+<span class="lineNum">     321 </span>                :<span class="lineCov">         60 :         ret = dsl_sync_task(nvpair_name(pair), dsl_dataset_user_hold_check,</span>
+<span class="lineNum">     322 </span>                :            :             dsl_dataset_user_hold_sync, &amp;dduha,
+<span class="lineNum">     323 </span>                :<span class="lineCov">         60 :             fnvlist_num_pairs(holds), ZFS_SPACE_CHECK_RESERVED);</span>
+<span class="lineNum">     324 </span>                :<span class="lineCov">         60 :         fnvlist_free(dduha.dduha_chkholds);</span>
+<span class="lineNum">     325 </span>                :            : 
+<span class="lineNum">     326 </span>                :<span class="lineCov">         60 :         return (ret);</span>
+<span class="lineNum">     327 </span>                :            : }
+<span class="lineNum">     328 </span>                :            : 
+<span class="lineNum">     329 </span>                :            : typedef int (dsl_holdfunc_t)(dsl_pool_t *dp, const char *name, void *tag,
+<span class="lineNum">     330 </span>                :            :     dsl_dataset_t **dsp);
+<span class="lineNum">     331 </span>                :            : 
+<span class="lineNum">     332 </span>                :            : typedef struct dsl_dataset_user_release_arg {
+<span class="lineNum">     333 </span>                :            :         dsl_holdfunc_t *ddura_holdfunc;
+<span class="lineNum">     334 </span>                :            :         nvlist_t *ddura_holds;
+<span class="lineNum">     335 </span>                :            :         nvlist_t *ddura_todelete;
+<span class="lineNum">     336 </span>                :            :         nvlist_t *ddura_errlist;
+<span class="lineNum">     337 </span>                :            :         nvlist_t *ddura_chkholds;
+<span class="lineNum">     338 </span>                :            : } dsl_dataset_user_release_arg_t;
+<span class="lineNum">     339 </span>                :            : 
+<a name="340"><span class="lineNum">     340 </span>                :            : /* Place a dataset hold on the snapshot identified by passed dsobj string */</a>
+<span class="lineNum">     341 </span>                :            : static int
+<span class="lineNum">     342 </span>                :<span class="lineNoCov">          0 : dsl_dataset_hold_obj_string(dsl_pool_t *dp, const char *dsobj, void *tag,</span>
+<span class="lineNum">     343 </span>                :            :     dsl_dataset_t **dsp)
+<span class="lineNum">     344 </span>                :            : {
+<span class="lineNum">     345 </span>                :<span class="lineNoCov">          0 :         return (dsl_dataset_hold_obj(dp, zfs_strtonum(dsobj, NULL), tag, dsp));</span>
+<span class="lineNum">     346 </span>                :            : }
+<a name="347"><span class="lineNum">     347 </span>                :            : </a>
+<span class="lineNum">     348 </span>                :            : static int
+<span class="lineNum">     349 </span>                :<span class="lineCov">         60 : dsl_dataset_user_release_check_one(dsl_dataset_user_release_arg_t *ddura,</span>
+<span class="lineNum">     350 </span>                :            :     dsl_dataset_t *ds, nvlist_t *holds, const char *snapname)
+<span class="lineNum">     351 </span>                :            : {
+<span class="lineNum">     352 </span>                :            :         uint64_t zapobj;
+<span class="lineNum">     353 </span>                :            :         nvlist_t *holds_found;
+<span class="lineNum">     354 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     355 </span>                :            :         objset_t *mos;
+<span class="lineNum">     356 </span>                :            :         int numholds;
+<span class="lineNum">     357 </span>                :            : 
+<span class="lineNum">     358 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">         60 :         if (!ds-&gt;ds_is_snapshot)</span>
+<span class="lineNum">     359 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EINVAL));</span>
+<span class="lineNum">     360 </span>                :            : 
+<span class="lineNum">     361 </span>        [<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">         60 :         if (nvlist_empty(holds))</span>
+<span class="lineNum">     362 </span>                :            :                 return (0);
+<span class="lineNum">     363 </span>                :            : 
+<span class="lineNum">     364 </span>                :<span class="lineCov">         60 :         numholds = 0;</span>
+<span class="lineNum">     365 </span>                :<span class="lineCov">         60 :         mos = ds-&gt;ds_dir-&gt;dd_pool-&gt;dp_meta_objset;</span>
+<span class="lineNum">     366 </span>                :<span class="lineCov">         60 :         zapobj = dsl_dataset_phys(ds)-&gt;ds_userrefs_obj;</span>
+<span class="lineNum">     367 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">         60 :         VERIFY0(nvlist_alloc(&amp;holds_found, NV_UNIQUE_NAME, KM_SLEEP));</span>
+<span class="lineNum">     368 </span>                :            : 
+<span class="lineNum">     369 </span>        [<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">        120 :         for (pair = nvlist_next_nvpair(holds, NULL); pair != NULL;</span>
+<span class="lineNum">     370 </span>                :<span class="lineCov">         60 :             pair = nvlist_next_nvpair(holds, pair)) {</span>
+<span class="lineNum">     371 </span>                :            :                 uint64_t tmp;
+<span class="lineNum">     372 </span>                :            :                 int error;
+<span class="lineNum">     373 </span>                :<span class="lineCov">         60 :                 const char *holdname = nvpair_name(pair);</span>
+<span class="lineNum">     374 </span>                :            : 
+<span class="lineNum">     375 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         60 :                 if (zapobj != 0)</span>
+<span class="lineNum">     376 </span>                :<span class="lineCov">         60 :                         error = zap_lookup(mos, zapobj, holdname, 8, 1, &amp;tmp);</span>
+<span class="lineNum">     377 </span>                :            :                 else
+<span class="lineNum">     378 </span>                :<span class="lineNoCov">          0 :                         error = SET_ERROR(ENOENT);</span>
+<span class="lineNum">     379 </span>                :            : 
+<span class="lineNum">     380 </span>                :            :                 /*
+<span class="lineNum">     381 </span>                :            :                  * Non-existent holds are put on the errlist, but don't
+<span class="lineNum">     382 </span>                :            :                  * cause an overall failure.
+<span class="lineNum">     383 </span>                :            :                  */
+<span class="lineNum">     384 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">         60 :                 if (error == ENOENT) {</span>
+<span class="lineNum">     385 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (ddura-&gt;ddura_errlist != NULL) {</span>
+<span class="lineNum">     386 </span>                :<span class="lineNoCov">          0 :                                 char *errtag = kmem_asprintf(&quot;%s#%s&quot;,</span>
+<span class="lineNum">     387 </span>                :            :                                     snapname, holdname);
+<span class="lineNum">     388 </span>                :<span class="lineNoCov">          0 :                                 fnvlist_add_int32(ddura-&gt;ddura_errlist, errtag,</span>
+<span class="lineNum">     389 </span>                :            :                                     ENOENT);
+<span class="lineNum">     390 </span>                :<span class="lineNoCov">          0 :                                 strfree(errtag);</span>
+<span class="lineNum">     391 </span>                :            :                         }
+<span class="lineNum">     392 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     393 </span>                :            :                 }
+<span class="lineNum">     394 </span>                :            : 
+<span class="lineNum">     395 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">         60 :                 if (error != 0) {</span>
+<span class="lineNum">     396 </span>                :<span class="lineNoCov">          0 :                         fnvlist_free(holds_found);</span>
+<span class="lineNum">     397 </span>                :<span class="lineNoCov">          0 :                         return (error);</span>
+<span class="lineNum">     398 </span>                :            :                 }
+<span class="lineNum">     399 </span>                :            : 
+<span class="lineNum">     400 </span>                :<span class="lineCov">         60 :                 fnvlist_add_boolean(holds_found, holdname);</span>
+<span class="lineNum">     401 </span>                :<span class="lineCov">         60 :                 numholds++;</span>
+<span class="lineNum">     402 </span>                :            :         }
+<span class="lineNum">     403 </span>                :            : 
+<span class="lineNum">     404 </span>[<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchCov" title="Branch 3 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 4 was not taken"> - </span>]:<span class="lineCov">         60 :         if (DS_IS_DEFER_DESTROY(ds) &amp;&amp;</span>
+<span class="lineNum">     405 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         60 :             dsl_dataset_phys(ds)-&gt;ds_num_children == 1 &amp;&amp;</span>
+<span class="lineNum">     406 </span>                :<span class="lineCov">         60 :             ds-&gt;ds_userrefs == numholds) {</span>
+<span class="lineNum">     407 </span>                :            :                 /* we need to destroy the snapshot as well */
+<span class="lineNum">     408 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">         60 :                 if (dsl_dataset_long_held(ds)) {</span>
+<span class="lineNum">     409 </span>                :<span class="lineNoCov">          0 :                         fnvlist_free(holds_found);</span>
+<span class="lineNum">     410 </span>                :<span class="lineNoCov">          0 :                         return (SET_ERROR(EBUSY));</span>
+<span class="lineNum">     411 </span>                :            :                 }
+<span class="lineNum">     412 </span>                :<span class="lineCov">         60 :                 fnvlist_add_boolean(ddura-&gt;ddura_todelete, snapname);</span>
+<span class="lineNum">     413 </span>                :            :         }
+<span class="lineNum">     414 </span>                :            : 
+<span class="lineNum">     415 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         60 :         if (numholds != 0) {</span>
+<span class="lineNum">     416 </span>                :<span class="lineCov">         60 :                 fnvlist_add_nvlist(ddura-&gt;ddura_chkholds, snapname,</span>
+<span class="lineNum">     417 </span>                :            :                     holds_found);
+<span class="lineNum">     418 </span>                :            :         }
+<span class="lineNum">     419 </span>                :<span class="lineCov">         60 :         fnvlist_free(holds_found);</span>
+<span class="lineNum">     420 </span>                :            : 
+<span class="lineNum">     421 </span>                :<span class="lineCov">         60 :         return (0);</span>
+<span class="lineNum">     422 </span>                :            : }
+<a name="423"><span class="lineNum">     423 </span>                :            : </a>
+<span class="lineNum">     424 </span>                :            : static int
+<span class="lineNum">     425 </span>                :<span class="lineCov">        240 : dsl_dataset_user_release_check(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     426 </span>                :            : {
+<span class="lineNum">     427 </span>                :            :         dsl_dataset_user_release_arg_t *ddura;
+<span class="lineNum">     428 </span>                :            :         dsl_holdfunc_t *holdfunc;
+<span class="lineNum">     429 </span>                :            :         dsl_pool_t *dp;
+<span class="lineNum">     430 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     431 </span>                :            : 
+<span class="lineNum">     432 </span>        [<span class="branchCov" title="Branch 1 was taken 120 times"> + </span><span class="branchCov" title="Branch 2 was taken 120 times"> + </span>]:<span class="lineCov">        240 :         if (!dmu_tx_is_syncing(tx))</span>
+<span class="lineNum">     433 </span>                :            :                 return (0);
+<span class="lineNum">     434 </span>                :            : 
+<span class="lineNum">     435 </span>                :<span class="lineCov">        120 :         dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     436 </span>                :            : 
+<span class="lineNum">     437 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 120 times"> + </span>]:<span class="lineCov">        120 :         ASSERT(RRW_WRITE_HELD(&amp;dp-&gt;dp_config_rwlock));</span>
+<span class="lineNum">     438 </span>                :            : 
+<span class="lineNum">     439 </span>                :<span class="lineCov">        120 :         ddura = arg;</span>
+<span class="lineNum">     440 </span>                :<span class="lineCov">        120 :         holdfunc = ddura-&gt;ddura_holdfunc;</span>
+<span class="lineNum">     441 </span>                :            : 
+<span class="lineNum">     442 </span>        [<span class="branchCov" title="Branch 1 was taken 120 times"> + </span><span class="branchCov" title="Branch 2 was taken 120 times"> + </span>]:<span class="lineCov">        240 :         for (pair = nvlist_next_nvpair(ddura-&gt;ddura_holds, NULL);</span>
+<span class="lineNum">     443 </span>                :<span class="lineCov">        120 :             pair != NULL; pair = nvlist_next_nvpair(ddura-&gt;ddura_holds, pair)) {</span>
+<span class="lineNum">     444 </span>                :            :                 int error;
+<span class="lineNum">     445 </span>                :            :                 dsl_dataset_t *ds;
+<span class="lineNum">     446 </span>                :            :                 nvlist_t *holds;
+<span class="lineNum">     447 </span>                :<span class="lineCov">        120 :                 const char *snapname = nvpair_name(pair);</span>
+<span class="lineNum">     448 </span>                :            : 
+<span class="lineNum">     449 </span>                :<span class="lineCov">        120 :                 error = nvpair_value_nvlist(pair, &amp;holds);</span>
+<span class="lineNum">     450 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 120 times"> + </span>]:<span class="lineCov">        120 :                 if (error != 0)</span>
+<span class="lineNum">     451 </span>                :<span class="lineNoCov">          0 :                         error = (SET_ERROR(EINVAL));</span>
+<span class="lineNum">     452 </span>                :            :                 else
+<span class="lineNum">     453 </span>                :<span class="lineCov">        120 :                         error = holdfunc(dp, snapname, FTAG, &amp;ds);</span>
+<span class="lineNum">     454 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">        120 :                 if (error == 0) {</span>
+<span class="lineNum">     455 </span>                :<span class="lineCov">         60 :                         error = dsl_dataset_user_release_check_one(ddura, ds,</span>
+<span class="lineNum">     456 </span>                :            :                             holds, snapname);
+<span class="lineNum">     457 </span>                :<span class="lineCov">         60 :                         dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     458 </span>                :            :                 }
+<span class="lineNum">     459 </span>        [<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">        120 :                 if (error != 0) {</span>
+<span class="lineNum">     460 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">         60 :                         if (ddura-&gt;ddura_errlist != NULL) {</span>
+<span class="lineNum">     461 </span>                :<span class="lineNoCov">          0 :                                 fnvlist_add_int32(ddura-&gt;ddura_errlist,</span>
+<span class="lineNum">     462 </span>                :            :                                     snapname, error);
+<span class="lineNum">     463 </span>                :            :                         }
+<span class="lineNum">     464 </span>                :            :                         /*
+<span class="lineNum">     465 </span>                :            :                          * Non-existent snapshots are put on the errlist,
+<span class="lineNum">     466 </span>                :            :                          * but don't cause an overall failure.
+<span class="lineNum">     467 </span>                :            :                          */
+<span class="lineNum">     468 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">         60 :                         if (error != ENOENT)</span>
+<span class="lineNum">     469 </span>                :<span class="lineNoCov">          0 :                                 return (error);</span>
+<span class="lineNum">     470 </span>                :            :                 }
+<span class="lineNum">     471 </span>                :            :         }
+<span class="lineNum">     472 </span>                :            : 
+<span class="lineNum">     473 </span>                :            :         return (0);
+<span class="lineNum">     474 </span>                :            : }
+<a name="475"><span class="lineNum">     475 </span>                :            : </a>
+<span class="lineNum">     476 </span>                :            : static void
+<span class="lineNum">     477 </span>                :<span class="lineCov">         60 : dsl_dataset_user_release_sync_one(dsl_dataset_t *ds, nvlist_t *holds,</span>
+<span class="lineNum">     478 </span>                :            :     dmu_tx_t *tx)
+<span class="lineNum">     479 </span>                :            : {
+<span class="lineNum">     480 </span>                :<span class="lineCov">         60 :         dsl_pool_t *dp = ds-&gt;ds_dir-&gt;dd_pool;</span>
+<span class="lineNum">     481 </span>                :<span class="lineCov">         60 :         objset_t *mos = dp-&gt;dp_meta_objset;</span>
+<span class="lineNum">     482 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     483 </span>                :            : 
+<span class="lineNum">     484 </span>        [<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">        120 :         for (pair = nvlist_next_nvpair(holds, NULL); pair != NULL;</span>
+<span class="lineNum">     485 </span>                :<span class="lineCov">         60 :             pair = nvlist_next_nvpair(holds, pair)) {</span>
+<span class="lineNum">     486 </span>                :            :                 int error;
+<span class="lineNum">     487 </span>                :<span class="lineCov">         60 :                 const char *holdname = nvpair_name(pair);</span>
+<span class="lineNum">     488 </span>                :            : 
+<span class="lineNum">     489 </span>                :            :                 /* Remove temporary hold if one exists. */
+<span class="lineNum">     490 </span>                :<span class="lineCov">         60 :                 error = dsl_pool_user_release(dp, ds-&gt;ds_object, holdname, tx);</span>
+<span class="lineNum">     491 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">         60 :                 VERIFY(error == 0 || error == ENOENT);</span>
+<span class="lineNum">     492 </span>                :            : 
+<span class="lineNum">     493 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 60 times"> + </span>]:<span class="lineCov">         60 :                 VERIFY0(zap_remove(mos, dsl_dataset_phys(ds)-&gt;ds_userrefs_obj,</span>
+<span class="lineNum">     494 </span>                :            :                     holdname, tx));
+<span class="lineNum">     495 </span>                :<span class="lineCov">         60 :                 ds-&gt;ds_userrefs--;</span>
+<span class="lineNum">     496 </span>                :            : 
+<span class="lineNum">     497 </span>                :<span class="lineCov">         60 :                 spa_history_log_internal_ds(ds, &quot;release&quot;, tx,</span>
+<span class="lineNum">     498 </span>                :            :                     &quot;tag=%s refs=%lld&quot;, holdname, (longlong_t)ds-&gt;ds_userrefs);
+<span class="lineNum">     499 </span>                :            :         }
+<span class="lineNum">     500 </span>                :<span class="lineCov">         60 : }</span>
+<a name="501"><span class="lineNum">     501 </span>                :            : </a>
+<span class="lineNum">     502 </span>                :            : static void
+<span class="lineNum">     503 </span>                :<span class="lineCov">        120 : dsl_dataset_user_release_sync(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     504 </span>                :            : {
+<span class="lineNum">     505 </span>                :<span class="lineCov">        120 :         dsl_dataset_user_release_arg_t *ddura = arg;</span>
+<span class="lineNum">     506 </span>                :<span class="lineCov">        120 :         dsl_holdfunc_t *holdfunc = ddura-&gt;ddura_holdfunc;</span>
+<span class="lineNum">     507 </span>                :<span class="lineCov">        120 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     508 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     509 </span>                :            : 
+<span class="lineNum">     510 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 120 times"> + </span>]:<span class="lineCov">        120 :         ASSERT(RRW_WRITE_HELD(&amp;dp-&gt;dp_config_rwlock));</span>
+<span class="lineNum">     511 </span>                :            : 
+<span class="lineNum">     512 </span>        [<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchCov" title="Branch 2 was taken 120 times"> + </span>]:<span class="lineCov">        180 :         for (pair = nvlist_next_nvpair(ddura-&gt;ddura_chkholds, NULL);</span>
+<span class="lineNum">     513 </span>                :<span class="lineCov">         60 :             pair != NULL; pair = nvlist_next_nvpair(ddura-&gt;ddura_chkholds,</span>
+<span class="lineNum">     514 </span>                :            :             pair)) {
+<span class="lineNum">     515 </span>                :            :                 dsl_dataset_t *ds;
+<span class="lineNum">     516 </span>                :<span class="lineCov">         60 :                 const char *name = nvpair_name(pair);</span>
+<span class="lineNum">     517 </span>                :            : 
+<span class="lineNum">     518 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 60 times"> + </span>]:<span class="lineCov">         60 :                 VERIFY0(holdfunc(dp, name, FTAG, &amp;ds));</span>
+<span class="lineNum">     519 </span>                :            : 
+<span class="lineNum">     520 </span>                :<span class="lineCov">         60 :                 dsl_dataset_user_release_sync_one(ds,</span>
+<span class="lineNum">     521 </span>                :            :                     fnvpair_value_nvlist(pair), tx);
+<span class="lineNum">     522 </span>        [<span class="branchCov" title="Branch 1 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">         60 :                 if (nvlist_exists(ddura-&gt;ddura_todelete, name)) {</span>
+<span class="lineNum">     523 </span>[<span class="branchCov" title="Branch 0 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 3 was taken 60 times"> + </span><span class="branchNoCov" title="Branch 4 was not taken"> - </span>]:<span class="lineCov">         60 :                         ASSERT(ds-&gt;ds_userrefs == 0 &amp;&amp;</span>
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 5 was not taken"> - </span><span class="branchCov" title="Branch 6 was taken 60 times"> + </span>]
+<span class="lineNum">     524 </span>                :            :                             dsl_dataset_phys(ds)-&gt;ds_num_children == 1 &amp;&amp;
+<span class="lineNum">     525 </span>                :            :                             DS_IS_DEFER_DESTROY(ds));
+<span class="lineNum">     526 </span>                :<span class="lineCov">         60 :                         dsl_destroy_snapshot_sync_impl(ds, B_FALSE, tx);</span>
+<span class="lineNum">     527 </span>                :            :                 }
+<span class="lineNum">     528 </span>                :<span class="lineCov">         60 :                 dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     529 </span>                :            :         }
+<span class="lineNum">     530 </span>                :<span class="lineCov">        120 : }</span>
+<span class="lineNum">     531 </span>                :            : 
+<span class="lineNum">     532 </span>                :            : /*
+<span class="lineNum">     533 </span>                :            :  * The full semantics of this function are described in the comment above
+<span class="lineNum">     534 </span>                :            :  * lzc_release().
+<span class="lineNum">     535 </span>                :            :  *
+<span class="lineNum">     536 </span>                :            :  * To summarize:
+<span class="lineNum">     537 </span>                :            :  * Releases holds specified in the nvl holds.
+<span class="lineNum">     538 </span>                :            :  *
+<span class="lineNum">     539 </span>                :            :  * holds is nvl of snapname -&gt; { holdname, ... }
+<span class="lineNum">     540 </span>                :            :  * errlist will be filled in with snapname -&gt; error
+<span class="lineNum">     541 </span>                :            :  *
+<span class="lineNum">     542 </span>                :            :  * If tmpdp is not NULL the names for holds should be the dsobj's of snapshots,
+<span class="lineNum">     543 </span>                :            :  * otherwise they should be the names of shapshots.
+<span class="lineNum">     544 </span>                :            :  *
+<span class="lineNum">     545 </span>                :            :  * As a release may cause snapshots to be destroyed this trys to ensure they
+<span class="lineNum">     546 </span>                :            :  * aren't mounted.
+<span class="lineNum">     547 </span>                :            :  *
+<span class="lineNum">     548 </span>                :            :  * The release of non-existent holds are skipped.
+<span class="lineNum">     549 </span>                :            :  *
+<span class="lineNum">     550 </span>                :            :  * At least one hold must have been released for the this function to succeed
+<span class="lineNum">     551 </span>                :            :  * and return 0.
+<a name="552"><span class="lineNum">     552 </span>                :            :  */</a>
+<span class="lineNum">     553 </span>                :            : static int
+<span class="lineNum">     554 </span>                :<span class="lineCov">        120 : dsl_dataset_user_release_impl(nvlist_t *holds, nvlist_t *errlist,</span>
+<span class="lineNum">     555 </span>                :            :     dsl_pool_t *tmpdp)
+<span class="lineNum">     556 </span>                :            : {
+<span class="lineNum">     557 </span>                :            :         dsl_dataset_user_release_arg_t ddura;
+<span class="lineNum">     558 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     559 </span>                :            :         char *pool;
+<span class="lineNum">     560 </span>                :            :         int error;
+<span class="lineNum">     561 </span>                :            : 
+<span class="lineNum">     562 </span>                :<span class="lineCov">        120 :         pair = nvlist_next_nvpair(holds, NULL);</span>
+<span class="lineNum">     563 </span>        [<span class="branchCov" title="Branch 0 was taken 120 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        120 :         if (pair == NULL)</span>
+<span class="lineNum">     564 </span>                :            :                 return (0);
+<span class="lineNum">     565 </span>                :            : 
+<span class="lineNum">     566 </span>                :            :         /*
+<span class="lineNum">     567 </span>                :            :          * The release may cause snapshots to be destroyed; make sure they
+<span class="lineNum">     568 </span>                :            :          * are not mounted.
+<span class="lineNum">     569 </span>                :            :          */
+<span class="lineNum">     570 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 120 times"> + </span>]:<span class="lineCov">        120 :         if (tmpdp != NULL) {</span>
+<span class="lineNum">     571 </span>                :            :                 /* Temporary holds are specified by dsobj string. */
+<span class="lineNum">     572 </span>                :<span class="lineNoCov">          0 :                 ddura.ddura_holdfunc = dsl_dataset_hold_obj_string;</span>
+<span class="lineNum">     573 </span>                :<span class="lineNoCov">          0 :                 pool = spa_name(tmpdp-&gt;dp_spa);</span>
+<span class="lineNum">     574 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">     575 </span>                :            :                 for (pair = nvlist_next_nvpair(holds, NULL); pair != NULL;
+<span class="lineNum">     576 </span>                :            :                     pair = nvlist_next_nvpair(holds, pair)) {
+<span class="lineNum">     577 </span>                :            :                         dsl_dataset_t *ds;
+<span class="lineNum">     578 </span>                :            : 
+<span class="lineNum">     579 </span>                :            :                         dsl_pool_config_enter(tmpdp, FTAG);
+<span class="lineNum">     580 </span>                :            :                         error = dsl_dataset_hold_obj_string(tmpdp,
+<span class="lineNum">     581 </span>                :            :                             nvpair_name(pair), FTAG, &amp;ds);
+<span class="lineNum">     582 </span>                :            :                         if (error == 0) {
+<span class="lineNum">     583 </span>                :            :                                 char name[ZFS_MAX_DATASET_NAME_LEN];
+<span class="lineNum">     584 </span>                :            :                                 dsl_dataset_name(ds, name);
+<span class="lineNum">     585 </span>                :            :                                 dsl_pool_config_exit(tmpdp, FTAG);
+<span class="lineNum">     586 </span>                :            :                                 dsl_dataset_rele(ds, FTAG);
+<span class="lineNum">     587 </span>                :            :                                 (void) zfs_unmount_snap(name);
+<span class="lineNum">     588 </span>                :            :                         } else {
+<span class="lineNum">     589 </span>                :            :                                 dsl_pool_config_exit(tmpdp, FTAG);
+<span class="lineNum">     590 </span>                :            :                         }
+<span class="lineNum">     591 </span>                :            :                 }
+<span class="lineNum">     592 </span>                :            : #endif
+<span class="lineNum">     593 </span>                :            :         } else {
+<span class="lineNum">     594 </span>                :            :                 /* Non-temporary holds are specified by name. */
+<span class="lineNum">     595 </span>                :<span class="lineCov">        120 :                 ddura.ddura_holdfunc = dsl_dataset_hold;</span>
+<span class="lineNum">     596 </span>                :<span class="lineCov">        120 :                 pool = nvpair_name(pair);</span>
+<span class="lineNum">     597 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">     598 </span>                :            :                 for (pair = nvlist_next_nvpair(holds, NULL); pair != NULL;
+<span class="lineNum">     599 </span>                :            :                     pair = nvlist_next_nvpair(holds, pair)) {
+<span class="lineNum">     600 </span>                :            :                         (void) zfs_unmount_snap(nvpair_name(pair));
+<span class="lineNum">     601 </span>                :            :                 }
+<span class="lineNum">     602 </span>                :            : #endif
+<span class="lineNum">     603 </span>                :            :         }
+<span class="lineNum">     604 </span>                :            : 
+<span class="lineNum">     605 </span>                :<span class="lineCov">        120 :         ddura.ddura_holds = holds;</span>
+<span class="lineNum">     606 </span>                :<span class="lineCov">        120 :         ddura.ddura_errlist = errlist;</span>
+<span class="lineNum">     607 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 120 times"> + </span>]:<span class="lineCov">        120 :         VERIFY0(nvlist_alloc(&amp;ddura.ddura_todelete, NV_UNIQUE_NAME,</span>
+<span class="lineNum">     608 </span>                :            :             KM_SLEEP));
+<span class="lineNum">     609 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 120 times"> + </span>]:<span class="lineCov">        120 :         VERIFY0(nvlist_alloc(&amp;ddura.ddura_chkholds, NV_UNIQUE_NAME,</span>
+<span class="lineNum">     610 </span>                :            :             KM_SLEEP));
+<span class="lineNum">     611 </span>                :            : 
+<span class="lineNum">     612 </span>                :<span class="lineCov">        120 :         error = dsl_sync_task(pool, dsl_dataset_user_release_check,</span>
+<span class="lineNum">     613 </span>                :            :             dsl_dataset_user_release_sync, &amp;ddura, 0, ZFS_SPACE_CHECK_NONE);
+<span class="lineNum">     614 </span>                :<span class="lineCov">        120 :         fnvlist_free(ddura.ddura_todelete);</span>
+<span class="lineNum">     615 </span>                :<span class="lineCov">        120 :         fnvlist_free(ddura.ddura_chkholds);</span>
+<span class="lineNum">     616 </span>                :            : 
+<span class="lineNum">     617 </span>                :<span class="lineCov">        120 :         return (error);</span>
+<span class="lineNum">     618 </span>                :            : }
+<span class="lineNum">     619 </span>                :            : 
+<span class="lineNum">     620 </span>                :            : /*
+<span class="lineNum">     621 </span>                :            :  * holds is nvl of snapname -&gt; { holdname, ... }
+<span class="lineNum">     622 </span>                :            :  * errlist will be filled in with snapname -&gt; error
+<a name="623"><span class="lineNum">     623 </span>                :            :  */</a>
+<span class="lineNum">     624 </span>                :            : int
+<span class="lineNum">     625 </span>                :<span class="lineCov">        120 : dsl_dataset_user_release(nvlist_t *holds, nvlist_t *errlist)</span>
+<span class="lineNum">     626 </span>                :            : {
+<span class="lineNum">     627 </span>                :<span class="lineCov">        120 :         return (dsl_dataset_user_release_impl(holds, errlist, NULL));</span>
+<span class="lineNum">     628 </span>                :            : }
+<span class="lineNum">     629 </span>                :            : 
+<span class="lineNum">     630 </span>                :            : /*
+<span class="lineNum">     631 </span>                :            :  * holds is nvl of snapdsobj -&gt; { holdname, ... }
+<a name="632"><span class="lineNum">     632 </span>                :            :  */</a>
+<span class="lineNum">     633 </span>                :            : void
+<span class="lineNum">     634 </span>                :<span class="lineNoCov">          0 : dsl_dataset_user_release_tmp(struct dsl_pool *dp, nvlist_t *holds)</span>
+<span class="lineNum">     635 </span>                :            : {
+<span class="lineNum">     636 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(dp != NULL);</span>
+<span class="lineNum">     637 </span>                :<span class="lineNoCov">          0 :         (void) dsl_dataset_user_release_impl(holds, NULL, dp);</span>
+<span class="lineNum">     638 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="639"><span class="lineNum">     639 </span>                :            : </a>
+<span class="lineNum">     640 </span>                :            : int
+<span class="lineNum">     641 </span>                :<span class="lineNoCov">          0 : dsl_dataset_get_holds(const char *dsname, nvlist_t *nvl)</span>
+<span class="lineNum">     642 </span>                :            : {
+<span class="lineNum">     643 </span>                :            :         dsl_pool_t *dp;
+<span class="lineNum">     644 </span>                :            :         dsl_dataset_t *ds;
+<span class="lineNum">     645 </span>                :            :         int err;
+<span class="lineNum">     646 </span>                :            : 
+<span class="lineNum">     647 </span>                :<span class="lineNoCov">          0 :         err = dsl_pool_hold(dsname, FTAG, &amp;dp);</span>
+<span class="lineNum">     648 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (err != 0)</span>
+<span class="lineNum">     649 </span>                :            :                 return (err);
+<span class="lineNum">     650 </span>                :<span class="lineNoCov">          0 :         err = dsl_dataset_hold(dp, dsname, FTAG, &amp;ds);</span>
+<span class="lineNum">     651 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (err != 0) {</span>
+<span class="lineNum">     652 </span>                :<span class="lineNoCov">          0 :                 dsl_pool_rele(dp, FTAG);</span>
+<span class="lineNum">     653 </span>                :<span class="lineNoCov">          0 :                 return (err);</span>
+<span class="lineNum">     654 </span>                :            :         }
+<span class="lineNum">     655 </span>                :            : 
+<span class="lineNum">     656 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (dsl_dataset_phys(ds)-&gt;ds_userrefs_obj != 0) {</span>
+<span class="lineNum">     657 </span>                :            :                 zap_attribute_t *za;
+<span class="lineNum">     658 </span>                :            :                 zap_cursor_t zc;
+<span class="lineNum">     659 </span>                :            : 
+<span class="lineNum">     660 </span>                :<span class="lineNoCov">          0 :                 za = kmem_alloc(sizeof (zap_attribute_t), KM_SLEEP);</span>
+<span class="lineNum">     661 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 for (zap_cursor_init(&amp;zc, ds-&gt;ds_dir-&gt;dd_pool-&gt;dp_meta_objset,</span>
+<span class="lineNum">     662 </span>                :<span class="lineNoCov">          0 :                     dsl_dataset_phys(ds)-&gt;ds_userrefs_obj);</span>
+<span class="lineNum">     663 </span>                :<span class="lineNoCov">          0 :                     zap_cursor_retrieve(&amp;zc, za) == 0;</span>
+<span class="lineNum">     664 </span>                :<span class="lineNoCov">          0 :                     zap_cursor_advance(&amp;zc)) {</span>
+<span class="lineNum">     665 </span>                :<span class="lineNoCov">          0 :                         fnvlist_add_uint64(nvl, za-&gt;za_name,</span>
+<span class="lineNum">     666 </span>                :            :                             za-&gt;za_first_integer);
+<span class="lineNum">     667 </span>                :            :                 }
+<span class="lineNum">     668 </span>                :<span class="lineNoCov">          0 :                 zap_cursor_fini(&amp;zc);</span>
+<span class="lineNum">     669 </span>                :<span class="lineNoCov">          0 :                 kmem_free(za, sizeof (zap_attribute_t));</span>
+<span class="lineNum">     670 </span>                :            :         }
+<span class="lineNum">     671 </span>                :<span class="lineNoCov">          0 :         dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     672 </span>                :<span class="lineNoCov">          0 :         dsl_pool_rele(dp, FTAG);</span>
+<span class="lineNum">     673 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     674 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

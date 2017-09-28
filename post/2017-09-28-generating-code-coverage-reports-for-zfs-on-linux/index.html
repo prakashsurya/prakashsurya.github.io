@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.18.1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://www.prakashsurya.com/post/2017-09-28-generating-code-coverage-reports-for-zfs-on-linux/">
+<link rel="stylesheet" type="text/css" href="/css/hack.css">
+<link rel="stylesheet" type="text/css" href="/css/custom.css">
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-91378771-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <title>
+  Generating Code Coverage Reports for ZFS on Linux &raquo; www.prakashsurya.com
+</title>
+  </head>
+  <body class="hack container">
+    <header>
+      <nav>
+  
+    <a class="active" href="/">Home</a>
+  
+    <a class="active" href="/post/">Posts</a>
+  
+    <a class="active" href="/link/">Links</a>
+  
+</nav>
+
+    </header>
+    <main>
+  <h1>Generating Code Coverage Reports for ZFS on Linux</h1>
+  <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#examples">Examples</a></li>
+<li><a href="#details">Details</a></li>
+<li><a href="#more-details">More Details</a>
+<ul>
+<li><a href="#branch-coverage">Branch Coverage</a></li>
+<li><a href="#kernel-coverage">Kernel Coverage</a></li>
+<li><a href="#commit-adding-new-make-target">Commit Adding New Make Target</a></li>
+<li><a href="#zfs-commit-tested">ZFS Commit Tested</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+  
+
+<h2 id="introduction">Introduction</h2>
+
+<p>This is another post about collecting code coverage data for the ZFS on
+Linux project. We&rsquo;ve recently added a new make target to the project, so
+I wanted to highlight how easy it is to use this to generate static HTML
+based code coverage reports, and/or to generate a report that can be
+used with other tools and services (e.g. <a href="https://codecov.io/gh/zfsonlinux/zfs">codecov.io</a>).</p>
+
+<h2 id="examples">Examples</h2>
+
+<p>Before I get into the specifics for how to run the tests and generate
+the coverage report, I want to show off the results. After the tests
+have been run, one can use <code>make code-coverage-capture</code> to generate the
+code coverage information.</p>
+
+<p>This generates a directory full of static HTML pages, and a <code>.info</code>
+file; both of which describe the lines executed for the set of tests
+that were run. The HTML pages are to be consumed by humans, and the
+<code>.info</code> file consumed by tools.</p>
+
+<ul>
+<li>See <a href="zfs-0.7.0-coverage/index.html">here</a> to view an example of the
+static HTML pages.</li>
+<li>See <a href="zfs-0.7.0-coverage.info">here</a> to view/download an example of
+the <code>.info</code> file.</li>
+</ul>
+
+<p>I&rsquo;ll go into the details below, but that coverage was generated after
+running <code>zloop</code> and ZTS, and only contains data for user execution.
+Generating this data for kernel execution isn&rsquo;t difficult, it just
+requires a little more work, and is out of scope for this post (I have
+some notes on this at the end of this post).</p>
+
+<h2 id="details">Details</h2>
+
+<p>With the end result in mind, lets now dive into the details of how I
+generated those reports.</p>
+
+<p>As one might expect, we first need to compile the ZFS project, and
+ensure it&rsquo;s configured to correctly generate the needed code coverage
+data. We do this via the new <code>--enable-code-coverage</code> flag to
+<code>configure</code>:</p>
+
+<pre><code>$ ./autogen.sh &amp;&amp; ./configure --enable-code-coverage &amp;&amp; make
+</code></pre>
+
+<p>Now, before we jump into running the tests, we need to run the following
+commands to setup our environment:</p>
+
+<pre><code>$ ./scripts/zfs-tests.sh -c         # create and populate constrained PATH
+$ sudo ./scripts/zfs-helpers.sh -vi # create various symlinks in &quot;/&quot;
+$ sudo ./scripts/zfs.sh -u          # unload kernel modules
+$ sudo ./scripts/zfs.sh             # load kernel modules
+</code></pre>
+
+<p>We need to run the tests completely in-tree, so that the <code>.gcda</code> files
+will be created within the ZFS repository tree. This enables the make
+target to find these files, which it needs to generate the coverage
+reports. Thus, the above commands are needed to configure the system to
+enable running the tests in-tree vs. installing the various libraries,
+commands, and kernel modules into the root filesystem.</p>
+
+<p>With that done, we can go ahead and run our first test. This test will
+run <code>ztest</code> in a loop for an hour:</p>
+
+<pre><code>$ sudo ./scripts/zloop.sh -t $((60*60))
+</code></pre>
+
+<p>After that completes, we can run ZTS (ZFS Test Suite):</p>
+
+<pre><code>$ ./scripts/zfs-tests.sh -vx
+</code></pre>
+
+<p>And finally, now we can generate the code coverage data for the tests
+that we ran above:</p>
+
+<pre><code>$ export CODE_COVERAGE_BRANCH_COVERAGE=1
+$ make code-coverage-capture
+  LCOV   --capture zfs-0.7.0-coverage.info
+  LCOV   --remove /tmp/*
+lcov: WARNING: negative counts found in tracefile zfs-0.7.0-coverage.info.tmp
+  GEN    zfs-0.7.0-coverage
+file:///export/home/delphix/zfs/zfs-0.7.0-coverage/index.html
+</code></pre>
+
+<p>That&rsquo;s it!</p>
+
+<p>After running that <code>make</code> command it should emit a <code>.info</code> file, and a
+directory full of static HTML pages; much like the ones that I linked to
+in the &ldquo;Examples&rdquo; section earlier in this post.</p>
+
+<h2 id="more-details">More Details</h2>
+
+<p>If you&rsquo;ve read this far, you might be interested in the following
+details as well.</p>
+
+<h3 id="branch-coverage">Branch Coverage</h3>
+
+<p>We set the <code>CODE_COVERAGE_BRANCH_COVERAGE</code> environment variable prior to
+running <code>make code-coverage-capture</code>, so that we&rsquo;ll get coverage data
+for which branches of a conditional are executed, and which branches are
+not. This allows us to see when a conditional is executed, but only a
+subset of all possibilities of the branch are covered.</p>
+
+<p>By default, <code>lcov</code> (which is used by the make target) has this feature
+disabled, so branch coverage will not be collected without setting this
+variable.</p>
+
+<h3 id="kernel-coverage">Kernel Coverage</h3>
+
+<p>I mentioned this before, but it&rsquo;s worth pointing out again. The
+instructions in this post will only produce code coverage data for user
+execution. Generating data for kernel execution isn&rsquo;t much more
+difficult than what&rsquo;s described above, but it requires a couple of
+additional things.</p>
+
+<ol>
+<li><p>The kernel must be compiled with <code>gcov</code> support. If your kernel
+isn&rsquo;t already compiled with this support, than you&rsquo;ll have to build
+a new kernel that&rsquo;s configured to expose the required code coverage
+data. I wrote some notes on this <a href="http://localhost:1313/post/2017-09-11-using-gcov-with-zfs-on-linux-kernel-modules/">here</a>. A more
+authoritative source can be found <a href="https://kernelnewbies.org/KernelBuild">here</a> and
+<a href="https://www.kernel.org/doc/html/latest/dev-tools/gcov.html">here</a>.</p></li>
+
+<li><p>Once running a kernel that supports exporting gcov data, the
+coverage data for the kernel modules need to be copied into the zfs
+tree prior to generating the reports (i.e. prior to running <code>make
+code-coverage-capture</code>). The following small script is one way this
+can be done:</p>
+
+<pre><code># Allow access to gcov files as a non-root user
+$ sudo chmod -R a+rx /sys/kernel/debug/gcov
+$ sudo chmod a+rx /sys/kernel/debug
+
+$ GCOV_KERNEL=&quot;/sys/kernel/debug/gcov&quot;
+$ ZFS_BUILD=&quot;$(readlink -f ~/zfs)&quot;
+$ pushd &quot;$GCOV_KERNEL$ZFS_BUILD&quot; &gt;/dev/null
+$ find . -name &quot;*.gcda&quot; -exec sh -c 'cp -v $0 '$ZFS_BUILD'/$0' {} \;
+$ find . -name &quot;*.gcno&quot; -exec sh -c 'cp -vdn $0 '$ZFS_BUILD'/$0' {} \;
+$ popd &gt;/dev/null
+</code></pre>
+
+<p>The idea here, is to copy the kernel module&rsquo;s <code>.gcda</code> and <code>.gcno</code>
+files out of <code>/sys/kernel/debug/gcov</code> and place them along side the
+<code>.c</code> file they correspond to. This way, these files can be found by
+<code>make code-coverage-capture</code> just like the user execution files. See
+<a href="https://github.com/prakashsurya/zfs-buildbot/blob/master/scripts/bb-test-cleanup.sh">here</a> for an example of how we&rsquo;re doing this in
+the ZFS on Linux project&rsquo;s automation.</p></li>
+</ol>
+
+<h3 id="commit-adding-new-make-target">Commit Adding New Make Target</h3>
+
+<p>The new <code>code-coverage-capture</code> make target was added in this commit to
+the ZFS on Linux project:</p>
+
+<pre><code>commit acf044420b134b022da5c866b19df69934ad3778
+Author: Prakash Surya &lt;prakash.surya@delphix.com&gt;
+Date:   Fri Sep 22 18:49:57 2017 -0700
+
+    Add support for &quot;--enable-code-coverage&quot; option
+
+    This change adds support for a new option that can be passed to the
+    configure script: &quot;--enable-code-coverage&quot;. Further, the &quot;--enable-gcov&quot;
+    option has been removed, as this new option provides the same
+    functionality (plus more).
+
+    When using this new option the following make targets are available:
+
+     * check-code-coverage
+     * code-coverage-capture
+     * code-coverage-clean
+
+    Note: these make targets can only be run from the root of the project.
+
+    Reviewed-by: Brian Behlendorf &lt;behlendorf1@llnl.gov&gt;
+    Signed-off-by: Prakash Surya &lt;prakash.surya@delphix.com&gt;
+    Closes #6670
+</code></pre>
+
+<p>Thus, in order to use this new make target, one will need to use a
+version of the project that contains this commit.</p>
+
+<h3 id="zfs-commit-tested">ZFS Commit Tested</h3>
+
+<p>For the testing and coverage data I showed in the &ldquo;Examples&rdquo; section, I
+used the following commit from the ZFS on Linux&rsquo;s &ldquo;master&rdquo; branch:</p>
+
+<pre><code>commit 269db7a4b3ef2bc14f3c2cf95f050479cbd69e72
+Author: Simon Guest &lt;simon.guest@tesujimath.org&gt;
+Date:   Thu Sep 28 06:39:47 2017 +1300
+
+    vdev_id: extension for new scsi topology
+
+    On systems with SCSI rather than SAS disk topology, this change enables
+    the vdev_id script to match against the block device path, and therefore
+    create a vdev alias in /dev/disk/by-vdev.
+
+    Reviewed-by: Tony Hutter &lt;hutter2@llnl.gov&gt;
+    Reviewed-by: Brian Behlendorf &lt;behlendorf1@llnl.gov&gt;
+    Signed-off-by: Simon Guest &lt;simon.guest@tesujimath.org&gt;
+    Closes #6592
+</code></pre>
+
+</main>
+    <footer>
+  <hr />
+
+<div class="footer">
+  <div id="footer-left">
+    <a href="mailto:me@prakashsurya.com">me@prakashsurya.com</a>
+  </div>
+
+  <div id="footer-center">
+    Published: 28 Sep 2017
+  </div>
+
+  <div id="footer-right">
+    Last Modified: 28 Sep 2017
+  </div>
+</div>
+
+</footer>
+  </body>
+</html>

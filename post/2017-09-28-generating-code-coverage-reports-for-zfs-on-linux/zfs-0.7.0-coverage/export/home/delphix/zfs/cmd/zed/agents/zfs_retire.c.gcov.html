@@ -1,0 +1,603 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/cmd/zed/agents/zfs_retire.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/cmd/zed/agents</a> - zfs_retire.c<span style="font-size: 80%;"> (source / <a href="zfs_retire.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">51</td>
+            <td class="headerCovTableEntry">163</td>
+            <td class="headerCovTableEntryLo">31.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryLo">55.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntry">126</td>
+            <td class="headerCovTableEntryLo">16.7 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2006, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  *
+<span class="lineNum">      24 </span>                :            :  * Copyright (c) 2016, Intel Corporation.
+<span class="lineNum">      25 </span>                :            :  */
+<span class="lineNum">      26 </span>                :            : 
+<span class="lineNum">      27 </span>                :            : /*
+<span class="lineNum">      28 </span>                :            :  * The ZFS retire agent is responsible for managing hot spares across all pools.
+<span class="lineNum">      29 </span>                :            :  * When we see a device fault or a device removal, we try to open the associated
+<span class="lineNum">      30 </span>                :            :  * pool and look for any hot spares.  We iterate over any available hot spares
+<span class="lineNum">      31 </span>                :            :  * and attempt a 'zpool replace' for each one.
+<span class="lineNum">      32 </span>                :            :  *
+<span class="lineNum">      33 </span>                :            :  * For vdevs diagnosed as faulty, the agent is also responsible for proactively
+<span class="lineNum">      34 </span>                :            :  * marking the vdev FAULTY (for I/O errors) or DEGRADED (for checksum errors).
+<span class="lineNum">      35 </span>                :            :  */
+<span class="lineNum">      36 </span>                :            : 
+<span class="lineNum">      37 </span>                :            : #include &lt;sys/fs/zfs.h&gt;
+<span class="lineNum">      38 </span>                :            : #include &lt;sys/fm/protocol.h&gt;
+<span class="lineNum">      39 </span>                :            : #include &lt;sys/fm/fs/zfs.h&gt;
+<span class="lineNum">      40 </span>                :            : #include &lt;libzfs.h&gt;
+<span class="lineNum">      41 </span>                :            : #include &lt;string.h&gt;
+<span class="lineNum">      42 </span>                :            : 
+<span class="lineNum">      43 </span>                :            : #include &quot;zfs_agents.h&quot;
+<span class="lineNum">      44 </span>                :            : #include &quot;fmd_api.h&quot;
+<span class="lineNum">      45 </span>                :            : 
+<span class="lineNum">      46 </span>                :            : 
+<span class="lineNum">      47 </span>                :            : typedef struct zfs_retire_repaired {
+<span class="lineNum">      48 </span>                :            :         struct zfs_retire_repaired      *zrr_next;
+<span class="lineNum">      49 </span>                :            :         uint64_t                        zrr_pool;
+<span class="lineNum">      50 </span>                :            :         uint64_t                        zrr_vdev;
+<span class="lineNum">      51 </span>                :            : } zfs_retire_repaired_t;
+<span class="lineNum">      52 </span>                :            : 
+<span class="lineNum">      53 </span>                :            : typedef struct zfs_retire_data {
+<span class="lineNum">      54 </span>                :            :         libzfs_handle_t                 *zrd_hdl;
+<span class="lineNum">      55 </span>                :            :         zfs_retire_repaired_t           *zrd_repaired;
+<span class="lineNum">      56 </span>                :            : } zfs_retire_data_t;
+<a name="57"><span class="lineNum">      57 </span>                :            : </a>
+<span class="lineNum">      58 </span>                :            : static void
+<span class="lineNum">      59 </span>                :<span class="lineCov">         12 : zfs_retire_clear_data(fmd_hdl_t *hdl, zfs_retire_data_t *zdp)</span>
+<span class="lineNum">      60 </span>                :            : {
+<span class="lineNum">      61 </span>                :            :         zfs_retire_repaired_t *zrp;
+<span class="lineNum">      62 </span>                :            : 
+<span class="lineNum">      63 </span>        [<span class="branchCov" title="Branch 0 was taken 4 times"> + </span><span class="branchCov" title="Branch 1 was taken 6 times"> + </span>]:<span class="lineCov">         10 :         while ((zrp = zdp-&gt;zrd_repaired) != NULL) {</span>
+<span class="lineNum">      64 </span>                :<span class="lineCov">          4 :                 zdp-&gt;zrd_repaired = zrp-&gt;zrr_next;</span>
+<span class="lineNum">      65 </span>                :<span class="lineCov">          4 :                 fmd_hdl_free(hdl, zrp, sizeof (zfs_retire_repaired_t));</span>
+<span class="lineNum">      66 </span>                :            :         }
+<span class="lineNum">      67 </span>                :<span class="lineCov">          6 : }</span>
+<span class="lineNum">      68 </span>                :            : 
+<span class="lineNum">      69 </span>                :            : /*
+<span class="lineNum">      70 </span>                :            :  * Find a pool with a matching GUID.
+<span class="lineNum">      71 </span>                :            :  */
+<span class="lineNum">      72 </span>                :            : typedef struct find_cbdata {
+<span class="lineNum">      73 </span>                :            :         uint64_t        cb_guid;
+<span class="lineNum">      74 </span>                :            :         zpool_handle_t  *cb_zhp;
+<span class="lineNum">      75 </span>                :            :         nvlist_t        *cb_vdev;
+<span class="lineNum">      76 </span>                :            : } find_cbdata_t;
+<a name="77"><span class="lineNum">      77 </span>                :            : </a>
+<span class="lineNum">      78 </span>                :            : static int
+<span class="lineNum">      79 </span>                :<span class="lineNoCov">          0 : find_pool(zpool_handle_t *zhp, void *data)</span>
+<span class="lineNum">      80 </span>                :            : {
+<span class="lineNum">      81 </span>                :<span class="lineNoCov">          0 :         find_cbdata_t *cbp = data;</span>
+<span class="lineNum">      82 </span>                :            : 
+<span class="lineNum">      83 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (cbp-&gt;cb_guid ==</span>
+<span class="lineNum">      84 </span>                :<span class="lineNoCov">          0 :             zpool_get_prop_int(zhp, ZPOOL_PROP_GUID, NULL)) {</span>
+<span class="lineNum">      85 </span>                :<span class="lineNoCov">          0 :                 cbp-&gt;cb_zhp = zhp;</span>
+<span class="lineNum">      86 </span>                :<span class="lineNoCov">          0 :                 return (1);</span>
+<span class="lineNum">      87 </span>                :            :         }
+<span class="lineNum">      88 </span>                :            : 
+<span class="lineNum">      89 </span>                :<span class="lineNoCov">          0 :         zpool_close(zhp);</span>
+<span class="lineNum">      90 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">      91 </span>                :            : }
+<span class="lineNum">      92 </span>                :            : 
+<span class="lineNum">      93 </span>                :            : /*
+<span class="lineNum">      94 </span>                :            :  * Find a vdev within a tree with a matching GUID.
+<a name="95"><span class="lineNum">      95 </span>                :            :  */</a>
+<span class="lineNum">      96 </span>                :            : static nvlist_t *
+<span class="lineNum">      97 </span>                :<span class="lineNoCov">          0 : find_vdev(libzfs_handle_t *zhdl, nvlist_t *nv, uint64_t search_guid)</span>
+<span class="lineNum">      98 </span>                :            : {
+<span class="lineNum">      99 </span>                :            :         uint64_t guid;
+<span class="lineNum">     100 </span>                :            :         nvlist_t **child;
+<span class="lineNum">     101 </span>                :            :         uint_t c, children;
+<span class="lineNum">     102 </span>                :            :         nvlist_t *ret;
+<span class="lineNum">     103 </span>                :            : 
+<span class="lineNum">     104 </span>[<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nvlist_lookup_uint64(nv, ZPOOL_CONFIG_GUID, &amp;guid) == 0 &amp;&amp;</span>
+<span class="lineNum">     105 </span>                :<span class="lineNoCov">          0 :             guid == search_guid) {</span>
+<span class="lineNum">     106 </span>                :<span class="lineNoCov">          0 :                 fmd_hdl_debug(fmd_module_hdl(&quot;zfs-retire&quot;),</span>
+<span class="lineNum">     107 </span>                :            :                     &quot;matched vdev %llu&quot;, guid);
+<span class="lineNum">     108 </span>                :<span class="lineNoCov">          0 :                 return (nv);</span>
+<span class="lineNum">     109 </span>                :            :         }
+<span class="lineNum">     110 </span>                :            : 
+<span class="lineNum">     111 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nvlist_lookup_nvlist_array(nv, ZPOOL_CONFIG_CHILDREN,</span>
+<span class="lineNum">     112 </span>                :            :             &amp;child, &amp;children) != 0)
+<span class="lineNum">     113 </span>                :            :                 return (NULL);
+<span class="lineNum">     114 </span>                :            : 
+<span class="lineNum">     115 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (c = 0; c &lt; children; c++) {</span>
+<span class="lineNum">     116 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((ret = find_vdev(zhdl, child[c], search_guid)) != NULL)</span>
+<span class="lineNum">     117 </span>                :            :                         return (ret);
+<span class="lineNum">     118 </span>                :            :         }
+<span class="lineNum">     119 </span>                :            : 
+<span class="lineNum">     120 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nvlist_lookup_nvlist_array(nv, ZPOOL_CONFIG_L2CACHE,</span>
+<span class="lineNum">     121 </span>                :            :             &amp;child, &amp;children) != 0)
+<span class="lineNum">     122 </span>                :            :                 return (NULL);
+<span class="lineNum">     123 </span>                :            : 
+<span class="lineNum">     124 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (c = 0; c &lt; children; c++) {</span>
+<span class="lineNum">     125 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((ret = find_vdev(zhdl, child[c], search_guid)) != NULL)</span>
+<span class="lineNum">     126 </span>                :            :                         return (ret);
+<span class="lineNum">     127 </span>                :            :         }
+<span class="lineNum">     128 </span>                :            : 
+<span class="lineNum">     129 </span>                :            :         return (NULL);
+<span class="lineNum">     130 </span>                :            : }
+<span class="lineNum">     131 </span>                :            : 
+<span class="lineNum">     132 </span>                :            : /*
+<span class="lineNum">     133 </span>                :            :  * Given a (pool, vdev) GUID pair, find the matching pool and vdev.
+<a name="134"><span class="lineNum">     134 </span>                :            :  */</a>
+<span class="lineNum">     135 </span>                :            : static zpool_handle_t *
+<span class="lineNum">     136 </span>                :<span class="lineNoCov">          0 : find_by_guid(libzfs_handle_t *zhdl, uint64_t pool_guid, uint64_t vdev_guid,</span>
+<span class="lineNum">     137 </span>                :            :     nvlist_t **vdevp)
+<span class="lineNum">     138 </span>                :            : {
+<span class="lineNum">     139 </span>                :            :         find_cbdata_t cb;
+<span class="lineNum">     140 </span>                :            :         zpool_handle_t *zhp;
+<span class="lineNum">     141 </span>                :            :         nvlist_t *config, *nvroot;
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>                :            :         /*
+<span class="lineNum">     144 </span>                :            :          * Find the corresponding pool and make sure the vdev still exists.
+<span class="lineNum">     145 </span>                :            :          */
+<span class="lineNum">     146 </span>                :<span class="lineNoCov">          0 :         cb.cb_guid = pool_guid;</span>
+<span class="lineNum">     147 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (zpool_iter(zhdl, find_pool, &amp;cb) != 1)</span>
+<span class="lineNum">     148 </span>                :            :                 return (NULL);
+<span class="lineNum">     149 </span>                :            : 
+<span class="lineNum">     150 </span>                :<span class="lineNoCov">          0 :         zhp = cb.cb_zhp;</span>
+<span class="lineNum">     151 </span>                :<span class="lineNoCov">          0 :         config = zpool_get_config(zhp, NULL);</span>
+<span class="lineNum">     152 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nvlist_lookup_nvlist(config, ZPOOL_CONFIG_VDEV_TREE,</span>
+<span class="lineNum">     153 </span>                :            :             &amp;nvroot) != 0) {
+<span class="lineNum">     154 </span>                :<span class="lineNoCov">          0 :                 zpool_close(zhp);</span>
+<span class="lineNum">     155 </span>                :<span class="lineNoCov">          0 :                 return (NULL);</span>
+<span class="lineNum">     156 </span>                :            :         }
+<span class="lineNum">     157 </span>                :            : 
+<span class="lineNum">     158 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (vdev_guid != 0) {</span>
+<span class="lineNum">     159 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((*vdevp = find_vdev(zhdl, nvroot, vdev_guid)) == NULL) {</span>
+<span class="lineNum">     160 </span>                :<span class="lineNoCov">          0 :                         zpool_close(zhp);</span>
+<span class="lineNum">     161 </span>                :<span class="lineNoCov">          0 :                         return (NULL);</span>
+<span class="lineNum">     162 </span>                :            :                 }
+<span class="lineNum">     163 </span>                :            :         }
+<span class="lineNum">     164 </span>                :            : 
+<span class="lineNum">     165 </span>                :            :         return (zhp);
+<span class="lineNum">     166 </span>                :            : }
+<span class="lineNum">     167 </span>                :            : 
+<span class="lineNum">     168 </span>                :            : /*
+<span class="lineNum">     169 </span>                :            :  * Given a vdev, attempt to replace it with every known spare until one
+<span class="lineNum">     170 </span>                :            :  * succeeds.
+<a name="171"><span class="lineNum">     171 </span>                :            :  */</a>
+<span class="lineNum">     172 </span>                :            : static void
+<span class="lineNum">     173 </span>                :<span class="lineNoCov">          0 : replace_with_spare(fmd_hdl_t *hdl, zpool_handle_t *zhp, nvlist_t *vdev)</span>
+<span class="lineNum">     174 </span>                :            : {
+<span class="lineNum">     175 </span>                :            :         nvlist_t *config, *nvroot, *replacement;
+<span class="lineNum">     176 </span>                :            :         nvlist_t **spares;
+<span class="lineNum">     177 </span>                :            :         uint_t s, nspares;
+<span class="lineNum">     178 </span>                :            :         char *dev_name;
+<span class="lineNum">     179 </span>                :            : 
+<span class="lineNum">     180 </span>                :<span class="lineNoCov">          0 :         config = zpool_get_config(zhp, NULL);</span>
+<span class="lineNum">     181 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nvlist_lookup_nvlist(config, ZPOOL_CONFIG_VDEV_TREE,</span>
+<span class="lineNum">     182 </span>                :            :             &amp;nvroot) != 0)
+<span class="lineNum">     183 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     184 </span>                :            : 
+<span class="lineNum">     185 </span>                :            :         /*
+<span class="lineNum">     186 </span>                :            :          * Find out if there are any hot spares available in the pool.
+<span class="lineNum">     187 </span>                :            :          */
+<span class="lineNum">     188 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (nvlist_lookup_nvlist_array(nvroot, ZPOOL_CONFIG_SPARES,</span>
+<span class="lineNum">     189 </span>                :            :             &amp;spares, &amp;nspares) != 0)
+<span class="lineNum">     190 </span>                :            :                 return;
+<span class="lineNum">     191 </span>                :            : 
+<span class="lineNum">     192 </span>                :<span class="lineNoCov">          0 :         replacement = fmd_nvl_alloc(hdl, FMD_SLEEP);</span>
+<span class="lineNum">     193 </span>                :            : 
+<span class="lineNum">     194 </span>                :<span class="lineNoCov">          0 :         (void) nvlist_add_string(replacement, ZPOOL_CONFIG_TYPE,</span>
+<span class="lineNum">     195 </span>                :            :             VDEV_TYPE_ROOT);
+<span class="lineNum">     196 </span>                :            : 
+<span class="lineNum">     197 </span>                :<span class="lineNoCov">          0 :         dev_name = zpool_vdev_name(NULL, zhp, vdev, B_FALSE);</span>
+<span class="lineNum">     198 </span>                :            : 
+<span class="lineNum">     199 </span>                :            :         /*
+<span class="lineNum">     200 </span>                :            :          * Try to replace each spare, ending when we successfully
+<span class="lineNum">     201 </span>                :            :          * replace it.
+<span class="lineNum">     202 </span>                :            :          */
+<span class="lineNum">     203 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (s = 0; s &lt; nspares; s++) {</span>
+<span class="lineNum">     204 </span>                :            :                 char *spare_name;
+<span class="lineNum">     205 </span>                :            : 
+<span class="lineNum">     206 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (nvlist_lookup_string(spares[s], ZPOOL_CONFIG_PATH,</span>
+<span class="lineNum">     207 </span>                :            :                     &amp;spare_name) != 0)
+<span class="lineNum">     208 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     209 </span>                :            : 
+<span class="lineNum">     210 </span>                :<span class="lineNoCov">          0 :                 (void) nvlist_add_nvlist_array(replacement,</span>
+<span class="lineNum">     211 </span>                :            :                     ZPOOL_CONFIG_CHILDREN, &amp;spares[s], 1);
+<span class="lineNum">     212 </span>                :            : 
+<span class="lineNum">     213 </span>                :<span class="lineNoCov">          0 :                 fmd_hdl_debug(hdl, &quot;zpool_vdev_replace '%s' with spare '%s'&quot;,</span>
+<span class="lineNum">     214 </span>                :            :                     dev_name, basename(spare_name));
+<span class="lineNum">     215 </span>                :            : 
+<span class="lineNum">     216 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (zpool_vdev_attach(zhp, dev_name, spare_name,</span>
+<span class="lineNum">     217 </span>                :            :                     replacement, B_TRUE) == 0)
+<span class="lineNum">     218 </span>                :            :                         break;
+<span class="lineNum">     219 </span>                :            :         }
+<span class="lineNum">     220 </span>                :            : 
+<span class="lineNum">     221 </span>                :<span class="lineNoCov">          0 :         free(dev_name);</span>
+<span class="lineNum">     222 </span>                :<span class="lineNoCov">          0 :         nvlist_free(replacement);</span>
+<span class="lineNum">     223 </span>                :            : }
+<span class="lineNum">     224 </span>                :            : 
+<span class="lineNum">     225 </span>                :            : /*
+<span class="lineNum">     226 </span>                :            :  * Repair this vdev if we had diagnosed a 'fault.fs.zfs.device' and
+<span class="lineNum">     227 </span>                :            :  * ASRU is now usable.  ZFS has found the device to be present and
+<span class="lineNum">     228 </span>                :            :  * functioning.
+<span class="lineNum">     229 </span>                :            :  */
+<a name="230"><span class="lineNum">     230 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     231 </span>                :            : static void
+<span class="lineNum">     232 </span>                :<span class="lineCov">          1 : zfs_vdev_repair(fmd_hdl_t *hdl, nvlist_t *nvl)</span>
+<span class="lineNum">     233 </span>                :            : {
+<span class="lineNum">     234 </span>                :<span class="lineCov">          1 :         zfs_retire_data_t *zdp = fmd_hdl_getspecific(hdl);</span>
+<span class="lineNum">     235 </span>                :            :         zfs_retire_repaired_t *zrp;
+<span class="lineNum">     236 </span>                :            :         uint64_t pool_guid, vdev_guid;
+<span class="lineNum">     237 </span>        [<span class="branchCov" title="Branch 1 was taken 1 time"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">          1 :         if (nvlist_lookup_uint64(nvl, FM_EREPORT_PAYLOAD_ZFS_POOL_GUID,</span>
+<span class="lineNum">     238 </span>        [<span class="branchCov" title="Branch 1 was taken 1 time"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">          1 :             &amp;pool_guid) != 0 || nvlist_lookup_uint64(nvl,</span>
+<span class="lineNum">     239 </span>                :            :             FM_EREPORT_PAYLOAD_ZFS_VDEV_GUID, &amp;vdev_guid) != 0)
+<span class="lineNum">     240 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     241 </span>                :            : 
+<span class="lineNum">     242 </span>                :            :         /*
+<span class="lineNum">     243 </span>                :            :          * Before checking the state of the ASRU, go through and see if we've
+<span class="lineNum">     244 </span>                :            :          * already made an attempt to repair this ASRU.  This list is cleared
+<span class="lineNum">     245 </span>                :            :          * whenever we receive any kind of list event, and is designed to
+<span class="lineNum">     246 </span>                :            :          * prevent us from generating a feedback loop when we attempt repairs
+<span class="lineNum">     247 </span>                :            :          * against a faulted pool.  The problem is that checking the unusable
+<span class="lineNum">     248 </span>                :            :          * state of the ASRU can involve opening the pool, which can post
+<span class="lineNum">     249 </span>                :            :          * statechange events but otherwise leave the pool in the faulted
+<span class="lineNum">     250 </span>                :            :          * state.  This list allows us to detect when a statechange event is
+<span class="lineNum">     251 </span>                :            :          * due to our own request.
+<span class="lineNum">     252 </span>                :            :          */
+<span class="lineNum">     253 </span>        [<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">          2 :         for (zrp = zdp-&gt;zrd_repaired; zrp != NULL; zrp = zrp-&gt;zrr_next) {</span>
+<span class="lineNum">     254 </span>[<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 1 time"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">          1 :                 if (zrp-&gt;zrr_pool == pool_guid &amp;&amp;</span>
+<span class="lineNum">     255 </span>                :<span class="lineCov">          1 :                     zrp-&gt;zrr_vdev == vdev_guid)</span>
+<span class="lineNum">     256 </span>                :            :                         return;
+<span class="lineNum">     257 </span>                :            :         }
+<span class="lineNum">     258 </span>                :            : 
+<span class="lineNum">     259 </span>                :<span class="lineCov">          1 :         zrp = fmd_hdl_alloc(hdl, sizeof (zfs_retire_repaired_t), FMD_SLEEP);</span>
+<span class="lineNum">     260 </span>                :<span class="lineCov">          1 :         zrp-&gt;zrr_next = zdp-&gt;zrd_repaired;</span>
+<span class="lineNum">     261 </span>                :<span class="lineCov">          1 :         zrp-&gt;zrr_pool = pool_guid;</span>
+<span class="lineNum">     262 </span>                :<span class="lineCov">          1 :         zrp-&gt;zrr_vdev = vdev_guid;</span>
+<span class="lineNum">     263 </span>                :<span class="lineCov">          1 :         zdp-&gt;zrd_repaired = zrp;</span>
+<span class="lineNum">     264 </span>                :            : 
+<span class="lineNum">     265 </span>                :<span class="lineCov">          1 :         fmd_hdl_debug(hdl, &quot;marking repaired vdev %llu on pool %llu&quot;,</span>
+<span class="lineNum">     266 </span>                :            :             vdev_guid, pool_guid);
+<span class="lineNum">     267 </span>                :            : }
+<span class="lineNum">     268 </span>                :            : 
+<a name="269"><span class="lineNum">     269 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     270 </span>                :            : static void
+<span class="lineNum">     271 </span>                :<span class="lineCov">          2 : zfs_retire_recv(fmd_hdl_t *hdl, fmd_event_t *ep, nvlist_t *nvl,</span>
+<span class="lineNum">     272 </span>                :            :     const char *class)
+<span class="lineNum">     273 </span>                :            : {
+<span class="lineNum">     274 </span>                :            :         uint64_t pool_guid, vdev_guid;
+<span class="lineNum">     275 </span>                :            :         zpool_handle_t *zhp;
+<span class="lineNum">     276 </span>                :            :         nvlist_t *resource, *fault;
+<span class="lineNum">     277 </span>                :            :         nvlist_t **faults;
+<span class="lineNum">     278 </span>                :            :         uint_t f, nfaults;
+<span class="lineNum">     279 </span>                :<span class="lineCov">          2 :         zfs_retire_data_t *zdp = fmd_hdl_getspecific(hdl);</span>
+<span class="lineNum">     280 </span>                :<span class="lineCov">          2 :         libzfs_handle_t *zhdl = zdp-&gt;zrd_hdl;</span>
+<span class="lineNum">     281 </span>                :            :         boolean_t fault_device, degrade_device;
+<span class="lineNum">     282 </span>                :            :         boolean_t is_repair;
+<span class="lineNum">     283 </span>                :            :         char *scheme;
+<span class="lineNum">     284 </span>                :<span class="lineCov">          2 :         nvlist_t *vdev = NULL;</span>
+<span class="lineNum">     285 </span>                :            :         char *uuid;
+<span class="lineNum">     286 </span>                :<span class="lineCov">          2 :         int repair_done = 0;</span>
+<span class="lineNum">     287 </span>                :            :         boolean_t retire;
+<span class="lineNum">     288 </span>                :            :         boolean_t is_disk;
+<span class="lineNum">     289 </span>                :            :         vdev_aux_t aux;
+<span class="lineNum">     290 </span>                :<span class="lineCov">          2 :         uint64_t state = 0;</span>
+<span class="lineNum">     291 </span>                :            : 
+<span class="lineNum">     292 </span>                :<span class="lineCov">          2 :         fmd_hdl_debug(hdl, &quot;zfs_retire_recv: '%s'&quot;, class);</span>
+<span class="lineNum">     293 </span>                :            : 
+<span class="lineNum">     294 </span>                :            :         /*
+<span class="lineNum">     295 </span>                :            :          * If this is a resource notifying us of device removal, then simply
+<span class="lineNum">     296 </span>                :            :          * check for an available spare and continue.
+<span class="lineNum">     297 </span>                :            :          */
+<span class="lineNum">     298 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2 times"> + </span>]:<span class="lineCov">          2 :         if (strcmp(class, &quot;resource.fs.zfs.removed&quot;) == 0) {</span>
+<span class="lineNum">     299 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (nvlist_lookup_uint64(nvl, FM_EREPORT_PAYLOAD_ZFS_POOL_GUID,</span>
+<span class="lineNum">     300 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                     &amp;pool_guid) != 0 ||</span>
+<span class="lineNum">     301 </span>                :<span class="lineNoCov">          0 :                     nvlist_lookup_uint64(nvl, FM_EREPORT_PAYLOAD_ZFS_VDEV_GUID,</span>
+<span class="lineNum">     302 </span>                :            :                     &amp;vdev_guid) != 0)
+<span class="lineNum">     303 </span>                :<span class="lineCov">          2 :                         return;</span>
+<span class="lineNum">     304 </span>                :            : 
+<span class="lineNum">     305 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((zhp = find_by_guid(zhdl, pool_guid, vdev_guid,</span>
+<span class="lineNum">     306 </span>                :            :                     &amp;vdev)) == NULL)
+<span class="lineNum">     307 </span>                :            :                         return;
+<span class="lineNum">     308 </span>                :            : 
+<span class="lineNum">     309 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (fmd_prop_get_int32(hdl, &quot;spare_on_remove&quot;))</span>
+<span class="lineNum">     310 </span>                :<span class="lineNoCov">          0 :                         replace_with_spare(hdl, zhp, vdev);</span>
+<span class="lineNum">     311 </span>                :<span class="lineNoCov">          0 :                 zpool_close(zhp);</span>
+<span class="lineNum">     312 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     313 </span>                :            :         }
+<span class="lineNum">     314 </span>                :            : 
+<span class="lineNum">     315 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          2 :         if (strcmp(class, FM_LIST_RESOLVED_CLASS) == 0)</span>
+<span class="lineNum">     316 </span>                :            :                 return;
+<span class="lineNum">     317 </span>                :            : 
+<span class="lineNum">     318 </span>                :            :         /*
+<span class="lineNum">     319 </span>                :            :          * Note: on zfsonlinux statechange events are more than just
+<span class="lineNum">     320 </span>                :            :          * healthy ones so we need to confirm the actual state value.
+<span class="lineNum">     321 </span>                :            :          */
+<span class="lineNum">     322 </span>  [<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span><span class="branchCov" title="Branch 2 was taken 1 time"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">          3 :         if (strcmp(class, &quot;resource.fs.zfs.statechange&quot;) == 0 &amp;&amp;</span>
+<span class="lineNum">     323 </span>                :<span class="lineCov">          1 :             nvlist_lookup_uint64(nvl, FM_EREPORT_PAYLOAD_ZFS_VDEV_STATE,</span>
+<span class="lineNum">     324 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">          1 :             &amp;state) == 0 &amp;&amp; state == VDEV_STATE_HEALTHY) {</span>
+<span class="lineNum">     325 </span>                :<span class="lineNoCov">          0 :                 zfs_vdev_repair(hdl, nvl);</span>
+<span class="lineNum">     326 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     327 </span>                :            :         }
+<span class="lineNum">     328 </span>        [<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">          2 :         if (strcmp(class, &quot;sysevent.fs.zfs.vdev_remove&quot;) == 0) {</span>
+<span class="lineNum">     329 </span>                :<span class="lineCov">          1 :                 zfs_vdev_repair(hdl, nvl);</span>
+<span class="lineNum">     330 </span>                :<span class="lineCov">          1 :                 return;</span>
+<span class="lineNum">     331 </span>                :            :         }
+<span class="lineNum">     332 </span>                :            : 
+<span class="lineNum">     333 </span>                :<span class="lineCov">          1 :         zfs_retire_clear_data(hdl, zdp);</span>
+<span class="lineNum">     334 </span>                :            : 
+<span class="lineNum">     335 </span>        [<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          1 :         if (strcmp(class, FM_LIST_REPAIRED_CLASS) == 0)</span>
+<span class="lineNum">     336 </span>                :            :                 is_repair = B_TRUE;
+<span class="lineNum">     337 </span>                :            :         else
+<span class="lineNum">     338 </span>                :<span class="lineCov">          1 :                 is_repair = B_FALSE;</span>
+<span class="lineNum">     339 </span>                :            : 
+<span class="lineNum">     340 </span>                :            :         /*
+<span class="lineNum">     341 </span>                :            :          * We subscribe to zfs faults as well as all repair events.
+<span class="lineNum">     342 </span>                :            :          */
+<span class="lineNum">     343 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1 time"> + </span>]:<span class="lineCov">          1 :         if (nvlist_lookup_nvlist_array(nvl, FM_SUSPECT_FAULT_LIST,</span>
+<span class="lineNum">     344 </span>                :            :             &amp;faults, &amp;nfaults) != 0)
+<span class="lineNum">     345 </span>                :            :                 return;
+<span class="lineNum">     346 </span>                :            : 
+<span class="lineNum">     347 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (f = 0; f &lt; nfaults; f++) {</span>
+<span class="lineNum">     348 </span>                :<span class="lineNoCov">          0 :                 fault = faults[f];</span>
+<span class="lineNum">     349 </span>                :            : 
+<span class="lineNum">     350 </span>                :<span class="lineNoCov">          0 :                 fault_device = B_FALSE;</span>
+<span class="lineNum">     351 </span>                :<span class="lineNoCov">          0 :                 degrade_device = B_FALSE;</span>
+<span class="lineNum">     352 </span>                :<span class="lineNoCov">          0 :                 is_disk = B_FALSE;</span>
+<span class="lineNum">     353 </span>                :            : 
+<span class="lineNum">     354 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (nvlist_lookup_boolean_value(fault, FM_SUSPECT_RETIRE,</span>
+<span class="lineNum">     355 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                     &amp;retire) == 0 &amp;&amp; retire == 0)</span>
+<span class="lineNum">     356 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     357 </span>                :            : 
+<span class="lineNum">     358 </span>                :            :                 /*
+<span class="lineNum">     359 </span>                :            :                  * While we subscribe to fault.fs.zfs.*, we only take action
+<span class="lineNum">     360 </span>                :            :                  * for faults targeting a specific vdev (open failure or SERD
+<span class="lineNum">     361 </span>                :            :                  * failure).  We also subscribe to fault.io.* events, so that
+<span class="lineNum">     362 </span>                :            :                  * faulty disks will be faulted in the ZFS configuration.
+<span class="lineNum">     363 </span>                :            :                  */
+<span class="lineNum">     364 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (fmd_nvl_class_match(hdl, fault, &quot;fault.fs.zfs.vdev.io&quot;)) {</span>
+<span class="lineNum">     365 </span>                :            :                         fault_device = B_TRUE;
+<span class="lineNum">     366 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (fmd_nvl_class_match(hdl, fault,</span>
+<span class="lineNum">     367 </span>                :            :                     &quot;fault.fs.zfs.vdev.checksum&quot;)) {
+<span class="lineNum">     368 </span>                :            :                         degrade_device = B_TRUE;
+<span class="lineNum">     369 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (fmd_nvl_class_match(hdl, fault,</span>
+<span class="lineNum">     370 </span>                :            :                     &quot;fault.fs.zfs.device&quot;)) {
+<span class="lineNum">     371 </span>                :            :                         fault_device = B_FALSE;
+<span class="lineNum">     372 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (fmd_nvl_class_match(hdl, fault, &quot;fault.io.*&quot;)) {</span>
+<span class="lineNum">     373 </span>                :            :                         is_disk = B_TRUE;
+<span class="lineNum">     374 </span>                :            :                         fault_device = B_TRUE;
+<span class="lineNum">     375 </span>                :            :                 } else {
+<span class="lineNum">     376 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     377 </span>                :            :                 }
+<span class="lineNum">     378 </span>                :            : 
+<span class="lineNum">     379 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (is_disk) {</span>
+<span class="lineNum">     380 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     381 </span>                :            :                 } else {
+<span class="lineNum">     382 </span>                :            :                         /*
+<span class="lineNum">     383 </span>                :            :                          * This is a ZFS fault.  Lookup the resource, and
+<span class="lineNum">     384 </span>                :            :                          * attempt to find the matching vdev.
+<span class="lineNum">     385 </span>                :            :                          */
+<span class="lineNum">     386 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (nvlist_lookup_nvlist(fault, FM_FAULT_RESOURCE,</span>
+<span class="lineNum">     387 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                             &amp;resource) != 0 ||</span>
+<span class="lineNum">     388 </span>                :<span class="lineNoCov">          0 :                             nvlist_lookup_string(resource, FM_FMRI_SCHEME,</span>
+<span class="lineNum">     389 </span>                :            :                             &amp;scheme) != 0)
+<span class="lineNum">     390 </span>                :<span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     391 </span>                :            : 
+<span class="lineNum">     392 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (strcmp(scheme, FM_FMRI_SCHEME_ZFS) != 0)</span>
+<span class="lineNum">     393 </span>                :<span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     394 </span>                :            : 
+<span class="lineNum">     395 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (nvlist_lookup_uint64(resource, FM_FMRI_ZFS_POOL,</span>
+<span class="lineNum">     396 </span>                :            :                             &amp;pool_guid) != 0)
+<span class="lineNum">     397 </span>                :<span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     398 </span>                :            : 
+<span class="lineNum">     399 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (nvlist_lookup_uint64(resource, FM_FMRI_ZFS_VDEV,</span>
+<span class="lineNum">     400 </span>                :            :                             &amp;vdev_guid) != 0) {
+<span class="lineNum">     401 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 if (is_repair)</span>
+<span class="lineNum">     402 </span>                :<span class="lineNoCov">          0 :                                         vdev_guid = 0;</span>
+<span class="lineNum">     403 </span>                :            :                                 else
+<span class="lineNum">     404 </span>                :<span class="lineNoCov">          0 :                                         continue;</span>
+<span class="lineNum">     405 </span>                :            :                         }
+<span class="lineNum">     406 </span>                :            : 
+<span class="lineNum">     407 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if ((zhp = find_by_guid(zhdl, pool_guid, vdev_guid,</span>
+<span class="lineNum">     408 </span>                :            :                             &amp;vdev)) == NULL)
+<span class="lineNum">     409 </span>                :<span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     410 </span>                :            : 
+<span class="lineNum">     411 </span>                :<span class="lineNoCov">          0 :                         aux = VDEV_AUX_ERR_EXCEEDED;</span>
+<span class="lineNum">     412 </span>                :            :                 }
+<span class="lineNum">     413 </span>                :            : 
+<span class="lineNum">     414 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (vdev_guid == 0) {</span>
+<span class="lineNum">     415 </span>                :            :                         /*
+<span class="lineNum">     416 </span>                :            :                          * For pool-level repair events, clear the entire pool.
+<span class="lineNum">     417 </span>                :            :                          */
+<span class="lineNum">     418 </span>                :<span class="lineNoCov">          0 :                         fmd_hdl_debug(hdl, &quot;zpool_clear of pool '%s'&quot;,</span>
+<span class="lineNum">     419 </span>                :            :                             zpool_get_name(zhp));
+<span class="lineNum">     420 </span>                :<span class="lineNoCov">          0 :                         (void) zpool_clear(zhp, NULL, NULL);</span>
+<span class="lineNum">     421 </span>                :<span class="lineNoCov">          0 :                         zpool_close(zhp);</span>
+<span class="lineNum">     422 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     423 </span>                :            :                 }
+<span class="lineNum">     424 </span>                :            : 
+<span class="lineNum">     425 </span>                :            :                 /*
+<span class="lineNum">     426 </span>                :            :                  * If this is a repair event, then mark the vdev as repaired and
+<span class="lineNum">     427 </span>                :            :                  * continue.
+<span class="lineNum">     428 </span>                :            :                  */
+<span class="lineNum">     429 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (is_repair) {</span>
+<span class="lineNum">     430 </span>                :<span class="lineNoCov">          0 :                         repair_done = 1;</span>
+<span class="lineNum">     431 </span>                :<span class="lineNoCov">          0 :                         fmd_hdl_debug(hdl, &quot;zpool_clear of pool '%s' vdev %llu&quot;,</span>
+<span class="lineNum">     432 </span>                :            :                             zpool_get_name(zhp), vdev_guid);
+<span class="lineNum">     433 </span>                :<span class="lineNoCov">          0 :                         (void) zpool_vdev_clear(zhp, vdev_guid);</span>
+<span class="lineNum">     434 </span>                :<span class="lineNoCov">          0 :                         zpool_close(zhp);</span>
+<span class="lineNum">     435 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     436 </span>                :            :                 }
+<span class="lineNum">     437 </span>                :            : 
+<span class="lineNum">     438 </span>                :            :                 /*
+<span class="lineNum">     439 </span>                :            :                  * Actively fault the device if needed.
+<span class="lineNum">     440 </span>                :            :                  */
+<span class="lineNum">     441 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (fault_device)</span>
+<span class="lineNum">     442 </span>                :<span class="lineNoCov">          0 :                         (void) zpool_vdev_fault(zhp, vdev_guid, aux);</span>
+<span class="lineNum">     443 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (degrade_device)</span>
+<span class="lineNum">     444 </span>                :<span class="lineNoCov">          0 :                         (void) zpool_vdev_degrade(zhp, vdev_guid, aux);</span>
+<span class="lineNum">     445 </span>                :            : 
+<span class="lineNum">     446 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (fault_device || degrade_device)</span>
+<span class="lineNum">     447 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         fmd_hdl_debug(hdl, &quot;zpool_vdev_%s: vdev %llu on '%s'&quot;,</span>
+<span class="lineNum">     448 </span>                :            :                             fault_device ? &quot;fault&quot; : &quot;degrade&quot;, vdev_guid,
+<span class="lineNum">     449 </span>                :            :                             zpool_get_name(zhp));
+<span class="lineNum">     450 </span>                :            : 
+<span class="lineNum">     451 </span>                :            :                 /*
+<span class="lineNum">     452 </span>                :            :                  * Attempt to substitute a hot spare.
+<span class="lineNum">     453 </span>                :            :                  */
+<span class="lineNum">     454 </span>                :<span class="lineNoCov">          0 :                 replace_with_spare(hdl, zhp, vdev);</span>
+<span class="lineNum">     455 </span>                :<span class="lineNoCov">          0 :                 zpool_close(zhp);</span>
+<span class="lineNum">     456 </span>                :            :         }
+<span class="lineNum">     457 </span>                :            : 
+<span class="lineNum">     458 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (strcmp(class, FM_LIST_REPAIRED_CLASS) == 0 &amp;&amp; repair_done &amp;&amp;</span>
+<span class="lineNum">         </span>  [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">     459 </span>                :<span class="lineNoCov">          0 :             nvlist_lookup_string(nvl, FM_SUSPECT_UUID, &amp;uuid) == 0)</span>
+<span class="lineNum">     460 </span>                :<span class="lineNoCov">          0 :                 fmd_case_uuresolved(hdl, uuid);</span>
+<span class="lineNum">     461 </span>                :            : }
+<span class="lineNum">     462 </span>                :            : 
+<span class="lineNum">     463 </span>                :            : static const fmd_hdl_ops_t fmd_ops = {
+<span class="lineNum">     464 </span>                :            :         zfs_retire_recv,        /* fmdo_recv */
+<span class="lineNum">     465 </span>                :            :         NULL,                   /* fmdo_timeout */
+<span class="lineNum">     466 </span>                :            :         NULL,                   /* fmdo_close */
+<span class="lineNum">     467 </span>                :            :         NULL,                   /* fmdo_stats */
+<span class="lineNum">     468 </span>                :            :         NULL,                   /* fmdo_gc */
+<span class="lineNum">     469 </span>                :            : };
+<span class="lineNum">     470 </span>                :            : 
+<span class="lineNum">     471 </span>                :            : static const fmd_prop_t fmd_props[] = {
+<span class="lineNum">     472 </span>                :            :         { &quot;spare_on_remove&quot;, FMD_TYPE_BOOL, &quot;true&quot; },
+<span class="lineNum">     473 </span>                :            :         { NULL, 0, NULL }
+<span class="lineNum">     474 </span>                :            : };
+<span class="lineNum">     475 </span>                :            : 
+<span class="lineNum">     476 </span>                :            : static const fmd_hdl_info_t fmd_info = {
+<span class="lineNum">     477 </span>                :            :         &quot;ZFS Retire Agent&quot;, &quot;1.0&quot;, &amp;fmd_ops, fmd_props
+<span class="lineNum">     478 </span>                :            : };
+<a name="479"><span class="lineNum">     479 </span>                :            : </a>
+<span class="lineNum">     480 </span>                :            : void
+<span class="lineNum">     481 </span>                :<span class="lineCov">          5 : _zfs_retire_init(fmd_hdl_t *hdl)</span>
+<span class="lineNum">     482 </span>                :            : {
+<span class="lineNum">     483 </span>                :            :         zfs_retire_data_t *zdp;
+<span class="lineNum">     484 </span>                :            :         libzfs_handle_t *zhdl;
+<span class="lineNum">     485 </span>                :            : 
+<span class="lineNum">     486 </span>        [<span class="branchCov" title="Branch 1 was taken 5 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">          5 :         if ((zhdl = __libzfs_init()) == NULL)</span>
+<span class="lineNum">     487 </span>                :            :                 return;
+<span class="lineNum">     488 </span>                :            : 
+<span class="lineNum">     489 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 5 times"> + </span>]:<span class="lineCov">          5 :         if (fmd_hdl_register(hdl, FMD_API_VERSION, &amp;fmd_info) != 0) {</span>
+<span class="lineNum">     490 </span>                :<span class="lineNoCov">          0 :                 libzfs_fini(zhdl);</span>
+<span class="lineNum">     491 </span>                :<span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     492 </span>                :            :         }
+<span class="lineNum">     493 </span>                :            : 
+<span class="lineNum">     494 </span>                :<span class="lineCov">          5 :         zdp = fmd_hdl_zalloc(hdl, sizeof (zfs_retire_data_t), FMD_SLEEP);</span>
+<span class="lineNum">     495 </span>                :<span class="lineCov">          5 :         zdp-&gt;zrd_hdl = zhdl;</span>
+<span class="lineNum">     496 </span>                :            : 
+<span class="lineNum">     497 </span>                :<span class="lineCov">          5 :         fmd_hdl_setspecific(hdl, zdp);</span>
+<span class="lineNum">     498 </span>                :            : }
+<a name="499"><span class="lineNum">     499 </span>                :            : </a>
+<span class="lineNum">     500 </span>                :            : void
+<span class="lineNum">     501 </span>                :<span class="lineCov">          5 : _zfs_retire_fini(fmd_hdl_t *hdl)</span>
+<span class="lineNum">     502 </span>                :            : {
+<span class="lineNum">     503 </span>                :<span class="lineCov">          5 :         zfs_retire_data_t *zdp = fmd_hdl_getspecific(hdl);</span>
+<span class="lineNum">     504 </span>                :            : 
+<span class="lineNum">     505 </span>        [<span class="branchCov" title="Branch 0 was taken 5 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          5 :         if (zdp != NULL) {</span>
+<span class="lineNum">     506 </span>                :<span class="lineCov">          5 :                 zfs_retire_clear_data(hdl, zdp);</span>
+<span class="lineNum">     507 </span>                :<span class="lineCov">          5 :                 __libzfs_fini(zdp-&gt;zrd_hdl);</span>
+<span class="lineNum">     508 </span>                :<span class="lineCov">          5 :                 fmd_hdl_free(hdl, zdp, sizeof (zfs_retire_data_t));</span>
+<span class="lineNum">     509 </span>                :            :         }
+<span class="lineNum">     510 </span>                :<span class="lineCov">          5 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

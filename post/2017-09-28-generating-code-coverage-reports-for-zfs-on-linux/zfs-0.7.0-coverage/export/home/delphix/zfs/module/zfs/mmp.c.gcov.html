@@ -1,0 +1,608 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/mmp.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - mmp.c<span style="font-size: 80%;"> (source / <a href="mmp.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">161</td>
+            <td class="headerCovTableEntry">167</td>
+            <td class="headerCovTableEntryHi">96.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">63</td>
+            <td class="headerCovTableEntry">78</td>
+            <td class="headerCovTableEntryMed">80.8 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2017 by Lawrence Livermore National Security, LLC.
+<span class="lineNum">      23 </span>                :            :  */
+<span class="lineNum">      24 </span>                :            : 
+<span class="lineNum">      25 </span>                :            : #include &lt;sys/abd.h&gt;
+<span class="lineNum">      26 </span>                :            : #include &lt;sys/mmp.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/spa_impl.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/vdev.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/vdev_impl.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/callb.h&gt;
+<span class="lineNum">      33 </span>                :            : 
+<span class="lineNum">      34 </span>                :            : /*
+<span class="lineNum">      35 </span>                :            :  * Multi-Modifier Protection (MMP) attempts to prevent a user from importing
+<span class="lineNum">      36 </span>                :            :  * or opening a pool on more than one host at a time.  In particular, it
+<span class="lineNum">      37 </span>                :            :  * prevents &quot;zpool import -f&quot; on a host from succeeding while the pool is
+<span class="lineNum">      38 </span>                :            :  * already imported on another host.  There are many other ways in which a
+<span class="lineNum">      39 </span>                :            :  * device could be used by two hosts for different purposes at the same time
+<span class="lineNum">      40 </span>                :            :  * resulting in pool damage.  This implementation does not attempt to detect
+<span class="lineNum">      41 </span>                :            :  * those cases.
+<span class="lineNum">      42 </span>                :            :  *
+<span class="lineNum">      43 </span>                :            :  * MMP operates by ensuring there are frequent visible changes on disk (a
+<span class="lineNum">      44 </span>                :            :  * &quot;heartbeat&quot;) at all times.  And by altering the import process to check
+<span class="lineNum">      45 </span>                :            :  * for these changes and failing the import when they are detected.  This
+<span class="lineNum">      46 </span>                :            :  * functionality is enabled by setting the 'multihost' pool property to on.
+<span class="lineNum">      47 </span>                :            :  *
+<span class="lineNum">      48 </span>                :            :  * Uberblocks written by the txg_sync thread always go into the first
+<span class="lineNum">      49 </span>                :            :  * (N-MMP_BLOCKS_PER_LABEL) slots, the remaining slots are reserved for MMP.
+<span class="lineNum">      50 </span>                :            :  * They are used to hold uberblocks which are exactly the same as the last
+<span class="lineNum">      51 </span>                :            :  * synced uberblock except that the ub_timestamp is frequently updated.
+<span class="lineNum">      52 </span>                :            :  * Like all other uberblocks, the slot is written with an embedded checksum,
+<span class="lineNum">      53 </span>                :            :  * and slots with invalid checksums are ignored.  This provides the
+<span class="lineNum">      54 </span>                :            :  * &quot;heartbeat&quot;, with no risk of overwriting good uberblocks that must be
+<span class="lineNum">      55 </span>                :            :  * preserved, e.g. previous txgs and associated block pointers.
+<span class="lineNum">      56 </span>                :            :  *
+<span class="lineNum">      57 </span>                :            :  * Two optional fields are added to uberblock structure: ub_mmp_magic and
+<span class="lineNum">      58 </span>                :            :  * ub_mmp_delay.  The magic field allows zfs to tell whether ub_mmp_delay is
+<span class="lineNum">      59 </span>                :            :  * valid.  The delay field is a decaying average of the amount of time between
+<span class="lineNum">      60 </span>                :            :  * completion of successive MMP writes, in nanoseconds.  It is used to predict
+<span class="lineNum">      61 </span>                :            :  * how long the import must wait to detect activity in the pool, before
+<span class="lineNum">      62 </span>                :            :  * concluding it is not in use.
+<span class="lineNum">      63 </span>                :            :  *
+<span class="lineNum">      64 </span>                :            :  * During import an activity test may now be performed to determine if
+<span class="lineNum">      65 </span>                :            :  * the pool is in use.  The activity test is typically required if the
+<span class="lineNum">      66 </span>                :            :  * ZPOOL_CONFIG_HOSTID does not match the system hostid, the pool state is
+<span class="lineNum">      67 </span>                :            :  * POOL_STATE_ACTIVE, and the pool is not a root pool.
+<span class="lineNum">      68 </span>                :            :  *
+<span class="lineNum">      69 </span>                :            :  * The activity test finds the &quot;best&quot; uberblock (highest txg &amp; timestamp),
+<span class="lineNum">      70 </span>                :            :  * waits some time, and then finds the &quot;best&quot; uberblock again.  If the txg
+<span class="lineNum">      71 </span>                :            :  * and timestamp in both &quot;best&quot; uberblocks do not match, the pool is in use
+<span class="lineNum">      72 </span>                :            :  * by another host and the import fails.  Since the granularity of the
+<span class="lineNum">      73 </span>                :            :  * timestamp is in seconds this activity test must take a bare minimum of one
+<span class="lineNum">      74 </span>                :            :  * second.  In order to assure the accuracy of the activity test, the default
+<span class="lineNum">      75 </span>                :            :  * values result in an activity test duration of 10x the mmp write interval.
+<span class="lineNum">      76 </span>                :            :  *
+<span class="lineNum">      77 </span>                :            :  * The &quot;zpool import&quot;  activity test can be expected to take a minimum time of
+<span class="lineNum">      78 </span>                :            :  * zfs_multihost_import_intervals * zfs_multihost_interval milliseconds.  If the
+<span class="lineNum">      79 </span>                :            :  * &quot;best&quot; uberblock has a valid ub_mmp_delay field, then the duration of the
+<span class="lineNum">      80 </span>                :            :  * test may take longer if MMP writes were occurring less frequently than
+<span class="lineNum">      81 </span>                :            :  * expected.  Additionally, the duration is then extended by a random 25% to
+<span class="lineNum">      82 </span>                :            :  * attempt to to detect simultaneous imports.  For example, if both partner
+<span class="lineNum">      83 </span>                :            :  * hosts are rebooted at the same time and automatically attempt to import the
+<span class="lineNum">      84 </span>                :            :  * pool.
+<span class="lineNum">      85 </span>                :            :  */
+<span class="lineNum">      86 </span>                :            : 
+<span class="lineNum">      87 </span>                :            : /*
+<span class="lineNum">      88 </span>                :            :  * Used to control the frequency of mmp writes which are performed when the
+<span class="lineNum">      89 </span>                :            :  * 'multihost' pool property is on.  This is one factor used to determine the
+<span class="lineNum">      90 </span>                :            :  * length of the activity check during import.
+<span class="lineNum">      91 </span>                :            :  *
+<span class="lineNum">      92 </span>                :            :  * The mmp write period is zfs_multihost_interval / leaf-vdevs milliseconds.
+<span class="lineNum">      93 </span>                :            :  * This means that on average an mmp write will be issued for each leaf vdev
+<span class="lineNum">      94 </span>                :            :  * every zfs_multihost_interval milliseconds.  In practice, the observed period
+<span class="lineNum">      95 </span>                :            :  * can vary with the I/O load and this observed value is the delay which is
+<span class="lineNum">      96 </span>                :            :  * stored in the uberblock.  The minimum allowed value is 100 ms.
+<span class="lineNum">      97 </span>                :            :  */
+<span class="lineNum">      98 </span>                :            : ulong_t zfs_multihost_interval = MMP_DEFAULT_INTERVAL;
+<span class="lineNum">      99 </span>                :            : 
+<span class="lineNum">     100 </span>                :            : /*
+<span class="lineNum">     101 </span>                :            :  * Used to control the duration of the activity test on import.  Smaller values
+<span class="lineNum">     102 </span>                :            :  * of zfs_multihost_import_intervals will reduce the import time but increase
+<span class="lineNum">     103 </span>                :            :  * the risk of failing to detect an active pool.  The total activity check time
+<span class="lineNum">     104 </span>                :            :  * is never allowed to drop below one second.  A value of 0 is ignored and
+<span class="lineNum">     105 </span>                :            :  * treated as if it was set to 1.
+<span class="lineNum">     106 </span>                :            :  */
+<span class="lineNum">     107 </span>                :            : uint_t zfs_multihost_import_intervals = MMP_DEFAULT_IMPORT_INTERVALS;
+<span class="lineNum">     108 </span>                :            : 
+<span class="lineNum">     109 </span>                :            : /*
+<span class="lineNum">     110 </span>                :            :  * Controls the behavior of the pool when mmp write failures are detected.
+<span class="lineNum">     111 </span>                :            :  *
+<span class="lineNum">     112 </span>                :            :  * When zfs_multihost_fail_intervals = 0 then mmp write failures are ignored.
+<span class="lineNum">     113 </span>                :            :  * The failures will still be reported to the ZED which depending on its
+<span class="lineNum">     114 </span>                :            :  * configuration may take action such as suspending the pool or taking a
+<span class="lineNum">     115 </span>                :            :  * device offline.
+<span class="lineNum">     116 </span>                :            :  *
+<span class="lineNum">     117 </span>                :            :  * When zfs_multihost_fail_intervals &gt; 0 then sequential mmp write failures will
+<span class="lineNum">     118 </span>                :            :  * cause the pool to be suspended.  This occurs when
+<span class="lineNum">     119 </span>                :            :  * zfs_multihost_fail_intervals * zfs_multihost_interval milliseconds have
+<span class="lineNum">     120 </span>                :            :  * passed since the last successful mmp write.  This guarantees the activity
+<span class="lineNum">     121 </span>                :            :  * test will see mmp writes if the
+<span class="lineNum">     122 </span>                :            :  * pool is imported.
+<span class="lineNum">     123 </span>                :            :  */
+<span class="lineNum">     124 </span>                :            : uint_t zfs_multihost_fail_intervals = MMP_DEFAULT_FAIL_INTERVALS;
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>                :            : static void mmp_thread(void *arg);
+<a name="127"><span class="lineNum">     127 </span>                :            : </a>
+<span class="lineNum">     128 </span>                :            : void
+<span class="lineNum">     129 </span>                :<span class="lineCov">       1615 : mmp_init(spa_t *spa)</span>
+<span class="lineNum">     130 </span>                :            : {
+<span class="lineNum">     131 </span>                :<span class="lineCov">       1615 :         mmp_thread_t *mmp = &amp;spa-&gt;spa_mmp;</span>
+<span class="lineNum">     132 </span>                :            : 
+<span class="lineNum">     133 </span>                :<span class="lineCov">       1615 :         mutex_init(&amp;mmp-&gt;mmp_thread_lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     134 </span>                :<span class="lineCov">       1615 :         cv_init(&amp;mmp-&gt;mmp_thread_cv, NULL, CV_DEFAULT, NULL);</span>
+<span class="lineNum">     135 </span>                :<span class="lineCov">       1615 :         mutex_init(&amp;mmp-&gt;mmp_io_lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     136 </span>                :<span class="lineCov">       1615 : }</span>
+<a name="137"><span class="lineNum">     137 </span>                :            : </a>
+<span class="lineNum">     138 </span>                :            : void
+<span class="lineNum">     139 </span>                :<span class="lineCov">       1614 : mmp_fini(spa_t *spa)</span>
+<span class="lineNum">     140 </span>                :            : {
+<span class="lineNum">     141 </span>                :<span class="lineCov">       1614 :         mmp_thread_t *mmp = &amp;spa-&gt;spa_mmp;</span>
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>                :<span class="lineCov">       1614 :         mutex_destroy(&amp;mmp-&gt;mmp_thread_lock);</span>
+<span class="lineNum">     144 </span>                :<span class="lineCov">       1614 :         cv_destroy(&amp;mmp-&gt;mmp_thread_cv);</span>
+<span class="lineNum">     145 </span>                :<span class="lineCov">       1614 :         mutex_destroy(&amp;mmp-&gt;mmp_io_lock);</span>
+<span class="lineNum">     146 </span>                :<span class="lineCov">       1614 : }</span>
+<a name="147"><span class="lineNum">     147 </span>                :            : </a>
+<span class="lineNum">     148 </span>                :            : static void
+<span class="lineNum">     149 </span>                :<span class="lineCov">        280 : mmp_thread_enter(mmp_thread_t *mmp, callb_cpr_t *cpr)</span>
+<span class="lineNum">     150 </span>                :            : {
+<span class="lineNum">     151 </span>                :<span class="lineCov">        280 :         CALLB_CPR_INIT(cpr, &amp;mmp-&gt;mmp_thread_lock, callb_generic_cpr, FTAG);</span>
+<span class="lineNum">     152 </span>                :<span class="lineCov">        280 :         mutex_enter(&amp;mmp-&gt;mmp_thread_lock);</span>
+<span class="lineNum">     153 </span>                :<span class="lineCov">        280 : }</span>
+<a name="154"><span class="lineNum">     154 </span>                :            : </a>
+<span class="lineNum">     155 </span>                :            : static void
+<span class="lineNum">     156 </span>                :<span class="lineCov">        279 : mmp_thread_exit(mmp_thread_t *mmp, kthread_t **mpp, callb_cpr_t *cpr)</span>
+<span class="lineNum">     157 </span>                :            : {
+<span class="lineNum">     158 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 279 times"> + </span>]:<span class="lineCov">        279 :         ASSERT(*mpp != NULL);</span>
+<span class="lineNum">     159 </span>                :<span class="lineCov">        279 :         *mpp = NULL;</span>
+<span class="lineNum">     160 </span>                :<span class="lineCov">        279 :         cv_broadcast(&amp;mmp-&gt;mmp_thread_cv);</span>
+<span class="lineNum">     161 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 279 times"> + </span>]:<span class="lineCov">        279 :         CALLB_CPR_EXIT(cpr);            /* drops &amp;mmp-&gt;mmp_thread_lock */</span>
+<span class="lineNum">     162 </span>                :<span class="lineCov">        279 :         thread_exit();</span>
+<span class="lineNum">     163 </span>                :            : }
+<a name="164"><span class="lineNum">     164 </span>                :            : </a>
+<span class="lineNum">     165 </span>                :            : void
+<span class="lineNum">     166 </span>                :<span class="lineCov">        310 : mmp_thread_start(spa_t *spa)</span>
+<span class="lineNum">     167 </span>                :            : {
+<span class="lineNum">     168 </span>                :<span class="lineCov">        310 :         mmp_thread_t *mmp = &amp;spa-&gt;spa_mmp;</span>
+<span class="lineNum">     169 </span>                :            : 
+<span class="lineNum">     170 </span>        [<span class="branchCov" title="Branch 1 was taken 310 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        310 :         if (spa_writeable(spa)) {</span>
+<span class="lineNum">     171 </span>                :<span class="lineCov">        310 :                 mutex_enter(&amp;mmp-&gt;mmp_thread_lock);</span>
+<span class="lineNum">     172 </span>        [<span class="branchCov" title="Branch 0 was taken 280 times"> + </span><span class="branchCov" title="Branch 1 was taken 30 times"> + </span>]:<span class="lineCov">        310 :                 if (!mmp-&gt;mmp_thread) {</span>
+<span class="lineNum">     173 </span>                :<span class="lineCov">        280 :                         dprintf(&quot;mmp_thread_start pool %s\n&quot;,</span>
+<span class="lineNum">     174 </span>                :            :                             spa-&gt;spa_name);
+<span class="lineNum">     175 </span>                :<span class="lineCov">        280 :                         mmp-&gt;mmp_thread = thread_create(NULL, 0, mmp_thread,</span>
+<span class="lineNum">     176 </span>                :            :                             spa, 0, &amp;p0, TS_RUN, defclsyspri);
+<span class="lineNum">     177 </span>                :            :                 }
+<span class="lineNum">     178 </span>                :<span class="lineCov">        310 :                 mutex_exit(&amp;mmp-&gt;mmp_thread_lock);</span>
+<span class="lineNum">     179 </span>                :            :         }
+<span class="lineNum">     180 </span>                :<span class="lineCov">        310 : }</span>
+<a name="181"><span class="lineNum">     181 </span>                :            : </a>
+<span class="lineNum">     182 </span>                :            : void
+<span class="lineNum">     183 </span>                :<span class="lineCov">        279 : mmp_thread_stop(spa_t *spa)</span>
+<span class="lineNum">     184 </span>                :            : {
+<span class="lineNum">     185 </span>                :<span class="lineCov">        279 :         mmp_thread_t *mmp = &amp;spa-&gt;spa_mmp;</span>
+<span class="lineNum">     186 </span>                :            : 
+<span class="lineNum">     187 </span>                :<span class="lineCov">        279 :         mutex_enter(&amp;mmp-&gt;mmp_thread_lock);</span>
+<span class="lineNum">     188 </span>                :<span class="lineCov">        279 :         mmp-&gt;mmp_thread_exiting = 1;</span>
+<span class="lineNum">     189 </span>                :<span class="lineCov">        279 :         cv_broadcast(&amp;mmp-&gt;mmp_thread_cv);</span>
+<span class="lineNum">     190 </span>                :            : 
+<span class="lineNum">     191 </span>        [<span class="branchCov" title="Branch 0 was taken 279 times"> + </span><span class="branchCov" title="Branch 1 was taken 279 times"> + </span>]:<span class="lineCov">        558 :         while (mmp-&gt;mmp_thread) {</span>
+<span class="lineNum">     192 </span>                :<span class="lineCov">        279 :                 cv_wait(&amp;mmp-&gt;mmp_thread_cv, &amp;mmp-&gt;mmp_thread_lock);</span>
+<span class="lineNum">     193 </span>                :            :         }
+<span class="lineNum">     194 </span>                :<span class="lineCov">        279 :         mutex_exit(&amp;mmp-&gt;mmp_thread_lock);</span>
+<span class="lineNum">     195 </span>                :            : 
+<span class="lineNum">     196 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 279 times"> + </span>]:<span class="lineCov">        279 :         ASSERT(mmp-&gt;mmp_thread == NULL);</span>
+<span class="lineNum">     197 </span>                :<span class="lineCov">        279 :         mmp-&gt;mmp_thread_exiting = 0;</span>
+<span class="lineNum">     198 </span>                :<span class="lineCov">        279 : }</span>
+<span class="lineNum">     199 </span>                :            : 
+<span class="lineNum">     200 </span>                :            : /*
+<span class="lineNum">     201 </span>                :            :  * Choose a leaf vdev to write an MMP block to.  It must not have an
+<span class="lineNum">     202 </span>                :            :  * outstanding mmp write (if so then there is a problem, and a new write will
+<span class="lineNum">     203 </span>                :            :  * also block).  If there is no usable leaf in this subtree return NULL,
+<span class="lineNum">     204 </span>                :            :  * otherwise return a pointer to the leaf.
+<span class="lineNum">     205 </span>                :            :  *
+<span class="lineNum">     206 </span>                :            :  * When walking the subtree, a random child is chosen as the starting point so
+<span class="lineNum">     207 </span>                :            :  * that when the tree is healthy, the leaf chosen will be random with even
+<span class="lineNum">     208 </span>                :            :  * distribution.  If there are unhealthy vdevs in the tree, the distribution
+<span class="lineNum">     209 </span>                :            :  * will be really poor only if a large proportion of the vdevs are unhealthy,
+<span class="lineNum">     210 </span>                :            :  * in which case there are other more pressing problems.
+<a name="211"><span class="lineNum">     211 </span>                :            :  */</a>
+<span class="lineNum">     212 </span>                :            : static vdev_t *
+<span class="lineNum">     213 </span>                :<span class="lineCov">       2598 : mmp_random_leaf(vdev_t *vd)</span>
+<span class="lineNum">     214 </span>                :            : {
+<span class="lineNum">     215 </span>                :            :         int child_idx;
+<span class="lineNum">     216 </span>                :            : 
+<span class="lineNum">     217 </span>        [<span class="branchCov" title="Branch 1 was taken 2595 times"> + </span><span class="branchCov" title="Branch 2 was taken 3 times"> + </span>]:<span class="lineCov">       2598 :         if (!vdev_writeable(vd))</span>
+<span class="lineNum">     218 </span>                :            :                 return (NULL);
+<span class="lineNum">     219 </span>                :            : 
+<span class="lineNum">     220 </span>        [<span class="branchCov" title="Branch 0 was taken 758 times"> + </span><span class="branchCov" title="Branch 1 was taken 1837 times"> + </span>]:<span class="lineCov">       2595 :         if (vd-&gt;vdev_ops-&gt;vdev_op_leaf)</span>
+<span class="lineNum">     221 </span>        [<span class="branchCov" title="Branch 0 was taken 40 times"> + </span><span class="branchCov" title="Branch 1 was taken 718 times"> + </span>]:<span class="lineCov">        758 :                 return (vd-&gt;vdev_mmp_pending == 0 ? vd : NULL);</span>
+<span class="lineNum">     222 </span>                :            : 
+<span class="lineNum">     223 </span>                :<span class="lineCov">       1837 :         child_idx = spa_get_random(vd-&gt;vdev_children);</span>
+<span class="lineNum">     224 </span>        [<span class="branchCov" title="Branch 0 was taken 1867 times"> + </span><span class="branchCov" title="Branch 1 was taken 13 times"> + </span>]:<span class="lineCov">       1880 :         for (int offset = vd-&gt;vdev_children; offset &gt; 0; offset--) {</span>
+<span class="lineNum">     225 </span>                :            :                 vdev_t *leaf;
+<span class="lineNum">     226 </span>                :<span class="lineCov">       3734 :                 vdev_t *child = vd-&gt;vdev_child[(child_idx + offset) %</span>
+<span class="lineNum">     227 </span>                :<span class="lineCov">       1867 :                     vd-&gt;vdev_children];</span>
+<span class="lineNum">     228 </span>                :            : 
+<span class="lineNum">     229 </span>                :<span class="lineCov">       1867 :                 leaf = mmp_random_leaf(child);</span>
+<span class="lineNum">     230 </span>        [<span class="branchCov" title="Branch 0 was taken 43 times"> + </span><span class="branchCov" title="Branch 1 was taken 1824 times"> + </span>]:<span class="lineCov">       1867 :                 if (leaf)</span>
+<span class="lineNum">     231 </span>                :            :                         return (leaf);
+<span class="lineNum">     232 </span>                :            :         }
+<span class="lineNum">     233 </span>                :            : 
+<span class="lineNum">     234 </span>                :            :         return (NULL);
+<span class="lineNum">     235 </span>                :            : }
+<a name="236"><span class="lineNum">     236 </span>                :            : </a>
+<span class="lineNum">     237 </span>                :            : static void
+<span class="lineNum">     238 </span>                :<span class="lineCov">        718 : mmp_write_done(zio_t *zio)</span>
+<span class="lineNum">     239 </span>                :            : {
+<span class="lineNum">     240 </span>                :<span class="lineCov">        718 :         spa_t *spa = zio-&gt;io_spa;</span>
+<span class="lineNum">     241 </span>                :<span class="lineCov">        718 :         vdev_t *vd = zio-&gt;io_vd;</span>
+<span class="lineNum">     242 </span>                :<span class="lineCov">        718 :         mmp_thread_t *mts = zio-&gt;io_private;</span>
+<span class="lineNum">     243 </span>                :            : 
+<span class="lineNum">     244 </span>                :<span class="lineCov">        718 :         mutex_enter(&amp;mts-&gt;mmp_io_lock);</span>
+<span class="lineNum">     245 </span>                :<span class="lineCov">        718 :         vd-&gt;vdev_mmp_pending = 0;</span>
+<span class="lineNum">     246 </span>                :            : 
+<span class="lineNum">     247 </span>        [<span class="branchCov" title="Branch 0 was taken 718 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        718 :         if (zio-&gt;io_error)</span>
+<span class="lineNum">     248 </span>                :            :                 goto unlock;
+<span class="lineNum">     249 </span>                :            : 
+<span class="lineNum">     250 </span>                :            :         /*
+<span class="lineNum">     251 </span>                :            :          * Mmp writes are queued on a fixed schedule, but under many
+<span class="lineNum">     252 </span>                :            :          * circumstances, such as a busy device or faulty hardware,
+<span class="lineNum">     253 </span>                :            :          * the writes will complete at variable, much longer,
+<span class="lineNum">     254 </span>                :            :          * intervals.  In these cases, another node checking for
+<span class="lineNum">     255 </span>                :            :          * activity must wait longer to account for these delays.
+<span class="lineNum">     256 </span>                :            :          *
+<span class="lineNum">     257 </span>                :            :          * The mmp_delay is calculated as a decaying average of the interval
+<span class="lineNum">     258 </span>                :            :          * between completed mmp writes.  This is used to predict how long
+<span class="lineNum">     259 </span>                :            :          * the import must wait to detect activity in the pool, before
+<span class="lineNum">     260 </span>                :            :          * concluding it is not in use.
+<span class="lineNum">     261 </span>                :            :          *
+<span class="lineNum">     262 </span>                :            :          * Do not set mmp_delay if the multihost property is not on,
+<span class="lineNum">     263 </span>                :            :          * so as not to trigger an activity check on import.
+<span class="lineNum">     264 </span>                :            :          */
+<span class="lineNum">     265 </span>        [<span class="branchCov" title="Branch 1 was taken 718 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        718 :         if (spa_multihost(spa)) {</span>
+<span class="lineNum">     266 </span>                :<span class="lineCov">        718 :                 hrtime_t delay = gethrtime() - mts-&gt;mmp_last_write;</span>
+<span class="lineNum">     267 </span>                :            : 
+<span class="lineNum">     268 </span>        [<span class="branchCov" title="Branch 0 was taken 41 times"> + </span><span class="branchCov" title="Branch 1 was taken 677 times"> + </span>]:<span class="lineCov">        718 :                 if (delay &gt; mts-&gt;mmp_delay)</span>
+<span class="lineNum">     269 </span>                :<span class="lineCov">         41 :                         mts-&gt;mmp_delay = delay;</span>
+<span class="lineNum">     270 </span>                :            :                 else
+<span class="lineNum">     271 </span>                :<span class="lineCov">        677 :                         mts-&gt;mmp_delay = (delay + mts-&gt;mmp_delay * 127) /</span>
+<span class="lineNum">     272 </span>                :            :                             128;
+<span class="lineNum">     273 </span>                :            :         } else {
+<span class="lineNum">     274 </span>                :<span class="lineNoCov">          0 :                 mts-&gt;mmp_delay = 0;</span>
+<span class="lineNum">     275 </span>                :            :         }
+<span class="lineNum">     276 </span>                :<span class="lineCov">        718 :         mts-&gt;mmp_last_write = gethrtime();</span>
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>                :            : unlock:
+<span class="lineNum">     279 </span>                :<span class="lineCov">        718 :         mutex_exit(&amp;mts-&gt;mmp_io_lock);</span>
+<span class="lineNum">     280 </span>                :<span class="lineCov">        718 :         spa_config_exit(spa, SCL_STATE, FTAG);</span>
+<span class="lineNum">     281 </span>                :            : 
+<span class="lineNum">     282 </span>                :<span class="lineCov">        718 :         abd_free(zio-&gt;io_abd);</span>
+<span class="lineNum">     283 </span>                :<span class="lineCov">        718 : }</span>
+<span class="lineNum">     284 </span>                :            : 
+<span class="lineNum">     285 </span>                :            : /*
+<span class="lineNum">     286 </span>                :            :  * When the uberblock on-disk is updated by a spa_sync,
+<span class="lineNum">     287 </span>                :            :  * creating a new &quot;best&quot; uberblock, update the one stored
+<span class="lineNum">     288 </span>                :            :  * in the mmp thread state, used for mmp writes.
+<a name="289"><span class="lineNum">     289 </span>                :            :  */</a>
+<span class="lineNum">     290 </span>                :            : void
+<span class="lineNum">     291 </span>                :<span class="lineCov">        360 : mmp_update_uberblock(spa_t *spa, uberblock_t *ub)</span>
+<span class="lineNum">     292 </span>                :            : {
+<span class="lineNum">     293 </span>                :<span class="lineCov">        360 :         mmp_thread_t *mmp = &amp;spa-&gt;spa_mmp;</span>
+<span class="lineNum">     294 </span>                :            : 
+<span class="lineNum">     295 </span>                :<span class="lineCov">        360 :         mutex_enter(&amp;mmp-&gt;mmp_io_lock);</span>
+<span class="lineNum">     296 </span>                :<span class="lineCov">        360 :         mmp-&gt;mmp_ub = *ub;</span>
+<span class="lineNum">     297 </span>                :<span class="lineCov">        360 :         mmp-&gt;mmp_ub.ub_timestamp = gethrestime_sec();</span>
+<span class="lineNum">     298 </span>                :<span class="lineCov">        360 :         mutex_exit(&amp;mmp-&gt;mmp_io_lock);</span>
+<span class="lineNum">     299 </span>                :<span class="lineCov">        360 : }</span>
+<span class="lineNum">     300 </span>                :            : 
+<span class="lineNum">     301 </span>                :            : /*
+<span class="lineNum">     302 </span>                :            :  * Choose a random vdev, label, and MMP block, and write over it
+<span class="lineNum">     303 </span>                :            :  * with a copy of the last-synced uberblock, whose timestamp
+<span class="lineNum">     304 </span>                :            :  * has been updated to reflect that the pool is in use.
+<a name="305"><span class="lineNum">     305 </span>                :            :  */</a>
+<span class="lineNum">     306 </span>                :            : static void
+<span class="lineNum">     307 </span>                :<span class="lineCov">        731 : mmp_write_uberblock(spa_t *spa)</span>
+<span class="lineNum">     308 </span>                :            : {
+<span class="lineNum">     309 </span>                :<span class="lineCov">        731 :         int flags = ZIO_FLAG_CONFIG_WRITER | ZIO_FLAG_CANFAIL;</span>
+<span class="lineNum">     310 </span>                :<span class="lineCov">        731 :         mmp_thread_t *mmp = &amp;spa-&gt;spa_mmp;</span>
+<span class="lineNum">     311 </span>                :            :         uberblock_t *ub;
+<span class="lineNum">     312 </span>                :            :         vdev_t *vd;
+<span class="lineNum">     313 </span>                :            :         int label;
+<span class="lineNum">     314 </span>                :            :         uint64_t offset;
+<span class="lineNum">     315 </span>                :            : 
+<span class="lineNum">     316 </span>                :<span class="lineCov">        731 :         spa_config_enter(spa, SCL_STATE, FTAG, RW_READER);</span>
+<span class="lineNum">     317 </span>                :<span class="lineCov">        731 :         vd = mmp_random_leaf(spa-&gt;spa_root_vdev);</span>
+<span class="lineNum">     318 </span>        [<span class="branchCov" title="Branch 0 was taken 13 times"> + </span><span class="branchCov" title="Branch 1 was taken 718 times"> + </span>]:<span class="lineCov">        731 :         if (vd == NULL) {</span>
+<span class="lineNum">     319 </span>                :<span class="lineCov">         13 :                 spa_config_exit(spa, SCL_STATE, FTAG);</span>
+<span class="lineNum">     320 </span>                :<span class="lineCov">         13 :                 return;</span>
+<span class="lineNum">     321 </span>                :            :         }
+<span class="lineNum">     322 </span>                :            : 
+<span class="lineNum">     323 </span>                :<span class="lineCov">        718 :         mutex_enter(&amp;mmp-&gt;mmp_io_lock);</span>
+<span class="lineNum">     324 </span>                :            : 
+<span class="lineNum">     325 </span>        [<span class="branchCov" title="Branch 0 was taken 46 times"> + </span><span class="branchCov" title="Branch 1 was taken 672 times"> + </span>]:<span class="lineCov">        718 :         if (mmp-&gt;mmp_zio_root == NULL)</span>
+<span class="lineNum">     326 </span>                :<span class="lineCov">         46 :                 mmp-&gt;mmp_zio_root = zio_root(spa, NULL, NULL,</span>
+<span class="lineNum">     327 </span>                :            :                     flags | ZIO_FLAG_GODFATHER);
+<span class="lineNum">     328 </span>                :            : 
+<span class="lineNum">     329 </span>                :<span class="lineCov">        718 :         ub = &amp;mmp-&gt;mmp_ub;</span>
+<span class="lineNum">     330 </span>                :<span class="lineCov">        718 :         ub-&gt;ub_timestamp = gethrestime_sec();</span>
+<span class="lineNum">     331 </span>                :<span class="lineCov">        718 :         ub-&gt;ub_mmp_magic = MMP_MAGIC;</span>
+<span class="lineNum">     332 </span>                :<span class="lineCov">        718 :         ub-&gt;ub_mmp_delay = mmp-&gt;mmp_delay;</span>
+<span class="lineNum">     333 </span>                :<span class="lineCov">        718 :         vd-&gt;vdev_mmp_pending = gethrtime();</span>
+<span class="lineNum">     334 </span>                :            : 
+<span class="lineNum">     335 </span>                :<span class="lineCov">        718 :         zio_t *zio  = zio_null(mmp-&gt;mmp_zio_root, spa, NULL, NULL, NULL, flags);</span>
+<span class="lineNum">     336 </span>        [<span class="branchCov" title="Branch 0 was taken 718 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        718 :         abd_t *ub_abd = abd_alloc_for_io(VDEV_UBERBLOCK_SIZE(vd), B_TRUE);</span>
+<span class="lineNum">     337 </span>        [<span class="branchCov" title="Branch 0 was taken 718 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        718 :         abd_zero(ub_abd, VDEV_UBERBLOCK_SIZE(vd));</span>
+<span class="lineNum">     338 </span>                :<span class="lineCov">        718 :         abd_copy_from_buf(ub_abd, ub, sizeof (uberblock_t));</span>
+<span class="lineNum">     339 </span>                :            : 
+<span class="lineNum">     340 </span>                :<span class="lineCov">        718 :         mutex_exit(&amp;mmp-&gt;mmp_io_lock);</span>
+<span class="lineNum">     341 </span>                :            : 
+<span class="lineNum">     342 </span>[<span class="branchCov" title="Branch 0 was taken 718 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 3 was taken 718 times"> + </span><span class="branchNoCov" title="Branch 4 was not taken"> - </span>]:<span class="lineCov">        718 :         offset = VDEV_UBERBLOCK_OFFSET(vd, VDEV_UBERBLOCK_COUNT(vd) -</span>
+<span class="lineNum">     343 </span>                :            :             MMP_BLOCKS_PER_LABEL + spa_get_random(MMP_BLOCKS_PER_LABEL));
+<span class="lineNum">     344 </span>                :            : 
+<span class="lineNum">     345 </span>                :<span class="lineCov">        718 :         label = spa_get_random(VDEV_LABELS);</span>
+<span class="lineNum">     346 </span>        [<span class="branchCov" title="Branch 0 was taken 718 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        718 :         vdev_label_write(zio, vd, label, ub_abd, offset,</span>
+<span class="lineNum">     347 </span>                :<span class="lineCov">       1436 :             VDEV_UBERBLOCK_SIZE(vd), mmp_write_done, mmp,</span>
+<span class="lineNum">     348 </span>                :            :             flags | ZIO_FLAG_DONT_PROPAGATE);
+<span class="lineNum">     349 </span>                :            : 
+<span class="lineNum">     350 </span>                :<span class="lineCov">        718 :         spa_mmp_history_add(ub-&gt;ub_txg, ub-&gt;ub_timestamp, ub-&gt;ub_mmp_delay, vd,</span>
+<span class="lineNum">     351 </span>                :            :             label);
+<span class="lineNum">     352 </span>                :            : 
+<span class="lineNum">     353 </span>                :<span class="lineCov">        718 :         zio_nowait(zio);</span>
+<span class="lineNum">     354 </span>                :            : }
+<a name="355"><span class="lineNum">     355 </span>                :            : </a>
+<span class="lineNum">     356 </span>                :            : static void
+<span class="lineNum">     357 </span>                :<span class="lineCov">        280 : mmp_thread(void *arg)</span>
+<span class="lineNum">     358 </span>                :            : {
+<span class="lineNum">     359 </span>                :<span class="lineCov">        280 :         spa_t *spa = (spa_t *)arg;</span>
+<span class="lineNum">     360 </span>                :<span class="lineCov">        280 :         mmp_thread_t *mmp = &amp;spa-&gt;spa_mmp;</span>
+<span class="lineNum">     361 </span>                :<span class="lineCov">        280 :         boolean_t last_spa_suspended = spa_suspended(spa);</span>
+<span class="lineNum">     362 </span>                :<span class="lineCov">        280 :         boolean_t last_spa_multihost = spa_multihost(spa);</span>
+<span class="lineNum">     363 </span>                :            :         callb_cpr_t cpr;
+<span class="lineNum">     364 </span>                :<span class="lineCov">        560 :         hrtime_t max_fail_ns = zfs_multihost_fail_intervals *</span>
+<span class="lineNum">     365 </span>                :<span class="lineCov">        280 :             MSEC2NSEC(MAX(zfs_multihost_interval, MMP_MIN_INTERVAL));</span>
+<span class="lineNum">     366 </span>                :            : 
+<span class="lineNum">     367 </span>                :<span class="lineCov">        280 :         mmp_thread_enter(mmp, &amp;cpr);</span>
+<span class="lineNum">     368 </span>                :            : 
+<span class="lineNum">     369 </span>                :            :         /*
+<span class="lineNum">     370 </span>                :            :          * The mmp_write_done() function calculates mmp_delay based on the
+<span class="lineNum">     371 </span>                :            :          * prior value of mmp_delay and the elapsed time since the last write.
+<span class="lineNum">     372 </span>                :            :          * For the first mmp write, there is no &quot;last write&quot;, so we start
+<span class="lineNum">     373 </span>                :            :          * with fake, but reasonable, default non-zero values.
+<span class="lineNum">     374 </span>                :            :          */
+<span class="lineNum">     375 </span>                :<span class="lineCov">        560 :         mmp-&gt;mmp_delay = MSEC2NSEC(MAX(zfs_multihost_interval,</span>
+<span class="lineNum">     376 </span>        [<span class="branchCov" title="Branch 1 was taken 224 times"> + </span><span class="branchCov" title="Branch 2 was taken 56 times"> + </span>]:<span class="lineCov">        280 :             MMP_MIN_INTERVAL)) / MAX(vdev_count_leaves(spa), 1);</span>
+<span class="lineNum">     377 </span>                :<span class="lineCov">        280 :         mmp-&gt;mmp_last_write = gethrtime() - mmp-&gt;mmp_delay;</span>
+<span class="lineNum">     378 </span>                :            : 
+<span class="lineNum">     379 </span>        [<span class="branchCov" title="Branch 0 was taken 2084 times"> + </span><span class="branchCov" title="Branch 1 was taken 279 times"> + </span>]:<span class="lineCov">       2363 :         while (!mmp-&gt;mmp_thread_exiting) {</span>
+<span class="lineNum">     380 </span>                :<span class="lineCov">       2084 :                 uint64_t mmp_fail_intervals = zfs_multihost_fail_intervals;</span>
+<span class="lineNum">     381 </span>                :<span class="lineCov">       2084 :                 uint64_t mmp_interval = MSEC2NSEC(</span>
+<span class="lineNum">     382 </span>                :            :                     MAX(zfs_multihost_interval, MMP_MIN_INTERVAL));
+<span class="lineNum">     383 </span>                :<span class="lineCov">       2084 :                 boolean_t suspended = spa_suspended(spa);</span>
+<span class="lineNum">     384 </span>                :<span class="lineCov">       2084 :                 boolean_t multihost = spa_multihost(spa);</span>
+<span class="lineNum">     385 </span>                :            :                 hrtime_t start, next_time;
+<span class="lineNum">     386 </span>                :            : 
+<span class="lineNum">     387 </span>                :<span class="lineCov">       2084 :                 start = gethrtime();</span>
+<span class="lineNum">     388 </span>        [<span class="branchCov" title="Branch 0 was taken 731 times"> + </span><span class="branchCov" title="Branch 1 was taken 1353 times"> + </span>]:<span class="lineCov">       2084 :                 if (multihost) {</span>
+<span class="lineNum">     389 </span>                :<span class="lineCov">        731 :                         next_time = start + mmp_interval /</span>
+<span class="lineNum">     390 </span>        [<span class="branchCov" title="Branch 1 was taken 724 times"> + </span><span class="branchCov" title="Branch 2 was taken 7 times"> + </span>]:<span class="lineCov">        731 :                             MAX(vdev_count_leaves(spa), 1);</span>
+<span class="lineNum">     391 </span>                :            :                 } else {
+<span class="lineNum">     392 </span>                :<span class="lineCov">       1353 :                         next_time = start + MSEC2NSEC(MMP_DEFAULT_INTERVAL);</span>
+<span class="lineNum">     393 </span>                :            :                 }
+<span class="lineNum">     394 </span>                :            : 
+<span class="lineNum">     395 </span>                :            :                 /*
+<span class="lineNum">     396 </span>                :            :                  * When MMP goes off =&gt; on, or spa goes suspended =&gt;
+<span class="lineNum">     397 </span>                :            :                  * !suspended, we know no writes occurred recently.  We
+<span class="lineNum">     398 </span>                :            :                  * update mmp_last_write to give us some time to try.
+<span class="lineNum">     399 </span>                :            :                  */
+<span class="lineNum">     400 </span>[<span class="branchCov" title="Branch 0 was taken 2054 times"> + </span><span class="branchCov" title="Branch 1 was taken 30 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 1 time"> + </span><span class="branchCov" title="Branch 3 was taken 2053 times"> + </span>]:<span class="lineCov">       2084 :                 if ((!last_spa_multihost &amp;&amp; multihost) ||</span>
+<span class="lineNum">     401 </span>                :<span class="lineCov">       2054 :                     (last_spa_suspended &amp;&amp; !suspended)) {</span>
+<span class="lineNum">     402 </span>                :<span class="lineCov">         31 :                         mutex_enter(&amp;mmp-&gt;mmp_io_lock);</span>
+<span class="lineNum">     403 </span>                :<span class="lineCov">         31 :                         mmp-&gt;mmp_last_write = gethrtime();</span>
+<span class="lineNum">     404 </span>                :<span class="lineCov">         31 :                         mutex_exit(&amp;mmp-&gt;mmp_io_lock);</span>
+<span class="lineNum">     405 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2053 times"> + </span>]:<span class="lineCov">       2053 :                 } else if (last_spa_multihost &amp;&amp; !multihost) {</span>
+<span class="lineNum">     406 </span>                :<span class="lineNoCov">          0 :                         mutex_enter(&amp;mmp-&gt;mmp_io_lock);</span>
+<span class="lineNum">     407 </span>                :<span class="lineNoCov">          0 :                         mmp-&gt;mmp_delay = 0;</span>
+<span class="lineNum">     408 </span>                :<span class="lineNoCov">          0 :                         mutex_exit(&amp;mmp-&gt;mmp_io_lock);</span>
+<span class="lineNum">     409 </span>                :            :                 }
+<span class="lineNum">     410 </span>                :<span class="lineCov">       2084 :                 last_spa_multihost = multihost;</span>
+<span class="lineNum">     411 </span>                :<span class="lineCov">       2084 :                 last_spa_suspended = suspended;</span>
+<span class="lineNum">     412 </span>                :            : 
+<span class="lineNum">     413 </span>                :            :                 /*
+<span class="lineNum">     414 </span>                :            :                  * Smooth max_fail_ns when its factors are decreased, because
+<span class="lineNum">     415 </span>                :            :                  * making (max_fail_ns &lt; mmp_interval) results in the pool being
+<span class="lineNum">     416 </span>                :            :                  * immediately suspended before writes can occur at the new
+<span class="lineNum">     417 </span>                :            :                  * higher frequency.
+<span class="lineNum">     418 </span>                :            :                  */
+<span class="lineNum">     419 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2084 times"> + </span>]:<span class="lineCov">       2084 :                 if ((mmp_interval * mmp_fail_intervals) &lt; max_fail_ns) {</span>
+<span class="lineNum">     420 </span>                :<span class="lineNoCov">          0 :                         max_fail_ns = ((31 * max_fail_ns) + (mmp_interval *</span>
+<span class="lineNum">     421 </span>                :<span class="lineNoCov">          0 :                             mmp_fail_intervals)) / 32;</span>
+<span class="lineNum">     422 </span>                :            :                 } else {
+<span class="lineNum">     423 </span>                :<span class="lineCov">       2084 :                         max_fail_ns = mmp_interval * mmp_fail_intervals;</span>
+<span class="lineNum">     424 </span>                :            :                 }
+<span class="lineNum">     425 </span>                :            : 
+<span class="lineNum">     426 </span>                :            :                 /*
+<span class="lineNum">     427 </span>                :            :                  * Suspend the pool if no MMP write has succeeded in over
+<span class="lineNum">     428 </span>                :            :                  * mmp_interval * mmp_fail_intervals nanoseconds.
+<span class="lineNum">     429 </span>                :            :                  */
+<span class="lineNum">     430 </span>[<span class="branchCov" title="Branch 0 was taken 2083 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>][<span class="branchCov" title="Branch 2 was taken 730 times"> + </span><span class="branchCov" title="Branch 3 was taken 1353 times"> + </span>]:<span class="lineCov">       2084 :                 if (!suspended &amp;&amp; mmp_fail_intervals &amp;&amp; multihost &amp;&amp;</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 1 time"> + </span><span class="branchCov" title="Branch 5 was taken 729 times"> + </span>]
+<span class="lineNum">     431 </span>                :<span class="lineCov">        730 :                     (start - mmp-&gt;mmp_last_write) &gt; max_fail_ns) {</span>
+<span class="lineNum">     432 </span>                :<span class="lineCov">          1 :                         zio_suspend(spa, NULL);</span>
+<span class="lineNum">     433 </span>                :            :                 }
+<span class="lineNum">     434 </span>                :            : 
+<span class="lineNum">     435 </span>        [<span class="branchCov" title="Branch 0 was taken 731 times"> + </span><span class="branchCov" title="Branch 1 was taken 1353 times"> + </span>]:<span class="lineCov">       2084 :                 if (multihost)</span>
+<span class="lineNum">     436 </span>                :<span class="lineCov">        731 :                         mmp_write_uberblock(spa);</span>
+<span class="lineNum">     437 </span>                :            : 
+<span class="lineNum">     438 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 2084 times"> + </span>]:<span class="lineCov">       2084 :                 CALLB_CPR_SAFE_BEGIN(&amp;cpr);</span>
+<span class="lineNum">     439 </span>                :<span class="lineCov">       2084 :                 (void) cv_timedwait_sig(&amp;mmp-&gt;mmp_thread_cv,</span>
+<span class="lineNum">     440 </span>                :            :                     &amp;mmp-&gt;mmp_thread_lock, ddi_get_lbolt() +
+<span class="lineNum">     441 </span>                :            :                     ((next_time - gethrtime()) / (NANOSEC / hz)));
+<span class="lineNum">     442 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 2083 times"> + </span>]:<span class="lineCov">       2083 :                 CALLB_CPR_SAFE_END(&amp;cpr, &amp;mmp-&gt;mmp_thread_lock);</span>
+<span class="lineNum">     443 </span>                :            :         }
+<span class="lineNum">     444 </span>                :            : 
+<span class="lineNum">     445 </span>                :            :         /* Outstanding writes are allowed to complete. */
+<span class="lineNum">     446 </span>        [<span class="branchCov" title="Branch 0 was taken 46 times"> + </span><span class="branchCov" title="Branch 1 was taken 233 times"> + </span>]:<span class="lineCov">        279 :         if (mmp-&gt;mmp_zio_root)</span>
+<span class="lineNum">     447 </span>                :<span class="lineCov">         46 :                 zio_wait(mmp-&gt;mmp_zio_root);</span>
+<span class="lineNum">     448 </span>                :            : 
+<span class="lineNum">     449 </span>                :<span class="lineCov">        279 :         mmp-&gt;mmp_zio_root = NULL;</span>
+<span class="lineNum">     450 </span>                :<span class="lineCov">        279 :         mmp_thread_exit(mmp, &amp;mmp-&gt;mmp_thread, &amp;cpr);</span>
+<span class="lineNum">     451 </span>                :            : }
+<span class="lineNum">     452 </span>                :            : 
+<span class="lineNum">     453 </span>                :            : /*
+<span class="lineNum">     454 </span>                :            :  * Signal the MMP thread to wake it, when it is sleeping on
+<span class="lineNum">     455 </span>                :            :  * its cv.  Used when some module parameter has changed and
+<span class="lineNum">     456 </span>                :            :  * we want the thread to know about it.
+<span class="lineNum">     457 </span>                :            :  * Only signal if the pool is active and mmp thread is
+<span class="lineNum">     458 </span>                :            :  * running, otherwise there is no thread to wake.
+<a name="459"><span class="lineNum">     459 </span>                :            :  */</a>
+<span class="lineNum">     460 </span>                :            : static void
+<span class="lineNum">     461 </span>                :<span class="lineCov">         70 : mmp_signal_thread(spa_t *spa)</span>
+<span class="lineNum">     462 </span>                :            : {
+<span class="lineNum">     463 </span>                :<span class="lineCov">         70 :         mmp_thread_t *mmp = &amp;spa-&gt;spa_mmp;</span>
+<span class="lineNum">     464 </span>                :            : 
+<span class="lineNum">     465 </span>                :<span class="lineCov">         70 :         mutex_enter(&amp;mmp-&gt;mmp_thread_lock);</span>
+<span class="lineNum">     466 </span>        [<span class="branchCov" title="Branch 0 was taken 67 times"> + </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">         70 :         if (mmp-&gt;mmp_thread)</span>
+<span class="lineNum">     467 </span>                :<span class="lineCov">         67 :                 cv_broadcast(&amp;mmp-&gt;mmp_thread_cv);</span>
+<span class="lineNum">     468 </span>                :<span class="lineCov">         70 :         mutex_exit(&amp;mmp-&gt;mmp_thread_lock);</span>
+<span class="lineNum">     469 </span>                :<span class="lineCov">         70 : }</span>
+<a name="470"><span class="lineNum">     470 </span>                :            : </a>
+<span class="lineNum">     471 </span>                :            : void
+<span class="lineNum">     472 </span>                :<span class="lineCov">         56 : mmp_signal_all_threads(void)</span>
+<span class="lineNum">     473 </span>                :            : {
+<span class="lineNum">     474 </span>                :<span class="lineCov">         56 :         spa_t *spa = NULL;</span>
+<span class="lineNum">     475 </span>                :            : 
+<span class="lineNum">     476 </span>                :<span class="lineCov">         56 :         mutex_enter(&amp;spa_namespace_lock);</span>
+<span class="lineNum">     477 </span>        [<span class="branchCov" title="Branch 1 was taken 72 times"> + </span><span class="branchCov" title="Branch 2 was taken 56 times"> + </span>]:<span class="lineCov">        128 :         while ((spa = spa_next(spa))) {</span>
+<span class="lineNum">     478 </span>        [<span class="branchCov" title="Branch 0 was taken 70 times"> + </span><span class="branchCov" title="Branch 1 was taken 2 times"> + </span>]:<span class="lineCov">         72 :                 if (spa-&gt;spa_state == POOL_STATE_ACTIVE)</span>
+<span class="lineNum">     479 </span>                :<span class="lineCov">         72 :                         mmp_signal_thread(spa);</span>
+<span class="lineNum">     480 </span>                :            :         }
+<span class="lineNum">     481 </span>                :<span class="lineCov">         56 :         mutex_exit(&amp;spa_namespace_lock);</span>
+<span class="lineNum">     482 </span>                :<span class="lineCov">         56 : }</span>
+<span class="lineNum">     483 </span>                :            : 
+<span class="lineNum">     484 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     485 </span>                :            : #include &lt;linux/mod_compat.h&gt;
+<span class="lineNum">     486 </span>                :            : 
+<span class="lineNum">     487 </span>                :            : static int
+<span class="lineNum">     488 </span>                :            : param_set_multihost_interval(const char *val, zfs_kernel_param_t *kp)
+<span class="lineNum">     489 </span>                :            : {
+<span class="lineNum">     490 </span>                :            :         int ret;
+<span class="lineNum">     491 </span>                :            : 
+<span class="lineNum">     492 </span>                :            :         ret = param_set_ulong(val, kp);
+<span class="lineNum">     493 </span>                :            :         if (ret &lt; 0)
+<span class="lineNum">     494 </span>                :            :                 return (ret);
+<span class="lineNum">     495 </span>                :            : 
+<span class="lineNum">     496 </span>                :            :         mmp_signal_all_threads();
+<span class="lineNum">     497 </span>                :            : 
+<span class="lineNum">     498 </span>                :            :         return (ret);
+<span class="lineNum">     499 </span>                :            : }
+<span class="lineNum">     500 </span>                :            : 
+<span class="lineNum">     501 </span>                :            : /* BEGIN CSTYLED */
+<span class="lineNum">     502 </span>                :            : module_param(zfs_multihost_fail_intervals, uint, 0644);
+<span class="lineNum">     503 </span>                :            : MODULE_PARM_DESC(zfs_multihost_fail_intervals,
+<span class="lineNum">     504 </span>                :            :         &quot;Max allowed period without a successful mmp write&quot;);
+<span class="lineNum">     505 </span>                :            : 
+<span class="lineNum">     506 </span>                :            : module_param_call(zfs_multihost_interval, param_set_multihost_interval,
+<span class="lineNum">     507 </span>                :            :     param_get_ulong, &amp;zfs_multihost_interval, 0644);
+<span class="lineNum">     508 </span>                :            : MODULE_PARM_DESC(zfs_multihost_interval,
+<span class="lineNum">     509 </span>                :            :         &quot;Milliseconds between mmp writes to each leaf&quot;);
+<span class="lineNum">     510 </span>                :            : 
+<span class="lineNum">     511 </span>                :            : module_param(zfs_multihost_import_intervals, uint, 0644);
+<span class="lineNum">     512 </span>                :            : MODULE_PARM_DESC(zfs_multihost_import_intervals,
+<span class="lineNum">     513 </span>                :            :         &quot;Number of zfs_multihost_interval periods to wait for activity&quot;);
+<span class="lineNum">     514 </span>                :            : /* END CSTYLED */
+<span class="lineNum">     515 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,511 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/multilist.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - multilist.c<span style="font-size: 80%;"> (source / <a href="multilist.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">120</td>
+            <td class="headerCovTableEntry">120</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">43</td>
+            <td class="headerCovTableEntry">69</td>
+            <td class="headerCovTableEntryLo">62.3 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * This file and its contents are supplied under the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (&quot;CDDL&quot;), version 1.0.
+<span class="lineNum">       6 </span>                :            :  * You may only use this file in accordance with the terms of version
+<span class="lineNum">       7 </span>                :            :  * 1.0 of the CDDL.
+<span class="lineNum">       8 </span>                :            :  *
+<span class="lineNum">       9 </span>                :            :  * A full copy of the text of the CDDL should have accompanied this
+<span class="lineNum">      10 </span>                :            :  * source.  A copy of the CDDL is also available via the Internet at
+<span class="lineNum">      11 </span>                :            :  * http://www.illumos.org/license/CDDL.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      14 </span>                :            :  */
+<span class="lineNum">      15 </span>                :            : /*
+<span class="lineNum">      16 </span>                :            :  * Copyright (c) 2013, 2017 by Delphix. All rights reserved.
+<span class="lineNum">      17 </span>                :            :  */
+<span class="lineNum">      18 </span>                :            : 
+<span class="lineNum">      19 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      20 </span>                :            : #include &lt;sys/multilist.h&gt;
+<span class="lineNum">      21 </span>                :            : #include &lt;sys/trace_multilist.h&gt;
+<span class="lineNum">      22 </span>                :            : 
+<span class="lineNum">      23 </span>                :            : /* needed for spa_get_random() */
+<span class="lineNum">      24 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : /*
+<span class="lineNum">      27 </span>                :            :  * This overrides the number of sublists in each multilist_t, which defaults
+<span class="lineNum">      28 </span>                :            :  * to the number of CPUs in the system (see multilist_create()).
+<span class="lineNum">      29 </span>                :            :  */
+<span class="lineNum">      30 </span>                :            : int zfs_multilist_num_sublists = 0;
+<span class="lineNum">      31 </span>                :            : 
+<span class="lineNum">      32 </span>                :            : /*
+<span class="lineNum">      33 </span>                :            :  * Given the object contained on the list, return a pointer to the
+<span class="lineNum">      34 </span>                :            :  * object's multilist_node_t structure it contains.
+<span class="lineNum">      35 </span>                :            :  */
+<a name="36"><span class="lineNum">      36 </span>                :            : #ifdef DEBUG</a>
+<span class="lineNum">      37 </span>                :            : static multilist_node_t *
+<span class="lineNum">      38 </span>                :<span class="lineCov">    8494950 : multilist_d2l(multilist_t *ml, void *obj)</span>
+<span class="lineNum">      39 </span>                :            : {
+<span class="lineNum">      40 </span>                :<span class="lineCov">    4247475 :         return ((multilist_node_t *)((char *)obj + ml-&gt;ml_offset));</span>
+<span class="lineNum">      41 </span>                :            : }
+<span class="lineNum">      42 </span>                :            : #endif
+<span class="lineNum">      43 </span>                :            : 
+<span class="lineNum">      44 </span>                :            : /*
+<span class="lineNum">      45 </span>                :            :  * Initialize a new mutlilist using the parameters specified.
+<span class="lineNum">      46 </span>                :            :  *
+<span class="lineNum">      47 </span>                :            :  *  - 'size' denotes the size of the structure containing the
+<span class="lineNum">      48 </span>                :            :  *     multilist_node_t.
+<span class="lineNum">      49 </span>                :            :  *  - 'offset' denotes the byte offset of the mutlilist_node_t within
+<span class="lineNum">      50 </span>                :            :  *     the structure that contains it.
+<span class="lineNum">      51 </span>                :            :  *  - 'num' specifies the number of internal sublists to create.
+<span class="lineNum">      52 </span>                :            :  *  - 'index_func' is used to determine which sublist to insert into
+<span class="lineNum">      53 </span>                :            :  *     when the multilist_insert() function is called; as well as which
+<span class="lineNum">      54 </span>                :            :  *     sublist to remove from when multilist_remove() is called. The
+<span class="lineNum">      55 </span>                :            :  *     requirements this function must meet, are the following:
+<span class="lineNum">      56 </span>                :            :  *
+<span class="lineNum">      57 </span>                :            :  *      - It must always return the same value when called on the same
+<span class="lineNum">      58 </span>                :            :  *        object (to ensure the object is removed from the list it was
+<span class="lineNum">      59 </span>                :            :  *        inserted into).
+<span class="lineNum">      60 </span>                :            :  *
+<span class="lineNum">      61 </span>                :            :  *      - It must return a value in the range [0, number of sublists).
+<span class="lineNum">      62 </span>                :            :  *        The multilist_get_num_sublists() function may be used to
+<span class="lineNum">      63 </span>                :            :  *        determine the number of sublists in the multilist.
+<span class="lineNum">      64 </span>                :            :  *
+<span class="lineNum">      65 </span>                :            :  *     Also, in order to reduce internal contention between the sublists
+<span class="lineNum">      66 </span>                :            :  *     during insertion and removal, this function should choose evenly
+<span class="lineNum">      67 </span>                :            :  *     between all available sublists when inserting. This isn't a hard
+<span class="lineNum">      68 </span>                :            :  *     requirement, but a general rule of thumb in order to garner the
+<span class="lineNum">      69 </span>                :            :  *     best multi-threaded performance out of the data structure.
+<a name="70"><span class="lineNum">      70 </span>                :            :  */</a>
+<span class="lineNum">      71 </span>                :            : static multilist_t *
+<span class="lineNum">      72 </span>                :<span class="lineCov">      58998 : multilist_create_impl(size_t size, size_t offset,</span>
+<span class="lineNum">      73 </span>                :            :     unsigned int num, multilist_sublist_index_func_t *index_func)
+<span class="lineNum">      74 </span>                :            : {
+<span class="lineNum">      75 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 58998 times"> + </span>]:<span class="lineCov">      58998 :         ASSERT3U(size, &gt;, 0);</span>
+<span class="lineNum">      76 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 58998 times"> + </span>]:<span class="lineCov">      58998 :         ASSERT3U(size, &gt;=, offset + sizeof (multilist_node_t));</span>
+<span class="lineNum">      77 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 58998 times"> + </span>]:<span class="lineCov">      58998 :         ASSERT3U(num, &gt;, 0);</span>
+<span class="lineNum">      78 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 58998 times"> + </span>]:<span class="lineCov">      58998 :         ASSERT3P(index_func, !=, NULL);</span>
+<span class="lineNum">      79 </span>                :            : 
+<span class="lineNum">      80 </span>                :<span class="lineCov">      58998 :         multilist_t *ml = kmem_alloc(sizeof (*ml), KM_SLEEP);</span>
+<span class="lineNum">      81 </span>                :<span class="lineCov">      58998 :         ml-&gt;ml_offset = offset;</span>
+<span class="lineNum">      82 </span>                :<span class="lineCov">      58998 :         ml-&gt;ml_num_sublists = num;</span>
+<span class="lineNum">      83 </span>                :<span class="lineCov">      58998 :         ml-&gt;ml_index_func = index_func;</span>
+<span class="lineNum">      84 </span>                :            : 
+<span class="lineNum">      85 </span>                :<span class="lineCov">      58998 :         ml-&gt;ml_sublists = kmem_zalloc(sizeof (multilist_sublist_t) *</span>
+<span class="lineNum">      86 </span>                :            :             ml-&gt;ml_num_sublists, KM_SLEEP);
+<span class="lineNum">      87 </span>                :            : 
+<span class="lineNum">      88 </span>        [<span class="branchCov" title="Branch 0 was taken 58998 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      58998 :         ASSERT3P(ml-&gt;ml_sublists, !=, NULL);</span>
+<span class="lineNum">      89 </span>                :            : 
+<span class="lineNum">      90 </span>        [<span class="branchCov" title="Branch 0 was taken 471977 times"> + </span><span class="branchCov" title="Branch 1 was taken 58997 times"> + </span>]:<span class="lineCov">     530974 :         for (int i = 0; i &lt; ml-&gt;ml_num_sublists; i++) {</span>
+<span class="lineNum">      91 </span>                :<span class="lineCov">     471977 :                 multilist_sublist_t *mls = &amp;ml-&gt;ml_sublists[i];</span>
+<span class="lineNum">      92 </span>                :<span class="lineCov">     471977 :                 mutex_init(&amp;mls-&gt;mls_lock, NULL, MUTEX_NOLOCKDEP, NULL);</span>
+<span class="lineNum">      93 </span>                :<span class="lineCov">     471976 :                 list_create(&amp;mls-&gt;mls_list, size, offset);</span>
+<span class="lineNum">      94 </span>                :            :         }
+<span class="lineNum">      95 </span>                :<span class="lineCov">      58997 :         return (ml);</span>
+<span class="lineNum">      96 </span>                :            : }
+<span class="lineNum">      97 </span>                :            : 
+<span class="lineNum">      98 </span>                :            : /*
+<span class="lineNum">      99 </span>                :            :  * Allocate a new multilist, using the default number of sublists
+<span class="lineNum">     100 </span>                :            :  * (the number of CPUs, or at least 4, or the tunable
+<span class="lineNum">     101 </span>                :            :  * zfs_multilist_num_sublists).
+<a name="102"><span class="lineNum">     102 </span>                :            :  */</a>
+<span class="lineNum">     103 </span>                :            : multilist_t *
+<span class="lineNum">     104 </span>                :<span class="lineCov">      58997 : multilist_create(size_t size, size_t offset,</span>
+<span class="lineNum">     105 </span>                :            :     multilist_sublist_index_func_t *index_func)
+<span class="lineNum">     106 </span>                :            : {
+<span class="lineNum">     107 </span>                :            :         int num_sublists;
+<span class="lineNum">     108 </span>                :            : 
+<span class="lineNum">     109 </span>        [<span class="branchCov" title="Branch 0 was taken 58997 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      58997 :         if (zfs_multilist_num_sublists &gt; 0) {</span>
+<span class="lineNum">     110 </span>                :            :                 num_sublists = zfs_multilist_num_sublists;
+<span class="lineNum">     111 </span>                :            :         } else {
+<span class="lineNum">     112 </span>        [<span class="branchCov" title="Branch 1 was taken 58998 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">      58997 :                 num_sublists = MAX(boot_ncpus, 4);</span>
+<span class="lineNum">     113 </span>                :            :         }
+<span class="lineNum">     114 </span>                :            : 
+<span class="lineNum">     115 </span>                :<span class="lineCov">      58998 :         return (multilist_create_impl(size, offset, num_sublists, index_func));</span>
+<span class="lineNum">     116 </span>                :            : }
+<span class="lineNum">     117 </span>                :            : 
+<span class="lineNum">     118 </span>                :            : /*
+<span class="lineNum">     119 </span>                :            :  * Destroy the given multilist object, and free up any memory it holds.
+<a name="120"><span class="lineNum">     120 </span>                :            :  */</a>
+<span class="lineNum">     121 </span>                :            : void
+<span class="lineNum">     122 </span>                :<span class="lineCov">      54047 : multilist_destroy(multilist_t *ml)</span>
+<span class="lineNum">     123 </span>                :            : {
+<span class="lineNum">     124 </span>                :            :         int i;
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>        [<span class="branchCov" title="Branch 1 was taken 54047 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">      54047 :         ASSERT(multilist_is_empty(ml));</span>
+<span class="lineNum">     127 </span>                :            : 
+<span class="lineNum">     128 </span>        [<span class="branchCov" title="Branch 0 was taken 432376 times"> + </span><span class="branchCov" title="Branch 1 was taken 54047 times"> + </span>]:<span class="lineCov">     486423 :         for (i = 0; i &lt; ml-&gt;ml_num_sublists; i++) {</span>
+<span class="lineNum">     129 </span>                :<span class="lineCov">     432376 :                 multilist_sublist_t *mls = &amp;ml-&gt;ml_sublists[i];</span>
+<span class="lineNum">     130 </span>                :            : 
+<span class="lineNum">     131 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 432376 times"> + </span>]:<span class="lineCov">     432376 :                 ASSERT(list_is_empty(&amp;mls-&gt;mls_list));</span>
+<span class="lineNum">     132 </span>                :            : 
+<span class="lineNum">     133 </span>                :<span class="lineCov">     432376 :                 list_destroy(&amp;mls-&gt;mls_list);</span>
+<span class="lineNum">     134 </span>                :<span class="lineCov">     432376 :                 mutex_destroy(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     135 </span>                :            :         }
+<span class="lineNum">     136 </span>                :            : 
+<span class="lineNum">     137 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 54047 times"> + </span>]:<span class="lineCov">      54047 :         ASSERT3P(ml-&gt;ml_sublists, !=, NULL);</span>
+<span class="lineNum">     138 </span>                :<span class="lineCov">      54047 :         kmem_free(ml-&gt;ml_sublists,</span>
+<span class="lineNum">     139 </span>                :            :             sizeof (multilist_sublist_t) * ml-&gt;ml_num_sublists);
+<span class="lineNum">     140 </span>                :            : 
+<span class="lineNum">     141 </span>                :<span class="lineCov">      54047 :         ml-&gt;ml_num_sublists = 0;</span>
+<span class="lineNum">     142 </span>                :<span class="lineCov">      54047 :         ml-&gt;ml_offset = 0;</span>
+<span class="lineNum">     143 </span>                :<span class="lineCov">      54047 :         kmem_free(ml, sizeof (multilist_t));</span>
+<span class="lineNum">     144 </span>                :<span class="lineCov">      54047 : }</span>
+<span class="lineNum">     145 </span>                :            : 
+<span class="lineNum">     146 </span>                :            : /*
+<span class="lineNum">     147 </span>                :            :  * Insert the given object into the multilist.
+<span class="lineNum">     148 </span>                :            :  *
+<span class="lineNum">     149 </span>                :            :  * This function will insert the object specified into the sublist
+<span class="lineNum">     150 </span>                :            :  * determined using the function given at multilist creation time.
+<span class="lineNum">     151 </span>                :            :  *
+<span class="lineNum">     152 </span>                :            :  * The sublist locks are automatically acquired if not already held, to
+<span class="lineNum">     153 </span>                :            :  * ensure consistency when inserting and removing from multiple threads.
+<a name="154"><span class="lineNum">     154 </span>                :            :  */</a>
+<span class="lineNum">     155 </span>                :            : void
+<span class="lineNum">     156 </span>                :<span class="lineCov">    2124113 : multilist_insert(multilist_t *ml, void *obj)</span>
+<span class="lineNum">     157 </span>                :            : {
+<span class="lineNum">     158 </span>                :<span class="lineCov">    2124113 :         unsigned int sublist_idx = ml-&gt;ml_index_func(ml, obj);</span>
+<span class="lineNum">     159 </span>                :            :         multilist_sublist_t *mls;
+<span class="lineNum">     160 </span>                :            :         boolean_t need_lock;
+<span class="lineNum">     161 </span>                :            : 
+<span class="lineNum">     162 </span>                :            :         DTRACE_PROBE3(multilist__insert, multilist_t *, ml,
+<span class="lineNum">     163 </span>                :            :             unsigned int, sublist_idx, void *, obj);
+<span class="lineNum">     164 </span>                :            : 
+<span class="lineNum">     165 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2124093 times"> + </span>]:<span class="lineCov">    2124093 :         ASSERT3U(sublist_idx, &lt;, ml-&gt;ml_num_sublists);</span>
+<span class="lineNum">     166 </span>                :            : 
+<span class="lineNum">     167 </span>                :<span class="lineCov">    2124093 :         mls = &amp;ml-&gt;ml_sublists[sublist_idx];</span>
+<span class="lineNum">     168 </span>                :            : 
+<span class="lineNum">     169 </span>                :            :         /*
+<span class="lineNum">     170 </span>                :            :          * Note: Callers may already hold the sublist lock by calling
+<span class="lineNum">     171 </span>                :            :          * multilist_sublist_lock().  Here we rely on MUTEX_HELD()
+<span class="lineNum">     172 </span>                :            :          * returning TRUE if and only if the current thread holds the
+<span class="lineNum">     173 </span>                :            :          * lock.  While it's a little ugly to make the lock recursive in
+<span class="lineNum">     174 </span>                :            :          * this way, it works and allows the calling code to be much
+<span class="lineNum">     175 </span>                :            :          * simpler -- otherwise it would have to pass around a flag
+<span class="lineNum">     176 </span>                :            :          * indicating that it already has the lock.
+<span class="lineNum">     177 </span>                :            :          */
+<span class="lineNum">     178 </span>                :<span class="lineCov">    2124093 :         need_lock = !MUTEX_HELD(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     179 </span>                :            : 
+<span class="lineNum">     180 </span>           [<span class="branchCov" title="Branch 0 was taken 2124098 times"> + </span>]:<span class="lineCov">    2124092 :         if (need_lock)</span>
+<span class="lineNum">     181 </span>                :<span class="lineCov">    2124098 :                 mutex_enter(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     182 </span>                :            : 
+<span class="lineNum">     183 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 2124093 times"> + </span>]:<span class="lineCov">    2124152 :         ASSERT(!multilist_link_active(multilist_d2l(ml, obj)));</span>
+<span class="lineNum">     184 </span>                :            : 
+<span class="lineNum">     185 </span>                :<span class="lineCov">    2124093 :         multilist_sublist_insert_head(mls, obj);</span>
+<span class="lineNum">     186 </span>                :            : 
+<span class="lineNum">     187 </span>           [<span class="branchCov" title="Branch 0 was taken 2124006 times"> + </span>]:<span class="lineCov">    2124004 :         if (need_lock)</span>
+<span class="lineNum">     188 </span>                :<span class="lineCov">    2124006 :                 mutex_exit(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     189 </span>                :<span class="lineCov">    2124173 : }</span>
+<span class="lineNum">     190 </span>                :            : 
+<span class="lineNum">     191 </span>                :            : /*
+<span class="lineNum">     192 </span>                :            :  * Remove the given object from the multilist.
+<span class="lineNum">     193 </span>                :            :  *
+<span class="lineNum">     194 </span>                :            :  * This function will remove the object specified from the sublist
+<span class="lineNum">     195 </span>                :            :  * determined using the function given at multilist creation time.
+<span class="lineNum">     196 </span>                :            :  *
+<span class="lineNum">     197 </span>                :            :  * The necessary sublist locks are automatically acquired, to ensure
+<span class="lineNum">     198 </span>                :            :  * consistency when inserting and removing from multiple threads.
+<a name="199"><span class="lineNum">     199 </span>                :            :  */</a>
+<span class="lineNum">     200 </span>                :            : void
+<span class="lineNum">     201 </span>                :<span class="lineCov">    2123410 : multilist_remove(multilist_t *ml, void *obj)</span>
+<span class="lineNum">     202 </span>                :            : {
+<span class="lineNum">     203 </span>                :<span class="lineCov">    2123410 :         unsigned int sublist_idx = ml-&gt;ml_index_func(ml, obj);</span>
+<span class="lineNum">     204 </span>                :            :         multilist_sublist_t *mls;
+<span class="lineNum">     205 </span>                :            :         boolean_t need_lock;
+<span class="lineNum">     206 </span>                :            : 
+<span class="lineNum">     207 </span>                :            :         DTRACE_PROBE3(multilist__remove, multilist_t *, ml,
+<span class="lineNum">     208 </span>                :            :             unsigned int, sublist_idx, void *, obj);
+<span class="lineNum">     209 </span>                :            : 
+<span class="lineNum">     210 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2123394 times"> + </span>]:<span class="lineCov">    2123394 :         ASSERT3U(sublist_idx, &lt;, ml-&gt;ml_num_sublists);</span>
+<span class="lineNum">     211 </span>                :            : 
+<span class="lineNum">     212 </span>                :<span class="lineCov">    2123394 :         mls = &amp;ml-&gt;ml_sublists[sublist_idx];</span>
+<span class="lineNum">     213 </span>                :            :         /* See comment in multilist_insert(). */
+<span class="lineNum">     214 </span>                :<span class="lineCov">    2123394 :         need_lock = !MUTEX_HELD(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     215 </span>                :            : 
+<span class="lineNum">     216 </span>        [<span class="branchCov" title="Branch 0 was taken 1577215 times"> + </span><span class="branchCov" title="Branch 1 was taken 546182 times"> + </span>]:<span class="lineCov">    2123397 :         if (need_lock)</span>
+<span class="lineNum">     217 </span>                :<span class="lineCov">    1577215 :                 mutex_enter(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     218 </span>                :            : 
+<span class="lineNum">     219 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 2123417 times"> + </span>]:<span class="lineCov">    2123426 :         ASSERT(multilist_link_active(multilist_d2l(ml, obj)));</span>
+<span class="lineNum">     220 </span>                :            : 
+<span class="lineNum">     221 </span>                :<span class="lineCov">    2123417 :         multilist_sublist_remove(mls, obj);</span>
+<span class="lineNum">     222 </span>                :            : 
+<span class="lineNum">     223 </span>        [<span class="branchCov" title="Branch 0 was taken 1577148 times"> + </span><span class="branchCov" title="Branch 1 was taken 546187 times"> + </span>]:<span class="lineCov">    2123335 :         if (need_lock)</span>
+<span class="lineNum">     224 </span>                :<span class="lineCov">    1577148 :                 mutex_exit(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     225 </span>                :<span class="lineCov">    2123446 : }</span>
+<span class="lineNum">     226 </span>                :            : 
+<span class="lineNum">     227 </span>                :            : /*
+<span class="lineNum">     228 </span>                :            :  * Check to see if this multilist object is empty.
+<span class="lineNum">     229 </span>                :            :  *
+<span class="lineNum">     230 </span>                :            :  * This will return TRUE if it finds all of the sublists of this
+<span class="lineNum">     231 </span>                :            :  * multilist to be empty, and FALSE otherwise. Each sublist lock will be
+<span class="lineNum">     232 </span>                :            :  * automatically acquired as necessary.
+<span class="lineNum">     233 </span>                :            :  *
+<span class="lineNum">     234 </span>                :            :  * If concurrent insertions and removals are occurring, the semantics
+<span class="lineNum">     235 </span>                :            :  * of this function become a little fuzzy. Instead of locking all
+<span class="lineNum">     236 </span>                :            :  * sublists for the entire call time of the function, each sublist is
+<span class="lineNum">     237 </span>                :            :  * only locked as it is individually checked for emptiness. Thus, it's
+<span class="lineNum">     238 </span>                :            :  * possible for this function to return TRUE with non-empty sublists at
+<span class="lineNum">     239 </span>                :            :  * the time the function returns. This would be due to another thread
+<span class="lineNum">     240 </span>                :            :  * inserting into a given sublist, after that specific sublist was check
+<span class="lineNum">     241 </span>                :            :  * and deemed empty, but before all sublists have been checked.
+<a name="242"><span class="lineNum">     242 </span>                :            :  */</a>
+<span class="lineNum">     243 </span>                :            : int
+<span class="lineNum">     244 </span>                :<span class="lineCov">    4430869 : multilist_is_empty(multilist_t *ml)</span>
+<span class="lineNum">     245 </span>                :            : {
+<span class="lineNum">     246 </span>                :            :         int i;
+<span class="lineNum">     247 </span>                :            : 
+<span class="lineNum">     248 </span>        [<span class="branchCov" title="Branch 0 was taken 35010324 times"> + </span><span class="branchCov" title="Branch 1 was taken 4352967 times"> + </span>]:<span class="lineCov">   39363291 :         for (i = 0; i &lt; ml-&gt;ml_num_sublists; i++) {</span>
+<span class="lineNum">     249 </span>                :<span class="lineCov">   35010324 :                 multilist_sublist_t *mls = &amp;ml-&gt;ml_sublists[i];</span>
+<span class="lineNum">     250 </span>                :            :                 /* See comment in multilist_insert(). */
+<span class="lineNum">     251 </span>                :<span class="lineCov">   35010324 :                 boolean_t need_lock = !MUTEX_HELD(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     252 </span>                :            : 
+<span class="lineNum">     253 </span>           [<span class="branchCov" title="Branch 0 was taken 35010448 times"> + </span>]:<span class="lineCov">   35010433 :                 if (need_lock)</span>
+<span class="lineNum">     254 </span>                :<span class="lineCov">   35010448 :                         mutex_enter(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     255 </span>                :            : 
+<span class="lineNum">     256 </span>        [<span class="branchCov" title="Branch 1 was taken 78279 times"> + </span><span class="branchCov" title="Branch 2 was taken 34932421 times"> + </span>]:<span class="lineCov">   35010782 :                 if (!list_is_empty(&amp;mls-&gt;mls_list)) {</span>
+<span class="lineNum">     257 </span>        [<span class="branchCov" title="Branch 0 was taken 78279 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      78279 :                         if (need_lock)</span>
+<span class="lineNum">     258 </span>                :<span class="lineCov">      78279 :                                 mutex_exit(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     259 </span>                :            : 
+<span class="lineNum">     260 </span>                :            :                         return (FALSE);
+<span class="lineNum">     261 </span>                :            :                 }
+<span class="lineNum">     262 </span>                :            : 
+<span class="lineNum">     263 </span>        [<span class="branchCov" title="Branch 0 was taken 34932414 times"> + </span><span class="branchCov" title="Branch 1 was taken 7 times"> + </span>]:<span class="lineCov">   34932421 :                 if (need_lock)</span>
+<span class="lineNum">     264 </span>                :<span class="lineCov">   34932414 :                         mutex_exit(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     265 </span>                :            :         }
+<span class="lineNum">     266 </span>                :            : 
+<span class="lineNum">     267 </span>                :            :         return (TRUE);
+<span class="lineNum">     268 </span>                :            : }
+<span class="lineNum">     269 </span>                :            : 
+<a name="270"><span class="lineNum">     270 </span>                :            : /* Return the number of sublists composing this multilist */</a>
+<span class="lineNum">     271 </span>                :            : unsigned int
+<span class="lineNum">     272 </span>                :<span class="lineCov">   67711939 : multilist_get_num_sublists(multilist_t *ml)</span>
+<span class="lineNum">     273 </span>                :            : {
+<span class="lineNum">     274 </span>                :<span class="lineCov">   67711939 :         return (ml-&gt;ml_num_sublists);</span>
+<span class="lineNum">     275 </span>                :            : }
+<span class="lineNum">     276 </span>                :            : 
+<a name="277"><span class="lineNum">     277 </span>                :            : /* Return a randomly selected, valid sublist index for this multilist */</a>
+<span class="lineNum">     278 </span>                :            : unsigned int
+<span class="lineNum">     279 </span>                :<span class="lineCov">   62326275 : multilist_get_random_index(multilist_t *ml)</span>
+<span class="lineNum">     280 </span>                :            : {
+<span class="lineNum">     281 </span>                :<span class="lineCov">   62326275 :         return (spa_get_random(ml-&gt;ml_num_sublists));</span>
+<span class="lineNum">     282 </span>                :            : }
+<span class="lineNum">     283 </span>                :            : 
+<a name="284"><span class="lineNum">     284 </span>                :            : /* Lock and return the sublist specified at the given index */</a>
+<span class="lineNum">     285 </span>                :            : multilist_sublist_t *
+<span class="lineNum">     286 </span>                :<span class="lineCov"> 1494176300 : multilist_sublist_lock(multilist_t *ml, unsigned int sublist_idx)</span>
+<span class="lineNum">     287 </span>                :            : {
+<span class="lineNum">     288 </span>                :            :         multilist_sublist_t *mls;
+<span class="lineNum">     289 </span>                :            : 
+<span class="lineNum">     290 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1494176300 times"> + </span>]:<span class="lineCov"> 1494176300 :         ASSERT3U(sublist_idx, &lt;, ml-&gt;ml_num_sublists);</span>
+<span class="lineNum">     291 </span>                :<span class="lineCov"> 1494176300 :         mls = &amp;ml-&gt;ml_sublists[sublist_idx];</span>
+<span class="lineNum">     292 </span>                :<span class="lineCov"> 1494176300 :         mutex_enter(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     293 </span>                :            : 
+<span class="lineNum">     294 </span>                :<span class="lineCov"> 1494176618 :         return (mls);</span>
+<span class="lineNum">     295 </span>                :            : }
+<span class="lineNum">     296 </span>                :            : 
+<a name="297"><span class="lineNum">     297 </span>                :            : /* Lock and return the sublist that would be used to store the specified obj */</a>
+<span class="lineNum">     298 </span>                :            : multilist_sublist_t *
+<span class="lineNum">     299 </span>                :<span class="lineCov">     646677 : multilist_sublist_lock_obj(multilist_t *ml, void *obj)</span>
+<span class="lineNum">     300 </span>                :            : {
+<span class="lineNum">     301 </span>                :<span class="lineCov">     646677 :         return (multilist_sublist_lock(ml, ml-&gt;ml_index_func(ml, obj)));</span>
+<span class="lineNum">     302 </span>                :            : }
+<a name="303"><span class="lineNum">     303 </span>                :            : </a>
+<span class="lineNum">     304 </span>                :            : void
+<span class="lineNum">     305 </span>                :<span class="lineCov"> 1494176331 : multilist_sublist_unlock(multilist_sublist_t *mls)</span>
+<span class="lineNum">     306 </span>                :            : {
+<span class="lineNum">     307 </span>                :<span class="lineCov"> 1494176331 :         mutex_exit(&amp;mls-&gt;mls_lock);</span>
+<span class="lineNum">     308 </span>                :<span class="lineCov"> 1494176843 : }</span>
+<span class="lineNum">     309 </span>                :            : 
+<span class="lineNum">     310 </span>                :            : /*
+<span class="lineNum">     311 </span>                :            :  * We're allowing any object to be inserted into this specific sublist,
+<span class="lineNum">     312 </span>                :            :  * but this can lead to trouble if multilist_remove() is called to
+<span class="lineNum">     313 </span>                :            :  * remove this object. Specifically, if calling ml_index_func on this
+<span class="lineNum">     314 </span>                :            :  * object returns an index for sublist different than what is passed as
+<span class="lineNum">     315 </span>                :            :  * a parameter here, any call to multilist_remove() with this newly
+<span class="lineNum">     316 </span>                :            :  * inserted object is undefined! (the call to multilist_remove() will
+<span class="lineNum">     317 </span>                :            :  * remove the object from a list that it isn't contained in)
+<a name="318"><span class="lineNum">     318 </span>                :            :  */</a>
+<span class="lineNum">     319 </span>                :            : void
+<span class="lineNum">     320 </span>                :<span class="lineCov">    2406220 : multilist_sublist_insert_head(multilist_sublist_t *mls, void *obj)</span>
+<span class="lineNum">     321 </span>                :            : {
+<span class="lineNum">     322 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 2406249 times"> + </span>]:<span class="lineCov">    2406220 :         ASSERT(MUTEX_HELD(&amp;mls-&gt;mls_lock));</span>
+<span class="lineNum">     323 </span>                :<span class="lineCov">    2406249 :         list_insert_head(&amp;mls-&gt;mls_list, obj);</span>
+<span class="lineNum">     324 </span>                :<span class="lineCov">    2406115 : }</span>
+<span class="lineNum">     325 </span>                :            : 
+<a name="326"><span class="lineNum">     326 </span>                :            : /* please see comment above multilist_sublist_insert_head */</a>
+<span class="lineNum">     327 </span>                :            : void
+<span class="lineNum">     328 </span>                :<span class="lineCov">  497558848 : multilist_sublist_insert_tail(multilist_sublist_t *mls, void *obj)</span>
+<span class="lineNum">     329 </span>                :            : {
+<span class="lineNum">     330 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 497558848 times"> + </span>]:<span class="lineCov">  497558848 :         ASSERT(MUTEX_HELD(&amp;mls-&gt;mls_lock));</span>
+<span class="lineNum">     331 </span>                :<span class="lineCov">  497558848 :         list_insert_tail(&amp;mls-&gt;mls_list, obj);</span>
+<span class="lineNum">     332 </span>                :<span class="lineCov">  497558848 : }</span>
+<span class="lineNum">     333 </span>                :            : 
+<span class="lineNum">     334 </span>                :            : /*
+<span class="lineNum">     335 </span>                :            :  * Move the object one element forward in the list.
+<span class="lineNum">     336 </span>                :            :  *
+<span class="lineNum">     337 </span>                :            :  * This function will move the given object forward in the list (towards
+<span class="lineNum">     338 </span>                :            :  * the head) by one object. So, in essence, it will swap its position in
+<span class="lineNum">     339 </span>                :            :  * the list with its &quot;prev&quot; pointer. If the given object is already at the
+<span class="lineNum">     340 </span>                :            :  * head of the list, it cannot be moved forward any more than it already
+<span class="lineNum">     341 </span>                :            :  * is, so no action is taken.
+<span class="lineNum">     342 </span>                :            :  *
+<span class="lineNum">     343 </span>                :            :  * NOTE: This function **must not** remove any object from the list other
+<span class="lineNum">     344 </span>                :            :  *       than the object given as the parameter. This is relied upon in
+<span class="lineNum">     345 </span>                :            :  *       arc_evict_state_impl().
+<a name="346"><span class="lineNum">     346 </span>                :            :  */</a>
+<span class="lineNum">     347 </span>                :            : void
+<span class="lineNum">     348 </span>                :<span class="lineCov"> 1023292809 : multilist_sublist_move_forward(multilist_sublist_t *mls, void *obj)</span>
+<span class="lineNum">     349 </span>                :            : {
+<span class="lineNum">     350 </span>                :<span class="lineCov"> 1023292809 :         void *prev = list_prev(&amp;mls-&gt;mls_list, obj);</span>
+<span class="lineNum">     351 </span>                :            : 
+<span class="lineNum">     352 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 1023292809 times"> + </span>]:<span class="lineCov"> 1023292809 :         ASSERT(MUTEX_HELD(&amp;mls-&gt;mls_lock));</span>
+<span class="lineNum">     353 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1023292809 times"> + </span>]:<span class="lineCov"> 1023292809 :         ASSERT(!list_is_empty(&amp;mls-&gt;mls_list));</span>
+<span class="lineNum">     354 </span>                :            : 
+<span class="lineNum">     355 </span>                :            :         /* 'obj' must be at the head of the list, nothing to do */
+<span class="lineNum">     356 </span>        [<span class="branchCov" title="Branch 0 was taken 1023292809 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov"> 1023292809 :         if (prev == NULL)</span>
+<span class="lineNum">     357 </span>                :            :                 return;
+<span class="lineNum">     358 </span>                :            : 
+<span class="lineNum">     359 </span>                :<span class="lineCov"> 1023292809 :         list_remove(&amp;mls-&gt;mls_list, obj);</span>
+<span class="lineNum">     360 </span>                :<span class="lineCov"> 1023292809 :         list_insert_before(&amp;mls-&gt;mls_list, prev, obj);</span>
+<span class="lineNum">     361 </span>                :            : }
+<a name="362"><span class="lineNum">     362 </span>                :            : </a>
+<span class="lineNum">     363 </span>                :            : void
+<span class="lineNum">     364 </span>                :<span class="lineCov">  499964352 : multilist_sublist_remove(multilist_sublist_t *mls, void *obj)</span>
+<span class="lineNum">     365 </span>                :            : {
+<span class="lineNum">     366 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 499964377 times"> + </span>]:<span class="lineCov">  499964352 :         ASSERT(MUTEX_HELD(&amp;mls-&gt;mls_lock));</span>
+<span class="lineNum">     367 </span>                :<span class="lineCov">  499964377 :         list_remove(&amp;mls-&gt;mls_list, obj);</span>
+<span class="lineNum">     368 </span>                :<span class="lineCov">  499964119 : }</span>
+<a name="369"><span class="lineNum">     369 </span>                :            : </a>
+<span class="lineNum">     370 </span>                :            : void *
+<span class="lineNum">     371 </span>                :<span class="lineCov">     834505 : multilist_sublist_head(multilist_sublist_t *mls)</span>
+<span class="lineNum">     372 </span>                :            : {
+<span class="lineNum">     373 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 834890 times"> + </span>]:<span class="lineCov">     834505 :         ASSERT(MUTEX_HELD(&amp;mls-&gt;mls_lock));</span>
+<span class="lineNum">     374 </span>                :<span class="lineCov">     834890 :         return (list_head(&amp;mls-&gt;mls_list));</span>
+<span class="lineNum">     375 </span>                :            : }
+<a name="376"><span class="lineNum">     376 </span>                :            : </a>
+<span class="lineNum">     377 </span>                :            : void *
+<span class="lineNum">     378 </span>                :<span class="lineCov">     106861 : multilist_sublist_tail(multilist_sublist_t *mls)</span>
+<span class="lineNum">     379 </span>                :            : {
+<span class="lineNum">     380 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 106861 times"> + </span>]:<span class="lineCov">     106861 :         ASSERT(MUTEX_HELD(&amp;mls-&gt;mls_lock));</span>
+<span class="lineNum">     381 </span>                :<span class="lineCov">     106861 :         return (list_tail(&amp;mls-&gt;mls_list));</span>
+<span class="lineNum">     382 </span>                :            : }
+<a name="383"><span class="lineNum">     383 </span>                :            : </a>
+<span class="lineNum">     384 </span>                :            : void *
+<span class="lineNum">     385 </span>                :<span class="lineCov">       2092 : multilist_sublist_next(multilist_sublist_t *mls, void *obj)</span>
+<span class="lineNum">     386 </span>                :            : {
+<span class="lineNum">     387 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 2092 times"> + </span>]:<span class="lineCov">       2092 :         ASSERT(MUTEX_HELD(&amp;mls-&gt;mls_lock));</span>
+<span class="lineNum">     388 </span>                :<span class="lineCov">       2092 :         return (list_next(&amp;mls-&gt;mls_list, obj));</span>
+<span class="lineNum">     389 </span>                :            : }
+<a name="390"><span class="lineNum">     390 </span>                :            : </a>
+<span class="lineNum">     391 </span>                :            : void *
+<span class="lineNum">     392 </span>                :<span class="lineCov"> 1521058368 : multilist_sublist_prev(multilist_sublist_t *mls, void *obj)</span>
+<span class="lineNum">     393 </span>                :            : {
+<span class="lineNum">     394 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 1521058368 times"> + </span>]:<span class="lineCov"> 1521058368 :         ASSERT(MUTEX_HELD(&amp;mls-&gt;mls_lock));</span>
+<span class="lineNum">     395 </span>                :<span class="lineCov"> 1521058368 :         return (list_prev(&amp;mls-&gt;mls_list, obj));</span>
+<span class="lineNum">     396 </span>                :            : }
+<a name="397"><span class="lineNum">     397 </span>                :            : </a>
+<span class="lineNum">     398 </span>                :            : void
+<span class="lineNum">     399 </span>                :<span class="lineCov">  500557012 : multilist_link_init(multilist_node_t *link)</span>
+<span class="lineNum">     400 </span>                :            : {
+<span class="lineNum">     401 </span>                :<span class="lineCov">  500557012 :         list_link_init(link);</span>
+<span class="lineNum">     402 </span>                :<span class="lineCov">  500556905 : }</span>
+<a name="403"><span class="lineNum">     403 </span>                :            : </a>
+<span class="lineNum">     404 </span>                :            : int
+<span class="lineNum">     405 </span>                :<span class="lineCov">  522969697 : multilist_link_active(multilist_node_t *link)</span>
+<span class="lineNum">     406 </span>                :            : {
+<span class="lineNum">     407 </span>                :<span class="lineCov">  522969697 :         return (list_link_active(link));</span>
+<span class="lineNum">     408 </span>                :            : }
+<span class="lineNum">     409 </span>                :            : 
+<span class="lineNum">     410 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     411 </span>                :            : 
+<span class="lineNum">     412 </span>                :            : /* BEGIN CSTYLED */
+<span class="lineNum">     413 </span>                :            : 
+<span class="lineNum">     414 </span>                :            : module_param(zfs_multilist_num_sublists, int, 0644);
+<span class="lineNum">     415 </span>                :            : MODULE_PARM_DESC(zfs_multilist_num_sublists,
+<span class="lineNum">     416 </span>                :            :         &quot;Number of sublists used in each multilist&quot;);
+<span class="lineNum">     417 </span>                :            : 
+<span class="lineNum">     418 </span>                :            : /* END CSTYLED */
+<span class="lineNum">     419 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

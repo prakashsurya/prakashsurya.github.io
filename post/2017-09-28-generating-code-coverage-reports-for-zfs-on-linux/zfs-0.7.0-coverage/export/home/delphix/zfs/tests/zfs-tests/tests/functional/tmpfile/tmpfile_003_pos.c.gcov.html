@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/tests/zfs-tests/tests/functional/tmpfile/tmpfile_003_pos.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/tests/zfs-tests/tests/functional/tmpfile</a> - tmpfile_003_pos.c<span style="font-size: 80%;"> (source / <a href="tmpfile_003_pos.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryLo">54.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryLo">60.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : #include &lt;stdio.h&gt;</a>
+<span class="lineNum">       2 </span>                :            : #include &lt;stdlib.h&gt;
+<span class="lineNum">       3 </span>                :            : #include &lt;unistd.h&gt;
+<span class="lineNum">       4 </span>                :            : #include &lt;sys/types.h&gt;
+<span class="lineNum">       5 </span>                :            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">       6 </span>                :            : #include &lt;fcntl.h&gt;
+<span class="lineNum">       7 </span>                :            : #include &lt;errno.h&gt;
+<span class="lineNum">       8 </span>                :            : #include &lt;string.h&gt;
+<span class="lineNum">       9 </span>                :            : 
+<span class="lineNum">      10 </span>                :            : /* backward compat in case it's not defined */
+<span class="lineNum">      11 </span>                :            : #ifndef O_TMPFILE
+<span class="lineNum">      12 </span>                :            : #define O_TMPFILE       (020000000|O_DIRECTORY)
+<span class="lineNum">      13 </span>                :            : #endif
+<span class="lineNum">      14 </span>                :            : 
+<span class="lineNum">      15 </span>                :            : /*
+<span class="lineNum">      16 </span>                :            :  * DESCRIPTION:
+<span class="lineNum">      17 </span>                :            :  *      Verify O_EXCL tmpfile cannot be linked.
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * STRATEGY:
+<span class="lineNum">      20 </span>                :            :  *      1. open(2) with O_TMPFILE|O_EXCL.
+<span class="lineNum">      21 </span>                :            :  *      2. linkat(2).
+<span class="lineNum">      22 </span>                :            :  *      3. stat(2) the path to verify it wasn't created.
+<span class="lineNum">      23 </span>                :            :  *
+<span class="lineNum">      24 </span>                :            :  */
+<a name="25"><span class="lineNum">      25 </span>                :            : </a>
+<span class="lineNum">      26 </span>                :            : int
+<span class="lineNum">      27 </span>                :<span class="lineCov">          1 : main(int argc, char *argv[])</span>
+<span class="lineNum">      28 </span>                :            : {
+<span class="lineNum">      29 </span>                :            :         int i, fd;
+<span class="lineNum">      30 </span>                :            :         char spath[1024], dpath[1024];
+<span class="lineNum">      31 </span>                :<span class="lineCov">          1 :         char *penv[] = {&quot;TESTDIR&quot;, &quot;TESTFILE0&quot;};</span>
+<span class="lineNum">      32 </span>                :            :         struct stat sbuf;
+<span class="lineNum">      33 </span>                :            : 
+<span class="lineNum">      34 </span>                :<span class="lineCov">          2 :         (void) fprintf(stdout, &quot;Verify O_EXCL tmpfile cannot be linked.\n&quot;);</span>
+<span class="lineNum">      35 </span>                :            : 
+<span class="lineNum">      36 </span>                :            :         /*
+<span class="lineNum">      37 </span>                :            :          * Get the environment variable values.
+<span class="lineNum">      38 </span>                :            :          */
+<span class="lineNum">      39 </span>        [<span class="branchCov" title="Branch 1 was taken 2 times"> + </span><span class="branchCov" title="Branch 2 was taken 1 time"> + </span>]:<span class="lineCov">          3 :         for (i = 0; i &lt; sizeof (penv) / sizeof (char *); i++) {</span>
+<span class="lineNum">      40 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 2 times"> + </span>]:<span class="lineCov">          2 :                 if ((penv[i] = getenv(penv[i])) == NULL) {</span>
+<span class="lineNum">      41 </span>                :<span class="lineNoCov">          0 :                         (void) fprintf(stderr, &quot;getenv(penv[%d])\n&quot;, i);</span>
+<span class="lineNum">      42 </span>                :<span class="lineNoCov">          0 :                         exit(1);</span>
+<span class="lineNum">      43 </span>                :            :                 }
+<span class="lineNum">      44 </span>                :            :         }
+<span class="lineNum">      45 </span>                :            : 
+<span class="lineNum">      46 </span>                :<span class="lineCov">          2 :         fd = open(penv[0], O_RDWR|O_TMPFILE|O_EXCL, 0666);</span>
+<span class="lineNum">      47 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">          1 :         if (fd &lt; 0) {</span>
+<span class="lineNum">      48 </span>                :<span class="lineNoCov">          0 :                 perror(&quot;open&quot;);</span>
+<span class="lineNum">      49 </span>                :<span class="lineNoCov">          0 :                 exit(2);</span>
+<span class="lineNum">      50 </span>                :            :         }
+<span class="lineNum">      51 </span>                :            : 
+<span class="lineNum">      52 </span>                :<span class="lineCov">          1 :         snprintf(spath, 1024, &quot;/proc/self/fd/%d&quot;, fd);</span>
+<span class="lineNum">      53 </span>                :<span class="lineCov">          2 :         snprintf(dpath, 1024, &quot;%s/%s&quot;, penv[0], penv[1]);</span>
+<span class="lineNum">      54 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1 time"> + </span>]:<span class="lineCov">          1 :         if (linkat(AT_FDCWD, spath, AT_FDCWD, dpath, AT_SYMLINK_FOLLOW) == 0) {</span>
+<span class="lineNum">      55 </span>                :<span class="lineNoCov">          0 :                 fprintf(stderr, &quot;linkat returns successfully\n&quot;);</span>
+<span class="lineNum">      56 </span>                :<span class="lineNoCov">          0 :                 close(fd);</span>
+<span class="lineNum">      57 </span>                :<span class="lineNoCov">          0 :                 exit(3);</span>
+<span class="lineNum">      58 </span>                :            :         }
+<span class="lineNum">      59 </span>                :            : 
+<span class="lineNum">      60 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1 time"> + </span>]:<span class="lineCov">          1 :         if (stat(dpath, &amp;sbuf) == 0) {</span>
+<span class="lineNum">      61 </span>                :<span class="lineNoCov">          0 :                 fprintf(stderr, &quot;stat returns successfully\n&quot;);</span>
+<span class="lineNum">      62 </span>                :<span class="lineNoCov">          0 :                 close(fd);</span>
+<span class="lineNum">      63 </span>                :<span class="lineNoCov">          0 :                 exit(4);</span>
+<span class="lineNum">      64 </span>                :            :         }
+<span class="lineNum">      65 </span>                :<span class="lineCov">          1 :         close(fd);</span>
+<span class="lineNum">      66 </span>                :            : 
+<span class="lineNum">      67 </span>                :            :         return (0);
+<span class="lineNum">      68 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
