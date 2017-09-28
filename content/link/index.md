@@ -40,6 +40,8 @@ draft = false
     [Why I Hate Slack and You Should Too](https://bitquabit.com/post/i-hate-slack-and-you-should-too/)
   - 19 Apr 2017 &raquo; Keegan Lowenstein &raquo;
     [Tmux and Vim - even better together](https://blog.bugsnag.com/tmux-and-vim/)
+  - 21 Dec 2016 &raquo; Brendan Gregg &raquo;
+    [Give me 15 minutes and I'll change your view of Linux tracing](https://www.youtube.com/watch?v=GsMs3n8CB6g)
   - 13 Dec 2016 &raquo; Breanne Boland &raquo;
     [Man, 'splained: 40-Plus Years of Man Page History](https://systemswe.love/archive/san-francisco-2016/man-splained)
   - 18 Nov 2016 &raquo; Bryan Cantrill &raquo;
