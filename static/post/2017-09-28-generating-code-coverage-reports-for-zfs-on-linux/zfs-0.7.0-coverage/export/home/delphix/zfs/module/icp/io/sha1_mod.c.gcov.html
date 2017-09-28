@@ -1,0 +1,1331 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/icp/io/sha1_mod.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/icp/io</a> - sha1_mod.c<span style="font-size: 80%;"> (source / <a href="sha1_mod.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">53</td>
+            <td class="headerCovTableEntry">331</td>
+            <td class="headerCovTableEntryLo">16.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntryLo">27.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntry">228</td>
+            <td class="headerCovTableEntryLo">9.2 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : /*
+<span class="lineNum">      23 </span>                :            :  * Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      25 </span>                :            :  */
+<span class="lineNum">      26 </span>                :            : 
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/modctl.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/crypto/common.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/crypto/spi.h&gt;
+<span class="lineNum">      31 </span>                :            : 
+<span class="lineNum">      32 </span>                :            : #include &lt;sha1/sha1.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sha1/sha1_impl.h&gt;
+<span class="lineNum">      34 </span>                :            : 
+<span class="lineNum">      35 </span>                :            : /*
+<span class="lineNum">      36 </span>                :            :  * The sha1 module is created with two modlinkages:
+<span class="lineNum">      37 </span>                :            :  * - a modlmisc that allows consumers to directly call the entry points
+<span class="lineNum">      38 </span>                :            :  *   SHA1Init, SHA1Update, and SHA1Final.
+<span class="lineNum">      39 </span>                :            :  * - a modlcrypto that allows the module to register with the Kernel
+<span class="lineNum">      40 </span>                :            :  *   Cryptographic Framework (KCF) as a software provider for the SHA1
+<span class="lineNum">      41 </span>                :            :  *   mechanisms.
+<span class="lineNum">      42 </span>                :            :  */
+<span class="lineNum">      43 </span>                :            : 
+<span class="lineNum">      44 </span>                :            : static struct modlcrypto modlcrypto = {
+<span class="lineNum">      45 </span>                :            :         &amp;mod_cryptoops,
+<span class="lineNum">      46 </span>                :            :         &quot;SHA1 Kernel SW Provider 1.1&quot;
+<span class="lineNum">      47 </span>                :            : };
+<span class="lineNum">      48 </span>                :            : 
+<span class="lineNum">      49 </span>                :            : static struct modlinkage modlinkage = {
+<span class="lineNum">      50 </span>                :            :         MODREV_1, { &amp;modlcrypto, NULL }
+<span class="lineNum">      51 </span>                :            : };
+<span class="lineNum">      52 </span>                :            : 
+<span class="lineNum">      53 </span>                :            : 
+<span class="lineNum">      54 </span>                :            : /*
+<span class="lineNum">      55 </span>                :            :  * Macros to access the SHA1 or SHA1-HMAC contexts from a context passed
+<span class="lineNum">      56 </span>                :            :  * by KCF to one of the entry points.
+<span class="lineNum">      57 </span>                :            :  */
+<span class="lineNum">      58 </span>                :            : 
+<span class="lineNum">      59 </span>                :            : #define PROV_SHA1_CTX(ctx)      ((sha1_ctx_t *)(ctx)-&gt;cc_provider_private)
+<span class="lineNum">      60 </span>                :            : #define PROV_SHA1_HMAC_CTX(ctx) ((sha1_hmac_ctx_t *)(ctx)-&gt;cc_provider_private)
+<span class="lineNum">      61 </span>                :            : 
+<span class="lineNum">      62 </span>                :            : /* to extract the digest length passed as mechanism parameter */
+<span class="lineNum">      63 </span>                :            : #define PROV_SHA1_GET_DIGEST_LEN(m, len) {                              \
+<span class="lineNum">      64 </span>                :            :         if (IS_P2ALIGNED((m)-&gt;cm_param, sizeof (ulong_t)))           \
+<span class="lineNum">      65 </span>                :            :                 (len) = (uint32_t)*((ulong_t *)(void *)mechanism-&gt;cm_param); \
+<span class="lineNum">      66 </span>                :            :         else {                                                          \
+<span class="lineNum">      67 </span>                :            :                 ulong_t tmp_ulong;                                      \
+<span class="lineNum">      68 </span>                :            :                 bcopy((m)-&gt;cm_param, &amp;tmp_ulong, sizeof (ulong_t));      \
+<span class="lineNum">      69 </span>                :            :                 (len) = (uint32_t)tmp_ulong;                            \
+<span class="lineNum">      70 </span>                :            :         }                                                               \
+<span class="lineNum">      71 </span>                :            : }
+<span class="lineNum">      72 </span>                :            : 
+<span class="lineNum">      73 </span>                :            : #define PROV_SHA1_DIGEST_KEY(ctx, key, len, digest) {   \
+<span class="lineNum">      74 </span>                :            :         SHA1Init(ctx);                                  \
+<span class="lineNum">      75 </span>                :            :         SHA1Update(ctx, key, len);                      \
+<span class="lineNum">      76 </span>                :            :         SHA1Final(digest, ctx);                         \
+<span class="lineNum">      77 </span>                :            : }
+<span class="lineNum">      78 </span>                :            : 
+<span class="lineNum">      79 </span>                :            : /*
+<span class="lineNum">      80 </span>                :            :  * Mechanism info structure passed to KCF during registration.
+<span class="lineNum">      81 </span>                :            :  */
+<span class="lineNum">      82 </span>                :            : static crypto_mech_info_t sha1_mech_info_tab[] = {
+<span class="lineNum">      83 </span>                :            :         /* SHA1 */
+<span class="lineNum">      84 </span>                :            :         {SUN_CKM_SHA1, SHA1_MECH_INFO_TYPE,
+<span class="lineNum">      85 </span>                :            :             CRYPTO_FG_DIGEST | CRYPTO_FG_DIGEST_ATOMIC,
+<span class="lineNum">      86 </span>                :            :             0, 0, CRYPTO_KEYSIZE_UNIT_IN_BITS},
+<span class="lineNum">      87 </span>                :            :         /* SHA1-HMAC */
+<span class="lineNum">      88 </span>                :            :         {SUN_CKM_SHA1_HMAC, SHA1_HMAC_MECH_INFO_TYPE,
+<span class="lineNum">      89 </span>                :            :             CRYPTO_FG_MAC | CRYPTO_FG_MAC_ATOMIC,
+<span class="lineNum">      90 </span>                :            :             SHA1_HMAC_MIN_KEY_LEN, SHA1_HMAC_MAX_KEY_LEN,
+<span class="lineNum">      91 </span>                :            :             CRYPTO_KEYSIZE_UNIT_IN_BYTES},
+<span class="lineNum">      92 </span>                :            :         /* SHA1-HMAC GENERAL */
+<span class="lineNum">      93 </span>                :            :         {SUN_CKM_SHA1_HMAC_GENERAL, SHA1_HMAC_GEN_MECH_INFO_TYPE,
+<span class="lineNum">      94 </span>                :            :             CRYPTO_FG_MAC | CRYPTO_FG_MAC_ATOMIC,
+<span class="lineNum">      95 </span>                :            :             SHA1_HMAC_MIN_KEY_LEN, SHA1_HMAC_MAX_KEY_LEN,
+<span class="lineNum">      96 </span>                :            :             CRYPTO_KEYSIZE_UNIT_IN_BYTES}
+<span class="lineNum">      97 </span>                :            : };
+<span class="lineNum">      98 </span>                :            : 
+<span class="lineNum">      99 </span>                :            : static void sha1_provider_status(crypto_provider_handle_t, uint_t *);
+<span class="lineNum">     100 </span>                :            : 
+<span class="lineNum">     101 </span>                :            : static crypto_control_ops_t sha1_control_ops = {
+<span class="lineNum">     102 </span>                :            :         sha1_provider_status
+<span class="lineNum">     103 </span>                :            : };
+<span class="lineNum">     104 </span>                :            : 
+<span class="lineNum">     105 </span>                :            : static int sha1_digest_init(crypto_ctx_t *, crypto_mechanism_t *,
+<span class="lineNum">     106 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">     107 </span>                :            : static int sha1_digest(crypto_ctx_t *, crypto_data_t *, crypto_data_t *,
+<span class="lineNum">     108 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">     109 </span>                :            : static int sha1_digest_update(crypto_ctx_t *, crypto_data_t *,
+<span class="lineNum">     110 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">     111 </span>                :            : static int sha1_digest_final(crypto_ctx_t *, crypto_data_t *,
+<span class="lineNum">     112 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">     113 </span>                :            : static int sha1_digest_atomic(crypto_provider_handle_t, crypto_session_id_t,
+<span class="lineNum">     114 </span>                :            :     crypto_mechanism_t *, crypto_data_t *, crypto_data_t *,
+<span class="lineNum">     115 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">     116 </span>                :            : 
+<span class="lineNum">     117 </span>                :            : static crypto_digest_ops_t sha1_digest_ops = {
+<span class="lineNum">     118 </span>                :            :         sha1_digest_init,
+<span class="lineNum">     119 </span>                :            :         sha1_digest,
+<span class="lineNum">     120 </span>                :            :         sha1_digest_update,
+<span class="lineNum">     121 </span>                :            :         NULL,
+<span class="lineNum">     122 </span>                :            :         sha1_digest_final,
+<span class="lineNum">     123 </span>                :            :         sha1_digest_atomic
+<span class="lineNum">     124 </span>                :            : };
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>                :            : static int sha1_mac_init(crypto_ctx_t *, crypto_mechanism_t *, crypto_key_t *,
+<span class="lineNum">     127 </span>                :            :     crypto_spi_ctx_template_t, crypto_req_handle_t);
+<span class="lineNum">     128 </span>                :            : static int sha1_mac_update(crypto_ctx_t *, crypto_data_t *,
+<span class="lineNum">     129 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">     130 </span>                :            : static int sha1_mac_final(crypto_ctx_t *, crypto_data_t *, crypto_req_handle_t);
+<span class="lineNum">     131 </span>                :            : static int sha1_mac_atomic(crypto_provider_handle_t, crypto_session_id_t,
+<span class="lineNum">     132 </span>                :            :     crypto_mechanism_t *, crypto_key_t *, crypto_data_t *, crypto_data_t *,
+<span class="lineNum">     133 </span>                :            :     crypto_spi_ctx_template_t, crypto_req_handle_t);
+<span class="lineNum">     134 </span>                :            : static int sha1_mac_verify_atomic(crypto_provider_handle_t, crypto_session_id_t,
+<span class="lineNum">     135 </span>                :            :     crypto_mechanism_t *, crypto_key_t *, crypto_data_t *, crypto_data_t *,
+<span class="lineNum">     136 </span>                :            :     crypto_spi_ctx_template_t, crypto_req_handle_t);
+<span class="lineNum">     137 </span>                :            : 
+<span class="lineNum">     138 </span>                :            : static crypto_mac_ops_t sha1_mac_ops = {
+<span class="lineNum">     139 </span>                :            :         sha1_mac_init,
+<span class="lineNum">     140 </span>                :            :         NULL,
+<span class="lineNum">     141 </span>                :            :         sha1_mac_update,
+<span class="lineNum">     142 </span>                :            :         sha1_mac_final,
+<span class="lineNum">     143 </span>                :            :         sha1_mac_atomic,
+<span class="lineNum">     144 </span>                :            :         sha1_mac_verify_atomic
+<span class="lineNum">     145 </span>                :            : };
+<span class="lineNum">     146 </span>                :            : 
+<span class="lineNum">     147 </span>                :            : static int sha1_create_ctx_template(crypto_provider_handle_t,
+<span class="lineNum">     148 </span>                :            :     crypto_mechanism_t *, crypto_key_t *, crypto_spi_ctx_template_t *,
+<span class="lineNum">     149 </span>                :            :     size_t *, crypto_req_handle_t);
+<span class="lineNum">     150 </span>                :            : static int sha1_free_context(crypto_ctx_t *);
+<span class="lineNum">     151 </span>                :            : 
+<span class="lineNum">     152 </span>                :            : static crypto_ctx_ops_t sha1_ctx_ops = {
+<span class="lineNum">     153 </span>                :            :         sha1_create_ctx_template,
+<span class="lineNum">     154 </span>                :            :         sha1_free_context
+<span class="lineNum">     155 </span>                :            : };
+<span class="lineNum">     156 </span>                :            : 
+<span class="lineNum">     157 </span>                :            : static crypto_ops_t sha1_crypto_ops = {{{{{
+<span class="lineNum">     158 </span>                :            :         &amp;sha1_control_ops,
+<span class="lineNum">     159 </span>                :            :         &amp;sha1_digest_ops,
+<span class="lineNum">     160 </span>                :            :         NULL,
+<span class="lineNum">     161 </span>                :            :         &amp;sha1_mac_ops,
+<span class="lineNum">     162 </span>                :            :         NULL,
+<span class="lineNum">     163 </span>                :            :         NULL,
+<span class="lineNum">     164 </span>                :            :         NULL,
+<span class="lineNum">     165 </span>                :            :         NULL,
+<span class="lineNum">     166 </span>                :            :         NULL,
+<span class="lineNum">     167 </span>                :            :         NULL,
+<span class="lineNum">     168 </span>                :            :         NULL,
+<span class="lineNum">     169 </span>                :            :         NULL,
+<span class="lineNum">     170 </span>                :            :         NULL,
+<span class="lineNum">     171 </span>                :            :         &amp;sha1_ctx_ops,
+<span class="lineNum">     172 </span>                :            : }}}}};
+<span class="lineNum">     173 </span>                :            : 
+<span class="lineNum">     174 </span>                :            : static crypto_provider_info_t sha1_prov_info = {{{{
+<span class="lineNum">     175 </span>                :            :         CRYPTO_SPI_VERSION_1,
+<span class="lineNum">     176 </span>                :            :         &quot;SHA1 Software Provider&quot;,
+<span class="lineNum">     177 </span>                :            :         CRYPTO_SW_PROVIDER,
+<span class="lineNum">     178 </span>                :            :         NULL,
+<span class="lineNum">     179 </span>                :            :         &amp;sha1_crypto_ops,
+<span class="lineNum">     180 </span>                :            :         sizeof (sha1_mech_info_tab)/sizeof (crypto_mech_info_t),
+<span class="lineNum">     181 </span>                :            :         sha1_mech_info_tab
+<span class="lineNum">     182 </span>                :            : }}}};
+<span class="lineNum">     183 </span>                :            : 
+<span class="lineNum">     184 </span>                :            : static crypto_kcf_provider_handle_t sha1_prov_handle = 0;
+<a name="185"><span class="lineNum">     185 </span>                :            : </a>
+<span class="lineNum">     186 </span>                :            : int
+<span class="lineNum">     187 </span>                :<span class="lineCov">       1336 : sha1_mod_init(void)</span>
+<span class="lineNum">     188 </span>                :            : {
+<span class="lineNum">     189 </span>                :            :         int ret;
+<span class="lineNum">     190 </span>                :            : 
+<span class="lineNum">     191 </span>        [<span class="branchCov" title="Branch 1 was taken 1336 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       1336 :         if ((ret = mod_install(&amp;modlinkage)) != 0)</span>
+<span class="lineNum">     192 </span>                :            :                 return (ret);
+<span class="lineNum">     193 </span>                :            : 
+<span class="lineNum">     194 </span>                :            :         /*
+<span class="lineNum">     195 </span>                :            :          * Register with KCF. If the registration fails, log an
+<span class="lineNum">     196 </span>                :            :          * error but do not uninstall the module, since the functionality
+<span class="lineNum">     197 </span>                :            :          * provided by misc/sha1 should still be available.
+<span class="lineNum">     198 </span>                :            :          */
+<span class="lineNum">     199 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1336 times"> + </span>]:<span class="lineCov">       1336 :         if ((ret = crypto_register_provider(&amp;sha1_prov_info,</span>
+<span class="lineNum">     200 </span>                :            :             &amp;sha1_prov_handle)) != CRYPTO_SUCCESS)
+<span class="lineNum">     201 </span>                :<span class="lineNoCov">          0 :                 cmn_err(CE_WARN, &quot;sha1 _init: &quot;</span>
+<span class="lineNum">     202 </span>                :            :                     &quot;crypto_register_provider() failed (0x%x)&quot;, ret);
+<span class="lineNum">     203 </span>                :            : 
+<span class="lineNum">     204 </span>                :            :         return (0);
+<span class="lineNum">     205 </span>                :            : }
+<a name="206"><span class="lineNum">     206 </span>                :            : </a>
+<span class="lineNum">     207 </span>                :            : int
+<span class="lineNum">     208 </span>                :<span class="lineCov">        887 : sha1_mod_fini(void)</span>
+<span class="lineNum">     209 </span>                :            : {
+<span class="lineNum">     210 </span>                :            :         int ret;
+<span class="lineNum">     211 </span>                :            : 
+<span class="lineNum">     212 </span>        [<span class="branchCov" title="Branch 0 was taken 887 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        887 :         if (sha1_prov_handle != 0) {</span>
+<span class="lineNum">     213 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 887 times"> + </span>]:<span class="lineCov">        887 :                 if ((ret = crypto_unregister_provider(sha1_prov_handle)) !=</span>
+<span class="lineNum">     214 </span>                :            :                     CRYPTO_SUCCESS) {
+<span class="lineNum">     215 </span>                :<span class="lineNoCov">          0 :                         cmn_err(CE_WARN,</span>
+<span class="lineNum">     216 </span>                :            :                             &quot;sha1 _fini: crypto_unregister_provider() &quot;
+<span class="lineNum">     217 </span>                :            :                             &quot;failed (0x%x)&quot;, ret);
+<span class="lineNum">     218 </span>                :<span class="lineNoCov">          0 :                         return (EBUSY);</span>
+<span class="lineNum">     219 </span>                :            :                 }
+<span class="lineNum">     220 </span>                :<span class="lineCov">        887 :                 sha1_prov_handle = 0;</span>
+<span class="lineNum">     221 </span>                :            :         }
+<span class="lineNum">     222 </span>                :            : 
+<span class="lineNum">     223 </span>                :<span class="lineCov">        887 :         return (mod_remove(&amp;modlinkage));</span>
+<span class="lineNum">     224 </span>                :            : }
+<span class="lineNum">     225 </span>                :            : 
+<span class="lineNum">     226 </span>                :            : /*
+<span class="lineNum">     227 </span>                :            :  * KCF software provider control entry points.
+<span class="lineNum">     228 </span>                :            :  */
+<a name="229"><span class="lineNum">     229 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     230 </span>                :            : static void
+<span class="lineNum">     231 </span>                :<span class="lineNoCov">          0 : sha1_provider_status(crypto_provider_handle_t provider, uint_t *status)</span>
+<span class="lineNum">     232 </span>                :            : {
+<span class="lineNum">     233 </span>                :<span class="lineNoCov">          0 :         *status = CRYPTO_PROVIDER_READY;</span>
+<span class="lineNum">     234 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     235 </span>                :            : 
+<span class="lineNum">     236 </span>                :            : /*
+<span class="lineNum">     237 </span>                :            :  * KCF software provider digest entry points.
+<span class="lineNum">     238 </span>                :            :  */
+<a name="239"><span class="lineNum">     239 </span>                :            : </a>
+<span class="lineNum">     240 </span>                :            : static int
+<span class="lineNum">     241 </span>                :<span class="lineNoCov">          0 : sha1_digest_init(crypto_ctx_t *ctx, crypto_mechanism_t *mechanism,</span>
+<span class="lineNum">     242 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     243 </span>                :            : {
+<span class="lineNum">     244 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mechanism-&gt;cm_type != SHA1_MECH_INFO_TYPE)</span>
+<span class="lineNum">     245 </span>                :            :                 return (CRYPTO_MECHANISM_INVALID);
+<span class="lineNum">     246 </span>                :            : 
+<span class="lineNum">     247 </span>                :            :         /*
+<span class="lineNum">     248 </span>                :            :          * Allocate and initialize SHA1 context.
+<span class="lineNum">     249 </span>                :            :          */
+<span class="lineNum">     250 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;cc_provider_private = kmem_alloc(sizeof (sha1_ctx_t),</span>
+<span class="lineNum">     251 </span>                :            :             crypto_kmflag(req));
+<span class="lineNum">     252 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ctx-&gt;cc_provider_private == NULL)</span>
+<span class="lineNum">     253 </span>                :            :                 return (CRYPTO_HOST_MEMORY);
+<span class="lineNum">     254 </span>                :            : 
+<span class="lineNum">     255 </span>                :<span class="lineNoCov">          0 :         PROV_SHA1_CTX(ctx)-&gt;sc_mech_type = SHA1_MECH_INFO_TYPE;</span>
+<span class="lineNum">     256 </span>                :<span class="lineNoCov">          0 :         SHA1Init(&amp;PROV_SHA1_CTX(ctx)-&gt;sc_sha1_ctx);</span>
+<span class="lineNum">     257 </span>                :            : 
+<span class="lineNum">     258 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     259 </span>                :            : }
+<span class="lineNum">     260 </span>                :            : 
+<span class="lineNum">     261 </span>                :            : /*
+<span class="lineNum">     262 </span>                :            :  * Helper SHA1 digest update function for uio data.
+<a name="263"><span class="lineNum">     263 </span>                :            :  */</a>
+<span class="lineNum">     264 </span>                :            : static int
+<span class="lineNum">     265 </span>                :<span class="lineNoCov">          0 : sha1_digest_update_uio(SHA1_CTX *sha1_ctx, crypto_data_t *data)</span>
+<span class="lineNum">     266 </span>                :            : {
+<span class="lineNum">     267 </span>                :<span class="lineNoCov">          0 :         off_t offset = data-&gt;cd_offset;</span>
+<span class="lineNum">     268 </span>                :<span class="lineNoCov">          0 :         size_t length = data-&gt;cd_length;</span>
+<span class="lineNum">     269 </span>                :            :         uint_t vec_idx;
+<span class="lineNum">     270 </span>                :            :         size_t cur_len;
+<span class="lineNum">     271 </span>                :            : 
+<span class="lineNum">     272 </span>                :            :         /* we support only kernel buffer */
+<span class="lineNum">     273 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (data-&gt;cd_uio-&gt;uio_segflg != UIO_SYSSPACE)</span>
+<span class="lineNum">     274 </span>                :            :                 return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">     275 </span>                :            : 
+<span class="lineNum">     276 </span>                :            :         /*
+<span class="lineNum">     277 </span>                :            :          * Jump to the first iovec containing data to be
+<span class="lineNum">     278 </span>                :            :          * digested.
+<span class="lineNum">     279 </span>                :            :          */
+<span class="lineNum">     280 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (vec_idx = 0; vec_idx &lt; data-&gt;cd_uio-&gt;uio_iovcnt &amp;&amp;</span>
+<span class="lineNum">     281 </span>                :<span class="lineNoCov">          0 :             offset &gt;= data-&gt;cd_uio-&gt;uio_iov[vec_idx].iov_len;</span>
+<span class="lineNum">     282 </span>                :<span class="lineNoCov">          0 :             offset -= data-&gt;cd_uio-&gt;uio_iov[vec_idx++].iov_len)</span>
+<span class="lineNum">     283 </span>                :            :                 ;
+<span class="lineNum">     284 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (vec_idx == data-&gt;cd_uio-&gt;uio_iovcnt) {</span>
+<span class="lineNum">     285 </span>                :            :                 /*
+<span class="lineNum">     286 </span>                :            :                  * The caller specified an offset that is larger than the
+<span class="lineNum">     287 </span>                :            :                  * total size of the buffers it provided.
+<span class="lineNum">     288 </span>                :            :                  */
+<span class="lineNum">     289 </span>                :            :                 return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     290 </span>                :            :         }
+<span class="lineNum">     291 </span>                :            : 
+<span class="lineNum">     292 </span>                :            :         /*
+<span class="lineNum">     293 </span>                :            :          * Now do the digesting on the iovecs.
+<span class="lineNum">     294 </span>                :            :          */
+<span class="lineNum">     295 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         while (vec_idx &lt; data-&gt;cd_uio-&gt;uio_iovcnt &amp;&amp; length &gt; 0) {</span>
+<span class="lineNum">     296 </span>                :<span class="lineNoCov">          0 :                 cur_len = MIN(data-&gt;cd_uio-&gt;uio_iov[vec_idx].iov_len -</span>
+<span class="lineNum">     297 </span>                :            :                     offset, length);
+<span class="lineNum">     298 </span>                :            : 
+<span class="lineNum">     299 </span>                :<span class="lineNoCov">          0 :                 SHA1Update(sha1_ctx,</span>
+<span class="lineNum">     300 </span>                :<span class="lineNoCov">          0 :                     (uint8_t *)data-&gt;cd_uio-&gt;uio_iov[vec_idx].iov_base + offset,</span>
+<span class="lineNum">     301 </span>                :            :                     cur_len);
+<span class="lineNum">     302 </span>                :            : 
+<span class="lineNum">     303 </span>                :<span class="lineNoCov">          0 :                 length -= cur_len;</span>
+<span class="lineNum">     304 </span>                :<span class="lineNoCov">          0 :                 vec_idx++;</span>
+<span class="lineNum">     305 </span>                :<span class="lineNoCov">          0 :                 offset = 0;</span>
+<span class="lineNum">     306 </span>                :            :         }
+<span class="lineNum">     307 </span>                :            : 
+<span class="lineNum">     308 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (vec_idx == data-&gt;cd_uio-&gt;uio_iovcnt &amp;&amp; length &gt; 0) {</span>
+<span class="lineNum">     309 </span>                :            :                 /*
+<span class="lineNum">     310 </span>                :            :                  * The end of the specified iovec's was reached but
+<span class="lineNum">     311 </span>                :            :                  * the length requested could not be processed, i.e.
+<span class="lineNum">     312 </span>                :            :                  * The caller requested to digest more data than it provided.
+<span class="lineNum">     313 </span>                :            :                  */
+<span class="lineNum">     314 </span>                :            :                 return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     315 </span>                :            :         }
+<span class="lineNum">     316 </span>                :            : 
+<span class="lineNum">     317 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     318 </span>                :            : }
+<span class="lineNum">     319 </span>                :            : 
+<span class="lineNum">     320 </span>                :            : /*
+<span class="lineNum">     321 </span>                :            :  * Helper SHA1 digest final function for uio data.
+<span class="lineNum">     322 </span>                :            :  * digest_len is the length of the desired digest. If digest_len
+<span class="lineNum">     323 </span>                :            :  * is smaller than the default SHA1 digest length, the caller
+<span class="lineNum">     324 </span>                :            :  * must pass a scratch buffer, digest_scratch, which must
+<span class="lineNum">     325 </span>                :            :  * be at least SHA1_DIGEST_LENGTH bytes.
+<a name="326"><span class="lineNum">     326 </span>                :            :  */</a>
+<span class="lineNum">     327 </span>                :            : static int
+<span class="lineNum">     328 </span>                :<span class="lineNoCov">          0 : sha1_digest_final_uio(SHA1_CTX *sha1_ctx, crypto_data_t *digest,</span>
+<span class="lineNum">     329 </span>                :            :     ulong_t digest_len, uchar_t *digest_scratch)
+<span class="lineNum">     330 </span>                :            : {
+<span class="lineNum">     331 </span>                :<span class="lineNoCov">          0 :         off_t offset = digest-&gt;cd_offset;</span>
+<span class="lineNum">     332 </span>                :            :         uint_t vec_idx;
+<span class="lineNum">     333 </span>                :            : 
+<span class="lineNum">     334 </span>                :            :         /* we support only kernel buffer */
+<span class="lineNum">     335 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (digest-&gt;cd_uio-&gt;uio_segflg != UIO_SYSSPACE)</span>
+<span class="lineNum">     336 </span>                :            :                 return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">     337 </span>                :            : 
+<span class="lineNum">     338 </span>                :            :         /*
+<span class="lineNum">     339 </span>                :            :          * Jump to the first iovec containing ptr to the digest to
+<span class="lineNum">     340 </span>                :            :          * be returned.
+<span class="lineNum">     341 </span>                :            :          */
+<span class="lineNum">     342 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (vec_idx = 0; offset &gt;= digest-&gt;cd_uio-&gt;uio_iov[vec_idx].iov_len &amp;&amp;</span>
+<span class="lineNum">     343 </span>                :<span class="lineNoCov">          0 :             vec_idx &lt; digest-&gt;cd_uio-&gt;uio_iovcnt;</span>
+<span class="lineNum">     344 </span>                :<span class="lineNoCov">          0 :             offset -= digest-&gt;cd_uio-&gt;uio_iov[vec_idx++].iov_len)</span>
+<span class="lineNum">     345 </span>                :            :                 ;
+<span class="lineNum">     346 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (vec_idx == digest-&gt;cd_uio-&gt;uio_iovcnt) {</span>
+<span class="lineNum">     347 </span>                :            :                 /*
+<span class="lineNum">     348 </span>                :            :                  * The caller specified an offset that is
+<span class="lineNum">     349 </span>                :            :                  * larger than the total size of the buffers
+<span class="lineNum">     350 </span>                :            :                  * it provided.
+<span class="lineNum">     351 </span>                :            :                  */
+<span class="lineNum">     352 </span>                :            :                 return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     353 </span>                :            :         }
+<span class="lineNum">     354 </span>                :            : 
+<span class="lineNum">     355 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (offset + digest_len &lt;=</span>
+<span class="lineNum">     356 </span>                :            :             digest-&gt;cd_uio-&gt;uio_iov[vec_idx].iov_len) {
+<span class="lineNum">     357 </span>                :            :                 /*
+<span class="lineNum">     358 </span>                :            :                  * The computed SHA1 digest will fit in the current
+<span class="lineNum">     359 </span>                :            :                  * iovec.
+<span class="lineNum">     360 </span>                :            :                  */
+<span class="lineNum">     361 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (digest_len != SHA1_DIGEST_LENGTH) {</span>
+<span class="lineNum">     362 </span>                :            :                         /*
+<span class="lineNum">     363 </span>                :            :                          * The caller requested a short digest. Digest
+<span class="lineNum">     364 </span>                :            :                          * into a scratch buffer and return to
+<span class="lineNum">     365 </span>                :            :                          * the user only what was requested.
+<span class="lineNum">     366 </span>                :            :                          */
+<span class="lineNum">     367 </span>                :<span class="lineNoCov">          0 :                         SHA1Final(digest_scratch, sha1_ctx);</span>
+<span class="lineNum">     368 </span>                :<span class="lineNoCov">          0 :                         bcopy(digest_scratch, (uchar_t *)digest-&gt;</span>
+<span class="lineNum">     369 </span>                :<span class="lineNoCov">          0 :                             cd_uio-&gt;uio_iov[vec_idx].iov_base + offset,</span>
+<span class="lineNum">     370 </span>                :            :                             digest_len);
+<span class="lineNum">     371 </span>                :            :                 } else {
+<span class="lineNum">     372 </span>                :<span class="lineNoCov">          0 :                         SHA1Final((uchar_t *)digest-&gt;</span>
+<span class="lineNum">     373 </span>                :<span class="lineNoCov">          0 :                             cd_uio-&gt;uio_iov[vec_idx].iov_base + offset,</span>
+<span class="lineNum">     374 </span>                :            :                             sha1_ctx);
+<span class="lineNum">     375 </span>                :            :                 }
+<span class="lineNum">     376 </span>                :            :         } else {
+<span class="lineNum">     377 </span>                :            :                 /*
+<span class="lineNum">     378 </span>                :            :                  * The computed digest will be crossing one or more iovec's.
+<span class="lineNum">     379 </span>                :            :                  * This is bad performance-wise but we need to support it.
+<span class="lineNum">     380 </span>                :            :                  * Allocate a small scratch buffer on the stack and
+<span class="lineNum">     381 </span>                :            :                  * copy it piece meal to the specified digest iovec's.
+<span class="lineNum">     382 </span>                :            :                  */
+<span class="lineNum">     383 </span>                :            :                 uchar_t digest_tmp[SHA1_DIGEST_LENGTH];
+<span class="lineNum">     384 </span>                :<span class="lineNoCov">          0 :                 off_t scratch_offset = 0;</span>
+<span class="lineNum">     385 </span>                :<span class="lineNoCov">          0 :                 size_t length = digest_len;</span>
+<span class="lineNum">     386 </span>                :            :                 size_t cur_len;
+<span class="lineNum">     387 </span>                :            : 
+<span class="lineNum">     388 </span>                :<span class="lineNoCov">          0 :                 SHA1Final(digest_tmp, sha1_ctx);</span>
+<span class="lineNum">     389 </span>                :            : 
+<span class="lineNum">     390 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 while (vec_idx &lt; digest-&gt;cd_uio-&gt;uio_iovcnt &amp;&amp; length &gt; 0) {</span>
+<span class="lineNum">     391 </span>                :<span class="lineNoCov">          0 :                         cur_len = MIN(digest-&gt;cd_uio-&gt;uio_iov[vec_idx].iov_len -</span>
+<span class="lineNum">     392 </span>                :            :                             offset, length);
+<span class="lineNum">     393 </span>                :<span class="lineNoCov">          0 :                         bcopy(digest_tmp + scratch_offset,</span>
+<span class="lineNum">     394 </span>                :<span class="lineNoCov">          0 :                             digest-&gt;cd_uio-&gt;uio_iov[vec_idx].iov_base + offset,</span>
+<span class="lineNum">     395 </span>                :            :                             cur_len);
+<span class="lineNum">     396 </span>                :            : 
+<span class="lineNum">     397 </span>                :<span class="lineNoCov">          0 :                         length -= cur_len;</span>
+<span class="lineNum">     398 </span>                :<span class="lineNoCov">          0 :                         vec_idx++;</span>
+<span class="lineNum">     399 </span>                :<span class="lineNoCov">          0 :                         scratch_offset += cur_len;</span>
+<span class="lineNum">     400 </span>                :<span class="lineNoCov">          0 :                         offset = 0;</span>
+<span class="lineNum">     401 </span>                :            :                 }
+<span class="lineNum">     402 </span>                :            : 
+<span class="lineNum">     403 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (vec_idx == digest-&gt;cd_uio-&gt;uio_iovcnt &amp;&amp; length &gt; 0) {</span>
+<span class="lineNum">     404 </span>                :            :                         /*
+<span class="lineNum">     405 </span>                :            :                          * The end of the specified iovec's was reached but
+<span class="lineNum">     406 </span>                :            :                          * the length requested could not be processed, i.e.
+<span class="lineNum">     407 </span>                :            :                          * The caller requested to digest more data than it
+<span class="lineNum">     408 </span>                :            :                          * provided.
+<span class="lineNum">     409 </span>                :            :                          */
+<span class="lineNum">     410 </span>                :<span class="lineNoCov">          0 :                         return (CRYPTO_DATA_LEN_RANGE);</span>
+<span class="lineNum">     411 </span>                :            :                 }
+<span class="lineNum">     412 </span>                :            :         }
+<span class="lineNum">     413 </span>                :            : 
+<span class="lineNum">     414 </span>                :            :         return (CRYPTO_SUCCESS);
+<span class="lineNum">     415 </span>                :            : }
+<span class="lineNum">     416 </span>                :            : 
+<a name="417"><span class="lineNum">     417 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     418 </span>                :            : static int
+<span class="lineNum">     419 </span>                :<span class="lineNoCov">          0 : sha1_digest(crypto_ctx_t *ctx, crypto_data_t *data, crypto_data_t *digest,</span>
+<span class="lineNum">     420 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     421 </span>                :            : {
+<span class="lineNum">     422 </span>                :<span class="lineNoCov">          0 :         int ret = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     423 </span>                :            : 
+<span class="lineNum">     424 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ctx-&gt;cc_provider_private != NULL);</span>
+<span class="lineNum">     425 </span>                :            : 
+<span class="lineNum">     426 </span>                :            :         /*
+<span class="lineNum">     427 </span>                :            :          * We need to just return the length needed to store the output.
+<span class="lineNum">     428 </span>                :            :          * We should not destroy the context for the following cases.
+<span class="lineNum">     429 </span>                :            :          */
+<span class="lineNum">     430 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((digest-&gt;cd_length == 0) ||</span>
+<span class="lineNum">     431 </span>                :            :             (digest-&gt;cd_length &lt; SHA1_DIGEST_LENGTH)) {
+<span class="lineNum">     432 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = SHA1_DIGEST_LENGTH;</span>
+<span class="lineNum">     433 </span>                :<span class="lineNoCov">          0 :                 return (CRYPTO_BUFFER_TOO_SMALL);</span>
+<span class="lineNum">     434 </span>                :            :         }
+<span class="lineNum">     435 </span>                :            : 
+<span class="lineNum">     436 </span>                :            :         /*
+<span class="lineNum">     437 </span>                :            :          * Do the SHA1 update on the specified input data.
+<span class="lineNum">     438 </span>                :            :          */
+<span class="lineNum">     439 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (data-&gt;cd_format) {</span>
+<span class="lineNum">     440 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     441 </span>                :<span class="lineNoCov">          0 :                 SHA1Update(&amp;PROV_SHA1_CTX(ctx)-&gt;sc_sha1_ctx,</span>
+<span class="lineNum">     442 </span>                :<span class="lineNoCov">          0 :                     (uint8_t *)data-&gt;cd_raw.iov_base + data-&gt;cd_offset,</span>
+<span class="lineNum">     443 </span>                :            :                     data-&gt;cd_length);
+<span class="lineNum">     444 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     445 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     446 </span>                :<span class="lineNoCov">          0 :                 ret = sha1_digest_update_uio(&amp;PROV_SHA1_CTX(ctx)-&gt;sc_sha1_ctx,</span>
+<span class="lineNum">     447 </span>                :            :                     data);
+<span class="lineNum">     448 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     449 </span>                :            :         default:
+<span class="lineNum">     450 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     451 </span>                :            :         }
+<span class="lineNum">     452 </span>                :            : 
+<span class="lineNum">     453 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     454 </span>                :            :                 /* the update failed, free context and bail */
+<span class="lineNum">     455 </span>                :<span class="lineNoCov">          0 :                 kmem_free(ctx-&gt;cc_provider_private, sizeof (sha1_ctx_t));</span>
+<span class="lineNum">     456 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;cc_provider_private = NULL;</span>
+<span class="lineNum">     457 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = 0;</span>
+<span class="lineNum">     458 </span>                :<span class="lineNoCov">          0 :                 return (ret);</span>
+<span class="lineNum">     459 </span>                :            :         }
+<span class="lineNum">     460 </span>                :            : 
+<span class="lineNum">     461 </span>                :            :         /*
+<span class="lineNum">     462 </span>                :            :          * Do a SHA1 final, must be done separately since the digest
+<span class="lineNum">     463 </span>                :            :          * type can be different than the input data type.
+<span class="lineNum">     464 </span>                :            :          */
+<span class="lineNum">     465 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (digest-&gt;cd_format) {</span>
+<span class="lineNum">     466 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     467 </span>                :<span class="lineNoCov">          0 :                 SHA1Final((unsigned char *)digest-&gt;cd_raw.iov_base +</span>
+<span class="lineNum">     468 </span>                :<span class="lineNoCov">          0 :                     digest-&gt;cd_offset, &amp;PROV_SHA1_CTX(ctx)-&gt;sc_sha1_ctx);</span>
+<span class="lineNum">     469 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     470 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     471 </span>                :<span class="lineNoCov">          0 :                 ret = sha1_digest_final_uio(&amp;PROV_SHA1_CTX(ctx)-&gt;sc_sha1_ctx,</span>
+<span class="lineNum">     472 </span>                :            :                     digest, SHA1_DIGEST_LENGTH, NULL);
+<span class="lineNum">     473 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     474 </span>                :            :         default:
+<span class="lineNum">     475 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     476 </span>                :            :         }
+<span class="lineNum">     477 </span>                :            : 
+<span class="lineNum">     478 </span>                :            :         /* all done, free context and return */
+<span class="lineNum">     479 </span>                :            : 
+<span class="lineNum">     480 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     481 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = SHA1_DIGEST_LENGTH;</span>
+<span class="lineNum">     482 </span>                :            :         } else {
+<span class="lineNum">     483 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = 0;</span>
+<span class="lineNum">     484 </span>                :            :         }
+<span class="lineNum">     485 </span>                :            : 
+<span class="lineNum">     486 </span>                :<span class="lineNoCov">          0 :         kmem_free(ctx-&gt;cc_provider_private, sizeof (sha1_ctx_t));</span>
+<span class="lineNum">     487 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;cc_provider_private = NULL;</span>
+<span class="lineNum">     488 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">     489 </span>                :            : }
+<span class="lineNum">     490 </span>                :            : 
+<a name="491"><span class="lineNum">     491 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     492 </span>                :            : static int
+<span class="lineNum">     493 </span>                :<span class="lineNoCov">          0 : sha1_digest_update(crypto_ctx_t *ctx, crypto_data_t *data,</span>
+<span class="lineNum">     494 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     495 </span>                :            : {
+<span class="lineNum">     496 </span>                :<span class="lineNoCov">          0 :         int ret = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     497 </span>                :            : 
+<span class="lineNum">     498 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ctx-&gt;cc_provider_private != NULL);</span>
+<span class="lineNum">     499 </span>                :            : 
+<span class="lineNum">     500 </span>                :            :         /*
+<span class="lineNum">     501 </span>                :            :          * Do the SHA1 update on the specified input data.
+<span class="lineNum">     502 </span>                :            :          */
+<span class="lineNum">     503 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (data-&gt;cd_format) {</span>
+<span class="lineNum">     504 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     505 </span>                :<span class="lineNoCov">          0 :                 SHA1Update(&amp;PROV_SHA1_CTX(ctx)-&gt;sc_sha1_ctx,</span>
+<span class="lineNum">     506 </span>                :<span class="lineNoCov">          0 :                     (uint8_t *)data-&gt;cd_raw.iov_base + data-&gt;cd_offset,</span>
+<span class="lineNum">     507 </span>                :            :                     data-&gt;cd_length);
+<span class="lineNum">     508 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     509 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     510 </span>                :<span class="lineNoCov">          0 :                 ret = sha1_digest_update_uio(&amp;PROV_SHA1_CTX(ctx)-&gt;sc_sha1_ctx,</span>
+<span class="lineNum">     511 </span>                :            :                     data);
+<span class="lineNum">     512 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     513 </span>                :            :         default:
+<span class="lineNum">     514 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     515 </span>                :            :         }
+<span class="lineNum">     516 </span>                :            : 
+<span class="lineNum">     517 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">     518 </span>                :            : }
+<span class="lineNum">     519 </span>                :            : 
+<a name="520"><span class="lineNum">     520 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     521 </span>                :            : static int
+<span class="lineNum">     522 </span>                :<span class="lineNoCov">          0 : sha1_digest_final(crypto_ctx_t *ctx, crypto_data_t *digest,</span>
+<span class="lineNum">     523 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     524 </span>                :            : {
+<span class="lineNum">     525 </span>                :<span class="lineNoCov">          0 :         int ret = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     526 </span>                :            : 
+<span class="lineNum">     527 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ctx-&gt;cc_provider_private != NULL);</span>
+<span class="lineNum">     528 </span>                :            : 
+<span class="lineNum">     529 </span>                :            :         /*
+<span class="lineNum">     530 </span>                :            :          * We need to just return the length needed to store the output.
+<span class="lineNum">     531 </span>                :            :          * We should not destroy the context for the following cases.
+<span class="lineNum">     532 </span>                :            :          */
+<span class="lineNum">     533 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((digest-&gt;cd_length == 0) ||</span>
+<span class="lineNum">     534 </span>                :            :             (digest-&gt;cd_length &lt; SHA1_DIGEST_LENGTH)) {
+<span class="lineNum">     535 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = SHA1_DIGEST_LENGTH;</span>
+<span class="lineNum">     536 </span>                :<span class="lineNoCov">          0 :                 return (CRYPTO_BUFFER_TOO_SMALL);</span>
+<span class="lineNum">     537 </span>                :            :         }
+<span class="lineNum">     538 </span>                :            : 
+<span class="lineNum">     539 </span>                :            :         /*
+<span class="lineNum">     540 </span>                :            :          * Do a SHA1 final.
+<span class="lineNum">     541 </span>                :            :          */
+<span class="lineNum">     542 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (digest-&gt;cd_format) {</span>
+<span class="lineNum">     543 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     544 </span>                :<span class="lineNoCov">          0 :                 SHA1Final((unsigned char *)digest-&gt;cd_raw.iov_base +</span>
+<span class="lineNum">     545 </span>                :<span class="lineNoCov">          0 :                     digest-&gt;cd_offset, &amp;PROV_SHA1_CTX(ctx)-&gt;sc_sha1_ctx);</span>
+<span class="lineNum">     546 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     547 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     548 </span>                :<span class="lineNoCov">          0 :                 ret = sha1_digest_final_uio(&amp;PROV_SHA1_CTX(ctx)-&gt;sc_sha1_ctx,</span>
+<span class="lineNum">     549 </span>                :            :                     digest, SHA1_DIGEST_LENGTH, NULL);
+<span class="lineNum">     550 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     551 </span>                :            :         default:
+<span class="lineNum">     552 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     553 </span>                :            :         }
+<span class="lineNum">     554 </span>                :            : 
+<span class="lineNum">     555 </span>                :            :         /* all done, free context and return */
+<span class="lineNum">     556 </span>                :            : 
+<span class="lineNum">     557 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     558 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = SHA1_DIGEST_LENGTH;</span>
+<span class="lineNum">     559 </span>                :            :         } else {
+<span class="lineNum">     560 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = 0;</span>
+<span class="lineNum">     561 </span>                :            :         }
+<span class="lineNum">     562 </span>                :            : 
+<span class="lineNum">     563 </span>                :<span class="lineNoCov">          0 :         kmem_free(ctx-&gt;cc_provider_private, sizeof (sha1_ctx_t));</span>
+<span class="lineNum">     564 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;cc_provider_private = NULL;</span>
+<span class="lineNum">     565 </span>                :            : 
+<span class="lineNum">     566 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">     567 </span>                :            : }
+<span class="lineNum">     568 </span>                :            : 
+<a name="569"><span class="lineNum">     569 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     570 </span>                :            : static int
+<span class="lineNum">     571 </span>                :<span class="lineNoCov">          0 : sha1_digest_atomic(crypto_provider_handle_t provider,</span>
+<span class="lineNum">     572 </span>                :            :     crypto_session_id_t session_id, crypto_mechanism_t *mechanism,
+<span class="lineNum">     573 </span>                :            :     crypto_data_t *data, crypto_data_t *digest,
+<span class="lineNum">     574 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     575 </span>                :            : {
+<span class="lineNum">     576 </span>                :<span class="lineNoCov">          0 :         int ret = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     577 </span>                :            :         SHA1_CTX sha1_ctx;
+<span class="lineNum">     578 </span>                :            : 
+<span class="lineNum">     579 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mechanism-&gt;cm_type != SHA1_MECH_INFO_TYPE)</span>
+<span class="lineNum">     580 </span>                :            :                 return (CRYPTO_MECHANISM_INVALID);
+<span class="lineNum">     581 </span>                :            : 
+<span class="lineNum">     582 </span>                :            :         /*
+<span class="lineNum">     583 </span>                :            :          * Do the SHA1 init.
+<span class="lineNum">     584 </span>                :            :          */
+<span class="lineNum">     585 </span>                :<span class="lineNoCov">          0 :         SHA1Init(&amp;sha1_ctx);</span>
+<span class="lineNum">     586 </span>                :            : 
+<span class="lineNum">     587 </span>                :            :         /*
+<span class="lineNum">     588 </span>                :            :          * Do the SHA1 update on the specified input data.
+<span class="lineNum">     589 </span>                :            :          */
+<span class="lineNum">     590 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (data-&gt;cd_format) {</span>
+<span class="lineNum">     591 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     592 </span>                :<span class="lineNoCov">          0 :                 SHA1Update(&amp;sha1_ctx,</span>
+<span class="lineNum">     593 </span>                :<span class="lineNoCov">          0 :                     (uint8_t *)data-&gt;cd_raw.iov_base + data-&gt;cd_offset,</span>
+<span class="lineNum">     594 </span>                :            :                     data-&gt;cd_length);
+<span class="lineNum">     595 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     596 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     597 </span>                :<span class="lineNoCov">          0 :                 ret = sha1_digest_update_uio(&amp;sha1_ctx, data);</span>
+<span class="lineNum">     598 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     599 </span>                :            :         default:
+<span class="lineNum">     600 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     601 </span>                :            :         }
+<span class="lineNum">     602 </span>                :            : 
+<span class="lineNum">     603 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     604 </span>                :            :                 /* the update failed, bail */
+<span class="lineNum">     605 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = 0;</span>
+<span class="lineNum">     606 </span>                :<span class="lineNoCov">          0 :                 return (ret);</span>
+<span class="lineNum">     607 </span>                :            :         }
+<span class="lineNum">     608 </span>                :            : 
+<span class="lineNum">     609 </span>                :            :         /*
+<span class="lineNum">     610 </span>                :            :          * Do a SHA1 final, must be done separately since the digest
+<span class="lineNum">     611 </span>                :            :          * type can be different than the input data type.
+<span class="lineNum">     612 </span>                :            :          */
+<span class="lineNum">     613 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (digest-&gt;cd_format) {</span>
+<span class="lineNum">     614 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     615 </span>                :<span class="lineNoCov">          0 :                 SHA1Final((unsigned char *)digest-&gt;cd_raw.iov_base +</span>
+<span class="lineNum">     616 </span>                :<span class="lineNoCov">          0 :                     digest-&gt;cd_offset, &amp;sha1_ctx);</span>
+<span class="lineNum">     617 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     618 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     619 </span>                :<span class="lineNoCov">          0 :                 ret = sha1_digest_final_uio(&amp;sha1_ctx, digest,</span>
+<span class="lineNum">     620 </span>                :            :                     SHA1_DIGEST_LENGTH, NULL);
+<span class="lineNum">     621 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     622 </span>                :            :         default:
+<span class="lineNum">     623 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     624 </span>                :            :         }
+<span class="lineNum">     625 </span>                :            : 
+<span class="lineNum">     626 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     627 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = SHA1_DIGEST_LENGTH;</span>
+<span class="lineNum">     628 </span>                :            :         } else {
+<span class="lineNum">     629 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = 0;</span>
+<span class="lineNum">     630 </span>                :            :         }
+<span class="lineNum">     631 </span>                :            : 
+<span class="lineNum">     632 </span>                :            :         return (ret);
+<span class="lineNum">     633 </span>                :            : }
+<span class="lineNum">     634 </span>                :            : 
+<span class="lineNum">     635 </span>                :            : /*
+<span class="lineNum">     636 </span>                :            :  * KCF software provider mac entry points.
+<span class="lineNum">     637 </span>                :            :  *
+<span class="lineNum">     638 </span>                :            :  * SHA1 HMAC is: SHA1(key XOR opad, SHA1(key XOR ipad, text))
+<span class="lineNum">     639 </span>                :            :  *
+<span class="lineNum">     640 </span>                :            :  * Init:
+<span class="lineNum">     641 </span>                :            :  * The initialization routine initializes what we denote
+<span class="lineNum">     642 </span>                :            :  * as the inner and outer contexts by doing
+<span class="lineNum">     643 </span>                :            :  * - for inner context: SHA1(key XOR ipad)
+<span class="lineNum">     644 </span>                :            :  * - for outer context: SHA1(key XOR opad)
+<span class="lineNum">     645 </span>                :            :  *
+<span class="lineNum">     646 </span>                :            :  * Update:
+<span class="lineNum">     647 </span>                :            :  * Each subsequent SHA1 HMAC update will result in an
+<span class="lineNum">     648 </span>                :            :  * update of the inner context with the specified data.
+<span class="lineNum">     649 </span>                :            :  *
+<span class="lineNum">     650 </span>                :            :  * Final:
+<span class="lineNum">     651 </span>                :            :  * The SHA1 HMAC final will do a SHA1 final operation on the
+<span class="lineNum">     652 </span>                :            :  * inner context, and the resulting digest will be used
+<span class="lineNum">     653 </span>                :            :  * as the data for an update on the outer context. Last
+<span class="lineNum">     654 </span>                :            :  * but not least, a SHA1 final on the outer context will
+<span class="lineNum">     655 </span>                :            :  * be performed to obtain the SHA1 HMAC digest to return
+<span class="lineNum">     656 </span>                :            :  * to the user.
+<span class="lineNum">     657 </span>                :            :  */
+<span class="lineNum">     658 </span>                :            : 
+<span class="lineNum">     659 </span>                :            : /*
+<span class="lineNum">     660 </span>                :            :  * Initialize a SHA1-HMAC context.
+<a name="661"><span class="lineNum">     661 </span>                :            :  */</a>
+<span class="lineNum">     662 </span>                :            : static void
+<span class="lineNum">     663 </span>                :<span class="lineCov">        102 : sha1_mac_init_ctx(sha1_hmac_ctx_t *ctx, void *keyval, uint_t length_in_bytes)</span>
+<span class="lineNum">     664 </span>                :            : {
+<span class="lineNum">     665 </span>                :            :         uint32_t ipad[SHA1_HMAC_INTS_PER_BLOCK];
+<span class="lineNum">     666 </span>                :            :         uint32_t opad[SHA1_HMAC_INTS_PER_BLOCK];
+<span class="lineNum">     667 </span>                :            :         uint_t i;
+<span class="lineNum">     668 </span>                :            : 
+<span class="lineNum">     669 </span>                :<span class="lineCov">        102 :         bzero(ipad, SHA1_HMAC_BLOCK_SIZE);</span>
+<span class="lineNum">     670 </span>                :<span class="lineCov">        102 :         bzero(opad, SHA1_HMAC_BLOCK_SIZE);</span>
+<span class="lineNum">     671 </span>                :            : 
+<span class="lineNum">     672 </span>                :<span class="lineCov">        204 :         bcopy(keyval, ipad, length_in_bytes);</span>
+<span class="lineNum">     673 </span>                :<span class="lineCov">        204 :         bcopy(keyval, opad, length_in_bytes);</span>
+<span class="lineNum">     674 </span>                :            : 
+<span class="lineNum">     675 </span>                :            :         /* XOR key with ipad (0x36) and opad (0x5c) */
+<span class="lineNum">     676 </span>        [<span class="branchCov" title="Branch 0 was taken 1632 times"> + </span><span class="branchCov" title="Branch 1 was taken 102 times"> + </span>]:<span class="lineCov">       1734 :         for (i = 0; i &lt; SHA1_HMAC_INTS_PER_BLOCK; i++) {</span>
+<span class="lineNum">     677 </span>                :<span class="lineCov">       1632 :                 ipad[i] ^= 0x36363636;</span>
+<span class="lineNum">     678 </span>                :<span class="lineCov">       1632 :                 opad[i] ^= 0x5c5c5c5c;</span>
+<span class="lineNum">     679 </span>                :            :         }
+<span class="lineNum">     680 </span>                :            : 
+<span class="lineNum">     681 </span>                :            :         /* perform SHA1 on ipad */
+<span class="lineNum">     682 </span>                :<span class="lineCov">        102 :         SHA1Init(&amp;ctx-&gt;hc_icontext);</span>
+<span class="lineNum">     683 </span>                :<span class="lineCov">        102 :         SHA1Update(&amp;ctx-&gt;hc_icontext, (uint8_t *)ipad, SHA1_HMAC_BLOCK_SIZE);</span>
+<span class="lineNum">     684 </span>                :            : 
+<span class="lineNum">     685 </span>                :            :         /* perform SHA1 on opad */
+<span class="lineNum">     686 </span>                :<span class="lineCov">        102 :         SHA1Init(&amp;ctx-&gt;hc_ocontext);</span>
+<span class="lineNum">     687 </span>                :<span class="lineCov">        102 :         SHA1Update(&amp;ctx-&gt;hc_ocontext, (uint8_t *)opad, SHA1_HMAC_BLOCK_SIZE);</span>
+<span class="lineNum">     688 </span>                :<span class="lineCov">        102 : }</span>
+<span class="lineNum">     689 </span>                :            : 
+<span class="lineNum">     690 </span>                :            : /*
+<a name="691"><span class="lineNum">     691 </span>                :            :  */</a>
+<span class="lineNum">     692 </span>                :            : static int
+<span class="lineNum">     693 </span>                :<span class="lineNoCov">          0 : sha1_mac_init(crypto_ctx_t *ctx, crypto_mechanism_t *mechanism,</span>
+<span class="lineNum">     694 </span>                :            :     crypto_key_t *key, crypto_spi_ctx_template_t ctx_template,
+<span class="lineNum">     695 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     696 </span>                :            : {
+<span class="lineNum">     697 </span>                :<span class="lineNoCov">          0 :         int ret = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     698 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         uint_t keylen_in_bytes = CRYPTO_BITS2BYTES(key-&gt;ck_length);</span>
+<span class="lineNum">     699 </span>                :            : 
+<span class="lineNum">     700 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mechanism-&gt;cm_type != SHA1_HMAC_MECH_INFO_TYPE &amp;&amp;</span>
+<span class="lineNum">     701 </span>                :            :             mechanism-&gt;cm_type != SHA1_HMAC_GEN_MECH_INFO_TYPE)
+<span class="lineNum">     702 </span>                :            :                 return (CRYPTO_MECHANISM_INVALID);
+<span class="lineNum">     703 </span>                :            : 
+<span class="lineNum">     704 </span>                :            :         /* Add support for key by attributes (RFE 4706552) */
+<span class="lineNum">     705 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (key-&gt;ck_format != CRYPTO_KEY_RAW)</span>
+<span class="lineNum">     706 </span>                :            :                 return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">     707 </span>                :            : 
+<span class="lineNum">     708 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;cc_provider_private = kmem_alloc(sizeof (sha1_hmac_ctx_t),</span>
+<span class="lineNum">     709 </span>                :            :             crypto_kmflag(req));
+<span class="lineNum">     710 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ctx-&gt;cc_provider_private == NULL)</span>
+<span class="lineNum">     711 </span>                :            :                 return (CRYPTO_HOST_MEMORY);
+<span class="lineNum">     712 </span>                :            : 
+<span class="lineNum">     713 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ctx_template != NULL) {</span>
+<span class="lineNum">     714 </span>                :            :                 /* reuse context template */
+<span class="lineNum">     715 </span>                :<span class="lineNoCov">          0 :                 bcopy(ctx_template, PROV_SHA1_HMAC_CTX(ctx),</span>
+<span class="lineNum">     716 </span>                :            :                     sizeof (sha1_hmac_ctx_t));
+<span class="lineNum">     717 </span>                :            :         } else {
+<span class="lineNum">     718 </span>                :            :                 /* no context template, compute context */
+<span class="lineNum">     719 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (keylen_in_bytes &gt; SHA1_HMAC_BLOCK_SIZE) {</span>
+<span class="lineNum">     720 </span>                :            :                         uchar_t digested_key[SHA1_DIGEST_LENGTH];
+<span class="lineNum">     721 </span>                :<span class="lineNoCov">          0 :                         sha1_hmac_ctx_t *hmac_ctx = ctx-&gt;cc_provider_private;</span>
+<span class="lineNum">     722 </span>                :            : 
+<span class="lineNum">     723 </span>                :            :                         /*
+<span class="lineNum">     724 </span>                :            :                          * Hash the passed-in key to get a smaller key.
+<span class="lineNum">     725 </span>                :            :                          * The inner context is used since it hasn't been
+<span class="lineNum">     726 </span>                :            :                          * initialized yet.
+<span class="lineNum">     727 </span>                :            :                          */
+<span class="lineNum">     728 </span>                :<span class="lineNoCov">          0 :                         PROV_SHA1_DIGEST_KEY(&amp;hmac_ctx-&gt;hc_icontext,</span>
+<span class="lineNum">     729 </span>                :            :                             key-&gt;ck_data, keylen_in_bytes, digested_key);
+<span class="lineNum">     730 </span>                :<span class="lineNoCov">          0 :                         sha1_mac_init_ctx(PROV_SHA1_HMAC_CTX(ctx),</span>
+<span class="lineNum">     731 </span>                :            :                             digested_key, SHA1_DIGEST_LENGTH);
+<span class="lineNum">     732 </span>                :            :                 } else {
+<span class="lineNum">     733 </span>                :<span class="lineNoCov">          0 :                         sha1_mac_init_ctx(PROV_SHA1_HMAC_CTX(ctx),</span>
+<span class="lineNum">     734 </span>                :            :                             key-&gt;ck_data, keylen_in_bytes);
+<span class="lineNum">     735 </span>                :            :                 }
+<span class="lineNum">     736 </span>                :            :         }
+<span class="lineNum">     737 </span>                :            : 
+<span class="lineNum">     738 </span>                :            :         /*
+<span class="lineNum">     739 </span>                :            :          * Get the mechanism parameters, if applicable.
+<span class="lineNum">     740 </span>                :            :          */
+<span class="lineNum">     741 </span>                :<span class="lineNoCov">          0 :         PROV_SHA1_HMAC_CTX(ctx)-&gt;hc_mech_type = mechanism-&gt;cm_type;</span>
+<span class="lineNum">     742 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mechanism-&gt;cm_type == SHA1_HMAC_GEN_MECH_INFO_TYPE) {</span>
+<span class="lineNum">     743 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (mechanism-&gt;cm_param == NULL ||</span>
+<span class="lineNum">     744 </span>                :<span class="lineNoCov">          0 :                     mechanism-&gt;cm_param_len != sizeof (ulong_t))</span>
+<span class="lineNum">     745 </span>                :<span class="lineNoCov">          0 :                         ret = CRYPTO_MECHANISM_PARAM_INVALID;</span>
+<span class="lineNum">     746 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 PROV_SHA1_GET_DIGEST_LEN(mechanism,</span>
+<span class="lineNum">     747 </span>                :            :                     PROV_SHA1_HMAC_CTX(ctx)-&gt;hc_digest_len);
+<span class="lineNum">     748 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (PROV_SHA1_HMAC_CTX(ctx)-&gt;hc_digest_len &gt;</span>
+<span class="lineNum">     749 </span>                :            :                     SHA1_DIGEST_LENGTH)
+<span class="lineNum">     750 </span>                :<span class="lineNoCov">          0 :                         ret = CRYPTO_MECHANISM_PARAM_INVALID;</span>
+<span class="lineNum">     751 </span>                :            :         }
+<span class="lineNum">     752 </span>                :            : 
+<span class="lineNum">     753 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     754 </span>                :<span class="lineNoCov">          0 :                 bzero(ctx-&gt;cc_provider_private, sizeof (sha1_hmac_ctx_t));</span>
+<span class="lineNum">     755 </span>                :<span class="lineNoCov">          0 :                 kmem_free(ctx-&gt;cc_provider_private, sizeof (sha1_hmac_ctx_t));</span>
+<span class="lineNum">     756 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;cc_provider_private = NULL;</span>
+<span class="lineNum">     757 </span>                :            :         }
+<span class="lineNum">     758 </span>                :            : 
+<span class="lineNum">     759 </span>                :            :         return (ret);
+<span class="lineNum">     760 </span>                :            : }
+<span class="lineNum">     761 </span>                :            : 
+<a name="762"><span class="lineNum">     762 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     763 </span>                :            : static int
+<span class="lineNum">     764 </span>                :<span class="lineNoCov">          0 : sha1_mac_update(crypto_ctx_t *ctx, crypto_data_t *data, crypto_req_handle_t req)</span>
+<span class="lineNum">     765 </span>                :            : {
+<span class="lineNum">     766 </span>                :<span class="lineNoCov">          0 :         int ret = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     767 </span>                :            : 
+<span class="lineNum">     768 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ctx-&gt;cc_provider_private != NULL);</span>
+<span class="lineNum">     769 </span>                :            : 
+<span class="lineNum">     770 </span>                :            :         /*
+<span class="lineNum">     771 </span>                :            :          * Do a SHA1 update of the inner context using the specified
+<span class="lineNum">     772 </span>                :            :          * data.
+<span class="lineNum">     773 </span>                :            :          */
+<span class="lineNum">     774 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (data-&gt;cd_format) {</span>
+<span class="lineNum">     775 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     776 </span>                :<span class="lineNoCov">          0 :                 SHA1Update(&amp;PROV_SHA1_HMAC_CTX(ctx)-&gt;hc_icontext,</span>
+<span class="lineNum">     777 </span>                :<span class="lineNoCov">          0 :                     (uint8_t *)data-&gt;cd_raw.iov_base + data-&gt;cd_offset,</span>
+<span class="lineNum">     778 </span>                :            :                     data-&gt;cd_length);
+<span class="lineNum">     779 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     780 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     781 </span>                :<span class="lineNoCov">          0 :                 ret = sha1_digest_update_uio(</span>
+<span class="lineNum">     782 </span>                :            :                     &amp;PROV_SHA1_HMAC_CTX(ctx)-&gt;hc_icontext, data);
+<span class="lineNum">     783 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     784 </span>                :            :         default:
+<span class="lineNum">     785 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     786 </span>                :            :         }
+<span class="lineNum">     787 </span>                :            : 
+<span class="lineNum">     788 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">     789 </span>                :            : }
+<span class="lineNum">     790 </span>                :            : 
+<a name="791"><span class="lineNum">     791 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     792 </span>                :            : static int
+<span class="lineNum">     793 </span>                :<span class="lineNoCov">          0 : sha1_mac_final(crypto_ctx_t *ctx, crypto_data_t *mac, crypto_req_handle_t req)</span>
+<span class="lineNum">     794 </span>                :            : {
+<span class="lineNum">     795 </span>                :<span class="lineNoCov">          0 :         int ret = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     796 </span>                :            :         uchar_t digest[SHA1_DIGEST_LENGTH];
+<span class="lineNum">     797 </span>                :<span class="lineNoCov">          0 :         uint32_t digest_len = SHA1_DIGEST_LENGTH;</span>
+<span class="lineNum">     798 </span>                :            : 
+<span class="lineNum">     799 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ctx-&gt;cc_provider_private != NULL);</span>
+<span class="lineNum">     800 </span>                :            : 
+<span class="lineNum">     801 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (PROV_SHA1_HMAC_CTX(ctx)-&gt;hc_mech_type ==</span>
+<span class="lineNum">     802 </span>                :            :             SHA1_HMAC_GEN_MECH_INFO_TYPE)
+<span class="lineNum">     803 </span>                :<span class="lineNoCov">          0 :                 digest_len = PROV_SHA1_HMAC_CTX(ctx)-&gt;hc_digest_len;</span>
+<span class="lineNum">     804 </span>                :            : 
+<span class="lineNum">     805 </span>                :            :         /*
+<span class="lineNum">     806 </span>                :            :          * We need to just return the length needed to store the output.
+<span class="lineNum">     807 </span>                :            :          * We should not destroy the context for the following cases.
+<span class="lineNum">     808 </span>                :            :          */
+<span class="lineNum">     809 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((mac-&gt;cd_length == 0) || (mac-&gt;cd_length &lt; digest_len)) {</span>
+<span class="lineNum">     810 </span>                :<span class="lineNoCov">          0 :                 mac-&gt;cd_length = digest_len;</span>
+<span class="lineNum">     811 </span>                :<span class="lineNoCov">          0 :                 return (CRYPTO_BUFFER_TOO_SMALL);</span>
+<span class="lineNum">     812 </span>                :            :         }
+<span class="lineNum">     813 </span>                :            : 
+<span class="lineNum">     814 </span>                :            :         /*
+<span class="lineNum">     815 </span>                :            :          * Do a SHA1 final on the inner context.
+<span class="lineNum">     816 </span>                :            :          */
+<span class="lineNum">     817 </span>                :<span class="lineNoCov">          0 :         SHA1Final(digest, &amp;PROV_SHA1_HMAC_CTX(ctx)-&gt;hc_icontext);</span>
+<span class="lineNum">     818 </span>                :            : 
+<span class="lineNum">     819 </span>                :            :         /*
+<span class="lineNum">     820 </span>                :            :          * Do a SHA1 update on the outer context, feeding the inner
+<span class="lineNum">     821 </span>                :            :          * digest as data.
+<span class="lineNum">     822 </span>                :            :          */
+<span class="lineNum">     823 </span>                :<span class="lineNoCov">          0 :         SHA1Update(&amp;PROV_SHA1_HMAC_CTX(ctx)-&gt;hc_ocontext, digest,</span>
+<span class="lineNum">     824 </span>                :            :             SHA1_DIGEST_LENGTH);
+<span class="lineNum">     825 </span>                :            : 
+<span class="lineNum">     826 </span>                :            :         /*
+<span class="lineNum">     827 </span>                :            :          * Do a SHA1 final on the outer context, storing the computing
+<span class="lineNum">     828 </span>                :            :          * digest in the users buffer.
+<span class="lineNum">     829 </span>                :            :          */
+<span class="lineNum">     830 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (mac-&gt;cd_format) {</span>
+<span class="lineNum">     831 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     832 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (digest_len != SHA1_DIGEST_LENGTH) {</span>
+<span class="lineNum">     833 </span>                :            :                         /*
+<span class="lineNum">     834 </span>                :            :                          * The caller requested a short digest. Digest
+<span class="lineNum">     835 </span>                :            :                          * into a scratch buffer and return to
+<span class="lineNum">     836 </span>                :            :                          * the user only what was requested.
+<span class="lineNum">     837 </span>                :            :                          */
+<span class="lineNum">     838 </span>                :<span class="lineNoCov">          0 :                         SHA1Final(digest,</span>
+<span class="lineNum">     839 </span>                :<span class="lineNoCov">          0 :                             &amp;PROV_SHA1_HMAC_CTX(ctx)-&gt;hc_ocontext);</span>
+<span class="lineNum">     840 </span>                :<span class="lineNoCov">          0 :                         bcopy(digest, (unsigned char *)mac-&gt;cd_raw.iov_base +</span>
+<span class="lineNum">     841 </span>                :<span class="lineNoCov">          0 :                             mac-&gt;cd_offset, digest_len);</span>
+<span class="lineNum">     842 </span>                :            :                 } else {
+<span class="lineNum">     843 </span>                :<span class="lineNoCov">          0 :                         SHA1Final((unsigned char *)mac-&gt;cd_raw.iov_base +</span>
+<span class="lineNum">     844 </span>                :<span class="lineNoCov">          0 :                             mac-&gt;cd_offset,</span>
+<span class="lineNum">     845 </span>                :<span class="lineNoCov">          0 :                             &amp;PROV_SHA1_HMAC_CTX(ctx)-&gt;hc_ocontext);</span>
+<span class="lineNum">     846 </span>                :            :                 }
+<span class="lineNum">     847 </span>                :            :                 break;
+<span class="lineNum">     848 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     849 </span>                :<span class="lineNoCov">          0 :                 ret = sha1_digest_final_uio(</span>
+<span class="lineNum">     850 </span>                :<span class="lineNoCov">          0 :                     &amp;PROV_SHA1_HMAC_CTX(ctx)-&gt;hc_ocontext, mac,</span>
+<span class="lineNum">     851 </span>                :            :                     digest_len, digest);
+<span class="lineNum">     852 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     853 </span>                :            :         default:
+<span class="lineNum">     854 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     855 </span>                :            :         }
+<span class="lineNum">     856 </span>                :            : 
+<span class="lineNum">     857 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     858 </span>                :<span class="lineNoCov">          0 :                 mac-&gt;cd_length = digest_len;</span>
+<span class="lineNum">     859 </span>                :            :         } else {
+<span class="lineNum">     860 </span>                :<span class="lineNoCov">          0 :                 mac-&gt;cd_length = 0;</span>
+<span class="lineNum">     861 </span>                :            :         }
+<span class="lineNum">     862 </span>                :            : 
+<span class="lineNum">     863 </span>                :<span class="lineNoCov">          0 :         bzero(ctx-&gt;cc_provider_private, sizeof (sha1_hmac_ctx_t));</span>
+<span class="lineNum">     864 </span>                :<span class="lineNoCov">          0 :         kmem_free(ctx-&gt;cc_provider_private, sizeof (sha1_hmac_ctx_t));</span>
+<span class="lineNum">     865 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;cc_provider_private = NULL;</span>
+<span class="lineNum">     866 </span>                :            : 
+<span class="lineNum">     867 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">     868 </span>                :            : }
+<span class="lineNum">     869 </span>                :            : 
+<span class="lineNum">     870 </span>                :            : #define SHA1_MAC_UPDATE(data, ctx, ret) {                               \
+<span class="lineNum">     871 </span>                :            :         switch (data-&gt;cd_format) {                                   \
+<span class="lineNum">     872 </span>                :            :         case CRYPTO_DATA_RAW:                                           \
+<span class="lineNum">     873 </span>                :            :                 SHA1Update(&amp;(ctx).hc_icontext,                              \
+<span class="lineNum">     874 </span>                :            :                     (uint8_t *)data-&gt;cd_raw.iov_base +                       \
+<span class="lineNum">     875 </span>                :            :                     data-&gt;cd_offset, data-&gt;cd_length);                    \
+<span class="lineNum">     876 </span>                :            :                 break;                                                  \
+<span class="lineNum">     877 </span>                :            :         case CRYPTO_DATA_UIO:                                           \
+<span class="lineNum">     878 </span>                :            :                 ret = sha1_digest_update_uio(&amp;(ctx).hc_icontext, data); \
+<span class="lineNum">     879 </span>                :            :                 break;                                                  \
+<span class="lineNum">     880 </span>                :            :         default:                                                        \
+<span class="lineNum">     881 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;                             \
+<span class="lineNum">     882 </span>                :            :         }                                                               \
+<span class="lineNum">     883 </span>                :            : }
+<span class="lineNum">     884 </span>                :            : 
+<a name="885"><span class="lineNum">     885 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     886 </span>                :            : static int
+<span class="lineNum">     887 </span>                :<span class="lineCov">   70300000 : sha1_mac_atomic(crypto_provider_handle_t provider,</span>
+<span class="lineNum">     888 </span>                :            :     crypto_session_id_t session_id, crypto_mechanism_t *mechanism,
+<span class="lineNum">     889 </span>                :            :     crypto_key_t *key, crypto_data_t *data, crypto_data_t *mac,
+<span class="lineNum">     890 </span>                :            :     crypto_spi_ctx_template_t ctx_template, crypto_req_handle_t req)
+<span class="lineNum">     891 </span>                :            : {
+<span class="lineNum">     892 </span>                :<span class="lineCov">   70300000 :         int ret = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     893 </span>                :            :         uchar_t digest[SHA1_DIGEST_LENGTH];
+<span class="lineNum">     894 </span>                :            :         sha1_hmac_ctx_t sha1_hmac_ctx;
+<span class="lineNum">     895 </span>                :<span class="lineCov">   70300000 :         uint32_t digest_len = SHA1_DIGEST_LENGTH;</span>
+<span class="lineNum">     896 </span>        [<span class="branchCov" title="Branch 0 was taken 70300000 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">   70300000 :         uint_t keylen_in_bytes = CRYPTO_BITS2BYTES(key-&gt;ck_length);</span>
+<span class="lineNum">     897 </span>                :            : 
+<span class="lineNum">     898 </span>        [<span class="branchCov" title="Branch 0 was taken 70300000 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">   70300000 :         if (mechanism-&gt;cm_type != SHA1_HMAC_MECH_INFO_TYPE &amp;&amp;</span>
+<span class="lineNum">     899 </span>                :            :             mechanism-&gt;cm_type != SHA1_HMAC_GEN_MECH_INFO_TYPE)
+<span class="lineNum">     900 </span>                :            :                 return (CRYPTO_MECHANISM_INVALID);
+<span class="lineNum">     901 </span>                :            : 
+<span class="lineNum">     902 </span>                :            :         /* Add support for key by attributes (RFE 4706552) */
+<span class="lineNum">     903 </span>        [<span class="branchCov" title="Branch 0 was taken 70300000 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">   70300000 :         if (key-&gt;ck_format != CRYPTO_KEY_RAW)</span>
+<span class="lineNum">     904 </span>                :            :                 return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">     905 </span>                :            : 
+<span class="lineNum">     906 </span>        [<span class="branchCov" title="Branch 0 was taken 70300000 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">   70300000 :         if (ctx_template != NULL) {</span>
+<span class="lineNum">     907 </span>                :            :                 /* reuse context template */
+<span class="lineNum">     908 </span>                :            :                 bcopy(ctx_template, &amp;sha1_hmac_ctx, sizeof (sha1_hmac_ctx_t));
+<span class="lineNum">     909 </span>                :            :         } else {
+<span class="lineNum">     910 </span>                :            :                 /* no context template, initialize context */
+<span class="lineNum">     911 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (keylen_in_bytes &gt; SHA1_HMAC_BLOCK_SIZE) {</span>
+<span class="lineNum">     912 </span>                :            :                         /*
+<span class="lineNum">     913 </span>                :            :                          * Hash the passed-in key to get a smaller key.
+<span class="lineNum">     914 </span>                :            :                          * The inner context is used since it hasn't been
+<span class="lineNum">     915 </span>                :            :                          * initialized yet.
+<span class="lineNum">     916 </span>                :            :                          */
+<span class="lineNum">     917 </span>                :<span class="lineNoCov">          0 :                         PROV_SHA1_DIGEST_KEY(&amp;sha1_hmac_ctx.hc_icontext,</span>
+<span class="lineNum">     918 </span>                :            :                             key-&gt;ck_data, keylen_in_bytes, digest);
+<span class="lineNum">     919 </span>                :<span class="lineNoCov">          0 :                         sha1_mac_init_ctx(&amp;sha1_hmac_ctx, digest,</span>
+<span class="lineNum">     920 </span>                :            :                             SHA1_DIGEST_LENGTH);
+<span class="lineNum">     921 </span>                :            :                 } else {
+<span class="lineNum">     922 </span>                :<span class="lineNoCov">          0 :                         sha1_mac_init_ctx(&amp;sha1_hmac_ctx, key-&gt;ck_data,</span>
+<span class="lineNum">     923 </span>                :            :                             keylen_in_bytes);
+<span class="lineNum">     924 </span>                :            :                 }
+<span class="lineNum">     925 </span>                :            :         }
+<span class="lineNum">     926 </span>                :            : 
+<span class="lineNum">     927 </span>                :            :         /* get the mechanism parameters, if applicable */
+<span class="lineNum">     928 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 70300000 times"> + </span>]:<span class="lineCov">   70300000 :         if (mechanism-&gt;cm_type == SHA1_HMAC_GEN_MECH_INFO_TYPE) {</span>
+<span class="lineNum">     929 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (mechanism-&gt;cm_param == NULL ||</span>
+<span class="lineNum">     930 </span>                :<span class="lineNoCov">          0 :                     mechanism-&gt;cm_param_len != sizeof (ulong_t)) {</span>
+<span class="lineNum">     931 </span>                :            :                         ret = CRYPTO_MECHANISM_PARAM_INVALID;
+<span class="lineNum">     932 </span>                :            :                         goto bail;
+<span class="lineNum">     933 </span>                :            :                 }
+<span class="lineNum">     934 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 PROV_SHA1_GET_DIGEST_LEN(mechanism, digest_len);</span>
+<span class="lineNum">     935 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (digest_len &gt; SHA1_DIGEST_LENGTH) {</span>
+<span class="lineNum">     936 </span>                :            :                         ret = CRYPTO_MECHANISM_PARAM_INVALID;
+<span class="lineNum">     937 </span>                :            :                         goto bail;
+<span class="lineNum">     938 </span>                :            :                 }
+<span class="lineNum">     939 </span>                :            :         }
+<span class="lineNum">     940 </span>                :            : 
+<span class="lineNum">     941 </span>                :            :         /* do a SHA1 update of the inner context using the specified data */
+<span class="lineNum">     942 </span>     [<span class="branchCov" title="Branch 0 was taken 70300000 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">   70300000 :         SHA1_MAC_UPDATE(data, sha1_hmac_ctx, ret);</span>
+<span class="lineNum">     943 </span>        [<span class="branchCov" title="Branch 0 was taken 70300000 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">   70300000 :         if (ret != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     944 </span>                :            :                 /* the update failed, free context and bail */
+<span class="lineNum">     945 </span>                :            :                 goto bail;
+<span class="lineNum">     946 </span>                :            : 
+<span class="lineNum">     947 </span>                :            :         /*
+<span class="lineNum">     948 </span>                :            :          * Do a SHA1 final on the inner context.
+<span class="lineNum">     949 </span>                :            :          */
+<span class="lineNum">     950 </span>                :<span class="lineCov">   70300000 :         SHA1Final(digest, &amp;sha1_hmac_ctx.hc_icontext);</span>
+<span class="lineNum">     951 </span>                :            : 
+<span class="lineNum">     952 </span>                :            :         /*
+<span class="lineNum">     953 </span>                :            :          * Do an SHA1 update on the outer context, feeding the inner
+<span class="lineNum">     954 </span>                :            :          * digest as data.
+<span class="lineNum">     955 </span>                :            :          */
+<span class="lineNum">     956 </span>                :<span class="lineCov">   70300000 :         SHA1Update(&amp;sha1_hmac_ctx.hc_ocontext, digest, SHA1_DIGEST_LENGTH);</span>
+<span class="lineNum">     957 </span>                :            : 
+<span class="lineNum">     958 </span>                :            :         /*
+<span class="lineNum">     959 </span>                :            :          * Do a SHA1 final on the outer context, storing the computed
+<span class="lineNum">     960 </span>                :            :          * digest in the users buffer.
+<span class="lineNum">     961 </span>                :            :          */
+<span class="lineNum">     962 </span>     [<span class="branchCov" title="Branch 0 was taken 70300000 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">   70300000 :         switch (mac-&gt;cd_format) {</span>
+<span class="lineNum">     963 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     964 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 70300000 times"> + </span>]:<span class="lineCov">   70300000 :                 if (digest_len != SHA1_DIGEST_LENGTH) {</span>
+<span class="lineNum">     965 </span>                :            :                         /*
+<span class="lineNum">     966 </span>                :            :                          * The caller requested a short digest. Digest
+<span class="lineNum">     967 </span>                :            :                          * into a scratch buffer and return to
+<span class="lineNum">     968 </span>                :            :                          * the user only what was requested.
+<span class="lineNum">     969 </span>                :            :                          */
+<span class="lineNum">     970 </span>                :<span class="lineNoCov">          0 :                         SHA1Final(digest, &amp;sha1_hmac_ctx.hc_ocontext);</span>
+<span class="lineNum">     971 </span>                :<span class="lineNoCov">          0 :                         bcopy(digest, (unsigned char *)mac-&gt;cd_raw.iov_base +</span>
+<span class="lineNum">     972 </span>                :<span class="lineNoCov">          0 :                             mac-&gt;cd_offset, digest_len);</span>
+<span class="lineNum">     973 </span>                :            :                 } else {
+<span class="lineNum">     974 </span>                :<span class="lineCov">   70300000 :                         SHA1Final((unsigned char *)mac-&gt;cd_raw.iov_base +</span>
+<span class="lineNum">     975 </span>                :<span class="lineCov">   70300000 :                             mac-&gt;cd_offset, &amp;sha1_hmac_ctx.hc_ocontext);</span>
+<span class="lineNum">     976 </span>                :            :                 }
+<span class="lineNum">     977 </span>                :            :                 break;
+<span class="lineNum">     978 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     979 </span>                :<span class="lineNoCov">          0 :                 ret = sha1_digest_final_uio(&amp;sha1_hmac_ctx.hc_ocontext, mac,</span>
+<span class="lineNum">     980 </span>                :            :                     digest_len, digest);
+<span class="lineNum">     981 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     982 </span>                :            :         default:
+<span class="lineNum">     983 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     984 </span>                :            :         }
+<span class="lineNum">     985 </span>                :            : 
+<span class="lineNum">     986 </span>        [<span class="branchCov" title="Branch 0 was taken 70300000 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">   70300000 :         if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     987 </span>                :<span class="lineCov">   70300000 :                 mac-&gt;cd_length = digest_len;</span>
+<span class="lineNum">     988 </span>                :            :         } else {
+<span class="lineNum">     989 </span>                :<span class="lineNoCov">          0 :                 mac-&gt;cd_length = 0;</span>
+<span class="lineNum">     990 </span>                :            :         }
+<span class="lineNum">     991 </span>                :            :         /* Extra paranoia: zeroize the context on the stack */
+<span class="lineNum">     992 </span>                :<span class="lineCov">   70300000 :         bzero(&amp;sha1_hmac_ctx, sizeof (sha1_hmac_ctx_t));</span>
+<span class="lineNum">     993 </span>                :            : 
+<span class="lineNum">     994 </span>                :<span class="lineCov">   70300000 :         return (ret);</span>
+<span class="lineNum">     995 </span>                :            : bail:
+<span class="lineNum">     996 </span>                :<span class="lineNoCov">          0 :         bzero(&amp;sha1_hmac_ctx, sizeof (sha1_hmac_ctx_t));</span>
+<span class="lineNum">     997 </span>                :<span class="lineNoCov">          0 :         mac-&gt;cd_length = 0;</span>
+<span class="lineNum">     998 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">     999 </span>                :            : }
+<span class="lineNum">    1000 </span>                :            : 
+<a name="1001"><span class="lineNum">    1001 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">    1002 </span>                :            : static int
+<span class="lineNum">    1003 </span>                :<span class="lineNoCov">          0 : sha1_mac_verify_atomic(crypto_provider_handle_t provider,</span>
+<span class="lineNum">    1004 </span>                :            :     crypto_session_id_t session_id, crypto_mechanism_t *mechanism,
+<span class="lineNum">    1005 </span>                :            :     crypto_key_t *key, crypto_data_t *data, crypto_data_t *mac,
+<span class="lineNum">    1006 </span>                :            :     crypto_spi_ctx_template_t ctx_template, crypto_req_handle_t req)
+<span class="lineNum">    1007 </span>                :            : {
+<span class="lineNum">    1008 </span>                :<span class="lineNoCov">          0 :         int ret = CRYPTO_SUCCESS;</span>
+<span class="lineNum">    1009 </span>                :            :         uchar_t digest[SHA1_DIGEST_LENGTH];
+<span class="lineNum">    1010 </span>                :            :         sha1_hmac_ctx_t sha1_hmac_ctx;
+<span class="lineNum">    1011 </span>                :<span class="lineNoCov">          0 :         uint32_t digest_len = SHA1_DIGEST_LENGTH;</span>
+<span class="lineNum">    1012 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         uint_t keylen_in_bytes = CRYPTO_BITS2BYTES(key-&gt;ck_length);</span>
+<span class="lineNum">    1013 </span>                :            : 
+<span class="lineNum">    1014 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mechanism-&gt;cm_type != SHA1_HMAC_MECH_INFO_TYPE &amp;&amp;</span>
+<span class="lineNum">    1015 </span>                :            :             mechanism-&gt;cm_type != SHA1_HMAC_GEN_MECH_INFO_TYPE)
+<span class="lineNum">    1016 </span>                :            :                 return (CRYPTO_MECHANISM_INVALID);
+<span class="lineNum">    1017 </span>                :            : 
+<span class="lineNum">    1018 </span>                :            :         /* Add support for key by attributes (RFE 4706552) */
+<span class="lineNum">    1019 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (key-&gt;ck_format != CRYPTO_KEY_RAW)</span>
+<span class="lineNum">    1020 </span>                :            :                 return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">    1021 </span>                :            : 
+<span class="lineNum">    1022 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ctx_template != NULL) {</span>
+<span class="lineNum">    1023 </span>                :            :                 /* reuse context template */
+<span class="lineNum">    1024 </span>                :            :                 bcopy(ctx_template, &amp;sha1_hmac_ctx, sizeof (sha1_hmac_ctx_t));
+<span class="lineNum">    1025 </span>                :            :         } else {
+<span class="lineNum">    1026 </span>                :            :                 /* no context template, initialize context */
+<span class="lineNum">    1027 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (keylen_in_bytes &gt; SHA1_HMAC_BLOCK_SIZE) {</span>
+<span class="lineNum">    1028 </span>                :            :                         /*
+<span class="lineNum">    1029 </span>                :            :                          * Hash the passed-in key to get a smaller key.
+<span class="lineNum">    1030 </span>                :            :                          * The inner context is used since it hasn't been
+<span class="lineNum">    1031 </span>                :            :                          * initialized yet.
+<span class="lineNum">    1032 </span>                :            :                          */
+<span class="lineNum">    1033 </span>                :<span class="lineNoCov">          0 :                         PROV_SHA1_DIGEST_KEY(&amp;sha1_hmac_ctx.hc_icontext,</span>
+<span class="lineNum">    1034 </span>                :            :                             key-&gt;ck_data, keylen_in_bytes, digest);
+<span class="lineNum">    1035 </span>                :<span class="lineNoCov">          0 :                         sha1_mac_init_ctx(&amp;sha1_hmac_ctx, digest,</span>
+<span class="lineNum">    1036 </span>                :            :                             SHA1_DIGEST_LENGTH);
+<span class="lineNum">    1037 </span>                :            :                 } else {
+<span class="lineNum">    1038 </span>                :<span class="lineNoCov">          0 :                         sha1_mac_init_ctx(&amp;sha1_hmac_ctx, key-&gt;ck_data,</span>
+<span class="lineNum">    1039 </span>                :            :                             keylen_in_bytes);
+<span class="lineNum">    1040 </span>                :            :                 }
+<span class="lineNum">    1041 </span>                :            :         }
+<span class="lineNum">    1042 </span>                :            : 
+<span class="lineNum">    1043 </span>                :            :         /* get the mechanism parameters, if applicable */
+<span class="lineNum">    1044 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mechanism-&gt;cm_type == SHA1_HMAC_GEN_MECH_INFO_TYPE) {</span>
+<span class="lineNum">    1045 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (mechanism-&gt;cm_param == NULL ||</span>
+<span class="lineNum">    1046 </span>                :<span class="lineNoCov">          0 :                     mechanism-&gt;cm_param_len != sizeof (ulong_t)) {</span>
+<span class="lineNum">    1047 </span>                :            :                         ret = CRYPTO_MECHANISM_PARAM_INVALID;
+<span class="lineNum">    1048 </span>                :            :                         goto bail;
+<span class="lineNum">    1049 </span>                :            :                 }
+<span class="lineNum">    1050 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 PROV_SHA1_GET_DIGEST_LEN(mechanism, digest_len);</span>
+<span class="lineNum">    1051 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (digest_len &gt; SHA1_DIGEST_LENGTH) {</span>
+<span class="lineNum">    1052 </span>                :            :                         ret = CRYPTO_MECHANISM_PARAM_INVALID;
+<span class="lineNum">    1053 </span>                :            :                         goto bail;
+<span class="lineNum">    1054 </span>                :            :                 }
+<span class="lineNum">    1055 </span>                :            :         }
+<span class="lineNum">    1056 </span>                :            : 
+<span class="lineNum">    1057 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mac-&gt;cd_length != digest_len) {</span>
+<span class="lineNum">    1058 </span>                :            :                 ret = CRYPTO_INVALID_MAC;
+<span class="lineNum">    1059 </span>                :            :                 goto bail;
+<span class="lineNum">    1060 </span>                :            :         }
+<span class="lineNum">    1061 </span>                :            : 
+<span class="lineNum">    1062 </span>                :            :         /* do a SHA1 update of the inner context using the specified data */
+<span class="lineNum">    1063 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         SHA1_MAC_UPDATE(data, sha1_hmac_ctx, ret);</span>
+<span class="lineNum">    1064 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret != CRYPTO_SUCCESS)</span>
+<span class="lineNum">    1065 </span>                :            :                 /* the update failed, free context and bail */
+<span class="lineNum">    1066 </span>                :            :                 goto bail;
+<span class="lineNum">    1067 </span>                :            : 
+<span class="lineNum">    1068 </span>                :            :         /* do a SHA1 final on the inner context */
+<span class="lineNum">    1069 </span>                :<span class="lineNoCov">          0 :         SHA1Final(digest, &amp;sha1_hmac_ctx.hc_icontext);</span>
+<span class="lineNum">    1070 </span>                :            : 
+<span class="lineNum">    1071 </span>                :            :         /*
+<span class="lineNum">    1072 </span>                :            :          * Do an SHA1 update on the outer context, feeding the inner
+<span class="lineNum">    1073 </span>                :            :          * digest as data.
+<span class="lineNum">    1074 </span>                :            :          */
+<span class="lineNum">    1075 </span>                :<span class="lineNoCov">          0 :         SHA1Update(&amp;sha1_hmac_ctx.hc_ocontext, digest, SHA1_DIGEST_LENGTH);</span>
+<span class="lineNum">    1076 </span>                :            : 
+<span class="lineNum">    1077 </span>                :            :         /*
+<span class="lineNum">    1078 </span>                :            :          * Do a SHA1 final on the outer context, storing the computed
+<span class="lineNum">    1079 </span>                :            :          * digest in the users buffer.
+<span class="lineNum">    1080 </span>                :            :          */
+<span class="lineNum">    1081 </span>                :<span class="lineNoCov">          0 :         SHA1Final(digest, &amp;sha1_hmac_ctx.hc_ocontext);</span>
+<span class="lineNum">    1082 </span>                :            : 
+<span class="lineNum">    1083 </span>                :            :         /*
+<span class="lineNum">    1084 </span>                :            :          * Compare the computed digest against the expected digest passed
+<span class="lineNum">    1085 </span>                :            :          * as argument.
+<span class="lineNum">    1086 </span>                :            :          */
+<span class="lineNum">    1087 </span>                :            : 
+<span class="lineNum">    1088 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (mac-&gt;cd_format) {</span>
+<span class="lineNum">    1089 </span>                :            : 
+<span class="lineNum">    1090 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">    1091 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (bcmp(digest, (unsigned char *)mac-&gt;cd_raw.iov_base +</span>
+<span class="lineNum">    1092 </span>                :<span class="lineNoCov">          0 :                     mac-&gt;cd_offset, digest_len) != 0)</span>
+<span class="lineNum">    1093 </span>                :<span class="lineNoCov">          0 :                         ret = CRYPTO_INVALID_MAC;</span>
+<span class="lineNum">    1094 </span>                :            :                 break;
+<span class="lineNum">    1095 </span>                :            : 
+<span class="lineNum">    1096 </span>                :            :         case CRYPTO_DATA_UIO: {
+<span class="lineNum">    1097 </span>                :<span class="lineNoCov">          0 :                 off_t offset = mac-&gt;cd_offset;</span>
+<span class="lineNum">    1098 </span>                :            :                 uint_t vec_idx;
+<span class="lineNum">    1099 </span>                :<span class="lineNoCov">          0 :                 off_t scratch_offset = 0;</span>
+<span class="lineNum">    1100 </span>                :<span class="lineNoCov">          0 :                 size_t length = digest_len;</span>
+<span class="lineNum">    1101 </span>                :            :                 size_t cur_len;
+<span class="lineNum">    1102 </span>                :            : 
+<span class="lineNum">    1103 </span>                :            :                 /* we support only kernel buffer */
+<span class="lineNum">    1104 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (mac-&gt;cd_uio-&gt;uio_segflg != UIO_SYSSPACE)</span>
+<span class="lineNum">    1105 </span>                :            :                         return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">    1106 </span>                :            : 
+<span class="lineNum">    1107 </span>                :            :                 /* jump to the first iovec containing the expected digest */
+<span class="lineNum">    1108 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 for (vec_idx = 0;</span>
+<span class="lineNum">    1109 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                     offset &gt;= mac-&gt;cd_uio-&gt;uio_iov[vec_idx].iov_len &amp;&amp;</span>
+<span class="lineNum">    1110 </span>                :<span class="lineNoCov">          0 :                     vec_idx &lt; mac-&gt;cd_uio-&gt;uio_iovcnt;</span>
+<span class="lineNum">    1111 </span>                :<span class="lineNoCov">          0 :                     offset -= mac-&gt;cd_uio-&gt;uio_iov[vec_idx++].iov_len)</span>
+<span class="lineNum">    1112 </span>                :            :                         ;
+<span class="lineNum">    1113 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (vec_idx == mac-&gt;cd_uio-&gt;uio_iovcnt) {</span>
+<span class="lineNum">    1114 </span>                :            :                         /*
+<span class="lineNum">    1115 </span>                :            :                          * The caller specified an offset that is
+<span class="lineNum">    1116 </span>                :            :                          * larger than the total size of the buffers
+<span class="lineNum">    1117 </span>                :            :                          * it provided.
+<span class="lineNum">    1118 </span>                :            :                          */
+<span class="lineNum">    1119 </span>                :            :                         ret = CRYPTO_DATA_LEN_RANGE;
+<span class="lineNum">    1120 </span>                :            :                         break;
+<span class="lineNum">    1121 </span>                :            :                 }
+<span class="lineNum">    1122 </span>                :            : 
+<span class="lineNum">    1123 </span>                :            :                 /* do the comparison of computed digest vs specified one */
+<span class="lineNum">    1124 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 while (vec_idx &lt; mac-&gt;cd_uio-&gt;uio_iovcnt &amp;&amp; length &gt; 0) {</span>
+<span class="lineNum">    1125 </span>                :<span class="lineNoCov">          0 :                         cur_len = MIN(mac-&gt;cd_uio-&gt;uio_iov[vec_idx].iov_len -</span>
+<span class="lineNum">    1126 </span>                :            :                             offset, length);
+<span class="lineNum">    1127 </span>                :            : 
+<span class="lineNum">    1128 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (bcmp(digest + scratch_offset,</span>
+<span class="lineNum">    1129 </span>                :<span class="lineNoCov">          0 :                             mac-&gt;cd_uio-&gt;uio_iov[vec_idx].iov_base + offset,</span>
+<span class="lineNum">    1130 </span>                :            :                             cur_len) != 0) {
+<span class="lineNum">    1131 </span>                :            :                                 ret = CRYPTO_INVALID_MAC;
+<span class="lineNum">    1132 </span>                :            :                                 break;
+<span class="lineNum">    1133 </span>                :            :                         }
+<span class="lineNum">    1134 </span>                :            : 
+<span class="lineNum">    1135 </span>                :<span class="lineNoCov">          0 :                         length -= cur_len;</span>
+<span class="lineNum">    1136 </span>                :<span class="lineNoCov">          0 :                         vec_idx++;</span>
+<span class="lineNum">    1137 </span>                :<span class="lineNoCov">          0 :                         scratch_offset += cur_len;</span>
+<span class="lineNum">    1138 </span>                :<span class="lineNoCov">          0 :                         offset = 0;</span>
+<span class="lineNum">    1139 </span>                :            :                 }
+<span class="lineNum">    1140 </span>                :            :                 break;
+<span class="lineNum">    1141 </span>                :            :         }
+<span class="lineNum">    1142 </span>                :            : 
+<span class="lineNum">    1143 </span>                :            :         default:
+<span class="lineNum">    1144 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">    1145 </span>                :            :         }
+<span class="lineNum">    1146 </span>                :            : 
+<span class="lineNum">    1147 </span>                :<span class="lineNoCov">          0 :         bzero(&amp;sha1_hmac_ctx, sizeof (sha1_hmac_ctx_t));</span>
+<span class="lineNum">    1148 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">    1149 </span>                :            : bail:
+<span class="lineNum">    1150 </span>                :<span class="lineNoCov">          0 :         bzero(&amp;sha1_hmac_ctx, sizeof (sha1_hmac_ctx_t));</span>
+<span class="lineNum">    1151 </span>                :<span class="lineNoCov">          0 :         mac-&gt;cd_length = 0;</span>
+<span class="lineNum">    1152 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">    1153 </span>                :            : }
+<span class="lineNum">    1154 </span>                :            : 
+<span class="lineNum">    1155 </span>                :            : /*
+<span class="lineNum">    1156 </span>                :            :  * KCF software provider context management entry points.
+<span class="lineNum">    1157 </span>                :            :  */
+<span class="lineNum">    1158 </span>                :            : 
+<a name="1159"><span class="lineNum">    1159 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">    1160 </span>                :            : static int
+<span class="lineNum">    1161 </span>                :<span class="lineCov">        102 : sha1_create_ctx_template(crypto_provider_handle_t provider,</span>
+<span class="lineNum">    1162 </span>                :            :     crypto_mechanism_t *mechanism, crypto_key_t *key,
+<span class="lineNum">    1163 </span>                :            :     crypto_spi_ctx_template_t *ctx_template, size_t *ctx_template_size,
+<span class="lineNum">    1164 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">    1165 </span>                :            : {
+<span class="lineNum">    1166 </span>                :            :         sha1_hmac_ctx_t *sha1_hmac_ctx_tmpl;
+<span class="lineNum">    1167 </span>        [<span class="branchCov" title="Branch 0 was taken 102 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        102 :         uint_t keylen_in_bytes = CRYPTO_BITS2BYTES(key-&gt;ck_length);</span>
+<span class="lineNum">    1168 </span>                :            : 
+<span class="lineNum">    1169 </span>        [<span class="branchCov" title="Branch 0 was taken 102 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        102 :         if ((mechanism-&gt;cm_type != SHA1_HMAC_MECH_INFO_TYPE) &amp;&amp;</span>
+<span class="lineNum">    1170 </span>                :            :             (mechanism-&gt;cm_type != SHA1_HMAC_GEN_MECH_INFO_TYPE)) {
+<span class="lineNum">    1171 </span>                :            :                 return (CRYPTO_MECHANISM_INVALID);
+<span class="lineNum">    1172 </span>                :            :         }
+<span class="lineNum">    1173 </span>                :            : 
+<span class="lineNum">    1174 </span>                :            :         /* Add support for key by attributes (RFE 4706552) */
+<span class="lineNum">    1175 </span>        [<span class="branchCov" title="Branch 0 was taken 102 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        102 :         if (key-&gt;ck_format != CRYPTO_KEY_RAW)</span>
+<span class="lineNum">    1176 </span>                :            :                 return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">    1177 </span>                :            : 
+<span class="lineNum">    1178 </span>                :            :         /*
+<span class="lineNum">    1179 </span>                :            :          * Allocate and initialize SHA1 context.
+<span class="lineNum">    1180 </span>                :            :          */
+<span class="lineNum">    1181 </span>                :<span class="lineCov">        102 :         sha1_hmac_ctx_tmpl = kmem_alloc(sizeof (sha1_hmac_ctx_t),</span>
+<span class="lineNum">    1182 </span>                :            :             crypto_kmflag(req));
+<span class="lineNum">    1183 </span>        [<span class="branchCov" title="Branch 0 was taken 102 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        102 :         if (sha1_hmac_ctx_tmpl == NULL)</span>
+<span class="lineNum">    1184 </span>                :            :                 return (CRYPTO_HOST_MEMORY);
+<span class="lineNum">    1185 </span>                :            : 
+<span class="lineNum">    1186 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 102 times"> + </span>]:<span class="lineCov">        102 :         if (keylen_in_bytes &gt; SHA1_HMAC_BLOCK_SIZE) {</span>
+<span class="lineNum">    1187 </span>                :            :                 uchar_t digested_key[SHA1_DIGEST_LENGTH];
+<span class="lineNum">    1188 </span>                :            : 
+<span class="lineNum">    1189 </span>                :            :                 /*
+<span class="lineNum">    1190 </span>                :            :                  * Hash the passed-in key to get a smaller key.
+<span class="lineNum">    1191 </span>                :            :                  * The inner context is used since it hasn't been
+<span class="lineNum">    1192 </span>                :            :                  * initialized yet.
+<span class="lineNum">    1193 </span>                :            :                  */
+<span class="lineNum">    1194 </span>                :<span class="lineNoCov">          0 :                 PROV_SHA1_DIGEST_KEY(&amp;sha1_hmac_ctx_tmpl-&gt;hc_icontext,</span>
+<span class="lineNum">    1195 </span>                :            :                     key-&gt;ck_data, keylen_in_bytes, digested_key);
+<span class="lineNum">    1196 </span>                :<span class="lineNoCov">          0 :                 sha1_mac_init_ctx(sha1_hmac_ctx_tmpl, digested_key,</span>
+<span class="lineNum">    1197 </span>                :            :                     SHA1_DIGEST_LENGTH);
+<span class="lineNum">    1198 </span>                :            :         } else {
+<span class="lineNum">    1199 </span>                :<span class="lineCov">        102 :                 sha1_mac_init_ctx(sha1_hmac_ctx_tmpl, key-&gt;ck_data,</span>
+<span class="lineNum">    1200 </span>                :            :                     keylen_in_bytes);
+<span class="lineNum">    1201 </span>                :            :         }
+<span class="lineNum">    1202 </span>                :            : 
+<span class="lineNum">    1203 </span>                :<span class="lineCov">        102 :         sha1_hmac_ctx_tmpl-&gt;hc_mech_type = mechanism-&gt;cm_type;</span>
+<span class="lineNum">    1204 </span>                :<span class="lineCov">        102 :         *ctx_template = (crypto_spi_ctx_template_t)sha1_hmac_ctx_tmpl;</span>
+<span class="lineNum">    1205 </span>                :<span class="lineCov">        102 :         *ctx_template_size = sizeof (sha1_hmac_ctx_t);</span>
+<span class="lineNum">    1206 </span>                :            : 
+<span class="lineNum">    1207 </span>                :            : 
+<span class="lineNum">    1208 </span>                :<span class="lineCov">        102 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">    1209 </span>                :            : }
+<a name="1210"><span class="lineNum">    1210 </span>                :            : </a>
+<span class="lineNum">    1211 </span>                :            : static int
+<span class="lineNum">    1212 </span>                :<span class="lineNoCov">          0 : sha1_free_context(crypto_ctx_t *ctx)</span>
+<span class="lineNum">    1213 </span>                :            : {
+<span class="lineNum">    1214 </span>                :            :         uint_t ctx_len;
+<span class="lineNum">    1215 </span>                :            :         sha1_mech_type_t mech_type;
+<span class="lineNum">    1216 </span>                :            : 
+<span class="lineNum">    1217 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ctx-&gt;cc_provider_private == NULL)</span>
+<span class="lineNum">    1218 </span>                :            :                 return (CRYPTO_SUCCESS);
+<span class="lineNum">    1219 </span>                :            : 
+<span class="lineNum">    1220 </span>                :            :         /*
+<span class="lineNum">    1221 </span>                :            :          * We have to free either SHA1 or SHA1-HMAC contexts, which
+<span class="lineNum">    1222 </span>                :            :          * have different lengths.
+<span class="lineNum">    1223 </span>                :            :          */
+<span class="lineNum">    1224 </span>                :            : 
+<span class="lineNum">    1225 </span>                :<span class="lineNoCov">          0 :         mech_type = PROV_SHA1_CTX(ctx)-&gt;sc_mech_type;</span>
+<span class="lineNum">    1226 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mech_type == SHA1_MECH_INFO_TYPE)</span>
+<span class="lineNum">    1227 </span>                :            :                 ctx_len = sizeof (sha1_ctx_t);
+<span class="lineNum">    1228 </span>                :            :         else {
+<span class="lineNum">    1229 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(mech_type == SHA1_HMAC_MECH_INFO_TYPE ||</span>
+<span class="lineNum">    1230 </span>                :            :                     mech_type == SHA1_HMAC_GEN_MECH_INFO_TYPE);
+<span class="lineNum">    1231 </span>                :            :                 ctx_len = sizeof (sha1_hmac_ctx_t);
+<span class="lineNum">    1232 </span>                :            :         }
+<span class="lineNum">    1233 </span>                :            : 
+<span class="lineNum">    1234 </span>                :<span class="lineNoCov">          0 :         bzero(ctx-&gt;cc_provider_private, ctx_len);</span>
+<span class="lineNum">    1235 </span>                :<span class="lineNoCov">          0 :         kmem_free(ctx-&gt;cc_provider_private, ctx_len);</span>
+<span class="lineNum">    1236 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;cc_provider_private = NULL;</span>
+<span class="lineNum">    1237 </span>                :            : 
+<span class="lineNum">    1238 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">    1239 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

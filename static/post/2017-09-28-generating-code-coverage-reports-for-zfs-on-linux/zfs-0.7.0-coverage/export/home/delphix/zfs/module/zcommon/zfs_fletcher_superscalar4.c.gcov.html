@@ -1,0 +1,320 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zcommon/zfs_fletcher_superscalar4.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zcommon</a> - zfs_fletcher_superscalar4.c<span style="font-size: 80%;"> (source / <a href="zfs_fletcher_superscalar4.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">132</td>
+            <td class="headerCovTableEntry">132</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * Implement fast Fletcher4 using superscalar pipelines.
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * Use regular C code to compute
+<span class="lineNum">       5 </span>                :            :  * Fletcher4 in four incremental 64-bit parallel accumulator streams,
+<span class="lineNum">       6 </span>                :            :  * and then combine the streams to form the final four checksum words.
+<span class="lineNum">       7 </span>                :            :  * This implementation is a derivative of the AVX SIMD implementation by
+<span class="lineNum">       8 </span>                :            :  * James Guilford and Jinshan Xiong from Intel (see zfs_fletcher_intel.c).
+<span class="lineNum">       9 </span>                :            :  *
+<span class="lineNum">      10 </span>                :            :  * Copyright (C) 2016 Romain Dolbeau.
+<span class="lineNum">      11 </span>                :            :  *
+<span class="lineNum">      12 </span>                :            :  * Authors:
+<span class="lineNum">      13 </span>                :            :  *      Romain Dolbeau &lt;romain.dolbeau@atos.net&gt;
+<span class="lineNum">      14 </span>                :            :  *
+<span class="lineNum">      15 </span>                :            :  * This software is available to you under a choice of one of two
+<span class="lineNum">      16 </span>                :            :  * licenses.  You may choose to be licensed under the terms of the GNU
+<span class="lineNum">      17 </span>                :            :  * General Public License (GPL) Version 2, available from the file
+<span class="lineNum">      18 </span>                :            :  * COPYING in the main directory of this source tree, or the
+<span class="lineNum">      19 </span>                :            :  * OpenIB.org BSD license below:
+<span class="lineNum">      20 </span>                :            :  *
+<span class="lineNum">      21 </span>                :            :  *     Redistribution and use in source and binary forms, with or
+<span class="lineNum">      22 </span>                :            :  *     without modification, are permitted provided that the following
+<span class="lineNum">      23 </span>                :            :  *     conditions are met:
+<span class="lineNum">      24 </span>                :            :  *
+<span class="lineNum">      25 </span>                :            :  *      - Redistributions of source code must retain the above
+<span class="lineNum">      26 </span>                :            :  *        copyright notice, this list of conditions and the following
+<span class="lineNum">      27 </span>                :            :  *        disclaimer.
+<span class="lineNum">      28 </span>                :            :  *
+<span class="lineNum">      29 </span>                :            :  *      - Redistributions in binary form must reproduce the above
+<span class="lineNum">      30 </span>                :            :  *        copyright notice, this list of conditions and the following
+<span class="lineNum">      31 </span>                :            :  *        disclaimer in the documentation and/or other materials
+<span class="lineNum">      32 </span>                :            :  *        provided with the distribution.
+<span class="lineNum">      33 </span>                :            :  *
+<span class="lineNum">      34 </span>                :            :  * THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND,
+<span class="lineNum">      35 </span>                :            :  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+<span class="lineNum">      36 </span>                :            :  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+<span class="lineNum">      37 </span>                :            :  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+<span class="lineNum">      38 </span>                :            :  * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+<span class="lineNum">      39 </span>                :            :  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+<span class="lineNum">      40 </span>                :            :  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+<span class="lineNum">      41 </span>                :            :  * SOFTWARE.
+<span class="lineNum">      42 </span>                :            :  */
+<span class="lineNum">      43 </span>                :            : 
+<span class="lineNum">      44 </span>                :            : #include &lt;sys/byteorder.h&gt;
+<span class="lineNum">      45 </span>                :            : #include &lt;sys/spa_checksum.h&gt;
+<span class="lineNum">      46 </span>                :            : #include &lt;zfs_fletcher.h&gt;
+<span class="lineNum">      47 </span>                :            : #include &lt;strings.h&gt;
+<a name="48"><span class="lineNum">      48 </span>                :            : </a>
+<span class="lineNum">      49 </span>                :            : static void
+<span class="lineNum">      50 </span>                :<span class="lineCov">      88158 : fletcher_4_superscalar4_init(fletcher_4_ctx_t *ctx)</span>
+<span class="lineNum">      51 </span>                :            : {
+<span class="lineNum">      52 </span>                :<span class="lineCov">     176316 :         bzero(ctx-&gt;superscalar, 4 * sizeof (zfs_fletcher_superscalar_t));</span>
+<span class="lineNum">      53 </span>                :<span class="lineCov">      88158 : }</span>
+<a name="54"><span class="lineNum">      54 </span>                :            : </a>
+<span class="lineNum">      55 </span>                :            : static void
+<span class="lineNum">      56 </span>                :<span class="lineCov">      88158 : fletcher_4_superscalar4_fini(fletcher_4_ctx_t *ctx, zio_cksum_t *zcp)</span>
+<span class="lineNum">      57 </span>                :            : {
+<span class="lineNum">      58 </span>                :            :         uint64_t A, B, C, D;
+<span class="lineNum">      59 </span>                :            : 
+<span class="lineNum">      60 </span>                :<span class="lineCov">     264474 :         A = ctx-&gt;superscalar[0].v[0] + ctx-&gt;superscalar[0].v[1] +</span>
+<span class="lineNum">      61 </span>                :<span class="lineCov">     176316 :             ctx-&gt;superscalar[0].v[2] + ctx-&gt;superscalar[0].v[3];</span>
+<span class="lineNum">      62 </span>                :<span class="lineCov">     176316 :         B = 0 - ctx-&gt;superscalar[0].v[1] - 2 * ctx-&gt;superscalar[0].v[2] -</span>
+<span class="lineNum">      63 </span>                :<span class="lineCov">      88158 :             3 * ctx-&gt;superscalar[0].v[3] + 4 * ctx-&gt;superscalar[1].v[0] +</span>
+<span class="lineNum">      64 </span>                :<span class="lineCov">      88158 :             4 * ctx-&gt;superscalar[1].v[1] + 4 * ctx-&gt;superscalar[1].v[2] +</span>
+<span class="lineNum">      65 </span>                :<span class="lineCov">      88158 :             4 * ctx-&gt;superscalar[1].v[3];</span>
+<span class="lineNum">      66 </span>                :            : 
+<span class="lineNum">      67 </span>                :<span class="lineCov">     264474 :         C = ctx-&gt;superscalar[0].v[2] + 3 * ctx-&gt;superscalar[0].v[3] -</span>
+<span class="lineNum">      68 </span>                :<span class="lineCov">     264474 :             6 * ctx-&gt;superscalar[1].v[0] - 10 * ctx-&gt;superscalar[1].v[1] -</span>
+<span class="lineNum">      69 </span>                :<span class="lineCov">     176316 :             14 * ctx-&gt;superscalar[1].v[2] - 18 * ctx-&gt;superscalar[1].v[3] +</span>
+<span class="lineNum">      70 </span>                :<span class="lineCov">     176316 :             16 * ctx-&gt;superscalar[2].v[0] + 16 * ctx-&gt;superscalar[2].v[1] +</span>
+<span class="lineNum">      71 </span>                :<span class="lineCov">     176316 :             16 * ctx-&gt;superscalar[2].v[2] + 16 * ctx-&gt;superscalar[2].v[3];</span>
+<span class="lineNum">      72 </span>                :            : 
+<span class="lineNum">      73 </span>                :<span class="lineCov">     176316 :         D = 0 - ctx-&gt;superscalar[0].v[3] + 4 * ctx-&gt;superscalar[1].v[0] +</span>
+<span class="lineNum">      74 </span>                :<span class="lineCov">      88158 :             10 * ctx-&gt;superscalar[1].v[1] + 20 * ctx-&gt;superscalar[1].v[2] +</span>
+<span class="lineNum">      75 </span>                :<span class="lineCov">     264474 :             34 * ctx-&gt;superscalar[1].v[3] - 48 * ctx-&gt;superscalar[2].v[0] -</span>
+<span class="lineNum">      76 </span>                :<span class="lineCov">     176316 :             64 * ctx-&gt;superscalar[2].v[1] - 80 * ctx-&gt;superscalar[2].v[2] -</span>
+<span class="lineNum">      77 </span>                :<span class="lineCov">      88158 :             96 * ctx-&gt;superscalar[2].v[3] + 64 * ctx-&gt;superscalar[3].v[0] +</span>
+<span class="lineNum">      78 </span>                :<span class="lineCov">      88158 :             64 * ctx-&gt;superscalar[3].v[1] + 64 * ctx-&gt;superscalar[3].v[2] +</span>
+<span class="lineNum">      79 </span>                :<span class="lineCov">      88158 :             64 * ctx-&gt;superscalar[3].v[3];</span>
+<span class="lineNum">      80 </span>                :            : 
+<span class="lineNum">      81 </span>                :<span class="lineCov">      88158 :         ZIO_SET_CHECKSUM(zcp, A, B, C, D);</span>
+<span class="lineNum">      82 </span>                :<span class="lineCov">      88158 : }</span>
+<a name="83"><span class="lineNum">      83 </span>                :            : </a>
+<span class="lineNum">      84 </span>                :            : static void
+<span class="lineNum">      85 </span>                :<span class="lineCov">     111779 : fletcher_4_superscalar4_native(fletcher_4_ctx_t *ctx,</span>
+<span class="lineNum">      86 </span>                :            :     const void *buf, uint64_t size)
+<span class="lineNum">      87 </span>                :            : {
+<span class="lineNum">      88 </span>                :<span class="lineCov">     111779 :         const uint32_t *ip = buf;</span>
+<span class="lineNum">      89 </span>                :<span class="lineCov">     111779 :         const uint32_t *ipend = ip + (size / sizeof (uint32_t));</span>
+<span class="lineNum">      90 </span>                :            :         uint64_t a, b, c, d;
+<span class="lineNum">      91 </span>                :            :         uint64_t a2, b2, c2, d2;
+<span class="lineNum">      92 </span>                :            :         uint64_t a3, b3, c3, d3;
+<span class="lineNum">      93 </span>                :            :         uint64_t a4, b4, c4, d4;
+<span class="lineNum">      94 </span>                :            : 
+<span class="lineNum">      95 </span>                :<span class="lineCov">     111779 :         a = ctx-&gt;superscalar[0].v[0];</span>
+<span class="lineNum">      96 </span>                :<span class="lineCov">     111779 :         b = ctx-&gt;superscalar[1].v[0];</span>
+<span class="lineNum">      97 </span>                :<span class="lineCov">     111779 :         c = ctx-&gt;superscalar[2].v[0];</span>
+<span class="lineNum">      98 </span>                :<span class="lineCov">     111779 :         d = ctx-&gt;superscalar[3].v[0];</span>
+<span class="lineNum">      99 </span>                :<span class="lineCov">     111779 :         a2 = ctx-&gt;superscalar[0].v[1];</span>
+<span class="lineNum">     100 </span>                :<span class="lineCov">     111779 :         b2 = ctx-&gt;superscalar[1].v[1];</span>
+<span class="lineNum">     101 </span>                :<span class="lineCov">     111779 :         c2 = ctx-&gt;superscalar[2].v[1];</span>
+<span class="lineNum">     102 </span>                :<span class="lineCov">     111779 :         d2 = ctx-&gt;superscalar[3].v[1];</span>
+<span class="lineNum">     103 </span>                :<span class="lineCov">     111779 :         a3 = ctx-&gt;superscalar[0].v[2];</span>
+<span class="lineNum">     104 </span>                :<span class="lineCov">     111779 :         b3 = ctx-&gt;superscalar[1].v[2];</span>
+<span class="lineNum">     105 </span>                :<span class="lineCov">     111779 :         c3 = ctx-&gt;superscalar[2].v[2];</span>
+<span class="lineNum">     106 </span>                :<span class="lineCov">     111779 :         d3 = ctx-&gt;superscalar[3].v[2];</span>
+<span class="lineNum">     107 </span>                :<span class="lineCov">     111779 :         a4 = ctx-&gt;superscalar[0].v[3];</span>
+<span class="lineNum">     108 </span>                :<span class="lineCov">     111779 :         b4 = ctx-&gt;superscalar[1].v[3];</span>
+<span class="lineNum">     109 </span>                :<span class="lineCov">     111779 :         c4 = ctx-&gt;superscalar[2].v[3];</span>
+<span class="lineNum">     110 </span>                :<span class="lineCov">     111779 :         d4 = ctx-&gt;superscalar[3].v[3];</span>
+<span class="lineNum">     111 </span>                :            : 
+<span class="lineNum">     112 </span>        [<span class="branchCov" title="Branch 0 was taken 69892672 times"> + </span><span class="branchCov" title="Branch 1 was taken 111779 times"> + </span>]:<span class="lineCov">   70004451 :         for (; ip &lt; ipend; ip += 4) {</span>
+<span class="lineNum">     113 </span>                :<span class="lineCov">   69892672 :                 a += ip[0];</span>
+<span class="lineNum">     114 </span>                :<span class="lineCov">   69892672 :                 a2 += ip[1];</span>
+<span class="lineNum">     115 </span>                :<span class="lineCov">   69892672 :                 a3 += ip[2];</span>
+<span class="lineNum">     116 </span>                :<span class="lineCov">   69892672 :                 a4 += ip[3];</span>
+<span class="lineNum">     117 </span>                :<span class="lineCov">   69892672 :                 b += a;</span>
+<span class="lineNum">     118 </span>                :<span class="lineCov">   69892672 :                 b2 += a2;</span>
+<span class="lineNum">     119 </span>                :<span class="lineCov">   69892672 :                 b3 += a3;</span>
+<span class="lineNum">     120 </span>                :<span class="lineCov">   69892672 :                 b4 += a4;</span>
+<span class="lineNum">     121 </span>                :<span class="lineCov">   69892672 :                 c += b;</span>
+<span class="lineNum">     122 </span>                :<span class="lineCov">   69892672 :                 c2 += b2;</span>
+<span class="lineNum">     123 </span>                :<span class="lineCov">   69892672 :                 c3 += b3;</span>
+<span class="lineNum">     124 </span>                :<span class="lineCov">   69892672 :                 c4 += b4;</span>
+<span class="lineNum">     125 </span>                :<span class="lineCov">   69892672 :                 d += c;</span>
+<span class="lineNum">     126 </span>                :<span class="lineCov">   69892672 :                 d2 += c2;</span>
+<span class="lineNum">     127 </span>                :<span class="lineCov">   69892672 :                 d3 += c3;</span>
+<span class="lineNum">     128 </span>                :<span class="lineCov">   69892672 :                 d4 += c4;</span>
+<span class="lineNum">     129 </span>                :            :         }
+<span class="lineNum">     130 </span>                :            : 
+<span class="lineNum">     131 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[0].v[0] = a;</span>
+<span class="lineNum">     132 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[1].v[0] = b;</span>
+<span class="lineNum">     133 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[2].v[0] = c;</span>
+<span class="lineNum">     134 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[3].v[0] = d;</span>
+<span class="lineNum">     135 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[0].v[1] = a2;</span>
+<span class="lineNum">     136 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[1].v[1] = b2;</span>
+<span class="lineNum">     137 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[2].v[1] = c2;</span>
+<span class="lineNum">     138 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[3].v[1] = d2;</span>
+<span class="lineNum">     139 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[0].v[2] = a3;</span>
+<span class="lineNum">     140 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[1].v[2] = b3;</span>
+<span class="lineNum">     141 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[2].v[2] = c3;</span>
+<span class="lineNum">     142 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[3].v[2] = d3;</span>
+<span class="lineNum">     143 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[0].v[3] = a4;</span>
+<span class="lineNum">     144 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[1].v[3] = b4;</span>
+<span class="lineNum">     145 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[2].v[3] = c4;</span>
+<span class="lineNum">     146 </span>                :<span class="lineCov">     111779 :         ctx-&gt;superscalar[3].v[3] = d4;</span>
+<span class="lineNum">     147 </span>                :<span class="lineCov">     111779 : }</span>
+<a name="148"><span class="lineNum">     148 </span>                :            : </a>
+<span class="lineNum">     149 </span>                :            : static void
+<span class="lineNum">     150 </span>                :<span class="lineCov">      79795 : fletcher_4_superscalar4_byteswap(fletcher_4_ctx_t *ctx,</span>
+<span class="lineNum">     151 </span>                :            :     const void *buf, uint64_t size)
+<span class="lineNum">     152 </span>                :            : {
+<span class="lineNum">     153 </span>                :<span class="lineCov">      79795 :         const uint32_t *ip = buf;</span>
+<span class="lineNum">     154 </span>                :<span class="lineCov">      79795 :         const uint32_t *ipend = ip + (size / sizeof (uint32_t));</span>
+<span class="lineNum">     155 </span>                :            :         uint64_t a, b, c, d;
+<span class="lineNum">     156 </span>                :            :         uint64_t a2, b2, c2, d2;
+<span class="lineNum">     157 </span>                :            :         uint64_t a3, b3, c3, d3;
+<span class="lineNum">     158 </span>                :            :         uint64_t a4, b4, c4, d4;
+<span class="lineNum">     159 </span>                :            : 
+<span class="lineNum">     160 </span>                :<span class="lineCov">      79795 :         a = ctx-&gt;superscalar[0].v[0];</span>
+<span class="lineNum">     161 </span>                :<span class="lineCov">      79795 :         b = ctx-&gt;superscalar[1].v[0];</span>
+<span class="lineNum">     162 </span>                :<span class="lineCov">      79795 :         c = ctx-&gt;superscalar[2].v[0];</span>
+<span class="lineNum">     163 </span>                :<span class="lineCov">      79795 :         d = ctx-&gt;superscalar[3].v[0];</span>
+<span class="lineNum">     164 </span>                :<span class="lineCov">      79795 :         a2 = ctx-&gt;superscalar[0].v[1];</span>
+<span class="lineNum">     165 </span>                :<span class="lineCov">      79795 :         b2 = ctx-&gt;superscalar[1].v[1];</span>
+<span class="lineNum">     166 </span>                :<span class="lineCov">      79795 :         c2 = ctx-&gt;superscalar[2].v[1];</span>
+<span class="lineNum">     167 </span>                :<span class="lineCov">      79795 :         d2 = ctx-&gt;superscalar[3].v[1];</span>
+<span class="lineNum">     168 </span>                :<span class="lineCov">      79795 :         a3 = ctx-&gt;superscalar[0].v[2];</span>
+<span class="lineNum">     169 </span>                :<span class="lineCov">      79795 :         b3 = ctx-&gt;superscalar[1].v[2];</span>
+<span class="lineNum">     170 </span>                :<span class="lineCov">      79795 :         c3 = ctx-&gt;superscalar[2].v[2];</span>
+<span class="lineNum">     171 </span>                :<span class="lineCov">      79795 :         d3 = ctx-&gt;superscalar[3].v[2];</span>
+<span class="lineNum">     172 </span>                :<span class="lineCov">      79795 :         a4 = ctx-&gt;superscalar[0].v[3];</span>
+<span class="lineNum">     173 </span>                :<span class="lineCov">      79795 :         b4 = ctx-&gt;superscalar[1].v[3];</span>
+<span class="lineNum">     174 </span>                :<span class="lineCov">      79795 :         c4 = ctx-&gt;superscalar[2].v[3];</span>
+<span class="lineNum">     175 </span>                :<span class="lineCov">      79795 :         d4 = ctx-&gt;superscalar[3].v[3];</span>
+<span class="lineNum">     176 </span>                :            : 
+<span class="lineNum">     177 </span>        [<span class="branchCov" title="Branch 0 was taken 61312464 times"> + </span><span class="branchCov" title="Branch 1 was taken 79795 times"> + </span>]:<span class="lineCov">   61392259 :         for (; ip &lt; ipend; ip += 4) {</span>
+<span class="lineNum">     178 </span>                :<span class="lineCov">   61312464 :                 a += BSWAP_32(ip[0]);</span>
+<span class="lineNum">     179 </span>                :<span class="lineCov">   61312464 :                 a2 += BSWAP_32(ip[1]);</span>
+<span class="lineNum">     180 </span>                :<span class="lineCov">   61312464 :                 a3 += BSWAP_32(ip[2]);</span>
+<span class="lineNum">     181 </span>                :<span class="lineCov">   61312464 :                 a4 += BSWAP_32(ip[3]);</span>
+<span class="lineNum">     182 </span>                :<span class="lineCov">   61312464 :                 b += a;</span>
+<span class="lineNum">     183 </span>                :<span class="lineCov">   61312464 :                 b2 += a2;</span>
+<span class="lineNum">     184 </span>                :<span class="lineCov">   61312464 :                 b3 += a3;</span>
+<span class="lineNum">     185 </span>                :<span class="lineCov">   61312464 :                 b4 += a4;</span>
+<span class="lineNum">     186 </span>                :<span class="lineCov">   61312464 :                 c += b;</span>
+<span class="lineNum">     187 </span>                :<span class="lineCov">   61312464 :                 c2 += b2;</span>
+<span class="lineNum">     188 </span>                :<span class="lineCov">   61312464 :                 c3 += b3;</span>
+<span class="lineNum">     189 </span>                :<span class="lineCov">   61312464 :                 c4 += b4;</span>
+<span class="lineNum">     190 </span>                :<span class="lineCov">   61312464 :                 d += c;</span>
+<span class="lineNum">     191 </span>                :<span class="lineCov">   61312464 :                 d2 += c2;</span>
+<span class="lineNum">     192 </span>                :<span class="lineCov">   61312464 :                 d3 += c3;</span>
+<span class="lineNum">     193 </span>                :<span class="lineCov">   61312464 :                 d4 += c4;</span>
+<span class="lineNum">     194 </span>                :            :         }
+<span class="lineNum">     195 </span>                :            : 
+<span class="lineNum">     196 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[0].v[0] = a;</span>
+<span class="lineNum">     197 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[1].v[0] = b;</span>
+<span class="lineNum">     198 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[2].v[0] = c;</span>
+<span class="lineNum">     199 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[3].v[0] = d;</span>
+<span class="lineNum">     200 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[0].v[1] = a2;</span>
+<span class="lineNum">     201 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[1].v[1] = b2;</span>
+<span class="lineNum">     202 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[2].v[1] = c2;</span>
+<span class="lineNum">     203 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[3].v[1] = d2;</span>
+<span class="lineNum">     204 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[0].v[2] = a3;</span>
+<span class="lineNum">     205 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[1].v[2] = b3;</span>
+<span class="lineNum">     206 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[2].v[2] = c3;</span>
+<span class="lineNum">     207 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[3].v[2] = d3;</span>
+<span class="lineNum">     208 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[0].v[3] = a4;</span>
+<span class="lineNum">     209 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[1].v[3] = b4;</span>
+<span class="lineNum">     210 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[2].v[3] = c4;</span>
+<span class="lineNum">     211 </span>                :<span class="lineCov">      79795 :         ctx-&gt;superscalar[3].v[3] = d4;</span>
+<a name="212"><span class="lineNum">     212 </span>                :<span class="lineCov">      79795 : }</span></a>
+<span class="lineNum">     213 </span>                :            : 
+<span class="lineNum">     214 </span>                :<span class="lineCov">      59904 : static boolean_t fletcher_4_superscalar4_valid(void)</span>
+<span class="lineNum">     215 </span>                :            : {
+<span class="lineNum">     216 </span>                :<span class="lineCov">      59904 :         return (B_TRUE);</span>
+<span class="lineNum">     217 </span>                :            : }
+<span class="lineNum">     218 </span>                :            : 
+<span class="lineNum">     219 </span>                :            : const fletcher_4_ops_t fletcher_4_superscalar4_ops = {
+<span class="lineNum">     220 </span>                :            :         .init_native = fletcher_4_superscalar4_init,
+<span class="lineNum">     221 </span>                :            :         .compute_native = fletcher_4_superscalar4_native,
+<span class="lineNum">     222 </span>                :            :         .fini_native = fletcher_4_superscalar4_fini,
+<span class="lineNum">     223 </span>                :            :         .init_byteswap = fletcher_4_superscalar4_init,
+<span class="lineNum">     224 </span>                :            :         .compute_byteswap = fletcher_4_superscalar4_byteswap,
+<span class="lineNum">     225 </span>                :            :         .fini_byteswap = fletcher_4_superscalar4_fini,
+<span class="lineNum">     226 </span>                :            :         .valid = fletcher_4_superscalar4_valid,
+<span class="lineNum">     227 </span>                :            :         .name = &quot;superscalar4&quot;
+<span class="lineNum">     228 </span>                :            : };
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

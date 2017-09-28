@@ -1,0 +1,1551 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/lib/libzfs/libzfs_mount.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/lib/libzfs</a> - libzfs_mount.c<span style="font-size: 80%;"> (source / <a href="libzfs_mount.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">365</td>
+            <td class="headerCovTableEntry">453</td>
+            <td class="headerCovTableEntryMed">80.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">41</td>
+            <td class="headerCovTableEntry">45</td>
+            <td class="headerCovTableEntryHi">91.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">238</td>
+            <td class="headerCovTableEntry">341</td>
+            <td class="headerCovTableEntryLo">69.8 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : /*
+<span class="lineNum">      23 </span>                :            :  * Copyright 2015 Nexenta Systems, Inc.  All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  * Copyright (c) 2014, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      26 </span>                :            :  * Copyright 2016 Igor Kozhukhov &lt;ikozhukhov@gmail.com&gt;
+<span class="lineNum">      27 </span>                :            :  * Copyright 2017 RackTop Systems.
+<span class="lineNum">      28 </span>                :            :  */
+<span class="lineNum">      29 </span>                :            : 
+<span class="lineNum">      30 </span>                :            : /*
+<span class="lineNum">      31 </span>                :            :  * Routines to manage ZFS mounts.  We separate all the nasty routines that have
+<span class="lineNum">      32 </span>                :            :  * to deal with the OS.  The following functions are the main entry points --
+<span class="lineNum">      33 </span>                :            :  * they are used by mount and unmount and when changing a filesystem's
+<span class="lineNum">      34 </span>                :            :  * mountpoint.
+<span class="lineNum">      35 </span>                :            :  *
+<span class="lineNum">      36 </span>                :            :  *      zfs_is_mounted()
+<span class="lineNum">      37 </span>                :            :  *      zfs_mount()
+<span class="lineNum">      38 </span>                :            :  *      zfs_unmount()
+<span class="lineNum">      39 </span>                :            :  *      zfs_unmountall()
+<span class="lineNum">      40 </span>                :            :  *
+<span class="lineNum">      41 </span>                :            :  * This file also contains the functions used to manage sharing filesystems via
+<span class="lineNum">      42 </span>                :            :  * NFS and iSCSI:
+<span class="lineNum">      43 </span>                :            :  *
+<span class="lineNum">      44 </span>                :            :  *      zfs_is_shared()
+<span class="lineNum">      45 </span>                :            :  *      zfs_share()
+<span class="lineNum">      46 </span>                :            :  *      zfs_unshare()
+<span class="lineNum">      47 </span>                :            :  *
+<span class="lineNum">      48 </span>                :            :  *      zfs_is_shared_nfs()
+<span class="lineNum">      49 </span>                :            :  *      zfs_is_shared_smb()
+<span class="lineNum">      50 </span>                :            :  *      zfs_share_proto()
+<span class="lineNum">      51 </span>                :            :  *      zfs_shareall();
+<span class="lineNum">      52 </span>                :            :  *      zfs_unshare_nfs()
+<span class="lineNum">      53 </span>                :            :  *      zfs_unshare_smb()
+<span class="lineNum">      54 </span>                :            :  *      zfs_unshareall_nfs()
+<span class="lineNum">      55 </span>                :            :  *      zfs_unshareall_smb()
+<span class="lineNum">      56 </span>                :            :  *      zfs_unshareall()
+<span class="lineNum">      57 </span>                :            :  *      zfs_unshareall_bypath()
+<span class="lineNum">      58 </span>                :            :  *
+<span class="lineNum">      59 </span>                :            :  * The following functions are available for pool consumers, and will
+<span class="lineNum">      60 </span>                :            :  * mount/unmount and share/unshare all datasets within pool:
+<span class="lineNum">      61 </span>                :            :  *
+<span class="lineNum">      62 </span>                :            :  *      zpool_enable_datasets()
+<span class="lineNum">      63 </span>                :            :  *      zpool_disable_datasets()
+<span class="lineNum">      64 </span>                :            :  */
+<span class="lineNum">      65 </span>                :            : 
+<span class="lineNum">      66 </span>                :            : #include &lt;dirent.h&gt;
+<span class="lineNum">      67 </span>                :            : #include &lt;dlfcn.h&gt;
+<span class="lineNum">      68 </span>                :            : #include &lt;errno.h&gt;
+<span class="lineNum">      69 </span>                :            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      70 </span>                :            : #include &lt;libgen.h&gt;
+<span class="lineNum">      71 </span>                :            : #include &lt;libintl.h&gt;
+<span class="lineNum">      72 </span>                :            : #include &lt;stdio.h&gt;
+<span class="lineNum">      73 </span>                :            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      74 </span>                :            : #include &lt;strings.h&gt;
+<span class="lineNum">      75 </span>                :            : #include &lt;unistd.h&gt;
+<span class="lineNum">      76 </span>                :            : #include &lt;zone.h&gt;
+<span class="lineNum">      77 </span>                :            : #include &lt;sys/mntent.h&gt;
+<span class="lineNum">      78 </span>                :            : #include &lt;sys/mount.h&gt;
+<span class="lineNum">      79 </span>                :            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">      80 </span>                :            : #include &lt;sys/vfs.h&gt;
+<span class="lineNum">      81 </span>                :            : #include &lt;sys/dsl_crypt.h&gt;
+<span class="lineNum">      82 </span>                :            : 
+<span class="lineNum">      83 </span>                :            : #include &lt;libzfs.h&gt;
+<span class="lineNum">      84 </span>                :            : 
+<span class="lineNum">      85 </span>                :            : #include &quot;libzfs_impl.h&quot;
+<span class="lineNum">      86 </span>                :            : 
+<span class="lineNum">      87 </span>                :            : #include &lt;libshare.h&gt;
+<span class="lineNum">      88 </span>                :            : #include &lt;sys/systeminfo.h&gt;
+<span class="lineNum">      89 </span>                :            : #define MAXISALEN       257     /* based on sysinfo(2) man page */
+<span class="lineNum">      90 </span>                :            : 
+<span class="lineNum">      91 </span>                :            : static int zfs_share_proto(zfs_handle_t *, zfs_share_proto_t *);
+<span class="lineNum">      92 </span>                :            : zfs_share_type_t zfs_is_shared_proto(zfs_handle_t *, char **,
+<span class="lineNum">      93 </span>                :            :     zfs_share_proto_t);
+<span class="lineNum">      94 </span>                :            : 
+<span class="lineNum">      95 </span>                :            : /*
+<span class="lineNum">      96 </span>                :            :  * The share protocols table must be in the same order as the zfs_share_proto_t
+<span class="lineNum">      97 </span>                :            :  * enum in libzfs_impl.h
+<span class="lineNum">      98 </span>                :            :  */
+<span class="lineNum">      99 </span>                :            : typedef struct {
+<span class="lineNum">     100 </span>                :            :         zfs_prop_t p_prop;
+<span class="lineNum">     101 </span>                :            :         char *p_name;
+<span class="lineNum">     102 </span>                :            :         int p_share_err;
+<span class="lineNum">     103 </span>                :            :         int p_unshare_err;
+<span class="lineNum">     104 </span>                :            : } proto_table_t;
+<span class="lineNum">     105 </span>                :            : 
+<span class="lineNum">     106 </span>                :            : proto_table_t proto_table[PROTO_END] = {
+<span class="lineNum">     107 </span>                :            :         {ZFS_PROP_SHARENFS, &quot;nfs&quot;, EZFS_SHARENFSFAILED, EZFS_UNSHARENFSFAILED},
+<span class="lineNum">     108 </span>                :            :         {ZFS_PROP_SHARESMB, &quot;smb&quot;, EZFS_SHARESMBFAILED, EZFS_UNSHARESMBFAILED},
+<span class="lineNum">     109 </span>                :            : };
+<span class="lineNum">     110 </span>                :            : 
+<span class="lineNum">     111 </span>                :            : zfs_share_proto_t nfs_only[] = {
+<span class="lineNum">     112 </span>                :            :         PROTO_NFS,
+<span class="lineNum">     113 </span>                :            :         PROTO_END
+<span class="lineNum">     114 </span>                :            : };
+<span class="lineNum">     115 </span>                :            : 
+<span class="lineNum">     116 </span>                :            : zfs_share_proto_t smb_only[] = {
+<span class="lineNum">     117 </span>                :            :         PROTO_SMB,
+<span class="lineNum">     118 </span>                :            :         PROTO_END
+<span class="lineNum">     119 </span>                :            : };
+<span class="lineNum">     120 </span>                :            : zfs_share_proto_t share_all_proto[] = {
+<span class="lineNum">     121 </span>                :            :         PROTO_NFS,
+<span class="lineNum">     122 </span>                :            :         PROTO_SMB,
+<span class="lineNum">     123 </span>                :            :         PROTO_END
+<span class="lineNum">     124 </span>                :            : };
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>                :            : /*
+<span class="lineNum">     127 </span>                :            :  * Search the sharetab for the given mountpoint and protocol, returning
+<span class="lineNum">     128 </span>                :            :  * a zfs_share_type_t value.
+<a name="129"><span class="lineNum">     129 </span>                :            :  */</a>
+<span class="lineNum">     130 </span>                :            : static zfs_share_type_t
+<span class="lineNum">     131 </span>                :<span class="lineCov">      12029 : is_shared(libzfs_handle_t *hdl, const char *mountpoint, zfs_share_proto_t proto)</span>
+<span class="lineNum">     132 </span>                :            : {
+<span class="lineNum">     133 </span>                :            :         char buf[MAXPATHLEN], *tab;
+<span class="lineNum">     134 </span>                :            :         char *ptr;
+<span class="lineNum">     135 </span>                :            : 
+<span class="lineNum">     136 </span>        [<span class="branchCov" title="Branch 0 was taken 11323 times"> + </span><span class="branchCov" title="Branch 1 was taken 706 times"> + </span>]:<span class="lineCov">      12029 :         if (hdl-&gt;libzfs_sharetab == NULL)</span>
+<span class="lineNum">     137 </span>                :            :                 return (SHARED_NOT_SHARED);
+<span class="lineNum">     138 </span>                :            : 
+<span class="lineNum">     139 </span>                :            :         /* Reopen ZFS_SHARETAB to prevent reading stale data from open file */
+<span class="lineNum">     140 </span>        [<span class="branchCov" title="Branch 1 was taken 11323 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">      11323 :         if (freopen(ZFS_SHARETAB, &quot;r&quot;, hdl-&gt;libzfs_sharetab) == NULL)</span>
+<span class="lineNum">     141 </span>                :            :                 return (SHARED_NOT_SHARED);
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>                :<span class="lineCov">      11323 :         (void) fseek(hdl-&gt;libzfs_sharetab, 0, SEEK_SET);</span>
+<span class="lineNum">     144 </span>                :            : 
+<span class="lineNum">     145 </span>        [<span class="branchCov" title="Branch 0 was taken 1749 times"> + </span><span class="branchCov" title="Branch 1 was taken 11016 times"> + </span>]:<span class="lineCov">      12765 :         while (fgets(buf, sizeof (buf), hdl-&gt;libzfs_sharetab) != NULL) {</span>
+<span class="lineNum">     146 </span>                :            : 
+<span class="lineNum">     147 </span>                :            :                 /* the mountpoint is the first entry on each line */
+<span class="lineNum">     148 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1749 times"> + </span>]:<span class="lineCov">       1749 :                 if ((tab = strchr(buf, '\t')) == NULL)</span>
+<span class="lineNum">     149 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     150 </span>                :            : 
+<span class="lineNum">     151 </span>                :<span class="lineCov">       1749 :                 *tab = '\0';</span>
+<span class="lineNum">     152 </span>        [<span class="branchCov" title="Branch 0 was taken 461 times"> + </span><span class="branchCov" title="Branch 1 was taken 1288 times"> + </span>]:<span class="lineCov">       1749 :                 if (strcmp(buf, mountpoint) == 0) {</span>
+<span class="lineNum">     153 </span>                :            :                         /*
+<span class="lineNum">     154 </span>                :            :                          * the protocol field is the third field
+<span class="lineNum">     155 </span>                :            :                          * skip over second field
+<span class="lineNum">     156 </span>                :            :                          */
+<span class="lineNum">     157 </span>                :<span class="lineCov">        461 :                         ptr = ++tab;</span>
+<span class="lineNum">     158 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 461 times"> + </span>]:<span class="lineCov">        461 :                         if ((tab = strchr(ptr, '\t')) == NULL)</span>
+<span class="lineNum">     159 </span>                :<span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     160 </span>                :<span class="lineCov">        461 :                         ptr = ++tab;</span>
+<span class="lineNum">     161 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 461 times"> + </span>]:<span class="lineCov">        461 :                         if ((tab = strchr(ptr, '\t')) == NULL)</span>
+<span class="lineNum">     162 </span>                :<span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     163 </span>                :<span class="lineCov">        461 :                         *tab = '\0';</span>
+<span class="lineNum">     164 </span>        [<span class="branchCov" title="Branch 0 was taken 307 times"> + </span><span class="branchCov" title="Branch 1 was taken 154 times"> + </span>]:<span class="lineCov">        461 :                         if (strcmp(ptr,</span>
+<span class="lineNum">     165 </span>                :<span class="lineCov">        461 :                             proto_table[proto].p_name) == 0) {</span>
+<span class="lineNum">     166 </span>     [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 307 times"> + </span>]:<span class="lineCov">       1749 :                                 switch (proto) {</span>
+<span class="lineNum">     167 </span>                :            :                                 case PROTO_NFS:
+<span class="lineNum">     168 </span>                :            :                                         return (SHARED_NFS);
+<span class="lineNum">     169 </span>                :            :                                 case PROTO_SMB:
+<span class="lineNum">     170 </span>                :            :                                         return (SHARED_SMB);
+<span class="lineNum">     171 </span>                :            :                                 default:
+<span class="lineNum">     172 </span>                :            :                                         return (0);
+<span class="lineNum">     173 </span>                :            :                                 }
+<span class="lineNum">     174 </span>                :            :                         }
+<span class="lineNum">     175 </span>                :            :                 }
+<span class="lineNum">     176 </span>                :            :         }
+<span class="lineNum">     177 </span>                :            : 
+<span class="lineNum">     178 </span>                :            :         return (SHARED_NOT_SHARED);
+<span class="lineNum">     179 </span>                :            : }
+<a name="180"><span class="lineNum">     180 </span>                :            : </a>
+<span class="lineNum">     181 </span>                :            : static boolean_t
+<span class="lineNum">     182 </span>                :<span class="lineCov">       1973 : dir_is_empty_stat(const char *dirname)</span>
+<span class="lineNum">     183 </span>                :            : {
+<span class="lineNum">     184 </span>                :            :         struct stat st;
+<span class="lineNum">     185 </span>                :            : 
+<span class="lineNum">     186 </span>                :            :         /*
+<span class="lineNum">     187 </span>                :            :          * We only want to return false if the given path is a non empty
+<span class="lineNum">     188 </span>                :            :          * directory, all other errors are handled elsewhere.
+<span class="lineNum">     189 </span>                :            :          */
+<span class="lineNum">     190 </span>[<span class="branchCov" title="Branch 1 was taken 1973 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchCov" title="Branch 3 was taken 1973 times"> + </span><span class="branchNoCov" title="Branch 4 was not taken"> - </span>]:<span class="lineCov">       1973 :         if (stat(dirname, &amp;st) &lt; 0 || !S_ISDIR(st.st_mode)) {</span>
+<span class="lineNum">     191 </span>                :            :                 return (B_TRUE);
+<span class="lineNum">     192 </span>                :            :         }
+<span class="lineNum">     193 </span>                :            : 
+<span class="lineNum">     194 </span>                :            :         /*
+<span class="lineNum">     195 </span>                :            :          * An empty directory will still have two entries in it, one
+<span class="lineNum">     196 </span>                :            :          * entry for each of &quot;.&quot; and &quot;..&quot;.
+<span class="lineNum">     197 </span>                :            :          */
+<span class="lineNum">     198 </span>        [<span class="branchCov" title="Branch 0 was taken 1972 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">       1973 :         if (st.st_size &gt; 2) {</span>
+<span class="lineNum">     199 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     200 </span>                :            :         }
+<span class="lineNum">     201 </span>                :            : 
+<span class="lineNum">     202 </span>                :<span class="lineCov">       1972 :         return (B_TRUE);</span>
+<span class="lineNum">     203 </span>                :            : }
+<a name="204"><span class="lineNum">     204 </span>                :            : </a>
+<span class="lineNum">     205 </span>                :            : static boolean_t
+<span class="lineNum">     206 </span>                :<span class="lineCov">       2812 : dir_is_empty_readdir(const char *dirname)</span>
+<span class="lineNum">     207 </span>                :            : {
+<span class="lineNum">     208 </span>                :            :         DIR *dirp;
+<span class="lineNum">     209 </span>                :            :         struct dirent64 *dp;
+<span class="lineNum">     210 </span>                :            :         int dirfd;
+<span class="lineNum">     211 </span>                :            : 
+<span class="lineNum">     212 </span>        [<span class="branchCov" title="Branch 0 was taken 2812 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       2812 :         if ((dirfd = openat(AT_FDCWD, dirname,</span>
+<span class="lineNum">     213 </span>                :            :             O_RDONLY | O_NDELAY | O_LARGEFILE | O_CLOEXEC, 0)) &lt; 0) {
+<span class="lineNum">     214 </span>                :            :                 return (B_TRUE);
+<span class="lineNum">     215 </span>                :            :         }
+<span class="lineNum">     216 </span>                :            : 
+<span class="lineNum">     217 </span>        [<span class="branchCov" title="Branch 1 was taken 2809 times"> + </span><span class="branchCov" title="Branch 2 was taken 3 times"> + </span>]:<span class="lineCov">       2812 :         if ((dirp = fdopendir(dirfd)) == NULL) {</span>
+<span class="lineNum">     218 </span>                :<span class="lineCov">          3 :                 (void) close(dirfd);</span>
+<span class="lineNum">     219 </span>                :<span class="lineCov">          3 :                 return (B_TRUE);</span>
+<span class="lineNum">     220 </span>                :            :         }
+<span class="lineNum">     221 </span>                :            : 
+<span class="lineNum">     222 </span>        [<span class="branchCov" title="Branch 1 was taken 5618 times"> + </span><span class="branchCov" title="Branch 2 was taken 2808 times"> + </span>]:<span class="lineCov">       8426 :         while ((dp = readdir64(dirp)) != NULL) {</span>
+<span class="lineNum">     223 </span>                :            : 
+<span class="lineNum">     224 </span>[<span class="branchCov" title="Branch 0 was taken 2809 times"> + </span><span class="branchCov" title="Branch 1 was taken 2809 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 2808 times"> + </span><span class="branchCov" title="Branch 3 was taken 1 time"> + </span>]:<span class="lineCov">       5618 :                 if (strcmp(dp-&gt;d_name, &quot;.&quot;) == 0 ||</span>
+<span class="lineNum">     225 </span>                :<span class="lineCov">       2809 :                     strcmp(dp-&gt;d_name, &quot;..&quot;) == 0)</span>
+<span class="lineNum">     226 </span>                :<span class="lineCov">       5617 :                         continue;</span>
+<span class="lineNum">     227 </span>                :            : 
+<span class="lineNum">     228 </span>                :<span class="lineCov">          1 :                 (void) closedir(dirp);</span>
+<span class="lineNum">     229 </span>                :<span class="lineCov">          1 :                 return (B_FALSE);</span>
+<span class="lineNum">     230 </span>                :            :         }
+<span class="lineNum">     231 </span>                :            : 
+<span class="lineNum">     232 </span>                :<span class="lineCov">       2808 :         (void) closedir(dirp);</span>
+<span class="lineNum">     233 </span>                :<span class="lineCov">       2808 :         return (B_TRUE);</span>
+<span class="lineNum">     234 </span>                :            : }
+<span class="lineNum">     235 </span>                :            : 
+<span class="lineNum">     236 </span>                :            : /*
+<span class="lineNum">     237 </span>                :            :  * Returns true if the specified directory is empty.  If we can't open the
+<span class="lineNum">     238 </span>                :            :  * directory at all, return true so that the mount can fail with a more
+<span class="lineNum">     239 </span>                :            :  * informative error message.
+<a name="240"><span class="lineNum">     240 </span>                :            :  */</a>
+<span class="lineNum">     241 </span>                :            : static boolean_t
+<span class="lineNum">     242 </span>                :<span class="lineCov">       4785 : dir_is_empty(const char *dirname)</span>
+<span class="lineNum">     243 </span>                :            : {
+<span class="lineNum">     244 </span>                :            :         struct statfs64 st;
+<span class="lineNum">     245 </span>                :            : 
+<span class="lineNum">     246 </span>                :            :         /*
+<span class="lineNum">     247 </span>                :            :          * If the statvfs call fails or the filesystem is not a ZFS
+<span class="lineNum">     248 </span>                :            :          * filesystem, fall back to the slow path which uses readdir.
+<span class="lineNum">     249 </span>                :            :          */
+<span class="lineNum">     250 </span>[<span class="branchCov" title="Branch 1 was taken 4785 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchCov" title="Branch 3 was taken 2812 times"> + </span><span class="branchCov" title="Branch 4 was taken 1973 times"> + </span>]:<span class="lineCov">       4785 :         if ((statfs64(dirname, &amp;st) != 0) ||</span>
+<span class="lineNum">     251 </span>                :<span class="lineCov">       4785 :             (st.f_type != ZFS_SUPER_MAGIC)) {</span>
+<span class="lineNum">     252 </span>                :<span class="lineCov">       2812 :                 return (dir_is_empty_readdir(dirname));</span>
+<span class="lineNum">     253 </span>                :            :         }
+<span class="lineNum">     254 </span>                :            : 
+<span class="lineNum">     255 </span>                :            :         /*
+<span class="lineNum">     256 </span>                :            :          * At this point, we know the provided path is on a ZFS
+<span class="lineNum">     257 </span>                :            :          * filesystem, so we can use stat instead of readdir to
+<span class="lineNum">     258 </span>                :            :          * determine if the directory is empty or not. We try to avoid
+<span class="lineNum">     259 </span>                :            :          * using readdir because that requires opening &quot;dirname&quot;; this
+<span class="lineNum">     260 </span>                :            :          * open file descriptor can potentially end up in a child
+<span class="lineNum">     261 </span>                :            :          * process if there's a concurrent fork, thus preventing the
+<span class="lineNum">     262 </span>                :            :          * zfs_mount() from otherwise succeeding (the open file
+<span class="lineNum">     263 </span>                :            :          * descriptor inherited by the child process will cause the
+<span class="lineNum">     264 </span>                :            :          * parent's mount to fail with EBUSY). The performance
+<span class="lineNum">     265 </span>                :            :          * implications of replacing the open, read, and close with a
+<span class="lineNum">     266 </span>                :            :          * single stat is nice; but is not the main motivation for the
+<span class="lineNum">     267 </span>                :            :          * added complexity.
+<span class="lineNum">     268 </span>                :            :          */
+<span class="lineNum">     269 </span>                :<span class="lineCov">       1973 :         return (dir_is_empty_stat(dirname));</span>
+<span class="lineNum">     270 </span>                :            : }
+<span class="lineNum">     271 </span>                :            : 
+<span class="lineNum">     272 </span>                :            : /*
+<span class="lineNum">     273 </span>                :            :  * Checks to see if the mount is active.  If the filesystem is mounted, we fill
+<span class="lineNum">     274 </span>                :            :  * in 'where' with the current mountpoint, and return 1.  Otherwise, we return
+<span class="lineNum">     275 </span>                :            :  * 0.
+<a name="276"><span class="lineNum">     276 </span>                :            :  */</a>
+<span class="lineNum">     277 </span>                :            : boolean_t
+<span class="lineNum">     278 </span>                :<span class="lineCov">       8415 : is_mounted(libzfs_handle_t *zfs_hdl, const char *special, char **where)</span>
+<span class="lineNum">     279 </span>                :            : {
+<span class="lineNum">     280 </span>                :            :         struct mnttab entry;
+<span class="lineNum">     281 </span>                :            : 
+<span class="lineNum">     282 </span>        [<span class="branchCov" title="Branch 1 was taken 5289 times"> + </span><span class="branchCov" title="Branch 2 was taken 3126 times"> + </span>]:<span class="lineCov">       8415 :         if (libzfs_mnttab_find(zfs_hdl, special, &amp;entry) != 0)</span>
+<span class="lineNum">     283 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     284 </span>                :            : 
+<span class="lineNum">     285 </span>        [<span class="branchCov" title="Branch 0 was taken 2165 times"> + </span><span class="branchCov" title="Branch 1 was taken 3124 times"> + </span>]:<span class="lineCov">       5289 :         if (where != NULL)</span>
+<span class="lineNum">     286 </span>                :<span class="lineCov">       2165 :                 *where = zfs_strdup(zfs_hdl, entry.mnt_mountp);</span>
+<span class="lineNum">     287 </span>                :            : 
+<span class="lineNum">     288 </span>                :            :         return (B_TRUE);
+<span class="lineNum">     289 </span>                :            : }
+<a name="290"><span class="lineNum">     290 </span>                :            : </a>
+<span class="lineNum">     291 </span>                :            : boolean_t
+<span class="lineNum">     292 </span>                :<span class="lineCov">       8400 : zfs_is_mounted(zfs_handle_t *zhp, char **where)</span>
+<span class="lineNum">     293 </span>                :            : {
+<span class="lineNum">     294 </span>                :<span class="lineCov">       8400 :         return (is_mounted(zhp-&gt;zfs_hdl, zfs_get_name(zhp), where));</span>
+<span class="lineNum">     295 </span>                :            : }
+<span class="lineNum">     296 </span>                :            : 
+<span class="lineNum">     297 </span>                :            : /*
+<span class="lineNum">     298 </span>                :            :  * Returns true if the given dataset is mountable, false otherwise.  Returns the
+<span class="lineNum">     299 </span>                :            :  * mountpoint in 'buf'.
+<a name="300"><span class="lineNum">     300 </span>                :            :  */</a>
+<span class="lineNum">     301 </span>                :            : static boolean_t
+<span class="lineNum">     302 </span>                :<span class="lineCov">      16209 : zfs_is_mountable(zfs_handle_t *zhp, char *buf, size_t buflen,</span>
+<span class="lineNum">     303 </span>                :            :     zprop_source_t *source)
+<span class="lineNum">     304 </span>                :            : {
+<span class="lineNum">     305 </span>                :            :         char sourceloc[MAXNAMELEN];
+<span class="lineNum">     306 </span>                :            :         zprop_source_t sourcetype;
+<span class="lineNum">     307 </span>                :            : 
+<span class="lineNum">     308 </span>        [<span class="branchCov" title="Branch 1 was taken 15821 times"> + </span><span class="branchCov" title="Branch 2 was taken 388 times"> + </span>]:<span class="lineCov">      16209 :         if (!zfs_prop_valid_for_type(ZFS_PROP_MOUNTPOINT, zhp-&gt;zfs_type,</span>
+<span class="lineNum">     309 </span>                :            :             B_FALSE))
+<span class="lineNum">     310 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     311 </span>                :            : 
+<span class="lineNum">     312 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 15821 times"> + </span>]:<span class="lineCov">      15821 :         verify(zfs_prop_get(zhp, ZFS_PROP_MOUNTPOINT, buf, buflen,</span>
+<span class="lineNum">     313 </span>                :            :             &amp;sourcetype, sourceloc, sizeof (sourceloc), B_FALSE) == 0);
+<span class="lineNum">     314 </span>                :            : 
+<span class="lineNum">     315 </span>[<span class="branchCov" title="Branch 0 was taken 15781 times"> + </span><span class="branchCov" title="Branch 1 was taken 40 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 15750 times"> + </span><span class="branchCov" title="Branch 3 was taken 31 times"> + </span>]:<span class="lineCov">      15821 :         if (strcmp(buf, ZFS_MOUNTPOINT_NONE) == 0 ||</span>
+<span class="lineNum">     316 </span>                :<span class="lineCov">      15781 :             strcmp(buf, ZFS_MOUNTPOINT_LEGACY) == 0)</span>
+<span class="lineNum">     317 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     318 </span>                :            : 
+<span class="lineNum">     319 </span>        [<span class="branchCov" title="Branch 1 was taken 15517 times"> + </span><span class="branchCov" title="Branch 2 was taken 233 times"> + </span>]:<span class="lineCov">      15750 :         if (zfs_prop_get_int(zhp, ZFS_PROP_CANMOUNT) == ZFS_CANMOUNT_OFF)</span>
+<span class="lineNum">     320 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     321 </span>                :            : 
+<span class="lineNum">     322 </span>  [<span class="branchCov" title="Branch 1 was taken 20 times"> + </span><span class="branchCov" title="Branch 2 was taken 15497 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 20 times"> + </span>]:<span class="lineCov">      15537 :         if (zfs_prop_get_int(zhp, ZFS_PROP_ZONED) &amp;&amp;</span>
+<span class="lineNum">     323 </span>                :<span class="lineCov">         20 :             getzoneid() == GLOBAL_ZONEID)</span>
+<span class="lineNum">     324 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     325 </span>                :            : 
+<span class="lineNum">     326 </span>        [<span class="branchCov" title="Branch 0 was taken 6355 times"> + </span><span class="branchCov" title="Branch 1 was taken 9142 times"> + </span>]:<span class="lineCov">      15497 :         if (source)</span>
+<span class="lineNum">     327 </span>                :<span class="lineCov">       6355 :                 *source = sourcetype;</span>
+<span class="lineNum">     328 </span>                :            : 
+<span class="lineNum">     329 </span>                :            :         return (B_TRUE);
+<span class="lineNum">     330 </span>                :            : }
+<span class="lineNum">     331 </span>                :            : 
+<span class="lineNum">     332 </span>                :            : /*
+<span class="lineNum">     333 </span>                :            :  * The filesystem is mounted by invoking the system mount utility rather
+<span class="lineNum">     334 </span>                :            :  * than by the system call mount(2).  This ensures that the /etc/mtab
+<span class="lineNum">     335 </span>                :            :  * file is correctly locked for the update.  Performing our own locking
+<span class="lineNum">     336 </span>                :            :  * and /etc/mtab update requires making an unsafe assumption about how
+<span class="lineNum">     337 </span>                :            :  * the mount utility performs its locking.  Unfortunately, this also means
+<span class="lineNum">     338 </span>                :            :  * in the case of a mount failure we do not have the exact errno.  We must
+<span class="lineNum">     339 </span>                :            :  * make due with return value from the mount process.
+<span class="lineNum">     340 </span>                :            :  *
+<span class="lineNum">     341 </span>                :            :  * In the long term a shared library called libmount is under development
+<span class="lineNum">     342 </span>                :            :  * which provides a common API to address the locking and errno issues.
+<span class="lineNum">     343 </span>                :            :  * Once the standard mount utility has been updated to use this library
+<span class="lineNum">     344 </span>                :            :  * we can add an autoconf check to conditionally use it.
+<span class="lineNum">     345 </span>                :            :  *
+<span class="lineNum">     346 </span>                :            :  * http://www.kernel.org/pub/linux/utils/util-linux/libmount-docs/index.html
+<span class="lineNum">     347 </span>                :            :  */
+<a name="348"><span class="lineNum">     348 </span>                :            : </a>
+<span class="lineNum">     349 </span>                :            : static int
+<span class="lineNum">     350 </span>                :<span class="lineCov">       5014 : do_mount(const char *src, const char *mntpt, char *opts)</span>
+<span class="lineNum">     351 </span>                :            : {
+<span class="lineNum">     352 </span>                :<span class="lineCov">       5014 :         char *argv[9] = {</span>
+<span class="lineNum">     353 </span>                :            :             &quot;/bin/mount&quot;,
+<span class="lineNum">     354 </span>                :            :             &quot;--no-canonicalize&quot;,
+<span class="lineNum">     355 </span>                :            :             &quot;-t&quot;, MNTTYPE_ZFS,
+<span class="lineNum">     356 </span>                :            :             &quot;-o&quot;, opts,
+<span class="lineNum">     357 </span>                :            :             (char *)src,
+<span class="lineNum">     358 </span>                :            :             (char *)mntpt,
+<span class="lineNum">     359 </span>                :            :             (char *)NULL };
+<span class="lineNum">     360 </span>                :            :         int rc;
+<span class="lineNum">     361 </span>                :            : 
+<span class="lineNum">     362 </span>                :            :         /* Return only the most critical mount error */
+<span class="lineNum">     363 </span>                :<span class="lineCov">       5014 :         rc = libzfs_run_process(argv[0], argv, STDOUT_VERBOSE|STDERR_VERBOSE);</span>
+<span class="lineNum">     364 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchCov" title="Branch 1 was taken 5004 times"> + </span>]:<span class="lineCov">       5007 :         if (rc) {</span>
+<span class="lineNum">     365 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          3 :                 if (rc &amp; MOUNT_FILEIO)</span>
+<span class="lineNum">     366 </span>                :            :                         return (EIO);
+<span class="lineNum">     367 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          3 :                 if (rc &amp; MOUNT_USER)</span>
+<span class="lineNum">     368 </span>                :            :                         return (EINTR);
+<span class="lineNum">     369 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          3 :                 if (rc &amp; MOUNT_SOFTWARE)</span>
+<span class="lineNum">     370 </span>                :            :                         return (EPIPE);
+<span class="lineNum">     371 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          3 :                 if (rc &amp; MOUNT_BUSY)</span>
+<span class="lineNum">     372 </span>                :            :                         return (EBUSY);
+<span class="lineNum">     373 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          3 :                 if (rc &amp; MOUNT_SYSERR)</span>
+<span class="lineNum">     374 </span>                :            :                         return (EAGAIN);
+<span class="lineNum">     375 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">          3 :                 if (rc &amp; MOUNT_USAGE)</span>
+<span class="lineNum">     376 </span>                :            :                         return (EINVAL);
+<span class="lineNum">     377 </span>                :            : 
+<span class="lineNum">     378 </span>                :<span class="lineNoCov">          0 :                 return (ENXIO); /* Generic error */</span>
+<span class="lineNum">     379 </span>                :            :         }
+<span class="lineNum">     380 </span>                :            : 
+<span class="lineNum">     381 </span>                :            :         return (0);
+<span class="lineNum">     382 </span>                :            : }
+<a name="383"><span class="lineNum">     383 </span>                :            : </a>
+<span class="lineNum">     384 </span>                :            : static int
+<span class="lineNum">     385 </span>                :<span class="lineCov">       4813 : do_unmount(const char *mntpt, int flags)</span>
+<span class="lineNum">     386 </span>                :            : {
+<span class="lineNum">     387 </span>                :<span class="lineCov">       4813 :         char force_opt[] = &quot;-f&quot;;</span>
+<span class="lineNum">     388 </span>                :<span class="lineCov">       4813 :         char lazy_opt[] = &quot;-l&quot;;</span>
+<span class="lineNum">     389 </span>                :<span class="lineCov">       4813 :         char *argv[7] = {</span>
+<span class="lineNum">     390 </span>                :            :             &quot;/bin/umount&quot;,
+<span class="lineNum">     391 </span>                :            :             &quot;-t&quot;, MNTTYPE_ZFS,
+<span class="lineNum">     392 </span>                :            :             NULL, NULL, NULL, NULL };
+<span class="lineNum">     393 </span>                :<span class="lineCov">       4813 :         int rc, count = 3;</span>
+<span class="lineNum">     394 </span>                :            : 
+<span class="lineNum">     395 </span>        [<span class="branchCov" title="Branch 0 was taken 1541 times"> + </span><span class="branchCov" title="Branch 1 was taken 3272 times"> + </span>]:<span class="lineCov">       4813 :         if (flags &amp; MS_FORCE) {</span>
+<span class="lineNum">     396 </span>                :<span class="lineCov">       1541 :                 argv[count] = force_opt;</span>
+<span class="lineNum">     397 </span>                :<span class="lineCov">       1541 :                 count++;</span>
+<span class="lineNum">     398 </span>                :            :         }
+<span class="lineNum">     399 </span>                :            : 
+<span class="lineNum">     400 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4813 times"> + </span>]:<span class="lineCov">       4813 :         if (flags &amp; MS_DETACH) {</span>
+<span class="lineNum">     401 </span>                :<span class="lineNoCov">          0 :                 argv[count] = lazy_opt;</span>
+<span class="lineNum">     402 </span>                :<span class="lineNoCov">          0 :                 count++;</span>
+<span class="lineNum">     403 </span>                :            :         }
+<span class="lineNum">     404 </span>                :            : 
+<span class="lineNum">     405 </span>                :<span class="lineCov">       4813 :         argv[count] = (char *)mntpt;</span>
+<span class="lineNum">     406 </span>                :<span class="lineCov">       4813 :         rc = libzfs_run_process(argv[0], argv, STDOUT_VERBOSE|STDERR_VERBOSE);</span>
+<span class="lineNum">     407 </span>                :            : 
+<span class="lineNum">     408 </span>        [<span class="branchCov" title="Branch 0 was taken 4782 times"> + </span><span class="branchCov" title="Branch 1 was taken 27 times"> + </span>]:<span class="lineCov">       4809 :         return (rc ? EINVAL : 0);</span>
+<span class="lineNum">     409 </span>                :            : }
+<a name="410"><span class="lineNum">     410 </span>                :            : </a>
+<span class="lineNum">     411 </span>                :            : static int
+<span class="lineNum">     412 </span>                :<span class="lineCov">      34971 : zfs_add_option(zfs_handle_t *zhp, char *options, int len,</span>
+<span class="lineNum">     413 </span>                :            :     zfs_prop_t prop, char *on, char *off)
+<span class="lineNum">     414 </span>                :            : {
+<span class="lineNum">     415 </span>                :            :         char *source;
+<span class="lineNum">     416 </span>                :            :         uint64_t value;
+<span class="lineNum">     417 </span>                :            : 
+<span class="lineNum">     418 </span>                :            :         /* Skip adding duplicate default options */
+<span class="lineNum">     419 </span>[<span class="branchCov" title="Branch 0 was taken 34952 times"> + </span><span class="branchCov" title="Branch 1 was taken 19 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 34952 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">      34971 :         if ((strstr(options, on) != NULL) || (strstr(options, off) != NULL))</span>
+<span class="lineNum">     420 </span>                :            :                 return (0);
+<span class="lineNum">     421 </span>                :            : 
+<span class="lineNum">     422 </span>                :            :         /*
+<span class="lineNum">     423 </span>                :            :          * zfs_prop_get_int() is not used to ensure our mount options
+<span class="lineNum">     424 </span>                :            :          * are not influenced by the current /proc/self/mounts contents.
+<span class="lineNum">     425 </span>                :            :          */
+<span class="lineNum">     426 </span>                :<span class="lineCov">      34952 :         value = getprop_uint64(zhp, prop, &amp;source);</span>
+<span class="lineNum">     427 </span>                :            : 
+<span class="lineNum">     428 </span>                :<span class="lineCov">      34952 :         (void) strlcat(options, &quot;,&quot;, len);</span>
+<span class="lineNum">     429 </span>        [<span class="branchCov" title="Branch 0 was taken 15162 times"> + </span><span class="branchCov" title="Branch 1 was taken 19790 times"> + </span>]:<span class="lineCov">      34952 :         (void) strlcat(options, value ? on : off, len);</span>
+<span class="lineNum">     430 </span>                :            : 
+<span class="lineNum">     431 </span>                :<span class="lineCov">      34952 :         return (0);</span>
+<span class="lineNum">     432 </span>                :            : }
+<a name="433"><span class="lineNum">     433 </span>                :            : </a>
+<span class="lineNum">     434 </span>                :            : static int
+<span class="lineNum">     435 </span>                :<span class="lineCov">       5019 : zfs_add_options(zfs_handle_t *zhp, char *options, int len)</span>
+<span class="lineNum">     436 </span>                :            : {
+<span class="lineNum">     437 </span>                :<span class="lineCov">       5019 :         int error = 0;</span>
+<span class="lineNum">     438 </span>                :            : 
+<span class="lineNum">     439 </span>                :<span class="lineCov">       5019 :         error = zfs_add_option(zhp, options, len,</span>
+<span class="lineNum">     440 </span>                :            :             ZFS_PROP_ATIME, MNTOPT_ATIME, MNTOPT_NOATIME);
+<span class="lineNum">     441 </span>                :            :         /*
+<span class="lineNum">     442 </span>                :            :          * don't add relatime/strictatime when atime=off, otherwise strictatime
+<span class="lineNum">     443 </span>                :            :          * will force atime=on
+<span class="lineNum">     444 </span>                :            :          */
+<span class="lineNum">     445 </span>        [<span class="branchCov" title="Branch 0 was taken 4857 times"> + </span><span class="branchCov" title="Branch 1 was taken 162 times"> + </span>]:<span class="lineCov">       5019 :         if (strstr(options, MNTOPT_NOATIME) == NULL) {</span>
+<span class="lineNum">     446 </span>                :<span class="lineCov">       4857 :                 error = zfs_add_option(zhp, options, len,</span>
+<span class="lineNum">     447 </span>                :            :                     ZFS_PROP_RELATIME, MNTOPT_RELATIME, MNTOPT_STRICTATIME);
+<span class="lineNum">     448 </span>                :            :         }
+<span class="lineNum">     449 </span>        [<span class="branchCov" title="Branch 0 was taken 5019 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       5019 :         error = error ? error : zfs_add_option(zhp, options, len,</span>
+<span class="lineNum">     450 </span>                :            :             ZFS_PROP_DEVICES, MNTOPT_DEVICES, MNTOPT_NODEVICES);
+<span class="lineNum">     451 </span>        [<span class="branchCov" title="Branch 0 was taken 5019 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       5019 :         error = error ? error : zfs_add_option(zhp, options, len,</span>
+<span class="lineNum">     452 </span>                :            :             ZFS_PROP_EXEC, MNTOPT_EXEC, MNTOPT_NOEXEC);
+<span class="lineNum">     453 </span>        [<span class="branchCov" title="Branch 0 was taken 5019 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       5019 :         error = error ? error : zfs_add_option(zhp, options, len,</span>
+<span class="lineNum">     454 </span>                :            :             ZFS_PROP_READONLY, MNTOPT_RO, MNTOPT_RW);
+<span class="lineNum">     455 </span>        [<span class="branchCov" title="Branch 0 was taken 5019 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       5019 :         error = error ? error : zfs_add_option(zhp, options, len,</span>
+<span class="lineNum">     456 </span>                :            :             ZFS_PROP_SETUID, MNTOPT_SETUID, MNTOPT_NOSETUID);
+<span class="lineNum">     457 </span>        [<span class="branchCov" title="Branch 0 was taken 5019 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       5019 :         error = error ? error : zfs_add_option(zhp, options, len,</span>
+<span class="lineNum">     458 </span>                :            :             ZFS_PROP_NBMAND, MNTOPT_NBMAND, MNTOPT_NONBMAND);
+<span class="lineNum">     459 </span>                :            : 
+<span class="lineNum">     460 </span>                :<span class="lineCov">       5019 :         return (error);</span>
+<span class="lineNum">     461 </span>                :            : }
+<span class="lineNum">     462 </span>                :            : 
+<span class="lineNum">     463 </span>                :            : /*
+<span class="lineNum">     464 </span>                :            :  * Mount the given filesystem.
+<a name="465"><span class="lineNum">     465 </span>                :            :  */</a>
+<span class="lineNum">     466 </span>                :            : int
+<span class="lineNum">     467 </span>                :<span class="lineCov">       5183 : zfs_mount(zfs_handle_t *zhp, const char *options, int flags)</span>
+<span class="lineNum">     468 </span>                :            : {
+<span class="lineNum">     469 </span>                :            :         struct stat buf;
+<span class="lineNum">     470 </span>                :            :         char mountpoint[ZFS_MAXPROPLEN];
+<span class="lineNum">     471 </span>                :            :         char mntopts[MNT_LINE_MAX];
+<span class="lineNum">     472 </span>                :            :         char overlay[ZFS_MAXPROPLEN];
+<span class="lineNum">     473 </span>                :<span class="lineCov">       5183 :         libzfs_handle_t *hdl = zhp-&gt;zfs_hdl;</span>
+<span class="lineNum">     474 </span>                :            :         uint64_t keystatus;
+<span class="lineNum">     475 </span>                :<span class="lineCov">       5183 :         int remount = 0, rc;</span>
+<span class="lineNum">     476 </span>                :            : 
+<span class="lineNum">     477 </span>        [<span class="branchCov" title="Branch 0 was taken 4953 times"> + </span><span class="branchCov" title="Branch 1 was taken 230 times"> + </span>]:<span class="lineCov">       5183 :         if (options == NULL) {</span>
+<span class="lineNum">     478 </span>                :<span class="lineCov">       4953 :                 (void) strlcpy(mntopts, MNTOPT_DEFAULTS, sizeof (mntopts));</span>
+<span class="lineNum">     479 </span>                :            :         } else {
+<span class="lineNum">     480 </span>                :<span class="lineCov">        230 :                 (void) strlcpy(mntopts, options, sizeof (mntopts));</span>
+<span class="lineNum">     481 </span>                :            :         }
+<span class="lineNum">     482 </span>                :            : 
+<span class="lineNum">     483 </span>        [<span class="branchCov" title="Branch 0 was taken 230 times"> + </span><span class="branchCov" title="Branch 1 was taken 4953 times"> + </span>]:<span class="lineCov">       5183 :         if (strstr(mntopts, MNTOPT_REMOUNT) != NULL)</span>
+<span class="lineNum">     484 </span>                :<span class="lineCov">        230 :                 remount = 1;</span>
+<span class="lineNum">     485 </span>                :            : 
+<span class="lineNum">     486 </span>                :            :         /*
+<span class="lineNum">     487 </span>                :            :          * If the pool is imported read-only then all mounts must be read-only
+<span class="lineNum">     488 </span>                :            :          */
+<span class="lineNum">     489 </span>        [<span class="branchCov" title="Branch 1 was taken 12 times"> + </span><span class="branchCov" title="Branch 2 was taken 5171 times"> + </span>]:<span class="lineCov">       5183 :         if (zpool_get_prop_int(zhp-&gt;zpool_hdl, ZPOOL_PROP_READONLY, NULL))</span>
+<span class="lineNum">     490 </span>                :<span class="lineCov">         12 :                 (void) strlcat(mntopts, &quot;,&quot; MNTOPT_RO, sizeof (mntopts));</span>
+<span class="lineNum">     491 </span>                :            : 
+<span class="lineNum">     492 </span>        [<span class="branchCov" title="Branch 1 was taken 5019 times"> + </span><span class="branchCov" title="Branch 2 was taken 164 times"> + </span>]:<span class="lineCov">       5183 :         if (!zfs_is_mountable(zhp, mountpoint, sizeof (mountpoint), NULL))</span>
+<span class="lineNum">     493 </span>                :            :                 return (0);
+<span class="lineNum">     494 </span>                :            : 
+<span class="lineNum">     495 </span>                :            :         /*
+<span class="lineNum">     496 </span>                :            :          * Append default mount options which apply to the mount point.
+<span class="lineNum">     497 </span>                :            :          * This is done because under Linux (unlike Solaris) multiple mount
+<span class="lineNum">     498 </span>                :            :          * points may reference a single super block.  This means that just
+<span class="lineNum">     499 </span>                :            :          * given a super block there is no back reference to update the per
+<span class="lineNum">     500 </span>                :            :          * mount point options.
+<span class="lineNum">     501 </span>                :            :          */
+<span class="lineNum">     502 </span>                :<span class="lineCov">       5019 :         rc = zfs_add_options(zhp, mntopts, sizeof (mntopts));</span>
+<span class="lineNum">     503 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5019 times"> + </span>]:<span class="lineCov">       5019 :         if (rc) {</span>
+<span class="lineNum">     504 </span>                :<span class="lineNoCov">          0 :                 zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     505 </span>                :            :                     &quot;default options unavailable&quot;));
+<span class="lineNum">     506 </span>                :<span class="lineNoCov">          0 :                 return (zfs_error_fmt(hdl, EZFS_MOUNTFAILED,</span>
+<span class="lineNum">     507 </span>                :<span class="lineNoCov">          0 :                     dgettext(TEXT_DOMAIN, &quot;cannot mount '%s'&quot;),</span>
+<span class="lineNum">     508 </span>                :            :                     mountpoint));
+<span class="lineNum">     509 </span>                :            :         }
+<span class="lineNum">     510 </span>                :            : 
+<span class="lineNum">     511 </span>                :            :         /*
+<span class="lineNum">     512 </span>                :            :          * If the filesystem is encrypted the key must be loaded  in order to
+<span class="lineNum">     513 </span>                :            :          * mount. If the key isn't loaded, the MS_CRYPT flag decides whether
+<span class="lineNum">     514 </span>                :            :          * or not we attempt to load the keys. Note: we must call
+<span class="lineNum">     515 </span>                :            :          * zfs_refresh_properties() here since some callers of this function
+<span class="lineNum">     516 </span>                :            :          * (most notably zpool_enable_datasets()) may implicitly load our key
+<span class="lineNum">     517 </span>                :            :          * by loading the parent's key first.
+<span class="lineNum">     518 </span>                :            :          */
+<span class="lineNum">     519 </span>        [<span class="branchCov" title="Branch 1 was taken 133 times"> + </span><span class="branchCov" title="Branch 2 was taken 4886 times"> + </span>]:<span class="lineCov">       5019 :         if (zfs_prop_get_int(zhp, ZFS_PROP_ENCRYPTION) != ZIO_CRYPT_OFF) {</span>
+<span class="lineNum">     520 </span>                :<span class="lineCov">        133 :                 zfs_refresh_properties(zhp);</span>
+<span class="lineNum">     521 </span>                :<span class="lineCov">        133 :                 keystatus = zfs_prop_get_int(zhp, ZFS_PROP_KEYSTATUS);</span>
+<span class="lineNum">     522 </span>                :            : 
+<span class="lineNum">     523 </span>                :            :                 /*
+<span class="lineNum">     524 </span>                :            :                  * If the key is unavailable and MS_CRYPT is set give the
+<span class="lineNum">     525 </span>                :            :                  * user a chance to enter the key. Otherwise just fail
+<span class="lineNum">     526 </span>                :            :                  * immediately.
+<span class="lineNum">     527 </span>                :            :                  */
+<span class="lineNum">     528 </span>        [<span class="branchCov" title="Branch 0 was taken 8 times"> + </span><span class="branchCov" title="Branch 1 was taken 125 times"> + </span>]:<span class="lineCov">        133 :                 if (keystatus == ZFS_KEYSTATUS_UNAVAILABLE) {</span>
+<span class="lineNum">     529 </span>        [<span class="branchCov" title="Branch 0 was taken 5 times"> + </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">          8 :                         if (flags &amp; MS_CRYPT) {</span>
+<span class="lineNum">     530 </span>                :<span class="lineCov">          5 :                                 rc = zfs_crypto_load_key(zhp, B_FALSE, NULL);</span>
+<span class="lineNum">     531 </span>        [<span class="branchCov" title="Branch 0 was taken 5 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          5 :                                 if (rc)</span>
+<span class="lineNum">     532 </span>                :            :                                         return (rc);
+<span class="lineNum">     533 </span>                :            :                         } else {
+<span class="lineNum">     534 </span>                :<span class="lineCov">          3 :                                 zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     535 </span>                :            :                                     &quot;encryption key not loaded&quot;));
+<span class="lineNum">     536 </span>                :<span class="lineCov">          3 :                                 return (zfs_error_fmt(hdl, EZFS_MOUNTFAILED,</span>
+<span class="lineNum">     537 </span>                :<span class="lineCov">          3 :                                     dgettext(TEXT_DOMAIN, &quot;cannot mount '%s'&quot;),</span>
+<span class="lineNum">     538 </span>                :            :                                     mountpoint));
+<span class="lineNum">     539 </span>                :            :                         }
+<span class="lineNum">     540 </span>                :            :                 }
+<span class="lineNum">     541 </span>                :            : 
+<span class="lineNum">     542 </span>                :            :         }
+<span class="lineNum">     543 </span>                :            : 
+<span class="lineNum">     544 </span>                :            :         /*
+<span class="lineNum">     545 </span>                :            :          * Append zfsutil option so the mount helper allow the mount
+<span class="lineNum">     546 </span>                :            :          */
+<span class="lineNum">     547 </span>                :<span class="lineCov">       5016 :         strlcat(mntopts, &quot;,&quot; MNTOPT_ZFSUTIL, sizeof (mntopts));</span>
+<span class="lineNum">     548 </span>                :            : 
+<span class="lineNum">     549 </span>                :            :         /* Create the directory if it doesn't already exist */
+<span class="lineNum">     550 </span>        [<span class="branchCov" title="Branch 1 was taken 3788 times"> + </span><span class="branchCov" title="Branch 2 was taken 1228 times"> + </span>]:<span class="lineCov">       5016 :         if (lstat(mountpoint, &amp;buf) != 0) {</span>
+<span class="lineNum">     551 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 3788 times"> + </span>]:<span class="lineCov">       3788 :                 if (mkdirp(mountpoint, 0755) != 0) {</span>
+<span class="lineNum">     552 </span>                :<span class="lineNoCov">          0 :                         zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     553 </span>                :            :                             &quot;failed to create mountpoint&quot;));
+<span class="lineNum">     554 </span>                :<span class="lineNoCov">          0 :                         return (zfs_error_fmt(hdl, EZFS_MOUNTFAILED,</span>
+<span class="lineNum">     555 </span>                :<span class="lineNoCov">          0 :                             dgettext(TEXT_DOMAIN, &quot;cannot mount '%s'&quot;),</span>
+<span class="lineNum">     556 </span>                :            :                             mountpoint));
+<span class="lineNum">     557 </span>                :            :                 }
+<span class="lineNum">     558 </span>                :            :         }
+<span class="lineNum">     559 </span>                :            : 
+<span class="lineNum">     560 </span>                :            :         /*
+<span class="lineNum">     561 </span>                :            :          * Overlay mounts are disabled by default but may be enabled
+<span class="lineNum">     562 </span>                :            :          * via the 'overlay' property or the 'zfs mount -O' option.
+<span class="lineNum">     563 </span>                :            :          */
+<span class="lineNum">     564 </span>        [<span class="branchCov" title="Branch 0 was taken 5015 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">       5016 :         if (!(flags &amp; MS_OVERLAY)) {</span>
+<span class="lineNum">     565 </span>        [<span class="branchCov" title="Branch 1 was taken 5015 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       5015 :                 if (zfs_prop_get(zhp, ZFS_PROP_OVERLAY, overlay,</span>
+<span class="lineNum">     566 </span>                :            :                     sizeof (overlay), NULL, NULL, 0, B_FALSE) == 0) {
+<span class="lineNum">     567 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5015 times"> + </span>]:<span class="lineCov">       5015 :                         if (strcmp(overlay, &quot;on&quot;) == 0) {</span>
+<span class="lineNum">     568 </span>                :<span class="lineNoCov">          0 :                                 flags |= MS_OVERLAY;</span>
+<span class="lineNum">     569 </span>                :            :                         }
+<span class="lineNum">     570 </span>                :            :                 }
+<span class="lineNum">     571 </span>                :            :         }
+<span class="lineNum">     572 </span>                :            : 
+<span class="lineNum">     573 </span>                :            :         /*
+<span class="lineNum">     574 </span>                :            :          * Determine if the mountpoint is empty.  If so, refuse to perform the
+<span class="lineNum">     575 </span>                :            :          * mount.  We don't perform this check if 'remount' is
+<span class="lineNum">     576 </span>                :            :          * specified or if overlay option(-O) is given
+<span class="lineNum">     577 </span>                :            :          */
+<span class="lineNum">     578 </span>  [<span class="branchCov" title="Branch 0 was taken 4785 times"> + </span><span class="branchCov" title="Branch 1 was taken 231 times"> + </span><span class="branchCov" title="Branch 2 was taken 2 times"> + </span><span class="branchCov" title="Branch 3 was taken 4783 times"> + </span>]:<span class="lineCov">       9801 :         if ((flags &amp; MS_OVERLAY) == 0 &amp;&amp; !remount &amp;&amp;</span>
+<span class="lineNum">     579 </span>                :<span class="lineCov">       4785 :             !dir_is_empty(mountpoint)) {</span>
+<span class="lineNum">     580 </span>                :<span class="lineCov">          2 :                 zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     581 </span>                :            :                     &quot;directory is not empty&quot;));
+<span class="lineNum">     582 </span>                :<span class="lineCov">          2 :                 return (zfs_error_fmt(hdl, EZFS_MOUNTFAILED,</span>
+<span class="lineNum">     583 </span>                :<span class="lineCov">          2 :                     dgettext(TEXT_DOMAIN, &quot;cannot mount '%s'&quot;), mountpoint));</span>
+<span class="lineNum">     584 </span>                :            :         }
+<span class="lineNum">     585 </span>                :            : 
+<span class="lineNum">     586 </span>                :            :         /* perform the mount */
+<span class="lineNum">     587 </span>                :<span class="lineCov">       5014 :         rc = do_mount(zfs_get_name(zhp), mountpoint, mntopts);</span>
+<span class="lineNum">     588 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchCov" title="Branch 1 was taken 5004 times"> + </span>]:<span class="lineCov">       5007 :         if (rc) {</span>
+<span class="lineNum">     589 </span>                :            :                 /*
+<span class="lineNum">     590 </span>                :            :                  * Generic errors are nasty, but there are just way too many
+<span class="lineNum">     591 </span>                :            :                  * from mount(), and they're well-understood.  We pick a few
+<span class="lineNum">     592 </span>                :            :                  * common ones to improve upon.
+<span class="lineNum">     593 </span>                :            :                  */
+<span class="lineNum">     594 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">          3 :                 if (rc == EBUSY) {</span>
+<span class="lineNum">     595 </span>                :<span class="lineNoCov">          0 :                         zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     596 </span>                :            :                             &quot;mountpoint or dataset is busy&quot;));
+<span class="lineNum">     597 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">          3 :                 } else if (rc == EPERM) {</span>
+<span class="lineNum">     598 </span>                :<span class="lineNoCov">          0 :                         zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     599 </span>                :            :                             &quot;Insufficient privileges&quot;));
+<span class="lineNum">     600 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">          3 :                 } else if (rc == ENOTSUP) {</span>
+<span class="lineNum">     601 </span>                :            :                         char buf[256];
+<span class="lineNum">     602 </span>                :            :                         int spa_version;
+<span class="lineNum">     603 </span>                :            : 
+<span class="lineNum">     604 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         VERIFY(zfs_spa_version(zhp, &amp;spa_version) == 0);</span>
+<span class="lineNum">     605 </span>                :<span class="lineNoCov">          0 :                         (void) snprintf(buf, sizeof (buf),</span>
+<span class="lineNum">     606 </span>                :<span class="lineNoCov">          0 :                             dgettext(TEXT_DOMAIN, &quot;Can't mount a version %lld &quot;</span>
+<span class="lineNum">     607 </span>                :            :                             &quot;file system on a version %d pool. Pool must be&quot;
+<span class="lineNum">     608 </span>                :            :                             &quot; upgraded to mount this file system.&quot;),
+<span class="lineNum">     609 </span>                :<span class="lineNoCov">          0 :                             (u_longlong_t)zfs_prop_get_int(zhp,</span>
+<span class="lineNum">     610 </span>                :            :                             ZFS_PROP_VERSION), spa_version);
+<span class="lineNum">     611 </span>                :<span class="lineNoCov">          0 :                         zfs_error_aux(hdl, dgettext(TEXT_DOMAIN, buf));</span>
+<span class="lineNum">     612 </span>                :            :                 } else {
+<span class="lineNum">     613 </span>                :<span class="lineCov">          3 :                         zfs_error_aux(hdl, strerror(rc));</span>
+<span class="lineNum">     614 </span>                :            :                 }
+<span class="lineNum">     615 </span>                :<span class="lineCov">          3 :                 return (zfs_error_fmt(hdl, EZFS_MOUNTFAILED,</span>
+<span class="lineNum">     616 </span>                :<span class="lineCov">          3 :                     dgettext(TEXT_DOMAIN, &quot;cannot mount '%s'&quot;),</span>
+<span class="lineNum">     617 </span>                :<span class="lineCov">          3 :                     zhp-&gt;zfs_name));</span>
+<span class="lineNum">     618 </span>                :            :         }
+<span class="lineNum">     619 </span>                :            : 
+<span class="lineNum">     620 </span>                :            :         /* remove the mounted entry before re-adding on remount */
+<span class="lineNum">     621 </span>        [<span class="branchCov" title="Branch 0 was taken 230 times"> + </span><span class="branchCov" title="Branch 1 was taken 4774 times"> + </span>]:<span class="lineCov">       5004 :         if (remount)</span>
+<span class="lineNum">     622 </span>                :<span class="lineCov">        230 :                 libzfs_mnttab_remove(hdl, zhp-&gt;zfs_name);</span>
+<span class="lineNum">     623 </span>                :            : 
+<span class="lineNum">     624 </span>                :            :         /* add the mounted entry into our cache */
+<span class="lineNum">     625 </span>                :<span class="lineCov">       5004 :         libzfs_mnttab_add(hdl, zfs_get_name(zhp), mountpoint, mntopts);</span>
+<span class="lineNum">     626 </span>                :<span class="lineCov">       5004 :         return (0);</span>
+<span class="lineNum">     627 </span>                :            : }
+<span class="lineNum">     628 </span>                :            : 
+<span class="lineNum">     629 </span>                :            : /*
+<span class="lineNum">     630 </span>                :            :  * Unmount a single filesystem.
+<a name="631"><span class="lineNum">     631 </span>                :            :  */</a>
+<span class="lineNum">     632 </span>                :            : static int
+<span class="lineNum">     633 </span>                :<span class="lineCov">       4813 : unmount_one(libzfs_handle_t *hdl, const char *mountpoint, int flags)</span>
+<span class="lineNum">     634 </span>                :            : {
+<span class="lineNum">     635 </span>                :            :         int error;
+<span class="lineNum">     636 </span>                :            : 
+<span class="lineNum">     637 </span>                :<span class="lineCov">       4813 :         error = do_unmount(mountpoint, flags);</span>
+<span class="lineNum">     638 </span>        [<span class="branchCov" title="Branch 0 was taken 27 times"> + </span><span class="branchCov" title="Branch 1 was taken 4782 times"> + </span>]:<span class="lineCov">       4809 :         if (error != 0) {</span>
+<span class="lineNum">     639 </span>                :<span class="lineCov">         27 :                 return (zfs_error_fmt(hdl, EZFS_UMOUNTFAILED,</span>
+<span class="lineNum">     640 </span>                :<span class="lineCov">         27 :                     dgettext(TEXT_DOMAIN, &quot;cannot unmount '%s'&quot;),</span>
+<span class="lineNum">     641 </span>                :            :                     mountpoint));
+<span class="lineNum">     642 </span>                :            :         }
+<span class="lineNum">     643 </span>                :            : 
+<span class="lineNum">     644 </span>                :            :         return (0);
+<span class="lineNum">     645 </span>                :            : }
+<span class="lineNum">     646 </span>                :            : 
+<span class="lineNum">     647 </span>                :            : /*
+<span class="lineNum">     648 </span>                :            :  * Unmount the given filesystem.
+<a name="649"><span class="lineNum">     649 </span>                :            :  */</a>
+<span class="lineNum">     650 </span>                :            : int
+<span class="lineNum">     651 </span>                :<span class="lineCov">       2886 : zfs_unmount(zfs_handle_t *zhp, const char *mountpoint, int flags)</span>
+<span class="lineNum">     652 </span>                :            : {
+<span class="lineNum">     653 </span>                :<span class="lineCov">       2886 :         libzfs_handle_t *hdl = zhp-&gt;zfs_hdl;</span>
+<span class="lineNum">     654 </span>                :            :         struct mnttab entry;
+<span class="lineNum">     655 </span>                :<span class="lineCov">       2886 :         char *mntpt = NULL;</span>
+<span class="lineNum">     656 </span>                :            : 
+<span class="lineNum">     657 </span>                :            :         /* check to see if we need to unmount the filesystem */
+<span class="lineNum">     658 </span>        [<span class="branchCov" title="Branch 0 was taken 2553 times"> + </span><span class="branchCov" title="Branch 1 was taken 333 times"> + </span>]:<span class="lineCov">       5079 :         if (mountpoint != NULL || ((zfs_get_type(zhp) == ZFS_TYPE_FILESYSTEM) &amp;&amp;</span>
+<span class="lineNum">         </span>  [<span class="branchCov" title="Branch 3 was taken 2193 times"> + </span><span class="branchCov" title="Branch 4 was taken 360 times"> + </span><span class="branchCov" title="Branch 5 was taken 2009 times"> + </span><span class="branchCov" title="Branch 6 was taken 184 times"> + </span>]
+<span class="lineNum">     659 </span>                :<span class="lineCov">       2193 :             libzfs_mnttab_find(hdl, zhp-&gt;zfs_name, &amp;entry) == 0)) {</span>
+<span class="lineNum">     660 </span>                :            :                 /*
+<span class="lineNum">     661 </span>                :            :                  * mountpoint may have come from a call to
+<span class="lineNum">     662 </span>                :            :                  * getmnt/getmntany if it isn't NULL. If it is NULL,
+<span class="lineNum">     663 </span>                :            :                  * we know it comes from libzfs_mnttab_find which can
+<span class="lineNum">     664 </span>                :            :                  * then get freed later. We strdup it to play it safe.
+<span class="lineNum">     665 </span>                :            :                  */
+<span class="lineNum">     666 </span>        [<span class="branchCov" title="Branch 0 was taken 2009 times"> + </span><span class="branchCov" title="Branch 1 was taken 333 times"> + </span>]:<span class="lineCov">       2342 :                 if (mountpoint == NULL)</span>
+<span class="lineNum">     667 </span>                :<span class="lineCov">       2009 :                         mntpt = zfs_strdup(hdl, entry.mnt_special);</span>
+<span class="lineNum">     668 </span>                :            :                 else
+<span class="lineNum">     669 </span>                :<span class="lineCov">        333 :                         mntpt = zfs_strdup(hdl, mountpoint);</span>
+<span class="lineNum">     670 </span>                :            : 
+<span class="lineNum">     671 </span>                :            :                 /*
+<span class="lineNum">     672 </span>                :            :                  * Unshare and unmount the filesystem
+<span class="lineNum">     673 </span>                :            :                  */
+<span class="lineNum">     674 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 2342 times"> + </span>]:<span class="lineCov">       2342 :                 if (zfs_unshare_proto(zhp, mntpt, share_all_proto) != 0) {</span>
+<span class="lineNum">     675 </span>                :<span class="lineNoCov">          0 :                         free(mntpt);</span>
+<span class="lineNum">     676 </span>                :<span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     677 </span>                :            :                 }
+<span class="lineNum">     678 </span>                :            : 
+<span class="lineNum">     679 </span>        [<span class="branchCov" title="Branch 1 was taken 22 times"> + </span><span class="branchCov" title="Branch 2 was taken 2318 times"> + </span>]:<span class="lineCov">       2342 :                 if (unmount_one(hdl, mntpt, flags) != 0) {</span>
+<span class="lineNum">     680 </span>                :<span class="lineCov">         22 :                         free(mntpt);</span>
+<span class="lineNum">     681 </span>                :<span class="lineCov">         22 :                         (void) zfs_shareall(zhp);</span>
+<span class="lineNum">     682 </span>                :<span class="lineCov">         22 :                         return (-1);</span>
+<span class="lineNum">     683 </span>                :            :                 }
+<span class="lineNum">     684 </span>                :<span class="lineCov">       2318 :                 libzfs_mnttab_remove(hdl, zhp-&gt;zfs_name);</span>
+<span class="lineNum">     685 </span>                :<span class="lineCov">       2318 :                 free(mntpt);</span>
+<span class="lineNum">     686 </span>                :            :         }
+<span class="lineNum">     687 </span>                :            : 
+<span class="lineNum">     688 </span>                :            :         return (0);
+<span class="lineNum">     689 </span>                :            : }
+<span class="lineNum">     690 </span>                :            : 
+<span class="lineNum">     691 </span>                :            : /*
+<span class="lineNum">     692 </span>                :            :  * Unmount this filesystem and any children inheriting the mountpoint property.
+<span class="lineNum">     693 </span>                :            :  * To do this, just act like we're changing the mountpoint property, but don't
+<span class="lineNum">     694 </span>                :            :  * remount the filesystems afterwards.
+<a name="695"><span class="lineNum">     695 </span>                :            :  */</a>
+<span class="lineNum">     696 </span>                :            : int
+<span class="lineNum">     697 </span>                :<span class="lineCov">        191 : zfs_unmountall(zfs_handle_t *zhp, int flags)</span>
+<span class="lineNum">     698 </span>                :            : {
+<span class="lineNum">     699 </span>                :            :         prop_changelist_t *clp;
+<span class="lineNum">     700 </span>                :            :         int ret;
+<span class="lineNum">     701 </span>                :            : 
+<span class="lineNum">     702 </span>                :<span class="lineCov">        191 :         clp = changelist_gather(zhp, ZFS_PROP_MOUNTPOINT, 0, flags);</span>
+<span class="lineNum">     703 </span>        [<span class="branchCov" title="Branch 0 was taken 191 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        191 :         if (clp == NULL)</span>
+<span class="lineNum">     704 </span>                :            :                 return (-1);
+<span class="lineNum">     705 </span>                :            : 
+<span class="lineNum">     706 </span>                :<span class="lineCov">        191 :         ret = changelist_prefix(clp);</span>
+<span class="lineNum">     707 </span>                :<span class="lineCov">        190 :         changelist_free(clp);</span>
+<span class="lineNum">     708 </span>                :            : 
+<span class="lineNum">     709 </span>                :<span class="lineCov">        190 :         return (ret);</span>
+<span class="lineNum">     710 </span>                :            : }
+<a name="711"><span class="lineNum">     711 </span>                :            : </a>
+<span class="lineNum">     712 </span>                :            : boolean_t
+<span class="lineNum">     713 </span>                :<span class="lineCov">       1624 : zfs_is_shared(zfs_handle_t *zhp)</span>
+<span class="lineNum">     714 </span>                :            : {
+<span class="lineNum">     715 </span>                :<span class="lineCov">       1624 :         zfs_share_type_t rc = 0;</span>
+<span class="lineNum">     716 </span>                :            :         zfs_share_proto_t *curr_proto;
+<span class="lineNum">     717 </span>                :            : 
+<span class="lineNum">     718 </span>        [<span class="branchCov" title="Branch 0 was taken 1529 times"> + </span><span class="branchCov" title="Branch 1 was taken 95 times"> + </span>]:<span class="lineCov">       1624 :         if (ZFS_IS_VOLUME(zhp))</span>
+<span class="lineNum">     719 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     720 </span>                :            : 
+<span class="lineNum">     721 </span>        [<span class="branchCov" title="Branch 0 was taken 3058 times"> + </span><span class="branchCov" title="Branch 1 was taken 1529 times"> + </span>]:<span class="lineCov">       4587 :         for (curr_proto = share_all_proto; *curr_proto != PROTO_END;</span>
+<span class="lineNum">     722 </span>                :<span class="lineCov">       3058 :             curr_proto++)</span>
+<span class="lineNum">     723 </span>                :<span class="lineCov">       3058 :                 rc |= zfs_is_shared_proto(zhp, NULL, *curr_proto);</span>
+<span class="lineNum">     724 </span>                :            : 
+<span class="lineNum">     725 </span>                :<span class="lineCov">       1529 :         return (rc ? B_TRUE : B_FALSE);</span>
+<span class="lineNum">     726 </span>                :            : }
+<a name="727"><span class="lineNum">     727 </span>                :            : </a>
+<span class="lineNum">     728 </span>                :            : int
+<span class="lineNum">     729 </span>                :<span class="lineCov">       2176 : zfs_share(zfs_handle_t *zhp)</span>
+<span class="lineNum">     730 </span>                :            : {
+<span class="lineNum">     731 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2176 times"> + </span>]:<span class="lineCov">       2176 :         assert(!ZFS_IS_VOLUME(zhp));</span>
+<span class="lineNum">     732 </span>                :<span class="lineCov">       2176 :         return (zfs_share_proto(zhp, share_all_proto));</span>
+<span class="lineNum">     733 </span>                :            : }
+<a name="734"><span class="lineNum">     734 </span>                :            : </a>
+<span class="lineNum">     735 </span>                :            : int
+<span class="lineNum">     736 </span>                :<span class="lineNoCov">          0 : zfs_unshare(zfs_handle_t *zhp)</span>
+<span class="lineNum">     737 </span>                :            : {
+<span class="lineNum">     738 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         assert(!ZFS_IS_VOLUME(zhp));</span>
+<span class="lineNum">     739 </span>                :<span class="lineNoCov">          0 :         return (zfs_unshareall(zhp));</span>
+<span class="lineNum">     740 </span>                :            : }
+<span class="lineNum">     741 </span>                :            : 
+<span class="lineNum">     742 </span>                :            : /*
+<span class="lineNum">     743 </span>                :            :  * Check to see if the filesystem is currently shared.
+<a name="744"><span class="lineNum">     744 </span>                :            :  */</a>
+<span class="lineNum">     745 </span>                :            : zfs_share_type_t
+<span class="lineNum">     746 </span>                :<span class="lineCov">       3092 : zfs_is_shared_proto(zfs_handle_t *zhp, char **where, zfs_share_proto_t proto)</span>
+<span class="lineNum">     747 </span>                :            : {
+<span class="lineNum">     748 </span>                :            :         char *mountpoint;
+<span class="lineNum">     749 </span>                :            :         zfs_share_type_t rc;
+<span class="lineNum">     750 </span>                :            : 
+<span class="lineNum">     751 </span>        [<span class="branchCov" title="Branch 1 was taken 2150 times"> + </span><span class="branchCov" title="Branch 2 was taken 942 times"> + </span>]:<span class="lineCov">       3092 :         if (!zfs_is_mounted(zhp, &amp;mountpoint))</span>
+<span class="lineNum">     752 </span>                :            :                 return (SHARED_NOT_SHARED);
+<span class="lineNum">     753 </span>                :            : 
+<span class="lineNum">     754 </span>        [<span class="branchCov" title="Branch 1 was taken 129 times"> + </span><span class="branchCov" title="Branch 2 was taken 2021 times"> + </span>]:<span class="lineCov">       2150 :         if ((rc = is_shared(zhp-&gt;zfs_hdl, mountpoint, proto))</span>
+<span class="lineNum">     755 </span>                :            :             != SHARED_NOT_SHARED) {
+<span class="lineNum">     756 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 129 times"> + </span>]:<span class="lineCov">        129 :                 if (where != NULL)</span>
+<span class="lineNum">     757 </span>                :<span class="lineNoCov">          0 :                         *where = mountpoint;</span>
+<span class="lineNum">     758 </span>                :            :                 else
+<span class="lineNum">     759 </span>                :<span class="lineCov">        129 :                         free(mountpoint);</span>
+<span class="lineNum">     760 </span>                :            :                 return (rc);
+<span class="lineNum">     761 </span>                :            :         } else {
+<span class="lineNum">     762 </span>                :<span class="lineCov">       2021 :                 free(mountpoint);</span>
+<span class="lineNum">     763 </span>                :<span class="lineCov">       2021 :                 return (SHARED_NOT_SHARED);</span>
+<span class="lineNum">     764 </span>                :            :         }
+<span class="lineNum">     765 </span>                :            : }
+<a name="766"><span class="lineNum">     766 </span>                :            : </a>
+<span class="lineNum">     767 </span>                :            : boolean_t
+<span class="lineNum">     768 </span>                :<span class="lineCov">         17 : zfs_is_shared_nfs(zfs_handle_t *zhp, char **where)</span>
+<span class="lineNum">     769 </span>                :            : {
+<span class="lineNum">     770 </span>                :<span class="lineCov">         17 :         return (zfs_is_shared_proto(zhp, where,</span>
+<span class="lineNum">     771 </span>                :<span class="lineCov">         17 :             PROTO_NFS) != SHARED_NOT_SHARED);</span>
+<span class="lineNum">     772 </span>                :            : }
+<a name="773"><span class="lineNum">     773 </span>                :            : </a>
+<span class="lineNum">     774 </span>                :            : boolean_t
+<span class="lineNum">     775 </span>                :<span class="lineCov">         17 : zfs_is_shared_smb(zfs_handle_t *zhp, char **where)</span>
+<span class="lineNum">     776 </span>                :            : {
+<span class="lineNum">     777 </span>                :<span class="lineCov">         17 :         return (zfs_is_shared_proto(zhp, where,</span>
+<span class="lineNum">     778 </span>                :<span class="lineCov">         17 :             PROTO_SMB) != SHARED_NOT_SHARED);</span>
+<span class="lineNum">     779 </span>                :            : }
+<span class="lineNum">     780 </span>                :            : 
+<span class="lineNum">     781 </span>                :            : /*
+<span class="lineNum">     782 </span>                :            :  * zfs_init_libshare(zhandle, service)
+<span class="lineNum">     783 </span>                :            :  *
+<span class="lineNum">     784 </span>                :            :  * Initialize the libshare API if it hasn't already been initialized.
+<span class="lineNum">     785 </span>                :            :  * In all cases it returns 0 if it succeeded and an error if not. The
+<span class="lineNum">     786 </span>                :            :  * service value is which part(s) of the API to initialize and is a
+<span class="lineNum">     787 </span>                :            :  * direct map to the libshare sa_init(service) interface.
+<a name="788"><span class="lineNum">     788 </span>                :            :  */</a>
+<span class="lineNum">     789 </span>                :            : int
+<span class="lineNum">     790 </span>                :<span class="lineCov">        455 : zfs_init_libshare(libzfs_handle_t *zhandle, int service)</span>
+<span class="lineNum">     791 </span>                :            : {
+<span class="lineNum">     792 </span>                :<span class="lineCov">        455 :         int ret = SA_OK;</span>
+<span class="lineNum">     793 </span>                :            : 
+<span class="lineNum">     794 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 455 times"> + </span>]:<span class="lineCov">        455 :         if (ret == SA_OK &amp;&amp; zhandle-&gt;libzfs_shareflags &amp; ZFSSHARE_MISS) {</span>
+<span class="lineNum">     795 </span>                :            :                 /*
+<span class="lineNum">     796 </span>                :            :                  * We had a cache miss. Most likely it is a new ZFS
+<span class="lineNum">     797 </span>                :            :                  * dataset that was just created. We want to make sure
+<span class="lineNum">     798 </span>                :            :                  * so check timestamps to see if a different process
+<span class="lineNum">     799 </span>                :            :                  * has updated any of the configuration. If there was
+<span class="lineNum">     800 </span>                :            :                  * some non-ZFS change, we need to re-initialize the
+<span class="lineNum">     801 </span>                :            :                  * internal cache.
+<span class="lineNum">     802 </span>                :            :                  */
+<span class="lineNum">     803 </span>                :<span class="lineNoCov">          0 :                 zhandle-&gt;libzfs_shareflags &amp;= ~ZFSSHARE_MISS;</span>
+<span class="lineNum">     804 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (sa_needs_refresh(zhandle-&gt;libzfs_sharehdl)) {</span>
+<span class="lineNum">     805 </span>                :<span class="lineNoCov">          0 :                         zfs_uninit_libshare(zhandle);</span>
+<span class="lineNum">     806 </span>                :<span class="lineNoCov">          0 :                         zhandle-&gt;libzfs_sharehdl = sa_init(service);</span>
+<span class="lineNum">     807 </span>                :            :                 }
+<span class="lineNum">     808 </span>                :            :         }
+<span class="lineNum">     809 </span>                :            : 
+<span class="lineNum">     810 </span>[<span class="branchCov" title="Branch 0 was taken 455 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 209 times"> + </span><span class="branchCov" title="Branch 3 was taken 246 times"> + </span>]:<span class="lineCov">        455 :         if (ret == SA_OK &amp;&amp; zhandle &amp;&amp; zhandle-&gt;libzfs_sharehdl == NULL)</span>
+<span class="lineNum">     811 </span>                :<span class="lineCov">        209 :                 zhandle-&gt;libzfs_sharehdl = sa_init(service);</span>
+<span class="lineNum">     812 </span>                :            : 
+<span class="lineNum">     813 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 455 times"> + </span>]:<span class="lineCov">        455 :         if (ret == SA_OK &amp;&amp; zhandle-&gt;libzfs_sharehdl == NULL)</span>
+<span class="lineNum">     814 </span>                :<span class="lineNoCov">          0 :                 ret = SA_NO_MEMORY;</span>
+<span class="lineNum">     815 </span>                :            : 
+<span class="lineNum">     816 </span>                :<span class="lineCov">        455 :         return (ret);</span>
+<span class="lineNum">     817 </span>                :            : }
+<span class="lineNum">     818 </span>                :            : 
+<span class="lineNum">     819 </span>                :            : /*
+<span class="lineNum">     820 </span>                :            :  * zfs_uninit_libshare(zhandle)
+<span class="lineNum">     821 </span>                :            :  *
+<span class="lineNum">     822 </span>                :            :  * Uninitialize the libshare API if it hasn't already been
+<span class="lineNum">     823 </span>                :            :  * uninitialized. It is OK to call multiple times.
+<a name="824"><span class="lineNum">     824 </span>                :            :  */</a>
+<span class="lineNum">     825 </span>                :            : void
+<span class="lineNum">     826 </span>                :<span class="lineCov">      55465 : zfs_uninit_libshare(libzfs_handle_t *zhandle)</span>
+<span class="lineNum">     827 </span>                :            : {
+<span class="lineNum">     828 </span>[<span class="branchCov" title="Branch 0 was taken 55465 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 209 times"> + </span><span class="branchCov" title="Branch 3 was taken 55256 times"> + </span>]:<span class="lineCov">      55465 :         if (zhandle != NULL &amp;&amp; zhandle-&gt;libzfs_sharehdl != NULL) {</span>
+<span class="lineNum">     829 </span>                :<span class="lineCov">        209 :                 sa_fini(zhandle-&gt;libzfs_sharehdl);</span>
+<span class="lineNum">     830 </span>                :<span class="lineCov">        209 :                 zhandle-&gt;libzfs_sharehdl = NULL;</span>
+<span class="lineNum">     831 </span>                :            :         }
+<span class="lineNum">     832 </span>                :<span class="lineCov">      55465 : }</span>
+<span class="lineNum">     833 </span>                :            : 
+<span class="lineNum">     834 </span>                :            : /*
+<span class="lineNum">     835 </span>                :            :  * zfs_parse_options(options, proto)
+<span class="lineNum">     836 </span>                :            :  *
+<span class="lineNum">     837 </span>                :            :  * Call the legacy parse interface to get the protocol specific
+<span class="lineNum">     838 </span>                :            :  * options using the NULL arg to indicate that this is a &quot;parse&quot; only.
+<a name="839"><span class="lineNum">     839 </span>                :            :  */</a>
+<span class="lineNum">     840 </span>                :            : int
+<span class="lineNum">     841 </span>                :<span class="lineCov">         24 : zfs_parse_options(char *options, zfs_share_proto_t proto)</span>
+<span class="lineNum">     842 </span>                :            : {
+<span class="lineNum">     843 </span>                :<span class="lineCov">         24 :         return (sa_parse_legacy_options(NULL, options,</span>
+<span class="lineNum">     844 </span>                :            :             proto_table[proto].p_name));
+<span class="lineNum">     845 </span>                :            : }
+<span class="lineNum">     846 </span>                :            : 
+<span class="lineNum">     847 </span>                :            : /*
+<span class="lineNum">     848 </span>                :            :  * Share the given filesystem according to the options in the specified
+<span class="lineNum">     849 </span>                :            :  * protocol specific properties (sharenfs, sharesmb).  We rely
+<span class="lineNum">     850 </span>                :            :  * on &quot;libshare&quot; to do the dirty work for us.
+<a name="851"><span class="lineNum">     851 </span>                :            :  */</a>
+<span class="lineNum">     852 </span>                :            : static int
+<span class="lineNum">     853 </span>                :<span class="lineCov">       4213 : zfs_share_proto(zfs_handle_t *zhp, zfs_share_proto_t *proto)</span>
+<span class="lineNum">     854 </span>                :            : {
+<span class="lineNum">     855 </span>                :            :         char mountpoint[ZFS_MAXPROPLEN];
+<span class="lineNum">     856 </span>                :            :         char shareopts[ZFS_MAXPROPLEN];
+<span class="lineNum">     857 </span>                :            :         char sourcestr[ZFS_MAXPROPLEN];
+<span class="lineNum">     858 </span>                :<span class="lineCov">       4213 :         libzfs_handle_t *hdl = zhp-&gt;zfs_hdl;</span>
+<span class="lineNum">     859 </span>                :            :         sa_share_t share;
+<span class="lineNum">     860 </span>                :            :         zfs_share_proto_t *curr_proto;
+<span class="lineNum">     861 </span>                :            :         zprop_source_t sourcetype;
+<span class="lineNum">     862 </span>                :            :         int ret;
+<span class="lineNum">     863 </span>                :            : 
+<span class="lineNum">     864 </span>        [<span class="branchCov" title="Branch 1 was taken 4123 times"> + </span><span class="branchCov" title="Branch 2 was taken 90 times"> + </span>]:<span class="lineCov">       4213 :         if (!zfs_is_mountable(zhp, mountpoint, sizeof (mountpoint), NULL))</span>
+<span class="lineNum">     865 </span>                :            :                 return (0);
+<span class="lineNum">     866 </span>                :            : 
+<span class="lineNum">     867 </span>        [<span class="branchCov" title="Branch 0 was taken 8136 times"> + </span><span class="branchCov" title="Branch 1 was taken 4123 times"> + </span>]:<span class="lineCov">      12259 :         for (curr_proto = proto; *curr_proto != PROTO_END; curr_proto++) {</span>
+<span class="lineNum">     868 </span>                :            :                 /*
+<span class="lineNum">     869 </span>                :            :                  * Return success if there are no share options.
+<span class="lineNum">     870 </span>                :            :                  */
+<span class="lineNum">     871 </span>        [<span class="branchCov" title="Branch 1 was taken 8136 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       8136 :                 if (zfs_prop_get(zhp, proto_table[*curr_proto].p_prop,</span>
+<span class="lineNum">     872 </span>                :            :                     shareopts, sizeof (shareopts), &amp;sourcetype, sourcestr,
+<span class="lineNum">     873 </span>        [<span class="branchCov" title="Branch 0 was taken 7883 times"> + </span><span class="branchCov" title="Branch 1 was taken 253 times"> + </span>]:<span class="lineCov">       8136 :                     ZFS_MAXPROPLEN, B_FALSE) != 0 ||</span>
+<span class="lineNum">     874 </span>                :<span class="lineCov">       8136 :                     strcmp(shareopts, &quot;off&quot;) == 0)</span>
+<span class="lineNum">     875 </span>                :<span class="lineCov">       7883 :                         continue;</span>
+<span class="lineNum">     876 </span>                :            : 
+<span class="lineNum">     877 </span>                :<span class="lineCov">        253 :                 ret = zfs_init_libshare(hdl, SA_INIT_SHARE_API);</span>
+<span class="lineNum">     878 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 253 times"> + </span>]:<span class="lineCov">        253 :                 if (ret != SA_OK) {</span>
+<span class="lineNum">     879 </span>                :<span class="lineNoCov">          0 :                         (void) zfs_error_fmt(hdl, EZFS_SHARENFSFAILED,</span>
+<span class="lineNum">     880 </span>                :<span class="lineNoCov">          0 :                             dgettext(TEXT_DOMAIN, &quot;cannot share '%s': %s&quot;),</span>
+<span class="lineNum">     881 </span>                :            :                             zfs_get_name(zhp), sa_errorstr(ret));
+<span class="lineNum">     882 </span>                :<span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     883 </span>                :            :                 }
+<span class="lineNum">     884 </span>                :            : 
+<span class="lineNum">     885 </span>                :            :                 /*
+<span class="lineNum">     886 </span>                :            :                  * If the 'zoned' property is set, then zfs_is_mountable()
+<span class="lineNum">     887 </span>                :            :                  * will have already bailed out if we are in the global zone.
+<span class="lineNum">     888 </span>                :            :                  * But local zones cannot be NFS servers, so we ignore it for
+<span class="lineNum">     889 </span>                :            :                  * local zones as well.
+<span class="lineNum">     890 </span>                :            :                  */
+<span class="lineNum">     891 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 253 times"> + </span>]:<span class="lineCov">        253 :                 if (zfs_prop_get_int(zhp, ZFS_PROP_ZONED))</span>
+<span class="lineNum">     892 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     893 </span>                :            : 
+<span class="lineNum">     894 </span>                :<span class="lineCov">        253 :                 share = sa_find_share(hdl-&gt;libzfs_sharehdl, mountpoint);</span>
+<span class="lineNum">     895 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 253 times"> + </span>]:<span class="lineCov">        253 :                 if (share == NULL) {</span>
+<span class="lineNum">     896 </span>                :            :                         /*
+<span class="lineNum">     897 </span>                :            :                          * This may be a new file system that was just
+<span class="lineNum">     898 </span>                :            :                          * created so isn't in the internal cache
+<span class="lineNum">     899 </span>                :            :                          * (second time through). Rather than
+<span class="lineNum">     900 </span>                :            :                          * reloading the entire configuration, we can
+<span class="lineNum">     901 </span>                :            :                          * assume ZFS has done the checking and it is
+<span class="lineNum">     902 </span>                :            :                          * safe to add this to the internal
+<span class="lineNum">     903 </span>                :            :                          * configuration.
+<span class="lineNum">     904 </span>                :            :                          */
+<span class="lineNum">     905 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (sa_zfs_process_share(hdl-&gt;libzfs_sharehdl,</span>
+<span class="lineNum">     906 </span>                :            :                             NULL, NULL, mountpoint,
+<span class="lineNum">     907 </span>                :<span class="lineNoCov">          0 :                             proto_table[*curr_proto].p_name, sourcetype,</span>
+<span class="lineNum">     908 </span>                :<span class="lineNoCov">          0 :                             shareopts, sourcestr, zhp-&gt;zfs_name) != SA_OK) {</span>
+<span class="lineNum">     909 </span>                :<span class="lineNoCov">          0 :                                 (void) zfs_error_fmt(hdl,</span>
+<span class="lineNum">     910 </span>                :<span class="lineNoCov">          0 :                                     proto_table[*curr_proto].p_share_err,</span>
+<span class="lineNum">     911 </span>                :<span class="lineNoCov">          0 :                                     dgettext(TEXT_DOMAIN, &quot;cannot share '%s'&quot;),</span>
+<span class="lineNum">     912 </span>                :            :                                     zfs_get_name(zhp));
+<span class="lineNum">     913 </span>                :<span class="lineNoCov">          0 :                                 return (-1);</span>
+<span class="lineNum">     914 </span>                :            :                         }
+<span class="lineNum">     915 </span>                :<span class="lineNoCov">          0 :                         hdl-&gt;libzfs_shareflags |= ZFSSHARE_MISS;</span>
+<span class="lineNum">     916 </span>                :<span class="lineNoCov">          0 :                         share = sa_find_share(hdl-&gt;libzfs_sharehdl,</span>
+<span class="lineNum">     917 </span>                :            :                             mountpoint);
+<span class="lineNum">     918 </span>                :            :                 }
+<span class="lineNum">     919 </span>        [<span class="branchCov" title="Branch 0 was taken 253 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        253 :                 if (share != NULL) {</span>
+<span class="lineNum">     920 </span>                :            :                         int err;
+<span class="lineNum">     921 </span>                :<span class="lineCov">        253 :                         err = sa_enable_share(share,</span>
+<span class="lineNum">     922 </span>                :<span class="lineCov">        253 :                             proto_table[*curr_proto].p_name);</span>
+<span class="lineNum">     923 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 253 times"> + </span>]:<span class="lineCov">        253 :                         if (err != SA_OK) {</span>
+<span class="lineNum">     924 </span>                :<span class="lineNoCov">          0 :                                 (void) zfs_error_fmt(hdl,</span>
+<span class="lineNum">     925 </span>                :<span class="lineNoCov">          0 :                                     proto_table[*curr_proto].p_share_err,</span>
+<span class="lineNum">     926 </span>                :<span class="lineNoCov">          0 :                                     dgettext(TEXT_DOMAIN, &quot;cannot share '%s'&quot;),</span>
+<span class="lineNum">     927 </span>                :            :                                     zfs_get_name(zhp));
+<span class="lineNum">     928 </span>                :<span class="lineNoCov">          0 :                                 return (-1);</span>
+<span class="lineNum">     929 </span>                :            :                         }
+<span class="lineNum">     930 </span>                :            :                 } else {
+<span class="lineNum">     931 </span>                :<span class="lineNoCov">          0 :                         (void) zfs_error_fmt(hdl,</span>
+<span class="lineNum">     932 </span>                :<span class="lineNoCov">          0 :                             proto_table[*curr_proto].p_share_err,</span>
+<span class="lineNum">     933 </span>                :<span class="lineNoCov">          0 :                             dgettext(TEXT_DOMAIN, &quot;cannot share '%s'&quot;),</span>
+<span class="lineNum">     934 </span>                :            :                             zfs_get_name(zhp));
+<span class="lineNum">     935 </span>                :<span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     936 </span>                :            :                 }
+<span class="lineNum">     937 </span>                :            : 
+<span class="lineNum">     938 </span>                :            :         }
+<span class="lineNum">     939 </span>                :            :         return (0);
+<span class="lineNum">     940 </span>                :            : }
+<span class="lineNum">     941 </span>                :            : 
+<a name="942"><span class="lineNum">     942 </span>                :            : </a>
+<span class="lineNum">     943 </span>                :            : int
+<span class="lineNum">     944 </span>                :<span class="lineCov">        122 : zfs_share_nfs(zfs_handle_t *zhp)</span>
+<span class="lineNum">     945 </span>                :            : {
+<span class="lineNum">     946 </span>                :<span class="lineCov">        122 :         return (zfs_share_proto(zhp, nfs_only));</span>
+<span class="lineNum">     947 </span>                :            : }
+<a name="948"><span class="lineNum">     948 </span>                :            : </a>
+<span class="lineNum">     949 </span>                :            : int
+<span class="lineNum">     950 </span>                :<span class="lineNoCov">          0 : zfs_share_smb(zfs_handle_t *zhp)</span>
+<span class="lineNum">     951 </span>                :            : {
+<span class="lineNum">     952 </span>                :<span class="lineNoCov">          0 :         return (zfs_share_proto(zhp, smb_only));</span>
+<span class="lineNum">     953 </span>                :            : }
+<a name="954"><span class="lineNum">     954 </span>                :            : </a>
+<span class="lineNum">     955 </span>                :            : int
+<span class="lineNum">     956 </span>                :<span class="lineCov">       1915 : zfs_shareall(zfs_handle_t *zhp)</span>
+<span class="lineNum">     957 </span>                :            : {
+<span class="lineNum">     958 </span>                :<span class="lineCov">       1915 :         return (zfs_share_proto(zhp, share_all_proto));</span>
+<span class="lineNum">     959 </span>                :            : }
+<span class="lineNum">     960 </span>                :            : 
+<span class="lineNum">     961 </span>                :            : /*
+<span class="lineNum">     962 </span>                :            :  * Unshare a filesystem by mountpoint.
+<a name="963"><span class="lineNum">     963 </span>                :            :  */</a>
+<span class="lineNum">     964 </span>                :            : static int
+<span class="lineNum">     965 </span>                :<span class="lineCov">        178 : unshare_one(libzfs_handle_t *hdl, const char *name, const char *mountpoint,</span>
+<span class="lineNum">     966 </span>                :            :     zfs_share_proto_t proto)
+<span class="lineNum">     967 </span>                :            : {
+<span class="lineNum">     968 </span>                :            :         sa_share_t share;
+<span class="lineNum">     969 </span>                :            :         int err;
+<span class="lineNum">     970 </span>                :            :         char *mntpt;
+<span class="lineNum">     971 </span>                :            :         /*
+<span class="lineNum">     972 </span>                :            :          * Mountpoint could get trashed if libshare calls getmntany
+<span class="lineNum">     973 </span>                :            :          * which it does during API initialization, so strdup the
+<span class="lineNum">     974 </span>                :            :          * value.
+<span class="lineNum">     975 </span>                :            :          */
+<span class="lineNum">     976 </span>                :<span class="lineCov">        178 :         mntpt = zfs_strdup(hdl, mountpoint);</span>
+<span class="lineNum">     977 </span>                :            : 
+<span class="lineNum">     978 </span>                :            :         /* make sure libshare initialized */
+<span class="lineNum">     979 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 178 times"> + </span>]:<span class="lineCov">        178 :         if ((err = zfs_init_libshare(hdl, SA_INIT_SHARE_API)) != SA_OK) {</span>
+<span class="lineNum">     980 </span>                :<span class="lineNoCov">          0 :                 free(mntpt);    /* don't need the copy anymore */</span>
+<span class="lineNum">     981 </span>                :<span class="lineNoCov">          0 :                 return (zfs_error_fmt(hdl, proto_table[proto].p_unshare_err,</span>
+<span class="lineNum">     982 </span>                :<span class="lineNoCov">          0 :                     dgettext(TEXT_DOMAIN, &quot;cannot unshare '%s': %s&quot;),</span>
+<span class="lineNum">     983 </span>                :            :                     name, sa_errorstr(err)));
+<span class="lineNum">     984 </span>                :            :         }
+<span class="lineNum">     985 </span>                :            : 
+<span class="lineNum">     986 </span>                :<span class="lineCov">        178 :         share = sa_find_share(hdl-&gt;libzfs_sharehdl, mntpt);</span>
+<span class="lineNum">     987 </span>                :<span class="lineCov">        178 :         free(mntpt);    /* don't need the copy anymore */</span>
+<span class="lineNum">     988 </span>                :            : 
+<span class="lineNum">     989 </span>        [<span class="branchCov" title="Branch 0 was taken 178 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        178 :         if (share != NULL) {</span>
+<span class="lineNum">     990 </span>                :<span class="lineCov">        178 :                 err = sa_disable_share(share, proto_table[proto].p_name);</span>
+<span class="lineNum">     991 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 178 times"> + </span>]:<span class="lineCov">        178 :                 if (err != SA_OK) {</span>
+<span class="lineNum">     992 </span>                :<span class="lineNoCov">          0 :                         return (zfs_error_fmt(hdl,</span>
+<span class="lineNum">     993 </span>                :            :                             proto_table[proto].p_unshare_err,
+<span class="lineNum">     994 </span>                :<span class="lineNoCov">          0 :                             dgettext(TEXT_DOMAIN, &quot;cannot unshare '%s': %s&quot;),</span>
+<span class="lineNum">     995 </span>                :            :                             name, sa_errorstr(err)));
+<span class="lineNum">     996 </span>                :            :                 }
+<span class="lineNum">     997 </span>                :            :         } else {
+<span class="lineNum">     998 </span>                :<span class="lineNoCov">          0 :                 return (zfs_error_fmt(hdl, proto_table[proto].p_unshare_err,</span>
+<span class="lineNum">     999 </span>                :<span class="lineNoCov">          0 :                     dgettext(TEXT_DOMAIN, &quot;cannot unshare '%s': not found&quot;),</span>
+<span class="lineNum">    1000 </span>                :            :                     name));
+<span class="lineNum">    1001 </span>                :            :         }
+<span class="lineNum">    1002 </span>                :            :         return (0);
+<span class="lineNum">    1003 </span>                :            : }
+<span class="lineNum">    1004 </span>                :            : 
+<span class="lineNum">    1005 </span>                :            : /*
+<span class="lineNum">    1006 </span>                :            :  * Unshare the given filesystem.
+<a name="1007"><span class="lineNum">    1007 </span>                :            :  */</a>
+<span class="lineNum">    1008 </span>                :            : int
+<span class="lineNum">    1009 </span>                :<span class="lineCov">       2590 : zfs_unshare_proto(zfs_handle_t *zhp, const char *mountpoint,</span>
+<span class="lineNum">    1010 </span>                :            :     zfs_share_proto_t *proto)
+<span class="lineNum">    1011 </span>                :            : {
+<span class="lineNum">    1012 </span>                :<span class="lineCov">       2590 :         libzfs_handle_t *hdl = zhp-&gt;zfs_hdl;</span>
+<span class="lineNum">    1013 </span>                :            :         struct mnttab entry;
+<span class="lineNum">    1014 </span>                :<span class="lineCov">       2590 :         char *mntpt = NULL;</span>
+<span class="lineNum">    1015 </span>                :            : 
+<span class="lineNum">    1016 </span>                :            :         /* check to see if need to unmount the filesystem */
+<span class="lineNum">    1017 </span>        [<span class="branchCov" title="Branch 0 was taken 2351 times"> + </span><span class="branchCov" title="Branch 1 was taken 239 times"> + </span>]:<span class="lineCov">       2590 :         if (mountpoint != NULL)</span>
+<span class="lineNum">    1018 </span>                :<span class="lineCov">       2351 :                 mntpt = zfs_strdup(hdl, mountpoint);</span>
+<span class="lineNum">    1019 </span>                :            : 
+<span class="lineNum">    1020 </span>        [<span class="branchCov" title="Branch 0 was taken 239 times"> + </span><span class="branchCov" title="Branch 1 was taken 2351 times"> + </span>]:<span class="lineCov">       2829 :         if (mountpoint != NULL || ((zfs_get_type(zhp) == ZFS_TYPE_FILESYSTEM) &amp;&amp;</span>
+<span class="lineNum">         </span>  [<span class="branchCov" title="Branch 3 was taken 239 times"> + </span><span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 209 times"> + </span><span class="branchCov" title="Branch 6 was taken 30 times"> + </span>]
+<span class="lineNum">    1021 </span>                :<span class="lineCov">        239 :             libzfs_mnttab_find(hdl, zfs_get_name(zhp), &amp;entry) == 0)) {</span>
+<span class="lineNum">    1022 </span>                :            :                 zfs_share_proto_t *curr_proto;
+<span class="lineNum">    1023 </span>                :            : 
+<span class="lineNum">    1024 </span>        [<span class="branchCov" title="Branch 0 was taken 209 times"> + </span><span class="branchCov" title="Branch 1 was taken 2351 times"> + </span>]:<span class="lineCov">       2560 :                 if (mountpoint == NULL)</span>
+<span class="lineNum">    1025 </span>                :<span class="lineCov">        209 :                         mntpt = zfs_strdup(zhp-&gt;zfs_hdl, entry.mnt_mountp);</span>
+<span class="lineNum">    1026 </span>                :            : 
+<span class="lineNum">    1027 </span>        [<span class="branchCov" title="Branch 0 was taken 4919 times"> + </span><span class="branchCov" title="Branch 1 was taken 2560 times"> + </span>]:<span class="lineCov">       7479 :                 for (curr_proto = proto; *curr_proto != PROTO_END;</span>
+<span class="lineNum">    1028 </span>                :<span class="lineCov">       4919 :                     curr_proto++) {</span>
+<span class="lineNum">    1029 </span>                :            : 
+<span class="lineNum">    1030 </span>  [<span class="branchCov" title="Branch 1 was taken 82 times"> + </span><span class="branchCov" title="Branch 2 was taken 4837 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 82 times"> + </span>]:<span class="lineCov">       5001 :                         if (is_shared(hdl, mntpt, *curr_proto) &amp;&amp;</span>
+<span class="lineNum">    1031 </span>                :<span class="lineCov">         82 :                             unshare_one(hdl, zhp-&gt;zfs_name,</span>
+<span class="lineNum">    1032 </span>                :            :                             mntpt, *curr_proto) != 0) {
+<span class="lineNum">    1033 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 if (mntpt != NULL)</span>
+<span class="lineNum">    1034 </span>                :<span class="lineNoCov">          0 :                                         free(mntpt);</span>
+<span class="lineNum">    1035 </span>                :            :                                 return (-1);
+<span class="lineNum">    1036 </span>                :            :                         }
+<span class="lineNum">    1037 </span>                :            :                 }
+<span class="lineNum">    1038 </span>                :            :         }
+<span class="lineNum">    1039 </span>        [<span class="branchCov" title="Branch 0 was taken 2560 times"> + </span><span class="branchCov" title="Branch 1 was taken 30 times"> + </span>]:<span class="lineCov">       2590 :         if (mntpt != NULL)</span>
+<span class="lineNum">    1040 </span>                :<span class="lineCov">       2560 :                 free(mntpt);</span>
+<span class="lineNum">    1041 </span>                :            : 
+<span class="lineNum">    1042 </span>                :            :         return (0);
+<span class="lineNum">    1043 </span>                :            : }
+<a name="1044"><span class="lineNum">    1044 </span>                :            : </a>
+<span class="lineNum">    1045 </span>                :            : int
+<span class="lineNum">    1046 </span>                :<span class="lineCov">         93 : zfs_unshare_nfs(zfs_handle_t *zhp, const char *mountpoint)</span>
+<span class="lineNum">    1047 </span>                :            : {
+<span class="lineNum">    1048 </span>                :<span class="lineCov">         93 :         return (zfs_unshare_proto(zhp, mountpoint, nfs_only));</span>
+<span class="lineNum">    1049 </span>                :            : }
+<a name="1050"><span class="lineNum">    1050 </span>                :            : </a>
+<span class="lineNum">    1051 </span>                :            : int
+<span class="lineNum">    1052 </span>                :<span class="lineCov">        138 : zfs_unshare_smb(zfs_handle_t *zhp, const char *mountpoint)</span>
+<span class="lineNum">    1053 </span>                :            : {
+<span class="lineNum">    1054 </span>                :<span class="lineCov">        138 :         return (zfs_unshare_proto(zhp, mountpoint, smb_only));</span>
+<span class="lineNum">    1055 </span>                :            : }
+<span class="lineNum">    1056 </span>                :            : 
+<span class="lineNum">    1057 </span>                :            : /*
+<span class="lineNum">    1058 </span>                :            :  * Same as zfs_unmountall(), but for NFS and SMB unshares.
+<a name="1059"><span class="lineNum">    1059 </span>                :            :  */</a>
+<span class="lineNum">    1060 </span>                :            : int
+<span class="lineNum">    1061 </span>                :<span class="lineCov">          8 : zfs_unshareall_proto(zfs_handle_t *zhp, zfs_share_proto_t *proto)</span>
+<span class="lineNum">    1062 </span>                :            : {
+<span class="lineNum">    1063 </span>                :            :         prop_changelist_t *clp;
+<span class="lineNum">    1064 </span>                :            :         int ret;
+<span class="lineNum">    1065 </span>                :            : 
+<span class="lineNum">    1066 </span>                :<span class="lineCov">          8 :         clp = changelist_gather(zhp, ZFS_PROP_SHARENFS, 0, 0);</span>
+<span class="lineNum">    1067 </span>        [<span class="branchCov" title="Branch 0 was taken 8 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          8 :         if (clp == NULL)</span>
+<span class="lineNum">    1068 </span>                :            :                 return (-1);
+<span class="lineNum">    1069 </span>                :            : 
+<span class="lineNum">    1070 </span>                :<span class="lineCov">          8 :         ret = changelist_unshare(clp, proto);</span>
+<span class="lineNum">    1071 </span>                :<span class="lineCov">          8 :         changelist_free(clp);</span>
+<span class="lineNum">    1072 </span>                :            : 
+<span class="lineNum">    1073 </span>                :<span class="lineCov">          8 :         return (ret);</span>
+<span class="lineNum">    1074 </span>                :            : }
+<a name="1075"><span class="lineNum">    1075 </span>                :            : </a>
+<span class="lineNum">    1076 </span>                :            : int
+<span class="lineNum">    1077 </span>                :<span class="lineNoCov">          0 : zfs_unshareall_nfs(zfs_handle_t *zhp)</span>
+<span class="lineNum">    1078 </span>                :            : {
+<span class="lineNum">    1079 </span>                :<span class="lineNoCov">          0 :         return (zfs_unshareall_proto(zhp, nfs_only));</span>
+<span class="lineNum">    1080 </span>                :            : }
+<a name="1081"><span class="lineNum">    1081 </span>                :            : </a>
+<span class="lineNum">    1082 </span>                :            : int
+<span class="lineNum">    1083 </span>                :<span class="lineNoCov">          0 : zfs_unshareall_smb(zfs_handle_t *zhp)</span>
+<span class="lineNum">    1084 </span>                :            : {
+<span class="lineNum">    1085 </span>                :<span class="lineNoCov">          0 :         return (zfs_unshareall_proto(zhp, smb_only));</span>
+<span class="lineNum">    1086 </span>                :            : }
+<a name="1087"><span class="lineNum">    1087 </span>                :            : </a>
+<span class="lineNum">    1088 </span>                :            : int
+<span class="lineNum">    1089 </span>                :<span class="lineCov">          8 : zfs_unshareall(zfs_handle_t *zhp)</span>
+<span class="lineNum">    1090 </span>                :            : {
+<span class="lineNum">    1091 </span>                :<span class="lineCov">          8 :         return (zfs_unshareall_proto(zhp, share_all_proto));</span>
+<span class="lineNum">    1092 </span>                :            : }
+<a name="1093"><span class="lineNum">    1093 </span>                :            : </a>
+<span class="lineNum">    1094 </span>                :            : int
+<span class="lineNum">    1095 </span>                :<span class="lineCov">          6 : zfs_unshareall_bypath(zfs_handle_t *zhp, const char *mountpoint)</span>
+<span class="lineNum">    1096 </span>                :            : {
+<span class="lineNum">    1097 </span>                :<span class="lineCov">          6 :         return (zfs_unshare_proto(zhp, mountpoint, share_all_proto));</span>
+<span class="lineNum">    1098 </span>                :            : }
+<a name="1099"><span class="lineNum">    1099 </span>                :            : </a>
+<span class="lineNum">    1100 </span>                :            : int
+<span class="lineNum">    1101 </span>                :<span class="lineCov">          3 : zfs_unshareall_bytype(zfs_handle_t *zhp, const char *mountpoint,</span>
+<span class="lineNum">    1102 </span>                :            :     const char *proto)
+<span class="lineNum">    1103 </span>                :            : {
+<span class="lineNum">    1104 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          3 :         if (proto == NULL)</span>
+<span class="lineNum">    1105 </span>                :<span class="lineCov">          3 :                 return (zfs_unshare_proto(zhp, mountpoint, share_all_proto));</span>
+<span class="lineNum">    1106 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (strcmp(proto, &quot;nfs&quot;) == 0)</span>
+<span class="lineNum">    1107 </span>                :<span class="lineNoCov">          0 :                 return (zfs_unshare_proto(zhp, mountpoint, nfs_only));</span>
+<span class="lineNum">    1108 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         else if (strcmp(proto, &quot;smb&quot;) == 0)</span>
+<span class="lineNum">    1109 </span>                :<span class="lineNoCov">          0 :                 return (zfs_unshare_proto(zhp, mountpoint, smb_only));</span>
+<span class="lineNum">    1110 </span>                :            :         else
+<span class="lineNum">    1111 </span>                :            :                 return (1);
+<span class="lineNum">    1112 </span>                :            : }
+<span class="lineNum">    1113 </span>                :            : 
+<span class="lineNum">    1114 </span>                :            : /*
+<span class="lineNum">    1115 </span>                :            :  * Remove the mountpoint associated with the current dataset, if necessary.
+<span class="lineNum">    1116 </span>                :            :  * We only remove the underlying directory if:
+<span class="lineNum">    1117 </span>                :            :  *
+<span class="lineNum">    1118 </span>                :            :  *      - The mountpoint is not 'none' or 'legacy'
+<span class="lineNum">    1119 </span>                :            :  *      - The mountpoint is non-empty
+<span class="lineNum">    1120 </span>                :            :  *      - The mountpoint is the default or inherited
+<span class="lineNum">    1121 </span>                :            :  *      - The 'zoned' property is set, or we're in a local zone
+<span class="lineNum">    1122 </span>                :            :  *
+<span class="lineNum">    1123 </span>                :            :  * Any other directories we leave alone.
+<a name="1124"><span class="lineNum">    1124 </span>                :            :  */</a>
+<span class="lineNum">    1125 </span>                :            : void
+<span class="lineNum">    1126 </span>                :<span class="lineCov">       6813 : remove_mountpoint(zfs_handle_t *zhp)</span>
+<span class="lineNum">    1127 </span>                :            : {
+<span class="lineNum">    1128 </span>                :            :         char mountpoint[ZFS_MAXPROPLEN];
+<span class="lineNum">    1129 </span>                :            :         zprop_source_t source;
+<span class="lineNum">    1130 </span>                :            : 
+<span class="lineNum">    1131 </span>        [<span class="branchCov" title="Branch 1 was taken 6355 times"> + </span><span class="branchCov" title="Branch 2 was taken 458 times"> + </span>]:<span class="lineCov">       6813 :         if (!zfs_is_mountable(zhp, mountpoint, sizeof (mountpoint),</span>
+<span class="lineNum">    1132 </span>                :            :             &amp;source))
+<span class="lineNum">    1133 </span>                :<span class="lineCov">        458 :                 return;</span>
+<span class="lineNum">    1134 </span>                :            : 
+<span class="lineNum">    1135 </span>        [<span class="branchCov" title="Branch 0 was taken 5753 times"> + </span><span class="branchCov" title="Branch 1 was taken 602 times"> + </span>]:<span class="lineCov">       6355 :         if (source == ZPROP_SRC_DEFAULT ||</span>
+<span class="lineNum">    1136 </span>                :            :             source == ZPROP_SRC_INHERITED) {
+<span class="lineNum">    1137 </span>                :            :                 /*
+<span class="lineNum">    1138 </span>                :            :                  * Try to remove the directory, silently ignoring any errors.
+<span class="lineNum">    1139 </span>                :            :                  * The filesystem may have since been removed or moved around,
+<span class="lineNum">    1140 </span>                :            :                  * and this error isn't really useful to the administrator in
+<span class="lineNum">    1141 </span>                :            :                  * any way.
+<span class="lineNum">    1142 </span>                :            :                  */
+<span class="lineNum">    1143 </span>                :<span class="lineCov">       6355 :                 (void) rmdir(mountpoint);</span>
+<span class="lineNum">    1144 </span>                :            :         }
+<span class="lineNum">    1145 </span>                :            : }
+<a name="1146"><span class="lineNum">    1146 </span>                :            : </a>
+<span class="lineNum">    1147 </span>                :            : void
+<span class="lineNum">    1148 </span>                :<span class="lineCov">        827 : libzfs_add_handle(get_all_cb_t *cbp, zfs_handle_t *zhp)</span>
+<span class="lineNum">    1149 </span>                :            : {
+<span class="lineNum">    1150 </span>        [<span class="branchCov" title="Branch 0 was taken 330 times"> + </span><span class="branchCov" title="Branch 1 was taken 497 times"> + </span>]:<span class="lineCov">        827 :         if (cbp-&gt;cb_alloc == cbp-&gt;cb_used) {</span>
+<span class="lineNum">    1151 </span>                :            :                 size_t newsz;
+<span class="lineNum">    1152 </span>                :            :                 void *ptr;
+<span class="lineNum">    1153 </span>                :            : 
+<span class="lineNum">    1154 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 330 times"> + </span>]:<span class="lineCov">        330 :                 newsz = cbp-&gt;cb_alloc ? cbp-&gt;cb_alloc * 2 : 64;</span>
+<span class="lineNum">    1155 </span>                :<span class="lineCov">        330 :                 ptr = zfs_realloc(zhp-&gt;zfs_hdl,</span>
+<span class="lineNum">    1156 </span>                :<span class="lineCov">        330 :                     cbp-&gt;cb_handles, cbp-&gt;cb_alloc * sizeof (void *),</span>
+<span class="lineNum">    1157 </span>                :            :                     newsz * sizeof (void *));
+<span class="lineNum">    1158 </span>                :<span class="lineCov">        330 :                 cbp-&gt;cb_handles = ptr;</span>
+<span class="lineNum">    1159 </span>                :<span class="lineCov">        330 :                 cbp-&gt;cb_alloc = newsz;</span>
+<span class="lineNum">    1160 </span>                :            :         }
+<span class="lineNum">    1161 </span>                :<span class="lineCov">        827 :         cbp-&gt;cb_handles[cbp-&gt;cb_used++] = zhp;</span>
+<span class="lineNum">    1162 </span>                :<span class="lineCov">        827 : }</span>
+<a name="1163"><span class="lineNum">    1163 </span>                :            : </a>
+<span class="lineNum">    1164 </span>                :            : static int
+<span class="lineNum">    1165 </span>                :<span class="lineCov">        402 : mount_cb(zfs_handle_t *zhp, void *data)</span>
+<span class="lineNum">    1166 </span>                :            : {
+<span class="lineNum">    1167 </span>                :<span class="lineCov">        402 :         get_all_cb_t *cbp = data;</span>
+<span class="lineNum">    1168 </span>                :            : 
+<span class="lineNum">    1169 </span>        [<span class="branchCov" title="Branch 1 was taken 9 times"> + </span><span class="branchCov" title="Branch 2 was taken 393 times"> + </span>]:<span class="lineCov">        402 :         if (!(zfs_get_type(zhp) &amp; ZFS_TYPE_FILESYSTEM)) {</span>
+<span class="lineNum">    1170 </span>                :<span class="lineCov">          9 :                 zfs_close(zhp);</span>
+<span class="lineNum">    1171 </span>                :<span class="lineCov">          9 :                 return (0);</span>
+<span class="lineNum">    1172 </span>                :            :         }
+<span class="lineNum">    1173 </span>                :            : 
+<span class="lineNum">    1174 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 393 times"> + </span>]:<span class="lineCov">        393 :         if (zfs_prop_get_int(zhp, ZFS_PROP_CANMOUNT) == ZFS_CANMOUNT_NOAUTO) {</span>
+<span class="lineNum">    1175 </span>                :<span class="lineNoCov">          0 :                 zfs_close(zhp);</span>
+<span class="lineNum">    1176 </span>                :<span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">    1177 </span>                :            :         }
+<span class="lineNum">    1178 </span>                :            : 
+<span class="lineNum">    1179 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 393 times"> + </span>]:<span class="lineCov">        393 :         if (zfs_prop_get_int(zhp, ZFS_PROP_KEYSTATUS) ==</span>
+<span class="lineNum">    1180 </span>                :            :             ZFS_KEYSTATUS_UNAVAILABLE) {
+<span class="lineNum">    1181 </span>                :<span class="lineNoCov">          0 :                 zfs_close(zhp);</span>
+<span class="lineNum">    1182 </span>                :<span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">    1183 </span>                :            :         }
+<span class="lineNum">    1184 </span>                :            : 
+<span class="lineNum">    1185 </span>                :            :         /*
+<span class="lineNum">    1186 </span>                :            :          * If this filesystem is inconsistent and has a receive resume
+<span class="lineNum">    1187 </span>                :            :          * token, we can not mount it.
+<span class="lineNum">    1188 </span>                :            :          */
+<span class="lineNum">    1189 </span>  [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 393 times"> + </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineCov">        393 :         if (zfs_prop_get_int(zhp, ZFS_PROP_INCONSISTENT) &amp;&amp;</span>
+<span class="lineNum">    1190 </span>                :<span class="lineNoCov">          0 :             zfs_prop_get(zhp, ZFS_PROP_RECEIVE_RESUME_TOKEN,</span>
+<span class="lineNum">    1191 </span>                :            :             NULL, 0, NULL, NULL, 0, B_TRUE) == 0) {
+<span class="lineNum">    1192 </span>                :<span class="lineNoCov">          0 :                 zfs_close(zhp);</span>
+<span class="lineNum">    1193 </span>                :<span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">    1194 </span>                :            :         }
+<span class="lineNum">    1195 </span>                :            : 
+<span class="lineNum">    1196 </span>                :<span class="lineCov">        393 :         libzfs_add_handle(cbp, zhp);</span>
+<span class="lineNum">    1197 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 393 times"> + </span>]:<span class="lineCov">        393 :         if (zfs_iter_filesystems(zhp, mount_cb, cbp) != 0) {</span>
+<span class="lineNum">    1198 </span>                :<span class="lineNoCov">          0 :                 zfs_close(zhp);</span>
+<span class="lineNum">    1199 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">    1200 </span>                :            :         }
+<span class="lineNum">    1201 </span>                :            :         return (0);
+<span class="lineNum">    1202 </span>                :            : }
+<a name="1203"><span class="lineNum">    1203 </span>                :            : </a>
+<span class="lineNum">    1204 </span>                :            : int
+<span class="lineNum">    1205 </span>                :<span class="lineCov">        909 : libzfs_dataset_cmp(const void *a, const void *b)</span>
+<span class="lineNum">    1206 </span>                :            : {
+<span class="lineNum">    1207 </span>                :<span class="lineCov">        909 :         zfs_handle_t **za = (zfs_handle_t **)a;</span>
+<span class="lineNum">    1208 </span>                :<span class="lineCov">        909 :         zfs_handle_t **zb = (zfs_handle_t **)b;</span>
+<span class="lineNum">    1209 </span>                :            :         char mounta[MAXPATHLEN];
+<span class="lineNum">    1210 </span>                :            :         char mountb[MAXPATHLEN];
+<span class="lineNum">    1211 </span>                :            :         boolean_t gota, gotb;
+<span class="lineNum">    1212 </span>                :            : 
+<span class="lineNum">    1213 </span>        [<span class="branchCov" title="Branch 1 was taken 909 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        909 :         if ((gota = (zfs_get_type(*za) == ZFS_TYPE_FILESYSTEM)) != 0)</span>
+<span class="lineNum">    1214 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 909 times"> + </span>]:<span class="lineCov">        909 :                 verify(zfs_prop_get(*za, ZFS_PROP_MOUNTPOINT, mounta,</span>
+<span class="lineNum">    1215 </span>                :            :                     sizeof (mounta), NULL, NULL, 0, B_FALSE) == 0);
+<span class="lineNum">    1216 </span>        [<span class="branchCov" title="Branch 1 was taken 909 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        909 :         if ((gotb = (zfs_get_type(*zb) == ZFS_TYPE_FILESYSTEM)) != 0)</span>
+<span class="lineNum">    1217 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 909 times"> + </span>]:<span class="lineCov">        909 :                 verify(zfs_prop_get(*zb, ZFS_PROP_MOUNTPOINT, mountb,</span>
+<span class="lineNum">    1218 </span>                :            :                     sizeof (mountb), NULL, NULL, 0, B_FALSE) == 0);
+<span class="lineNum">    1219 </span>                :            : 
+<span class="lineNum">    1220 </span>        [<span class="branchCov" title="Branch 0 was taken 909 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        909 :         if (gota &amp;&amp; gotb)</span>
+<span class="lineNum">    1221 </span>                :<span class="lineCov">        909 :                 return (strcmp(mounta, mountb));</span>
+<span class="lineNum">    1222 </span>                :            : 
+<span class="lineNum">    1223 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (gota)</span>
+<span class="lineNum">    1224 </span>                :            :                 return (-1);
+<span class="lineNum">    1225 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (gotb)</span>
+<span class="lineNum">    1226 </span>                :            :                 return (1);
+<span class="lineNum">    1227 </span>                :            : 
+<span class="lineNum">    1228 </span>                :<span class="lineNoCov">          0 :         return (strcmp(zfs_get_name(*za), zfs_get_name(*zb)));</span>
+<span class="lineNum">    1229 </span>                :            : }
+<span class="lineNum">    1230 </span>                :            : 
+<span class="lineNum">    1231 </span>                :            : /*
+<span class="lineNum">    1232 </span>                :            :  * Mount and share all datasets within the given pool.  This assumes that no
+<span class="lineNum">    1233 </span>                :            :  * datasets within the pool are currently mounted.  Because users can create
+<span class="lineNum">    1234 </span>                :            :  * complicated nested hierarchies of mountpoints, we first gather all the
+<span class="lineNum">    1235 </span>                :            :  * datasets and mountpoints within the pool, and sort them by mountpoint.  Once
+<span class="lineNum">    1236 </span>                :            :  * we have the list of all filesystems, we iterate over them in order and mount
+<span class="lineNum">    1237 </span>                :            :  * and/or share each one.
+<span class="lineNum">    1238 </span>                :            :  */
+<a name="1239"><span class="lineNum">    1239 </span>                :            : #pragma weak zpool_mount_datasets = zpool_enable_datasets</a>
+<span class="lineNum">    1240 </span>                :            : int
+<span class="lineNum">    1241 </span>                :<span class="lineCov">        300 : zpool_enable_datasets(zpool_handle_t *zhp, const char *mntopts, int flags)</span>
+<span class="lineNum">    1242 </span>                :            : {
+<span class="lineNum">    1243 </span>                :<span class="lineCov">        300 :         get_all_cb_t cb = { 0 };</span>
+<span class="lineNum">    1244 </span>                :<span class="lineCov">        300 :         libzfs_handle_t *hdl = zhp-&gt;zpool_hdl;</span>
+<span class="lineNum">    1245 </span>                :            :         zfs_handle_t *zfsp;
+<span class="lineNum">    1246 </span>                :<span class="lineCov">        300 :         int i, ret = -1;</span>
+<span class="lineNum">    1247 </span>                :            :         int *good;
+<span class="lineNum">    1248 </span>                :            : 
+<span class="lineNum">    1249 </span>                :            :         /*
+<span class="lineNum">    1250 </span>                :            :          * Gather all non-snap datasets within the pool.
+<span class="lineNum">    1251 </span>                :            :          */
+<span class="lineNum">    1252 </span>        [<span class="branchCov" title="Branch 1 was taken 300 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        300 :         if ((zfsp = zfs_open(hdl, zhp-&gt;zpool_name, ZFS_TYPE_DATASET)) == NULL)</span>
+<span class="lineNum">    1253 </span>                :            :                 goto out;
+<span class="lineNum">    1254 </span>                :            : 
+<span class="lineNum">    1255 </span>                :<span class="lineCov">        300 :         libzfs_add_handle(&amp;cb, zfsp);</span>
+<span class="lineNum">    1256 </span>        [<span class="branchCov" title="Branch 1 was taken 300 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        300 :         if (zfs_iter_filesystems(zfsp, mount_cb, &amp;cb) != 0)</span>
+<span class="lineNum">    1257 </span>                :            :                 goto out;
+<span class="lineNum">    1258 </span>                :            :         /*
+<span class="lineNum">    1259 </span>                :            :          * Sort the datasets by mountpoint.
+<span class="lineNum">    1260 </span>                :            :          */
+<span class="lineNum">    1261 </span>                :<span class="lineCov">        300 :         qsort(cb.cb_handles, cb.cb_used, sizeof (void *),</span>
+<span class="lineNum">    1262 </span>                :            :             libzfs_dataset_cmp);
+<span class="lineNum">    1263 </span>                :            : 
+<span class="lineNum">    1264 </span>                :            :         /*
+<span class="lineNum">    1265 </span>                :            :          * And mount all the datasets, keeping track of which ones
+<span class="lineNum">    1266 </span>                :            :          * succeeded or failed.
+<span class="lineNum">    1267 </span>                :            :          */
+<span class="lineNum">    1268 </span>        [<span class="branchCov" title="Branch 1 was taken 300 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        300 :         if ((good = zfs_alloc(zhp-&gt;zpool_hdl,</span>
+<span class="lineNum">    1269 </span>                :<span class="lineCov">        300 :             cb.cb_used * sizeof (int))) == NULL)</span>
+<span class="lineNum">    1270 </span>                :            :                 goto out;
+<span class="lineNum">    1271 </span>                :            : 
+<span class="lineNum">    1272 </span>                :            :         ret = 0;
+<span class="lineNum">    1273 </span>        [<span class="branchCov" title="Branch 0 was taken 693 times"> + </span><span class="branchCov" title="Branch 1 was taken 299 times"> + </span>]:<span class="lineCov">        992 :         for (i = 0; i &lt; cb.cb_used; i++) {</span>
+<span class="lineNum">    1274 </span>                :            :                 /*
+<span class="lineNum">    1275 </span>                :            :                  * don't attempt to mount encrypted datasets with
+<span class="lineNum">    1276 </span>                :            :                  * unloaded keys
+<span class="lineNum">    1277 </span>                :            :                  */
+<span class="lineNum">    1278 </span>        [<span class="branchCov" title="Branch 1 was taken 1 time"> + </span><span class="branchCov" title="Branch 2 was taken 692 times"> + </span>]:<span class="lineCov">        693 :                 if (zfs_prop_get_int(cb.cb_handles[i], ZFS_PROP_KEYSTATUS) ==</span>
+<span class="lineNum">    1279 </span>                :            :                     ZFS_KEYSTATUS_UNAVAILABLE)
+<span class="lineNum">    1280 </span>                :<span class="lineCov">          1 :                         continue;</span>
+<span class="lineNum">    1281 </span>                :            : 
+<span class="lineNum">    1282 </span>        [<span class="branchCov" title="Branch 1 was taken 691 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        692 :                 if (zfs_mount(cb.cb_handles[i], mntopts, flags) != 0)</span>
+<span class="lineNum">    1283 </span>                :            :                         ret = -1;
+<span class="lineNum">    1284 </span>                :            :                 else
+<span class="lineNum">    1285 </span>                :<span class="lineCov">        691 :                         good[i] = 1;</span>
+<span class="lineNum">    1286 </span>                :            :         }
+<span class="lineNum">    1287 </span>                :            : 
+<span class="lineNum">    1288 </span>                :            :         /*
+<span class="lineNum">    1289 </span>                :            :          * Then share all the ones that need to be shared. This needs
+<span class="lineNum">    1290 </span>                :            :          * to be a separate pass in order to avoid excessive reloading
+<span class="lineNum">    1291 </span>                :            :          * of the configuration. Good should never be NULL since
+<span class="lineNum">    1292 </span>                :            :          * zfs_alloc is supposed to exit if memory isn't available.
+<span class="lineNum">    1293 </span>                :            :          */
+<span class="lineNum">    1294 </span>        [<span class="branchCov" title="Branch 0 was taken 692 times"> + </span><span class="branchCov" title="Branch 1 was taken 299 times"> + </span>]:<span class="lineCov">        991 :         for (i = 0; i &lt; cb.cb_used; i++) {</span>
+<span class="lineNum">    1295 </span>[<span class="branchCov" title="Branch 0 was taken 691 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 691 times"> + </span>]:<span class="lineCov">        692 :                 if (good[i] &amp;&amp; zfs_share(cb.cb_handles[i]) != 0)</span>
+<span class="lineNum">    1296 </span>                :<span class="lineNoCov">          0 :                         ret = -1;</span>
+<span class="lineNum">    1297 </span>                :            :         }
+<span class="lineNum">    1298 </span>                :            : 
+<span class="lineNum">    1299 </span>                :<span class="lineCov">        299 :         free(good);</span>
+<span class="lineNum">    1300 </span>                :            : 
+<span class="lineNum">    1301 </span>                :            : out:
+<span class="lineNum">    1302 </span>        [<span class="branchCov" title="Branch 0 was taken 692 times"> + </span><span class="branchCov" title="Branch 1 was taken 299 times"> + </span>]:<span class="lineCov">        991 :         for (i = 0; i &lt; cb.cb_used; i++)</span>
+<span class="lineNum">    1303 </span>                :<span class="lineCov">        692 :                 zfs_close(cb.cb_handles[i]);</span>
+<span class="lineNum">    1304 </span>                :<span class="lineCov">        299 :         free(cb.cb_handles);</span>
+<span class="lineNum">    1305 </span>                :            : 
+<span class="lineNum">    1306 </span>                :<span class="lineCov">        299 :         return (ret);</span>
+<span class="lineNum">    1307 </span>                :            : }
+<a name="1308"><span class="lineNum">    1308 </span>                :            : </a>
+<span class="lineNum">    1309 </span>                :            : static int
+<span class="lineNum">    1310 </span>                :<span class="lineCov">        620 : mountpoint_compare(const void *a, const void *b)</span>
+<span class="lineNum">    1311 </span>                :            : {
+<span class="lineNum">    1312 </span>                :<span class="lineCov">        620 :         const char *mounta = *((char **)a);</span>
+<span class="lineNum">    1313 </span>                :<span class="lineCov">        620 :         const char *mountb = *((char **)b);</span>
+<span class="lineNum">    1314 </span>                :            : 
+<span class="lineNum">    1315 </span>                :<span class="lineCov">        620 :         return (strcmp(mountb, mounta));</span>
+<span class="lineNum">    1316 </span>                :            : }
+<span class="lineNum">    1317 </span>                :            : 
+<span class="lineNum">    1318 </span>                :            : /* alias for 2002/240 */
+<span class="lineNum">    1319 </span>                :            : #pragma weak zpool_unmount_datasets = zpool_disable_datasets
+<span class="lineNum">    1320 </span>                :            : /*
+<span class="lineNum">    1321 </span>                :            :  * Unshare and unmount all datasets within the given pool.  We don't want to
+<span class="lineNum">    1322 </span>                :            :  * rely on traversing the DSL to discover the filesystems within the pool,
+<span class="lineNum">    1323 </span>                :            :  * because this may be expensive (if not all of them are mounted), and can fail
+<span class="lineNum">    1324 </span>                :            :  * arbitrarily (on I/O error, for example).  Instead, we walk /proc/self/mounts
+<span class="lineNum">    1325 </span>                :            :  * and gather all the filesystems that are currently mounted.
+<a name="1326"><span class="lineNum">    1326 </span>                :            :  */</a>
+<span class="lineNum">    1327 </span>                :            : int
+<span class="lineNum">    1328 </span>                :<span class="lineCov">       2188 : zpool_disable_datasets(zpool_handle_t *zhp, boolean_t force)</span>
+<span class="lineNum">    1329 </span>                :            : {
+<span class="lineNum">    1330 </span>                :            :         int used, alloc;
+<span class="lineNum">    1331 </span>                :            :         struct mnttab entry;
+<span class="lineNum">    1332 </span>                :            :         size_t namelen;
+<span class="lineNum">    1333 </span>                :<span class="lineCov">       2188 :         char **mountpoints = NULL;</span>
+<span class="lineNum">    1334 </span>                :<span class="lineCov">       2188 :         zfs_handle_t **datasets = NULL;</span>
+<span class="lineNum">    1335 </span>                :<span class="lineCov">       2188 :         libzfs_handle_t *hdl = zhp-&gt;zpool_hdl;</span>
+<span class="lineNum">    1336 </span>                :            :         int i;
+<span class="lineNum">    1337 </span>                :<span class="lineCov">       2188 :         int ret = -1;</span>
+<span class="lineNum">    1338 </span>                :<span class="lineCov">       2188 :         int flags = (force ? MS_FORCE : 0);</span>
+<span class="lineNum">    1339 </span>                :            : 
+<span class="lineNum">    1340 </span>                :<span class="lineCov">       2188 :         namelen = strlen(zhp-&gt;zpool_name);</span>
+<span class="lineNum">    1341 </span>                :            : 
+<span class="lineNum">    1342 </span>                :            :         /* Reopen MNTTAB to prevent reading stale data from open file */
+<span class="lineNum">    1343 </span>        [<span class="branchCov" title="Branch 1 was taken 2188 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       2188 :         if (freopen(MNTTAB, &quot;r&quot;, hdl-&gt;libzfs_mnttab) == NULL)</span>
+<span class="lineNum">    1344 </span>                :            :                 return (ENOENT);
+<span class="lineNum">    1345 </span>                :            : 
+<span class="lineNum">    1346 </span>                :            :         used = alloc = 0;
+<span class="lineNum">    1347 </span>        [<span class="branchCov" title="Branch 1 was taken 122384 times"> + </span><span class="branchCov" title="Branch 2 was taken 2188 times"> + </span>]:<span class="lineCov">     124572 :         while (getmntent(hdl-&gt;libzfs_mnttab, &amp;entry) == 0) {</span>
+<span class="lineNum">    1348 </span>                :            :                 /*
+<span class="lineNum">    1349 </span>                :            :                  * Ignore non-ZFS entries.
+<span class="lineNum">    1350 </span>                :            :                  */
+<span class="lineNum">    1351 </span>[<span class="branchCov" title="Branch 0 was taken 122384 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 76863 times"> + </span><span class="branchCov" title="Branch 3 was taken 45521 times"> + </span>]:<span class="lineCov">     122384 :                 if (entry.mnt_fstype == NULL ||</span>
+<span class="lineNum">    1352 </span>                :<span class="lineCov">     122384 :                     strcmp(entry.mnt_fstype, MNTTYPE_ZFS) != 0)</span>
+<span class="lineNum">    1353 </span>                :<span class="lineCov">      76863 :                         continue;</span>
+<span class="lineNum">    1354 </span>                :            : 
+<span class="lineNum">    1355 </span>                :            :                 /*
+<span class="lineNum">    1356 </span>                :            :                  * Ignore filesystems not within this pool.
+<span class="lineNum">    1357 </span>                :            :                  */
+<span class="lineNum">    1358 </span>[<span class="branchCov" title="Branch 0 was taken 45521 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 2624 times"> + </span><span class="branchCov" title="Branch 3 was taken 42897 times"> + </span>]:<span class="lineCov">      45521 :                 if (entry.mnt_mountp == NULL ||</span>
+<span class="lineNum">    1359 </span>        [<span class="branchCov" title="Branch 0 was taken 144 times"> + </span><span class="branchCov" title="Branch 1 was taken 2480 times"> + </span>]:<span class="lineCov">       2624 :                     strncmp(entry.mnt_special, zhp-&gt;zpool_name, namelen) != 0 ||</span>
+<span class="lineNum">    1360 </span>                :<span class="lineCov">       2624 :                     (entry.mnt_special[namelen] != '/' &amp;&amp;</span>
+<span class="lineNum">    1361 </span>                :            :                     entry.mnt_special[namelen] != '\0'))
+<span class="lineNum">    1362 </span>                :<span class="lineCov">      43041 :                         continue;</span>
+<span class="lineNum">    1363 </span>                :            : 
+<span class="lineNum">    1364 </span>                :            :                 /*
+<span class="lineNum">    1365 </span>                :            :                  * At this point we've found a filesystem within our pool.  Add
+<span class="lineNum">    1366 </span>                :            :                  * it to our growing list.
+<span class="lineNum">    1367 </span>                :            :                  */
+<span class="lineNum">    1368 </span>        [<span class="branchCov" title="Branch 0 was taken 2061 times"> + </span><span class="branchCov" title="Branch 1 was taken 419 times"> + </span>]:<span class="lineCov">       2480 :                 if (used == alloc) {</span>
+<span class="lineNum">    1369 </span>        [<span class="branchCov" title="Branch 0 was taken 2061 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       2061 :                         if (alloc == 0) {</span>
+<span class="lineNum">    1370 </span>        [<span class="branchCov" title="Branch 1 was taken 2061 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       2061 :                                 if ((mountpoints = zfs_alloc(hdl,</span>
+<span class="lineNum">    1371 </span>                :            :                                     8 * sizeof (void *))) == NULL)
+<span class="lineNum">    1372 </span>                :            :                                         goto out;
+<span class="lineNum">    1373 </span>                :            : 
+<span class="lineNum">    1374 </span>        [<span class="branchCov" title="Branch 1 was taken 2061 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       2061 :                                 if ((datasets = zfs_alloc(hdl,</span>
+<span class="lineNum">    1375 </span>                :            :                                     8 * sizeof (void *))) == NULL)
+<span class="lineNum">    1376 </span>                :            :                                         goto out;
+<span class="lineNum">    1377 </span>                :            : 
+<span class="lineNum">    1378 </span>                :            :                                 alloc = 8;
+<span class="lineNum">    1379 </span>                :            :                         } else {
+<span class="lineNum">    1380 </span>                :            :                                 void *ptr;
+<span class="lineNum">    1381 </span>                :            : 
+<span class="lineNum">    1382 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 if ((ptr = zfs_realloc(hdl, mountpoints,</span>
+<span class="lineNum">    1383 </span>                :            :                                     alloc * sizeof (void *),
+<span class="lineNum">    1384 </span>                :<span class="lineNoCov">          0 :                                     alloc * 2 * sizeof (void *))) == NULL)</span>
+<span class="lineNum">    1385 </span>                :            :                                         goto out;
+<span class="lineNum">    1386 </span>                :<span class="lineNoCov">          0 :                                 mountpoints = ptr;</span>
+<span class="lineNum">    1387 </span>                :            : 
+<span class="lineNum">    1388 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 if ((ptr = zfs_realloc(hdl, datasets,</span>
+<span class="lineNum">    1389 </span>                :            :                                     alloc * sizeof (void *),
+<span class="lineNum">    1390 </span>                :            :                                     alloc * 2 * sizeof (void *))) == NULL)
+<span class="lineNum">    1391 </span>                :            :                                         goto out;
+<span class="lineNum">    1392 </span>                :            :                                 datasets = ptr;
+<span class="lineNum">    1393 </span>                :            : 
+<span class="lineNum">    1394 </span>                :            :                                 alloc *= 2;
+<span class="lineNum">    1395 </span>                :            :                         }
+<span class="lineNum">    1396 </span>                :            :                 }
+<span class="lineNum">    1397 </span>                :            : 
+<span class="lineNum">    1398 </span>        [<span class="branchCov" title="Branch 1 was taken 2480 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       2480 :                 if ((mountpoints[used] = zfs_strdup(hdl,</span>
+<span class="lineNum">    1399 </span>                :<span class="lineCov">       2480 :                     entry.mnt_mountp)) == NULL)</span>
+<span class="lineNum">    1400 </span>                :            :                         goto out;
+<span class="lineNum">    1401 </span>                :            : 
+<span class="lineNum">    1402 </span>                :            :                 /*
+<span class="lineNum">    1403 </span>                :            :                  * This is allowed to fail, in case there is some I/O error.  It
+<span class="lineNum">    1404 </span>                :            :                  * is only used to determine if we need to remove the underlying
+<span class="lineNum">    1405 </span>                :            :                  * mountpoint, so failure is not fatal.
+<span class="lineNum">    1406 </span>                :            :                  */
+<span class="lineNum">    1407 </span>                :<span class="lineCov">       2480 :                 datasets[used] = make_dataset_handle(hdl, entry.mnt_special);</span>
+<span class="lineNum">    1408 </span>                :            : 
+<span class="lineNum">    1409 </span>                :<span class="lineCov">     122384 :                 used++;</span>
+<span class="lineNum">    1410 </span>                :            :         }
+<span class="lineNum">    1411 </span>                :            : 
+<span class="lineNum">    1412 </span>                :            :         /*
+<span class="lineNum">    1413 </span>                :            :          * At this point, we have the entire list of filesystems, so sort it by
+<span class="lineNum">    1414 </span>                :            :          * mountpoint.
+<span class="lineNum">    1415 </span>                :            :          */
+<span class="lineNum">    1416 </span>                :<span class="lineCov">       2188 :         qsort(mountpoints, used, sizeof (char *), mountpoint_compare);</span>
+<span class="lineNum">    1417 </span>                :            : 
+<span class="lineNum">    1418 </span>                :            :         /*
+<span class="lineNum">    1419 </span>                :            :          * Walk through and first unshare everything.
+<span class="lineNum">    1420 </span>                :            :          */
+<span class="lineNum">    1421 </span>        [<span class="branchCov" title="Branch 1 was taken 2480 times"> + </span><span class="branchCov" title="Branch 2 was taken 2188 times"> + </span>]:<span class="lineCov">       4668 :         for (i = 0; i &lt; used; i++) {</span>
+<span class="lineNum">    1422 </span>                :            :                 zfs_share_proto_t *curr_proto;
+<span class="lineNum">    1423 </span>        [<span class="branchCov" title="Branch 0 was taken 4960 times"> + </span><span class="branchCov" title="Branch 1 was taken 2480 times"> + </span>]:<span class="lineCov">       7440 :                 for (curr_proto = share_all_proto; *curr_proto != PROTO_END;</span>
+<span class="lineNum">    1424 </span>                :<span class="lineCov">       4960 :                     curr_proto++) {</span>
+<span class="lineNum">    1425 </span>  [<span class="branchCov" title="Branch 1 was taken 96 times"> + </span><span class="branchCov" title="Branch 2 was taken 4864 times"> + </span><span class="branchCov" title="Branch 3 was taken 96 times"> + </span><span class="branchNoCov" title="Branch 4 was not taken"> - </span>]:<span class="lineCov">       5056 :                         if (is_shared(hdl, mountpoints[i], *curr_proto) &amp;&amp;</span>
+<span class="lineNum">    1426 </span>                :<span class="lineCov">         96 :                             unshare_one(hdl, mountpoints[i],</span>
+<span class="lineNum">    1427 </span>                :            :                             mountpoints[i], *curr_proto) != 0)
+<span class="lineNum">    1428 </span>                :            :                                 goto out;
+<span class="lineNum">    1429 </span>                :            :                 }
+<span class="lineNum">    1430 </span>                :            :         }
+<span class="lineNum">    1431 </span>                :            : 
+<span class="lineNum">    1432 </span>                :            :         /*
+<span class="lineNum">    1433 </span>                :            :          * Now unmount everything, removing the underlying directories as
+<span class="lineNum">    1434 </span>                :            :          * appropriate.
+<span class="lineNum">    1435 </span>                :            :          */
+<span class="lineNum">    1436 </span>        [<span class="branchCov" title="Branch 0 was taken 2471 times"> + </span><span class="branchCov" title="Branch 1 was taken 2181 times"> + </span>]:<span class="lineCov">       4652 :         for (i = 0; i &lt; used; i++) {</span>
+<span class="lineNum">    1437 </span>        [<span class="branchCov" title="Branch 1 was taken 2464 times"> + </span><span class="branchCov" title="Branch 2 was taken 5 times"> + </span>]:<span class="lineCov">       2471 :                 if (unmount_one(hdl, mountpoints[i], flags) != 0)</span>
+<span class="lineNum">    1438 </span>                :            :                         goto out;
+<span class="lineNum">    1439 </span>                :            :         }
+<span class="lineNum">    1440 </span>                :            : 
+<span class="lineNum">    1441 </span>        [<span class="branchCov" title="Branch 0 was taken 2461 times"> + </span><span class="branchCov" title="Branch 1 was taken 2181 times"> + </span>]:<span class="lineCov">       4642 :         for (i = 0; i &lt; used; i++) {</span>
+<span class="lineNum">    1442 </span>        [<span class="branchCov" title="Branch 0 was taken 2461 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       2461 :                 if (datasets[i])</span>
+<span class="lineNum">    1443 </span>                :<span class="lineCov">       2461 :                         remove_mountpoint(datasets[i]);</span>
+<span class="lineNum">    1444 </span>                :            :         }
+<span class="lineNum">    1445 </span>                :            : 
+<span class="lineNum">    1446 </span>                :            :         ret = 0;
+<span class="lineNum">    1447 </span>                :            : out:
+<span class="lineNum">    1448 </span>        [<span class="branchCov" title="Branch 0 was taken 2478 times"> + </span><span class="branchCov" title="Branch 1 was taken 2186 times"> + </span>]:<span class="lineCov">       4664 :         for (i = 0; i &lt; used; i++) {</span>
+<span class="lineNum">    1449 </span>        [<span class="branchCov" title="Branch 0 was taken 2478 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       2478 :                 if (datasets[i])</span>
+<span class="lineNum">    1450 </span>                :<span class="lineCov">       2478 :                         zfs_close(datasets[i]);</span>
+<span class="lineNum">    1451 </span>                :<span class="lineCov">       2478 :                 free(mountpoints[i]);</span>
+<span class="lineNum">    1452 </span>                :            :         }
+<span class="lineNum">    1453 </span>                :<span class="lineCov">       2186 :         free(datasets);</span>
+<span class="lineNum">    1454 </span>                :<span class="lineCov">       2186 :         free(mountpoints);</span>
+<span class="lineNum">    1455 </span>                :            : 
+<span class="lineNum">    1456 </span>                :<span class="lineCov">       2186 :         return (ret);</span>
+<span class="lineNum">    1457 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,931 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/lib/libzfs/libzfs_diff.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/lib/libzfs</a> - libzfs_diff.c<span style="font-size: 80%;"> (source / <a href="libzfs_diff.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">374</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">221</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : /*
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright 2015 Nexenta Systems, Inc. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  * Copyright (c) 2015 by Delphix. All rights reserved.
+<span class="lineNum">      26 </span>                :            :  * Copyright 2016 Joyent, Inc.
+<span class="lineNum">      27 </span>                :            :  * Copyright 2016 Igor Kozhukhov &lt;ikozhukhov@gmail.com&gt;
+<span class="lineNum">      28 </span>                :            :  */
+<span class="lineNum">      29 </span>                :            : 
+<span class="lineNum">      30 </span>                :            : /*
+<span class="lineNum">      31 </span>                :            :  * zfs diff support
+<span class="lineNum">      32 </span>                :            :  */
+<span class="lineNum">      33 </span>                :            : #include &lt;ctype.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;errno.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;libintl.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;string.h&gt;
+<span class="lineNum">      37 </span>                :            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      38 </span>                :            : #include &lt;sys/stat.h&gt;
+<span class="lineNum">      39 </span>                :            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      40 </span>                :            : #include &lt;attr.h&gt;
+<span class="lineNum">      41 </span>                :            : #include &lt;stddef.h&gt;
+<span class="lineNum">      42 </span>                :            : #include &lt;unistd.h&gt;
+<span class="lineNum">      43 </span>                :            : #include &lt;stdio.h&gt;
+<span class="lineNum">      44 </span>                :            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      45 </span>                :            : #include &lt;stropts.h&gt;
+<span class="lineNum">      46 </span>                :            : #include &lt;pthread.h&gt;
+<span class="lineNum">      47 </span>                :            : #include &lt;sys/zfs_ioctl.h&gt;
+<span class="lineNum">      48 </span>                :            : #include &lt;libzfs.h&gt;
+<span class="lineNum">      49 </span>                :            : #include &quot;libzfs_impl.h&quot;
+<span class="lineNum">      50 </span>                :            : 
+<span class="lineNum">      51 </span>                :            : #define ZDIFF_SNAPDIR           &quot;/.zfs/snapshot/&quot;
+<span class="lineNum">      52 </span>                :            : #define ZDIFF_SHARESDIR         &quot;/.zfs/shares/&quot;
+<span class="lineNum">      53 </span>                :            : #define ZDIFF_PREFIX            &quot;zfs-diff-%d&quot;
+<span class="lineNum">      54 </span>                :            : 
+<span class="lineNum">      55 </span>                :            : #define ZDIFF_ADDED     '+'
+<span class="lineNum">      56 </span>                :            : #define ZDIFF_MODIFIED  'M'
+<span class="lineNum">      57 </span>                :            : #define ZDIFF_REMOVED   '-'
+<span class="lineNum">      58 </span>                :            : #define ZDIFF_RENAMED   'R'
+<span class="lineNum">      59 </span>                :            : 
+<span class="lineNum">      60 </span>                :            : typedef struct differ_info {
+<span class="lineNum">      61 </span>                :            :         zfs_handle_t *zhp;
+<span class="lineNum">      62 </span>                :            :         char *fromsnap;
+<span class="lineNum">      63 </span>                :            :         char *frommnt;
+<span class="lineNum">      64 </span>                :            :         char *tosnap;
+<span class="lineNum">      65 </span>                :            :         char *tomnt;
+<span class="lineNum">      66 </span>                :            :         char *ds;
+<span class="lineNum">      67 </span>                :            :         char *dsmnt;
+<span class="lineNum">      68 </span>                :            :         char *tmpsnap;
+<span class="lineNum">      69 </span>                :            :         char errbuf[1024];
+<span class="lineNum">      70 </span>                :            :         boolean_t isclone;
+<span class="lineNum">      71 </span>                :            :         boolean_t scripted;
+<span class="lineNum">      72 </span>                :            :         boolean_t classify;
+<span class="lineNum">      73 </span>                :            :         boolean_t timestamped;
+<span class="lineNum">      74 </span>                :            :         uint64_t shares;
+<span class="lineNum">      75 </span>                :            :         int zerr;
+<span class="lineNum">      76 </span>                :            :         int cleanupfd;
+<span class="lineNum">      77 </span>                :            :         int outputfd;
+<span class="lineNum">      78 </span>                :            :         int datafd;
+<span class="lineNum">      79 </span>                :            : } differ_info_t;
+<span class="lineNum">      80 </span>                :            : 
+<span class="lineNum">      81 </span>                :            : /*
+<span class="lineNum">      82 </span>                :            :  * Given a {dsname, object id}, get the object path
+<a name="83"><span class="lineNum">      83 </span>                :            :  */</a>
+<span class="lineNum">      84 </span>                :            : static int
+<span class="lineNum">      85 </span>                :<span class="lineNoCov">          0 : get_stats_for_obj(differ_info_t *di, const char *dsname, uint64_t obj,</span>
+<span class="lineNum">      86 </span>                :            :     char *pn, int maxlen, zfs_stat_t *sb)
+<span class="lineNum">      87 </span>                :            : {
+<span class="lineNum">      88 </span>                :<span class="lineNoCov">          0 :         zfs_cmd_t zc = {&quot;\0&quot;};</span>
+<span class="lineNum">      89 </span>                :            :         int error;
+<span class="lineNum">      90 </span>                :            : 
+<span class="lineNum">      91 </span>                :<span class="lineNoCov">          0 :         (void) strlcpy(zc.zc_name, dsname, sizeof (zc.zc_name));</span>
+<span class="lineNum">      92 </span>                :<span class="lineNoCov">          0 :         zc.zc_obj = obj;</span>
+<span class="lineNum">      93 </span>                :            : 
+<span class="lineNum">      94 </span>                :<span class="lineNoCov">          0 :         errno = 0;</span>
+<span class="lineNum">      95 </span>                :<span class="lineNoCov">          0 :         error = ioctl(di-&gt;zhp-&gt;zfs_hdl-&gt;libzfs_fd, ZFS_IOC_OBJ_TO_STATS, &amp;zc);</span>
+<span class="lineNum">      96 </span>                :<span class="lineNoCov">          0 :         di-&gt;zerr = errno;</span>
+<span class="lineNum">      97 </span>                :            : 
+<span class="lineNum">      98 </span>                :            :         /* we can get stats even if we failed to get a path */
+<span class="lineNum">      99 </span>                :<span class="lineNoCov">          0 :         (void) memcpy(sb, &amp;zc.zc_stat, sizeof (zfs_stat_t));</span>
+<span class="lineNum">     100 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error == 0) {</span>
+<span class="lineNum">     101 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(di-&gt;zerr == 0);</span>
+<span class="lineNum">     102 </span>                :<span class="lineNoCov">          0 :                 (void) strlcpy(pn, zc.zc_value, maxlen);</span>
+<span class="lineNum">     103 </span>                :<span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">     104 </span>                :            :         }
+<span class="lineNum">     105 </span>                :            : 
+<span class="lineNum">     106 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di-&gt;zerr == EPERM) {</span>
+<span class="lineNum">     107 </span>                :<span class="lineNoCov">          0 :                 (void) snprintf(di-&gt;errbuf, sizeof (di-&gt;errbuf),</span>
+<span class="lineNum">     108 </span>                :<span class="lineNoCov">          0 :                     dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     109 </span>                :            :                     &quot;The sys_config privilege or diff delegated permission &quot;
+<span class="lineNum">     110 </span>                :            :                     &quot;is needed\nto discover path names&quot;));
+<span class="lineNum">     111 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     112 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } else if (di-&gt;zerr == EACCES) {</span>
+<span class="lineNum">     113 </span>                :<span class="lineNoCov">          0 :                 (void) snprintf(di-&gt;errbuf, sizeof (di-&gt;errbuf),</span>
+<span class="lineNum">     114 </span>                :<span class="lineNoCov">          0 :                     dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     115 </span>                :            :                     &quot;Key must be loaded to discover path names&quot;));
+<span class="lineNum">     116 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     117 </span>                :            :         } else {
+<span class="lineNum">     118 </span>                :<span class="lineNoCov">          0 :                 (void) snprintf(di-&gt;errbuf, sizeof (di-&gt;errbuf),</span>
+<span class="lineNum">     119 </span>                :<span class="lineNoCov">          0 :                     dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     120 </span>                :            :                     &quot;Unable to determine path or stats for &quot;
+<span class="lineNum">     121 </span>                :            :                     &quot;object %lld in %s&quot;), (longlong_t)obj, dsname);
+<span class="lineNum">     122 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     123 </span>                :            :         }
+<span class="lineNum">     124 </span>                :            : }
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>                :            : /*
+<span class="lineNum">     127 </span>                :            :  * stream_bytes
+<span class="lineNum">     128 </span>                :            :  *
+<span class="lineNum">     129 </span>                :            :  * Prints a file name out a character at a time.  If the character is
+<span class="lineNum">     130 </span>                :            :  * not in the range of what we consider &quot;printable&quot; ASCII, display it
+<span class="lineNum">     131 </span>                :            :  * as an escaped 4-digit octal value.  ASCII values less than a space
+<span class="lineNum">     132 </span>                :            :  * are all control characters and we declare the upper end as the
+<span class="lineNum">     133 </span>                :            :  * DELete character.  This also is the last 7-bit ASCII character.
+<span class="lineNum">     134 </span>                :            :  * We choose to treat all 8-bit ASCII as not printable for this
+<span class="lineNum">     135 </span>                :            :  * application.
+<a name="136"><span class="lineNum">     136 </span>                :            :  */</a>
+<span class="lineNum">     137 </span>                :            : static void
+<span class="lineNum">     138 </span>                :<span class="lineNoCov">          0 : stream_bytes(FILE *fp, const char *string)</span>
+<span class="lineNum">     139 </span>                :            : {
+<span class="lineNum">     140 </span>                :            :         char c;
+<span class="lineNum">     141 </span>                :            : 
+<span class="lineNum">     142 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         while ((c = *string++) != '\0') {</span>
+<span class="lineNum">     143 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (c &gt; ' ' &amp;&amp; c != '\\' &amp;&amp; c &lt; '\177') {</span>
+<span class="lineNum">     144 </span>                :<span class="lineNoCov">          0 :                         (void) fprintf(fp, &quot;%c&quot;, c);</span>
+<span class="lineNum">     145 </span>                :            :                 } else {
+<span class="lineNum">     146 </span>                :<span class="lineNoCov">          0 :                         (void) fprintf(fp, &quot;\\%04o&quot;, (uint8_t)c);</span>
+<span class="lineNum">     147 </span>                :            :                 }
+<span class="lineNum">     148 </span>                :            :         }
+<span class="lineNum">     149 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="150"><span class="lineNum">     150 </span>                :            : </a>
+<span class="lineNum">     151 </span>                :            : static void
+<span class="lineNum">     152 </span>                :<span class="lineNoCov">          0 : print_what(FILE *fp, mode_t what)</span>
+<span class="lineNum">     153 </span>                :            : {
+<span class="lineNum">     154 </span>                :            :         char symbol;
+<span class="lineNum">     155 </span>                :            : 
+<span class="lineNum">     156 </span>  [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span> :<span class="lineNoCov">          0 :         switch (what &amp; S_IFMT) {</span>
+<span class="lineNum">         </span>   <span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span><span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">     157 </span>                :            :         case S_IFBLK:
+<span class="lineNum">     158 </span>                :            :                 symbol = 'B';
+<span class="lineNum">     159 </span>                :            :                 break;
+<span class="lineNum">     160 </span>                :            :         case S_IFCHR:
+<span class="lineNum">     161 </span>                :<span class="lineNoCov">          0 :                 symbol = 'C';</span>
+<span class="lineNum">     162 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     163 </span>                :            :         case S_IFDIR:
+<span class="lineNum">     164 </span>                :<span class="lineNoCov">          0 :                 symbol = '/';</span>
+<span class="lineNum">     165 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     166 </span>                :            : #ifdef S_IFDOOR
+<span class="lineNum">     167 </span>                :            :         case S_IFDOOR:
+<span class="lineNum">     168 </span>                :            :                 symbol = '&gt;';
+<span class="lineNum">     169 </span>                :            :                 break;
+<span class="lineNum">     170 </span>                :            : #endif
+<span class="lineNum">     171 </span>                :            :         case S_IFIFO:
+<span class="lineNum">     172 </span>                :<span class="lineNoCov">          0 :                 symbol = '|';</span>
+<span class="lineNum">     173 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     174 </span>                :            :         case S_IFLNK:
+<span class="lineNum">     175 </span>                :<span class="lineNoCov">          0 :                 symbol = '@';</span>
+<span class="lineNum">     176 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     177 </span>                :            : #ifdef S_IFPORT
+<span class="lineNum">     178 </span>                :            :         case S_IFPORT:
+<span class="lineNum">     179 </span>                :            :                 symbol = 'P';
+<span class="lineNum">     180 </span>                :            :                 break;
+<span class="lineNum">     181 </span>                :            : #endif
+<span class="lineNum">     182 </span>                :            :         case S_IFSOCK:
+<span class="lineNum">     183 </span>                :<span class="lineNoCov">          0 :                 symbol = '=';</span>
+<span class="lineNum">     184 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     185 </span>                :            :         case S_IFREG:
+<span class="lineNum">     186 </span>                :<span class="lineNoCov">          0 :                 symbol = 'F';</span>
+<span class="lineNum">     187 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     188 </span>                :            :         default:
+<span class="lineNum">     189 </span>                :<span class="lineNoCov">          0 :                 symbol = '?';</span>
+<span class="lineNum">     190 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     191 </span>                :            :         }
+<span class="lineNum">     192 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(fp, &quot;%c&quot;, symbol);</span>
+<span class="lineNum">     193 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="194"><span class="lineNum">     194 </span>                :            : </a>
+<span class="lineNum">     195 </span>                :            : static void
+<span class="lineNum">     196 </span>                :<span class="lineNoCov">          0 : print_cmn(FILE *fp, differ_info_t *di, const char *file)</span>
+<span class="lineNum">     197 </span>                :            : {
+<span class="lineNum">     198 </span>                :<span class="lineNoCov">          0 :         stream_bytes(fp, di-&gt;dsmnt);</span>
+<span class="lineNum">     199 </span>                :<span class="lineNoCov">          0 :         stream_bytes(fp, file);</span>
+<span class="lineNum">     200 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="201"><span class="lineNum">     201 </span>                :            : </a>
+<span class="lineNum">     202 </span>                :            : static void
+<span class="lineNum">     203 </span>                :<span class="lineNoCov">          0 : print_rename(FILE *fp, differ_info_t *di, const char *old, const char *new,</span>
+<span class="lineNum">     204 </span>                :            :     zfs_stat_t *isb)
+<span class="lineNum">     205 </span>                :            : {
+<span class="lineNum">     206 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di-&gt;timestamped)</span>
+<span class="lineNum">     207 </span>                :<span class="lineNoCov">          0 :                 (void) fprintf(fp, &quot;%10lld.%09lld\t&quot;,</span>
+<span class="lineNum">     208 </span>                :<span class="lineNoCov">          0 :                     (longlong_t)isb-&gt;zs_ctime[0],</span>
+<span class="lineNum">     209 </span>                :<span class="lineNoCov">          0 :                     (longlong_t)isb-&gt;zs_ctime[1]);</span>
+<span class="lineNum">     210 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(fp, &quot;%c\t&quot;, ZDIFF_RENAMED);</span>
+<span class="lineNum">     211 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di-&gt;classify) {</span>
+<span class="lineNum">     212 </span>                :<span class="lineNoCov">          0 :                 print_what(fp, isb-&gt;zs_mode);</span>
+<span class="lineNum">     213 </span>                :            :                 (void) fprintf(fp, &quot;\t&quot;);
+<span class="lineNum">     214 </span>                :            :         }
+<span class="lineNum">     215 </span>                :<span class="lineNoCov">          0 :         print_cmn(fp, di, old);</span>
+<span class="lineNum">     216 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di-&gt;scripted)</span>
+<span class="lineNum">     217 </span>                :            :                 (void) fprintf(fp, &quot;\t&quot;);
+<span class="lineNum">     218 </span>                :            :         else
+<span class="lineNum">     219 </span>                :            :                 (void) fprintf(fp, &quot; -&gt; &quot;);
+<span class="lineNum">     220 </span>                :<span class="lineNoCov">          0 :         print_cmn(fp, di, new);</span>
+<span class="lineNum">     221 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(fp, &quot;\n&quot;);</span>
+<span class="lineNum">     222 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="223"><span class="lineNum">     223 </span>                :            : </a>
+<span class="lineNum">     224 </span>                :            : static void
+<span class="lineNum">     225 </span>                :<span class="lineNoCov">          0 : print_link_change(FILE *fp, differ_info_t *di, int delta, const char *file,</span>
+<span class="lineNum">     226 </span>                :            :     zfs_stat_t *isb)
+<span class="lineNum">     227 </span>                :            : {
+<span class="lineNum">     228 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di-&gt;timestamped)</span>
+<span class="lineNum">     229 </span>                :<span class="lineNoCov">          0 :                 (void) fprintf(fp, &quot;%10lld.%09lld\t&quot;,</span>
+<span class="lineNum">     230 </span>                :<span class="lineNoCov">          0 :                     (longlong_t)isb-&gt;zs_ctime[0],</span>
+<span class="lineNum">     231 </span>                :<span class="lineNoCov">          0 :                     (longlong_t)isb-&gt;zs_ctime[1]);</span>
+<span class="lineNum">     232 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(fp, &quot;%c\t&quot;, ZDIFF_MODIFIED);</span>
+<span class="lineNum">     233 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di-&gt;classify) {</span>
+<span class="lineNum">     234 </span>                :<span class="lineNoCov">          0 :                 print_what(fp, isb-&gt;zs_mode);</span>
+<span class="lineNum">     235 </span>                :            :                 (void) fprintf(fp, &quot;\t&quot;);
+<span class="lineNum">     236 </span>                :            :         }
+<span class="lineNum">     237 </span>                :<span class="lineNoCov">          0 :         print_cmn(fp, di, file);</span>
+<span class="lineNum">     238 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(fp, &quot;\t(%+d)&quot;, delta);</span>
+<span class="lineNum">     239 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(fp, &quot;\n&quot;);</span>
+<span class="lineNum">     240 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="241"><span class="lineNum">     241 </span>                :            : </a>
+<span class="lineNum">     242 </span>                :            : static void
+<span class="lineNum">     243 </span>                :<span class="lineNoCov">          0 : print_file(FILE *fp, differ_info_t *di, char type, const char *file,</span>
+<span class="lineNum">     244 </span>                :            :     zfs_stat_t *isb)
+<span class="lineNum">     245 </span>                :            : {
+<span class="lineNum">     246 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di-&gt;timestamped)</span>
+<span class="lineNum">     247 </span>                :<span class="lineNoCov">          0 :                 (void) fprintf(fp, &quot;%10lld.%09lld\t&quot;,</span>
+<span class="lineNum">     248 </span>                :<span class="lineNoCov">          0 :                     (longlong_t)isb-&gt;zs_ctime[0],</span>
+<span class="lineNum">     249 </span>                :<span class="lineNoCov">          0 :                     (longlong_t)isb-&gt;zs_ctime[1]);</span>
+<span class="lineNum">     250 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(fp, &quot;%c\t&quot;, type);</span>
+<span class="lineNum">     251 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di-&gt;classify) {</span>
+<span class="lineNum">     252 </span>                :<span class="lineNoCov">          0 :                 print_what(fp, isb-&gt;zs_mode);</span>
+<span class="lineNum">     253 </span>                :            :                 (void) fprintf(fp, &quot;\t&quot;);
+<span class="lineNum">     254 </span>                :            :         }
+<span class="lineNum">     255 </span>                :<span class="lineNoCov">          0 :         print_cmn(fp, di, file);</span>
+<span class="lineNum">     256 </span>                :<span class="lineNoCov">          0 :         (void) fprintf(fp, &quot;\n&quot;);</span>
+<span class="lineNum">     257 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="258"><span class="lineNum">     258 </span>                :            : </a>
+<span class="lineNum">     259 </span>                :            : static int
+<span class="lineNum">     260 </span>                :<span class="lineNoCov">          0 : write_inuse_diffs_one(FILE *fp, differ_info_t *di, uint64_t dobj)</span>
+<span class="lineNum">     261 </span>                :            : {
+<span class="lineNum">     262 </span>                :            :         struct zfs_stat fsb, tsb;
+<span class="lineNum">     263 </span>                :            :         mode_t fmode, tmode;
+<span class="lineNum">     264 </span>                :            :         char fobjname[MAXPATHLEN], tobjname[MAXPATHLEN];
+<span class="lineNum">     265 </span>                :            :         int fobjerr, tobjerr;
+<span class="lineNum">     266 </span>                :            :         int change;
+<span class="lineNum">     267 </span>                :            : 
+<span class="lineNum">     268 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (dobj == di-&gt;shares)</span>
+<span class="lineNum">     269 </span>                :            :                 return (0);
+<span class="lineNum">     270 </span>                :            : 
+<span class="lineNum">     271 </span>                :            :         /*
+<span class="lineNum">     272 </span>                :            :          * Check the from and to snapshots for info on the object. If
+<span class="lineNum">     273 </span>                :            :          * we get ENOENT, then the object just didn't exist in that
+<span class="lineNum">     274 </span>                :            :          * snapshot.  If we get ENOTSUP, then we tried to get
+<span class="lineNum">     275 </span>                :            :          * info on a non-ZPL object, which we don't care about anyway.
+<span class="lineNum">     276 </span>                :            :          */
+<span class="lineNum">     277 </span>                :<span class="lineNoCov">          0 :         fobjerr = get_stats_for_obj(di, di-&gt;fromsnap, dobj, fobjname,</span>
+<span class="lineNum">     278 </span>                :            :             MAXPATHLEN, &amp;fsb);
+<span class="lineNum">     279 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (fobjerr &amp;&amp; di-&gt;zerr != ENOENT &amp;&amp; di-&gt;zerr != ENOTSUP)</span>
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">     280 </span>                :            :                 return (-1);
+<span class="lineNum">     281 </span>                :            : 
+<span class="lineNum">     282 </span>                :<span class="lineNoCov">          0 :         tobjerr = get_stats_for_obj(di, di-&gt;tosnap, dobj, tobjname,</span>
+<span class="lineNum">     283 </span>                :            :             MAXPATHLEN, &amp;tsb);
+<span class="lineNum">     284 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tobjerr &amp;&amp; di-&gt;zerr != ENOENT &amp;&amp; di-&gt;zerr != ENOTSUP)</span>
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">     285 </span>                :            :                 return (-1);
+<span class="lineNum">     286 </span>                :            : 
+<span class="lineNum">     287 </span>                :            :         /*
+<span class="lineNum">     288 </span>                :            :          * Unallocated object sharing the same meta dnode block
+<span class="lineNum">     289 </span>                :            :          */
+<span class="lineNum">     290 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (fobjerr &amp;&amp; tobjerr) {</span>
+<span class="lineNum">     291 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(di-&gt;zerr == ENOENT || di-&gt;zerr == ENOTSUP);</span>
+<span class="lineNum">     292 </span>                :<span class="lineNoCov">          0 :                 di-&gt;zerr = 0;</span>
+<span class="lineNum">     293 </span>                :<span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">     294 </span>                :            :         }
+<span class="lineNum">     295 </span>                :            : 
+<span class="lineNum">     296 </span>                :<span class="lineNoCov">          0 :         di-&gt;zerr = 0; /* negate get_stats_for_obj() from side that failed */</span>
+<span class="lineNum">     297 </span>                :<span class="lineNoCov">          0 :         fmode = fsb.zs_mode &amp; S_IFMT;</span>
+<span class="lineNum">     298 </span>                :<span class="lineNoCov">          0 :         tmode = tsb.zs_mode &amp; S_IFMT;</span>
+<span class="lineNum">     299 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (fmode == S_IFDIR || tmode == S_IFDIR || fsb.zs_links == 0 ||</span>
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">     300 </span>                :<span class="lineNoCov">          0 :             tsb.zs_links == 0)</span>
+<span class="lineNum">     301 </span>                :            :                 change = 0;
+<span class="lineNum">     302 </span>                :            :         else
+<span class="lineNum">     303 </span>                :<span class="lineNoCov">          0 :                 change = tsb.zs_links - fsb.zs_links;</span>
+<span class="lineNum">     304 </span>                :            : 
+<span class="lineNum">     305 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (fobjerr) {</span>
+<span class="lineNum">     306 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (change) {</span>
+<span class="lineNum">     307 </span>                :<span class="lineNoCov">          0 :                         print_link_change(fp, di, change, tobjname, &amp;tsb);</span>
+<span class="lineNum">     308 </span>                :<span class="lineNoCov">          0 :                         return (0);</span>
+<span class="lineNum">     309 </span>                :            :                 }
+<span class="lineNum">     310 </span>                :<span class="lineNoCov">          0 :                 print_file(fp, di, ZDIFF_ADDED, tobjname, &amp;tsb);</span>
+<span class="lineNum">     311 </span>                :<span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">     312 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } else if (tobjerr) {</span>
+<span class="lineNum">     313 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (change) {</span>
+<span class="lineNum">     314 </span>                :<span class="lineNoCov">          0 :                         print_link_change(fp, di, change, fobjname, &amp;fsb);</span>
+<span class="lineNum">     315 </span>                :<span class="lineNoCov">          0 :                         return (0);</span>
+<span class="lineNum">     316 </span>                :            :                 }
+<span class="lineNum">     317 </span>                :<span class="lineNoCov">          0 :                 print_file(fp, di, ZDIFF_REMOVED, fobjname, &amp;fsb);</span>
+<span class="lineNum">     318 </span>                :<span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">     319 </span>                :            :         }
+<span class="lineNum">     320 </span>                :            : 
+<span class="lineNum">     321 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (fmode != tmode &amp;&amp; fsb.zs_gen == tsb.zs_gen)</span>
+<span class="lineNum">     322 </span>                :<span class="lineNoCov">          0 :                 tsb.zs_gen++;   /* Force a generational difference */</span>
+<span class="lineNum">     323 </span>                :            : 
+<span class="lineNum">     324 </span>                :            :         /* Simple modification or no change */
+<span class="lineNum">     325 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (fsb.zs_gen == tsb.zs_gen) {</span>
+<span class="lineNum">     326 </span>                :            :                 /* No apparent changes.  Could we assert !this?  */
+<span class="lineNum">     327 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (fsb.zs_ctime[0] == tsb.zs_ctime[0] &amp;&amp;</span>
+<span class="lineNum">     328 </span>                :<span class="lineNoCov">          0 :                     fsb.zs_ctime[1] == tsb.zs_ctime[1])</span>
+<span class="lineNum">     329 </span>                :            :                         return (0);
+<span class="lineNum">     330 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (change) {</span>
+<span class="lineNum">     331 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         print_link_change(fp, di, change,</span>
+<span class="lineNum">     332 </span>                :            :                             change &gt; 0 ? fobjname : tobjname, &amp;tsb);
+<span class="lineNum">     333 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (strcmp(fobjname, tobjname) == 0) {</span>
+<span class="lineNum">     334 </span>                :<span class="lineNoCov">          0 :                         print_file(fp, di, ZDIFF_MODIFIED, fobjname, &amp;tsb);</span>
+<span class="lineNum">     335 </span>                :            :                 } else {
+<span class="lineNum">     336 </span>                :<span class="lineNoCov">          0 :                         print_rename(fp, di, fobjname, tobjname, &amp;tsb);</span>
+<span class="lineNum">     337 </span>                :            :                 }
+<span class="lineNum">     338 </span>                :            :                 return (0);
+<span class="lineNum">     339 </span>                :            :         } else {
+<span class="lineNum">     340 </span>                :            :                 /* file re-created or object re-used */
+<span class="lineNum">     341 </span>                :<span class="lineNoCov">          0 :                 print_file(fp, di, ZDIFF_REMOVED, fobjname, &amp;fsb);</span>
+<span class="lineNum">     342 </span>                :<span class="lineNoCov">          0 :                 print_file(fp, di, ZDIFF_ADDED, tobjname, &amp;tsb);</span>
+<span class="lineNum">     343 </span>                :<span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">     344 </span>                :            :         }
+<span class="lineNum">     345 </span>                :            : }
+<a name="346"><span class="lineNum">     346 </span>                :            : </a>
+<span class="lineNum">     347 </span>                :            : static int
+<span class="lineNum">     348 </span>                :<span class="lineNoCov">          0 : write_inuse_diffs(FILE *fp, differ_info_t *di, dmu_diff_record_t *dr)</span>
+<span class="lineNum">     349 </span>                :            : {
+<span class="lineNum">     350 </span>                :            :         uint64_t o;
+<span class="lineNum">     351 </span>                :            :         int err;
+<span class="lineNum">     352 </span>                :            : 
+<span class="lineNum">     353 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (o = dr-&gt;ddr_first; o &lt;= dr-&gt;ddr_last; o++) {</span>
+<span class="lineNum">     354 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((err = write_inuse_diffs_one(fp, di, o)) != 0)</span>
+<span class="lineNum">     355 </span>                :            :                         return (err);
+<span class="lineNum">     356 </span>                :            :         }
+<span class="lineNum">     357 </span>                :            :         return (0);
+<span class="lineNum">     358 </span>                :            : }
+<a name="359"><span class="lineNum">     359 </span>                :            : </a>
+<span class="lineNum">     360 </span>                :            : static int
+<span class="lineNum">     361 </span>                :<span class="lineNoCov">          0 : describe_free(FILE *fp, differ_info_t *di, uint64_t object, char *namebuf,</span>
+<span class="lineNum">     362 </span>                :            :     int maxlen)
+<span class="lineNum">     363 </span>                :            : {
+<span class="lineNum">     364 </span>                :            :         struct zfs_stat sb;
+<span class="lineNum">     365 </span>                :            : 
+<span class="lineNum">     366 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (get_stats_for_obj(di, di-&gt;fromsnap, object, namebuf,</span>
+<span class="lineNum">     367 </span>                :            :             maxlen, &amp;sb) != 0) {
+<span class="lineNum">     368 </span>                :            :                 /* Let it slide, if in the delete queue on from side */
+<span class="lineNum">     369 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (di-&gt;zerr == ENOENT &amp;&amp; sb.zs_links == 0) {</span>
+<span class="lineNum">     370 </span>                :<span class="lineNoCov">          0 :                         di-&gt;zerr = 0;</span>
+<span class="lineNum">     371 </span>                :<span class="lineNoCov">          0 :                         return (0);</span>
+<span class="lineNum">     372 </span>                :            :                 }
+<span class="lineNum">     373 </span>                :            :                 return (-1);
+<span class="lineNum">     374 </span>                :            :         }
+<span class="lineNum">     375 </span>                :            : 
+<span class="lineNum">     376 </span>                :<span class="lineNoCov">          0 :         print_file(fp, di, ZDIFF_REMOVED, namebuf, &amp;sb);</span>
+<span class="lineNum">     377 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     378 </span>                :            : }
+<a name="379"><span class="lineNum">     379 </span>                :            : </a>
+<span class="lineNum">     380 </span>                :            : static int
+<span class="lineNum">     381 </span>                :<span class="lineNoCov">          0 : write_free_diffs(FILE *fp, differ_info_t *di, dmu_diff_record_t *dr)</span>
+<span class="lineNum">     382 </span>                :            : {
+<span class="lineNum">     383 </span>                :<span class="lineNoCov">          0 :         zfs_cmd_t zc = {&quot;\0&quot;};</span>
+<span class="lineNum">     384 </span>                :<span class="lineNoCov">          0 :         libzfs_handle_t *lhdl = di-&gt;zhp-&gt;zfs_hdl;</span>
+<span class="lineNum">     385 </span>                :            :         char fobjname[MAXPATHLEN];
+<span class="lineNum">     386 </span>                :            : 
+<span class="lineNum">     387 </span>                :<span class="lineNoCov">          0 :         (void) strlcpy(zc.zc_name, di-&gt;fromsnap, sizeof (zc.zc_name));</span>
+<span class="lineNum">     388 </span>                :<span class="lineNoCov">          0 :         zc.zc_obj = dr-&gt;ddr_first - 1;</span>
+<span class="lineNum">     389 </span>                :            : 
+<span class="lineNum">     390 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(di-&gt;zerr == 0);</span>
+<span class="lineNum">     391 </span>                :            : 
+<span class="lineNum">     392 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         while (zc.zc_obj &lt; dr-&gt;ddr_last) {</span>
+<span class="lineNum">     393 </span>                :            :                 int err;
+<span class="lineNum">     394 </span>                :            : 
+<span class="lineNum">     395 </span>                :<span class="lineNoCov">          0 :                 err = ioctl(lhdl-&gt;libzfs_fd, ZFS_IOC_NEXT_OBJ, &amp;zc);</span>
+<span class="lineNum">     396 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (err == 0) {</span>
+<span class="lineNum">     397 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (zc.zc_obj == di-&gt;shares) {</span>
+<span class="lineNum">     398 </span>                :<span class="lineNoCov">          0 :                                 zc.zc_obj++;</span>
+<span class="lineNum">     399 </span>                :<span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     400 </span>                :            :                         }
+<span class="lineNum">     401 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (zc.zc_obj &gt; dr-&gt;ddr_last) {</span>
+<span class="lineNum">     402 </span>                :            :                                 break;
+<span class="lineNum">     403 </span>                :            :                         }
+<span class="lineNum">     404 </span>                :<span class="lineNoCov">          0 :                         err = describe_free(fp, di, zc.zc_obj, fobjname,</span>
+<span class="lineNum">     405 </span>                :            :                             MAXPATHLEN);
+<span class="lineNum">     406 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (err)</span>
+<span class="lineNum">     407 </span>                :            :                                 break;
+<span class="lineNum">     408 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (errno == ESRCH) {</span>
+<span class="lineNum">     409 </span>                :            :                         break;
+<span class="lineNum">     410 </span>                :            :                 } else {
+<span class="lineNum">     411 </span>                :<span class="lineNoCov">          0 :                         (void) snprintf(di-&gt;errbuf, sizeof (di-&gt;errbuf),</span>
+<span class="lineNum">     412 </span>                :<span class="lineNoCov">          0 :                             dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     413 </span>                :            :                             &quot;next allocated object (&gt; %lld) find failure&quot;),
+<span class="lineNum">     414 </span>                :<span class="lineNoCov">          0 :                             (longlong_t)zc.zc_obj);</span>
+<span class="lineNum">     415 </span>                :<span class="lineNoCov">          0 :                         di-&gt;zerr = errno;</span>
+<span class="lineNum">     416 </span>                :            :                         break;
+<span class="lineNum">     417 </span>                :            :                 }
+<span class="lineNum">     418 </span>                :            :         }
+<span class="lineNum">     419 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di-&gt;zerr)</span>
+<span class="lineNum">     420 </span>                :            :                 return (-1);
+<span class="lineNum">     421 </span>                :            :         return (0);
+<span class="lineNum">     422 </span>                :            : }
+<a name="423"><span class="lineNum">     423 </span>                :            : </a>
+<span class="lineNum">     424 </span>                :            : static void *
+<span class="lineNum">     425 </span>                :<span class="lineNoCov">          0 : differ(void *arg)</span>
+<span class="lineNum">     426 </span>                :            : {
+<span class="lineNum">     427 </span>                :<span class="lineNoCov">          0 :         differ_info_t *di = arg;</span>
+<span class="lineNum">     428 </span>                :            :         dmu_diff_record_t dr;
+<span class="lineNum">     429 </span>                :            :         FILE *ofp;
+<span class="lineNum">     430 </span>                :<span class="lineNoCov">          0 :         int err = 0;</span>
+<span class="lineNum">     431 </span>                :            : 
+<span class="lineNum">     432 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((ofp = fdopen(di-&gt;outputfd, &quot;w&quot;)) == NULL) {</span>
+<span class="lineNum">     433 </span>                :<span class="lineNoCov">          0 :                 di-&gt;zerr = errno;</span>
+<span class="lineNum">     434 </span>                :<span class="lineNoCov">          0 :                 strlcpy(di-&gt;errbuf, strerror(errno), sizeof (di-&gt;errbuf));</span>
+<span class="lineNum">     435 </span>                :<span class="lineNoCov">          0 :                 (void) close(di-&gt;datafd);</span>
+<span class="lineNum">     436 </span>                :<span class="lineNoCov">          0 :                 return ((void *)-1);</span>
+<span class="lineNum">     437 </span>                :            :         }
+<span class="lineNum">     438 </span>                :            : 
+<span class="lineNum">     439 </span>                :            :         for (;;) {
+<span class="lineNum">     440 </span>                :<span class="lineNoCov">          0 :                 char *cp = (char *)&amp;dr;</span>
+<span class="lineNum">     441 </span>                :<span class="lineNoCov">          0 :                 int len = sizeof (dr);</span>
+<span class="lineNum">     442 </span>                :            :                 int rv;
+<span class="lineNum">     443 </span>                :            : 
+<span class="lineNum">     444 </span>                :            :                 do {
+<span class="lineNum">     445 </span>                :<span class="lineNoCov">          0 :                         rv = read(di-&gt;datafd, cp, len);</span>
+<span class="lineNum">     446 </span>                :<span class="lineNoCov">          0 :                         cp += rv;</span>
+<span class="lineNum">     447 </span>                :<span class="lineNoCov">          0 :                         len -= rv;</span>
+<span class="lineNum">     448 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } while (len &gt; 0 &amp;&amp; rv &gt; 0);</span>
+<span class="lineNum">     449 </span>                :            : 
+<span class="lineNum">     450 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (rv &lt; 0 || (rv == 0 &amp;&amp; len != sizeof (dr))) {</span>
+<span class="lineNum">     451 </span>                :<span class="lineNoCov">          0 :                         di-&gt;zerr = EPIPE;</span>
+<span class="lineNum">     452 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     453 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (rv == 0) {</span>
+<span class="lineNum">     454 </span>                :            :                         /* end of file at a natural breaking point */
+<span class="lineNum">     455 </span>                :            :                         break;
+<span class="lineNum">     456 </span>                :            :                 }
+<span class="lineNum">     457 </span>                :            : 
+<span class="lineNum">     458 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 switch (dr.ddr_type) {</span>
+<span class="lineNum">     459 </span>                :            :                 case DDR_FREE:
+<span class="lineNum">     460 </span>                :<span class="lineNoCov">          0 :                         err = write_free_diffs(ofp, di, &amp;dr);</span>
+<span class="lineNum">     461 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     462 </span>                :            :                 case DDR_INUSE:
+<span class="lineNum">     463 </span>                :<span class="lineNoCov">          0 :                         err = write_inuse_diffs(ofp, di, &amp;dr);</span>
+<span class="lineNum">     464 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     465 </span>                :            :                 default:
+<span class="lineNum">     466 </span>                :<span class="lineNoCov">          0 :                         di-&gt;zerr = EPIPE;</span>
+<span class="lineNum">     467 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     468 </span>                :            :                 }
+<span class="lineNum">     469 </span>                :            : 
+<span class="lineNum">     470 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (err || di-&gt;zerr)</span>
+<span class="lineNum">     471 </span>                :            :                         break;
+<span class="lineNum">     472 </span>                :            :         }
+<span class="lineNum">     473 </span>                :            : 
+<span class="lineNum">     474 </span>                :<span class="lineNoCov">          0 :         (void) fclose(ofp);</span>
+<span class="lineNum">     475 </span>                :<span class="lineNoCov">          0 :         (void) close(di-&gt;datafd);</span>
+<span class="lineNum">     476 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (err)</span>
+<span class="lineNum">     477 </span>                :            :                 return ((void *)-1);
+<span class="lineNum">     478 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di-&gt;zerr) {</span>
+<span class="lineNum">     479 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(di-&gt;zerr == EINVAL);</span>
+<span class="lineNum">     480 </span>                :<span class="lineNoCov">          0 :                 (void) snprintf(di-&gt;errbuf, sizeof (di-&gt;errbuf),</span>
+<span class="lineNum">     481 </span>                :<span class="lineNoCov">          0 :                     dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     482 </span>                :            :                     &quot;Internal error: bad data from diff IOCTL&quot;));
+<span class="lineNum">     483 </span>                :<span class="lineNoCov">          0 :                 return ((void *)-1);</span>
+<span class="lineNum">     484 </span>                :            :         }
+<span class="lineNum">     485 </span>                :            :         return ((void *)0);
+<span class="lineNum">     486 </span>                :            : }
+<a name="487"><span class="lineNum">     487 </span>                :            : </a>
+<span class="lineNum">     488 </span>                :            : static int
+<span class="lineNum">     489 </span>                :<span class="lineNoCov">          0 : find_shares_object(differ_info_t *di)</span>
+<span class="lineNum">     490 </span>                :            : {
+<span class="lineNum">     491 </span>                :            :         char fullpath[MAXPATHLEN];
+<span class="lineNum">     492 </span>                :<span class="lineNoCov">          0 :         struct stat64 sb = { 0 };</span>
+<span class="lineNum">     493 </span>                :            : 
+<span class="lineNum">     494 </span>                :<span class="lineNoCov">          0 :         (void) strlcpy(fullpath, di-&gt;dsmnt, MAXPATHLEN);</span>
+<span class="lineNum">     495 </span>                :<span class="lineNoCov">          0 :         (void) strlcat(fullpath, ZDIFF_SHARESDIR, MAXPATHLEN);</span>
+<span class="lineNum">     496 </span>                :            : 
+<span class="lineNum">     497 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (stat64(fullpath, &amp;sb) != 0) {</span>
+<span class="lineNum">     498 </span>                :<span class="lineNoCov">          0 :                 (void) snprintf(di-&gt;errbuf, sizeof (di-&gt;errbuf),</span>
+<span class="lineNum">     499 </span>                :<span class="lineNoCov">          0 :                     dgettext(TEXT_DOMAIN, &quot;Cannot stat %s&quot;), fullpath);</span>
+<span class="lineNum">     500 </span>                :<span class="lineNoCov">          0 :                 return (zfs_error(di-&gt;zhp-&gt;zfs_hdl, EZFS_DIFF, di-&gt;errbuf));</span>
+<span class="lineNum">     501 </span>                :            :         }
+<span class="lineNum">     502 </span>                :            : 
+<span class="lineNum">     503 </span>                :<span class="lineNoCov">          0 :         di-&gt;shares = (uint64_t)sb.st_ino;</span>
+<span class="lineNum">     504 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     505 </span>                :            : }
+<a name="506"><span class="lineNum">     506 </span>                :            : </a>
+<span class="lineNum">     507 </span>                :            : static int
+<span class="lineNum">     508 </span>                :<span class="lineNoCov">          0 : make_temp_snapshot(differ_info_t *di)</span>
+<span class="lineNum">     509 </span>                :            : {
+<span class="lineNum">     510 </span>                :<span class="lineNoCov">          0 :         libzfs_handle_t *hdl = di-&gt;zhp-&gt;zfs_hdl;</span>
+<span class="lineNum">     511 </span>                :<span class="lineNoCov">          0 :         zfs_cmd_t zc = {&quot;\0&quot;};</span>
+<span class="lineNum">     512 </span>                :            : 
+<span class="lineNum">     513 </span>                :<span class="lineNoCov">          0 :         (void) snprintf(zc.zc_value, sizeof (zc.zc_value),</span>
+<span class="lineNum">     514 </span>                :            :             ZDIFF_PREFIX, getpid());
+<span class="lineNum">     515 </span>                :<span class="lineNoCov">          0 :         (void) strlcpy(zc.zc_name, di-&gt;ds, sizeof (zc.zc_name));</span>
+<span class="lineNum">     516 </span>                :<span class="lineNoCov">          0 :         zc.zc_cleanup_fd = di-&gt;cleanupfd;</span>
+<span class="lineNum">     517 </span>                :            : 
+<span class="lineNum">     518 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ioctl(hdl-&gt;libzfs_fd, ZFS_IOC_TMP_SNAPSHOT, &amp;zc) != 0) {</span>
+<span class="lineNum">     519 </span>                :<span class="lineNoCov">          0 :                 int err = errno;</span>
+<span class="lineNum">     520 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (err == EPERM) {</span>
+<span class="lineNum">     521 </span>                :<span class="lineNoCov">          0 :                         (void) snprintf(di-&gt;errbuf, sizeof (di-&gt;errbuf),</span>
+<span class="lineNum">     522 </span>                :<span class="lineNoCov">          0 :                             dgettext(TEXT_DOMAIN, &quot;The diff delegated &quot;</span>
+<span class="lineNum">     523 </span>                :            :                             &quot;permission is needed in order\nto create a &quot;
+<span class="lineNum">     524 </span>                :            :                             &quot;just-in-time snapshot for diffing\n&quot;));
+<span class="lineNum">     525 </span>                :<span class="lineNoCov">          0 :                         return (zfs_error(hdl, EZFS_DIFF, di-&gt;errbuf));</span>
+<span class="lineNum">     526 </span>                :            :                 } else {
+<span class="lineNum">     527 </span>                :<span class="lineNoCov">          0 :                         (void) snprintf(di-&gt;errbuf, sizeof (di-&gt;errbuf),</span>
+<span class="lineNum">     528 </span>                :<span class="lineNoCov">          0 :                             dgettext(TEXT_DOMAIN, &quot;Cannot create just-in-time &quot;</span>
+<span class="lineNum">     529 </span>                :            :                             &quot;snapshot of '%s'&quot;), zc.zc_name);
+<span class="lineNum">     530 </span>                :<span class="lineNoCov">          0 :                         return (zfs_standard_error(hdl, err, di-&gt;errbuf));</span>
+<span class="lineNum">     531 </span>                :            :                 }
+<span class="lineNum">     532 </span>                :            :         }
+<span class="lineNum">     533 </span>                :            : 
+<span class="lineNum">     534 </span>                :<span class="lineNoCov">          0 :         di-&gt;tmpsnap = zfs_strdup(hdl, zc.zc_value);</span>
+<span class="lineNum">     535 </span>                :<span class="lineNoCov">          0 :         di-&gt;tosnap = zfs_asprintf(hdl, &quot;%s@%s&quot;, di-&gt;ds, di-&gt;tmpsnap);</span>
+<span class="lineNum">     536 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     537 </span>                :            : }
+<a name="538"><span class="lineNum">     538 </span>                :            : </a>
+<span class="lineNum">     539 </span>                :            : static void
+<span class="lineNum">     540 </span>                :<span class="lineNoCov">          0 : teardown_differ_info(differ_info_t *di)</span>
+<span class="lineNum">     541 </span>                :            : {
+<span class="lineNum">     542 </span>                :<span class="lineNoCov">          0 :         free(di-&gt;ds);</span>
+<span class="lineNum">     543 </span>                :<span class="lineNoCov">          0 :         free(di-&gt;dsmnt);</span>
+<span class="lineNum">     544 </span>                :<span class="lineNoCov">          0 :         free(di-&gt;fromsnap);</span>
+<span class="lineNum">     545 </span>                :<span class="lineNoCov">          0 :         free(di-&gt;frommnt);</span>
+<span class="lineNum">     546 </span>                :<span class="lineNoCov">          0 :         free(di-&gt;tosnap);</span>
+<span class="lineNum">     547 </span>                :<span class="lineNoCov">          0 :         free(di-&gt;tmpsnap);</span>
+<span class="lineNum">     548 </span>                :<span class="lineNoCov">          0 :         free(di-&gt;tomnt);</span>
+<span class="lineNum">     549 </span>                :<span class="lineNoCov">          0 :         (void) close(di-&gt;cleanupfd);</span>
+<span class="lineNum">     550 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="551"><span class="lineNum">     551 </span>                :            : </a>
+<span class="lineNum">     552 </span>                :            : static int
+<span class="lineNum">     553 </span>                :<span class="lineNoCov">          0 : get_snapshot_names(differ_info_t *di, const char *fromsnap,</span>
+<span class="lineNum">     554 </span>                :            :     const char *tosnap)
+<span class="lineNum">     555 </span>                :            : {
+<span class="lineNum">     556 </span>                :<span class="lineNoCov">          0 :         libzfs_handle_t *hdl = di-&gt;zhp-&gt;zfs_hdl;</span>
+<span class="lineNum">     557 </span>                :<span class="lineNoCov">          0 :         char *atptrf = NULL;</span>
+<span class="lineNum">     558 </span>                :<span class="lineNoCov">          0 :         char *atptrt = NULL;</span>
+<span class="lineNum">     559 </span>                :            :         int fdslen, fsnlen;
+<span class="lineNum">     560 </span>                :            :         int tdslen, tsnlen;
+<span class="lineNum">     561 </span>                :            : 
+<span class="lineNum">     562 </span>                :            :         /*
+<span class="lineNum">     563 </span>                :            :          * Can accept
+<span class="lineNum">     564 </span>                :            :          *                                      fdslen fsnlen tdslen tsnlen
+<span class="lineNum">     565 </span>                :            :          *       dataset@snap1
+<span class="lineNum">     566 </span>                :            :          *    0. dataset@snap1 dataset@snap2      &gt;0     &gt;1     &gt;0     &gt;1
+<span class="lineNum">     567 </span>                :            :          *    1. dataset@snap1 @snap2             &gt;0     &gt;1    ==0     &gt;1
+<span class="lineNum">     568 </span>                :            :          *    2. dataset@snap1 dataset            &gt;0     &gt;1     &gt;0    ==0
+<span class="lineNum">     569 </span>                :            :          *    3. @snap1 dataset@snap2            ==0     &gt;1     &gt;0     &gt;1
+<span class="lineNum">     570 </span>                :            :          *    4. @snap1 dataset                  ==0     &gt;1     &gt;0    ==0
+<span class="lineNum">     571 </span>                :            :          */
+<span class="lineNum">     572 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tosnap == NULL) {</span>
+<span class="lineNum">     573 </span>                :            :                 /* only a from snapshot given, must be valid */
+<span class="lineNum">     574 </span>                :<span class="lineNoCov">          0 :                 (void) snprintf(di-&gt;errbuf, sizeof (di-&gt;errbuf),</span>
+<span class="lineNum">     575 </span>                :<span class="lineNoCov">          0 :                     dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     576 </span>                :            :                     &quot;Badly formed snapshot name %s&quot;), fromsnap);
+<span class="lineNum">     577 </span>                :            : 
+<span class="lineNum">     578 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (!zfs_validate_name(hdl, fromsnap, ZFS_TYPE_SNAPSHOT,</span>
+<span class="lineNum">     579 </span>                :            :                     B_FALSE)) {
+<span class="lineNum">     580 </span>                :<span class="lineNoCov">          0 :                         return (zfs_error(hdl, EZFS_INVALIDNAME,</span>
+<span class="lineNum">     581 </span>                :            :                             di-&gt;errbuf));
+<span class="lineNum">     582 </span>                :            :                 }
+<span class="lineNum">     583 </span>                :            : 
+<span class="lineNum">     584 </span>                :<span class="lineNoCov">          0 :                 atptrf = strchr(fromsnap, '@');</span>
+<span class="lineNum">     585 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(atptrf != NULL);</span>
+<span class="lineNum">     586 </span>                :<span class="lineNoCov">          0 :                 fdslen = atptrf - fromsnap;</span>
+<span class="lineNum">     587 </span>                :            : 
+<span class="lineNum">     588 </span>                :<span class="lineNoCov">          0 :                 di-&gt;fromsnap = zfs_strdup(hdl, fromsnap);</span>
+<span class="lineNum">     589 </span>                :<span class="lineNoCov">          0 :                 di-&gt;ds = zfs_strdup(hdl, fromsnap);</span>
+<span class="lineNum">     590 </span>                :<span class="lineNoCov">          0 :                 di-&gt;ds[fdslen] = '\0';</span>
+<span class="lineNum">     591 </span>                :            : 
+<span class="lineNum">     592 </span>                :            :                 /* the to snap will be a just-in-time snap of the head */
+<span class="lineNum">     593 </span>                :<span class="lineNoCov">          0 :                 return (make_temp_snapshot(di));</span>
+<span class="lineNum">     594 </span>                :            :         }
+<span class="lineNum">     595 </span>                :            : 
+<span class="lineNum">     596 </span>                :<span class="lineNoCov">          0 :         (void) snprintf(di-&gt;errbuf, sizeof (di-&gt;errbuf),</span>
+<span class="lineNum">     597 </span>                :<span class="lineNoCov">          0 :             dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     598 </span>                :            :             &quot;Unable to determine which snapshots to compare&quot;));
+<span class="lineNum">     599 </span>                :            : 
+<span class="lineNum">     600 </span>                :<span class="lineNoCov">          0 :         atptrf = strchr(fromsnap, '@');</span>
+<span class="lineNum">     601 </span>                :<span class="lineNoCov">          0 :         atptrt = strchr(tosnap, '@');</span>
+<span class="lineNum">     602 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         fdslen = atptrf ? atptrf - fromsnap : strlen(fromsnap);</span>
+<span class="lineNum">     603 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         tdslen = atptrt ? atptrt - tosnap : strlen(tosnap);</span>
+<span class="lineNum">     604 </span>                :<span class="lineNoCov">          0 :         fsnlen = strlen(fromsnap) - fdslen;     /* includes @ sign */</span>
+<span class="lineNum">     605 </span>                :<span class="lineNoCov">          0 :         tsnlen = strlen(tosnap) - tdslen;       /* includes @ sign */</span>
+<span class="lineNum">     606 </span>                :            : 
+<span class="lineNum">     607 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (fsnlen &lt;= 1 || tsnlen == 1 || (fdslen == 0 &amp;&amp; tdslen == 0)) {</span>
+<span class="lineNum">     608 </span>                :<span class="lineNoCov">          0 :                 return (zfs_error(hdl, EZFS_INVALIDNAME, di-&gt;errbuf));</span>
+<span class="lineNum">     609 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } else if ((fdslen &gt; 0 &amp;&amp; tdslen &gt; 0) &amp;&amp;</span>
+<span class="lineNum">     610 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :             ((tdslen != fdslen || strncmp(fromsnap, tosnap, fdslen) != 0))) {</span>
+<span class="lineNum">     611 </span>                :            :                 /*
+<span class="lineNum">     612 </span>                :            :                  * not the same dataset name, might be okay if
+<span class="lineNum">     613 </span>                :            :                  * tosnap is a clone of a fromsnap descendant.
+<span class="lineNum">     614 </span>                :            :                  */
+<span class="lineNum">     615 </span>                :            :                 char origin[ZFS_MAX_DATASET_NAME_LEN];
+<span class="lineNum">     616 </span>                :            :                 zprop_source_t src;
+<span class="lineNum">     617 </span>                :            :                 zfs_handle_t *zhp;
+<span class="lineNum">     618 </span>                :            : 
+<span class="lineNum">     619 </span>                :<span class="lineNoCov">          0 :                 di-&gt;ds = zfs_alloc(di-&gt;zhp-&gt;zfs_hdl, tdslen + 1);</span>
+<span class="lineNum">     620 </span>                :<span class="lineNoCov">          0 :                 (void) strncpy(di-&gt;ds, tosnap, tdslen);</span>
+<span class="lineNum">     621 </span>                :<span class="lineNoCov">          0 :                 di-&gt;ds[tdslen] = '\0';</span>
+<span class="lineNum">     622 </span>                :            : 
+<span class="lineNum">     623 </span>                :<span class="lineNoCov">          0 :                 zhp = zfs_open(hdl, di-&gt;ds, ZFS_TYPE_FILESYSTEM);</span>
+<span class="lineNum">     624 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 while (zhp != NULL) {</span>
+<span class="lineNum">     625 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (zfs_prop_get(zhp, ZFS_PROP_ORIGIN, origin,</span>
+<span class="lineNum">     626 </span>                :            :                             sizeof (origin), &amp;src, NULL, 0, B_FALSE) != 0) {
+<span class="lineNum">     627 </span>                :<span class="lineNoCov">          0 :                                 (void) zfs_close(zhp);</span>
+<span class="lineNum">     628 </span>                :<span class="lineNoCov">          0 :                                 zhp = NULL;</span>
+<span class="lineNum">     629 </span>                :<span class="lineNoCov">          0 :                                 break;</span>
+<span class="lineNum">     630 </span>                :            :                         }
+<span class="lineNum">     631 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (strncmp(origin, fromsnap, fsnlen) == 0)</span>
+<span class="lineNum">     632 </span>                :            :                                 break;
+<span class="lineNum">     633 </span>                :            : 
+<span class="lineNum">     634 </span>                :<span class="lineNoCov">          0 :                         (void) zfs_close(zhp);</span>
+<span class="lineNum">     635 </span>                :<span class="lineNoCov">          0 :                         zhp = zfs_open(hdl, origin, ZFS_TYPE_FILESYSTEM);</span>
+<span class="lineNum">     636 </span>                :            :                 }
+<span class="lineNum">     637 </span>                :            : 
+<span class="lineNum">     638 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (zhp == NULL) {</span>
+<span class="lineNum">     639 </span>                :<span class="lineNoCov">          0 :                         (void) snprintf(di-&gt;errbuf, sizeof (di-&gt;errbuf),</span>
+<span class="lineNum">     640 </span>                :<span class="lineNoCov">          0 :                             dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     641 </span>                :            :                             &quot;Not an earlier snapshot from the same fs&quot;));
+<span class="lineNum">     642 </span>                :<span class="lineNoCov">          0 :                         return (zfs_error(hdl, EZFS_INVALIDNAME, di-&gt;errbuf));</span>
+<span class="lineNum">     643 </span>                :            :                 } else {
+<span class="lineNum">     644 </span>                :<span class="lineNoCov">          0 :                         (void) zfs_close(zhp);</span>
+<span class="lineNum">     645 </span>                :            :                 }
+<span class="lineNum">     646 </span>                :            : 
+<span class="lineNum">     647 </span>                :<span class="lineNoCov">          0 :                 di-&gt;isclone = B_TRUE;</span>
+<span class="lineNum">     648 </span>                :<span class="lineNoCov">          0 :                 di-&gt;fromsnap = zfs_strdup(hdl, fromsnap);</span>
+<span class="lineNum">     649 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (tsnlen) {</span>
+<span class="lineNum">     650 </span>                :<span class="lineNoCov">          0 :                         di-&gt;tosnap = zfs_strdup(hdl, tosnap);</span>
+<span class="lineNum">     651 </span>                :            :                 } else {
+<span class="lineNum">     652 </span>                :<span class="lineNoCov">          0 :                         return (make_temp_snapshot(di));</span>
+<span class="lineNum">     653 </span>                :            :                 }
+<span class="lineNum">     654 </span>                :            :         } else {
+<span class="lineNum">     655 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 int dslen = fdslen ? fdslen : tdslen;</span>
+<span class="lineNum">     656 </span>                :            : 
+<span class="lineNum">     657 </span>                :<span class="lineNoCov">          0 :                 di-&gt;ds = zfs_alloc(hdl, dslen + 1);</span>
+<span class="lineNum">     658 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 (void) strncpy(di-&gt;ds, fdslen ? fromsnap : tosnap, dslen);</span>
+<span class="lineNum">     659 </span>                :<span class="lineNoCov">          0 :                 di-&gt;ds[dslen] = '\0';</span>
+<span class="lineNum">     660 </span>                :            : 
+<span class="lineNum">     661 </span>                :<span class="lineNoCov">          0 :                 di-&gt;fromsnap = zfs_asprintf(hdl, &quot;%s%s&quot;, di-&gt;ds, atptrf);</span>
+<span class="lineNum">     662 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (tsnlen) {</span>
+<span class="lineNum">     663 </span>                :<span class="lineNoCov">          0 :                         di-&gt;tosnap = zfs_asprintf(hdl, &quot;%s%s&quot;, di-&gt;ds, atptrt);</span>
+<span class="lineNum">     664 </span>                :            :                 } else {
+<span class="lineNum">     665 </span>                :<span class="lineNoCov">          0 :                         return (make_temp_snapshot(di));</span>
+<span class="lineNum">     666 </span>                :            :                 }
+<span class="lineNum">     667 </span>                :            :         }
+<span class="lineNum">     668 </span>                :            :         return (0);
+<span class="lineNum">     669 </span>                :            : }
+<a name="670"><span class="lineNum">     670 </span>                :            : </a>
+<span class="lineNum">     671 </span>                :            : static int
+<span class="lineNum">     672 </span>                :<span class="lineNoCov">          0 : get_mountpoint(differ_info_t *di, char *dsnm, char **mntpt)</span>
+<span class="lineNum">     673 </span>                :            : {
+<span class="lineNum">     674 </span>                :            :         boolean_t mounted;
+<span class="lineNum">     675 </span>                :            : 
+<span class="lineNum">     676 </span>                :<span class="lineNoCov">          0 :         mounted = is_mounted(di-&gt;zhp-&gt;zfs_hdl, dsnm, mntpt);</span>
+<span class="lineNum">     677 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mounted == B_FALSE) {</span>
+<span class="lineNum">     678 </span>                :<span class="lineNoCov">          0 :                 (void) snprintf(di-&gt;errbuf, sizeof (di-&gt;errbuf),</span>
+<span class="lineNum">     679 </span>                :<span class="lineNoCov">          0 :                     dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     680 </span>                :            :                     &quot;Cannot diff an unmounted snapshot&quot;));
+<span class="lineNum">     681 </span>                :<span class="lineNoCov">          0 :                 return (zfs_error(di-&gt;zhp-&gt;zfs_hdl, EZFS_BADTYPE, di-&gt;errbuf));</span>
+<span class="lineNum">     682 </span>                :            :         }
+<span class="lineNum">     683 </span>                :            : 
+<span class="lineNum">     684 </span>                :            :         /* Avoid a double slash at the beginning of root-mounted datasets */
+<span class="lineNum">     685 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (**mntpt == '/' &amp;&amp; *(*mntpt + 1) == '\0')</span>
+<span class="lineNum">     686 </span>                :<span class="lineNoCov">          0 :                 **mntpt = '\0';</span>
+<span class="lineNum">     687 </span>                :            :         return (0);
+<span class="lineNum">     688 </span>                :            : }
+<a name="689"><span class="lineNum">     689 </span>                :            : </a>
+<span class="lineNum">     690 </span>                :            : static int
+<span class="lineNum">     691 </span>                :<span class="lineNoCov">          0 : get_mountpoints(differ_info_t *di)</span>
+<span class="lineNum">     692 </span>                :            : {
+<span class="lineNum">     693 </span>                :            :         char *strptr;
+<span class="lineNum">     694 </span>                :            :         char *frommntpt;
+<span class="lineNum">     695 </span>                :            : 
+<span class="lineNum">     696 </span>                :            :         /*
+<span class="lineNum">     697 </span>                :            :          * first get the mountpoint for the parent dataset
+<span class="lineNum">     698 </span>                :            :          */
+<span class="lineNum">     699 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (get_mountpoint(di, di-&gt;ds, &amp;di-&gt;dsmnt) != 0)</span>
+<span class="lineNum">     700 </span>                :            :                 return (-1);
+<span class="lineNum">     701 </span>                :            : 
+<span class="lineNum">     702 </span>                :<span class="lineNoCov">          0 :         strptr = strchr(di-&gt;tosnap, '@');</span>
+<span class="lineNum">     703 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3P(strptr, !=, NULL);</span>
+<span class="lineNum">     704 </span>                :<span class="lineNoCov">          0 :         di-&gt;tomnt = zfs_asprintf(di-&gt;zhp-&gt;zfs_hdl, &quot;%s%s%s&quot;, di-&gt;dsmnt,</span>
+<span class="lineNum">     705 </span>                :            :             ZDIFF_SNAPDIR, ++strptr);
+<span class="lineNum">     706 </span>                :            : 
+<span class="lineNum">     707 </span>                :<span class="lineNoCov">          0 :         strptr = strchr(di-&gt;fromsnap, '@');</span>
+<span class="lineNum">     708 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3P(strptr, !=, NULL);</span>
+<span class="lineNum">     709 </span>                :            : 
+<span class="lineNum">     710 </span>                :<span class="lineNoCov">          0 :         frommntpt = di-&gt;dsmnt;</span>
+<span class="lineNum">     711 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di-&gt;isclone) {</span>
+<span class="lineNum">     712 </span>                :            :                 char *mntpt;
+<span class="lineNum">     713 </span>                :            :                 int err;
+<span class="lineNum">     714 </span>                :            : 
+<span class="lineNum">     715 </span>                :<span class="lineNoCov">          0 :                 *strptr = '\0';</span>
+<span class="lineNum">     716 </span>                :<span class="lineNoCov">          0 :                 err = get_mountpoint(di, di-&gt;fromsnap, &amp;mntpt);</span>
+<span class="lineNum">     717 </span>                :<span class="lineNoCov">          0 :                 *strptr = '@';</span>
+<span class="lineNum">     718 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (err != 0)</span>
+<span class="lineNum">     719 </span>                :<span class="lineNoCov">          0 :                         return (-1);</span>
+<span class="lineNum">     720 </span>                :<span class="lineNoCov">          0 :                 frommntpt = mntpt;</span>
+<span class="lineNum">     721 </span>                :            :         }
+<span class="lineNum">     722 </span>                :            : 
+<span class="lineNum">     723 </span>                :<span class="lineNoCov">          0 :         di-&gt;frommnt = zfs_asprintf(di-&gt;zhp-&gt;zfs_hdl, &quot;%s%s%s&quot;, frommntpt,</span>
+<span class="lineNum">     724 </span>                :            :             ZDIFF_SNAPDIR, ++strptr);
+<span class="lineNum">     725 </span>                :            : 
+<span class="lineNum">     726 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di-&gt;isclone)</span>
+<span class="lineNum">     727 </span>                :<span class="lineNoCov">          0 :                 free(frommntpt);</span>
+<span class="lineNum">     728 </span>                :            : 
+<span class="lineNum">     729 </span>                :            :         return (0);
+<span class="lineNum">     730 </span>                :            : }
+<a name="731"><span class="lineNum">     731 </span>                :            : </a>
+<span class="lineNum">     732 </span>                :            : static int
+<span class="lineNum">     733 </span>                :<span class="lineNoCov">          0 : setup_differ_info(zfs_handle_t *zhp, const char *fromsnap,</span>
+<span class="lineNum">     734 </span>                :            :     const char *tosnap, differ_info_t *di)
+<span class="lineNum">     735 </span>                :            : {
+<span class="lineNum">     736 </span>                :<span class="lineNoCov">          0 :         di-&gt;zhp = zhp;</span>
+<span class="lineNum">     737 </span>                :            : 
+<span class="lineNum">     738 </span>                :<span class="lineNoCov">          0 :         di-&gt;cleanupfd = open(ZFS_DEV, O_RDWR);</span>
+<span class="lineNum">     739 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY(di-&gt;cleanupfd &gt;= 0);</span>
+<span class="lineNum">     740 </span>                :            : 
+<span class="lineNum">     741 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (get_snapshot_names(di, fromsnap, tosnap) != 0)</span>
+<span class="lineNum">     742 </span>                :            :                 return (-1);
+<span class="lineNum">     743 </span>                :            : 
+<span class="lineNum">     744 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (get_mountpoints(di) != 0)</span>
+<span class="lineNum">     745 </span>                :            :                 return (-1);
+<span class="lineNum">     746 </span>                :            : 
+<span class="lineNum">     747 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (find_shares_object(di) != 0)</span>
+<span class="lineNum">     748 </span>                :            :                 return (-1);
+<span class="lineNum">     749 </span>                :            : 
+<span class="lineNum">     750 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     751 </span>                :            : }
+<a name="752"><span class="lineNum">     752 </span>                :            : </a>
+<span class="lineNum">     753 </span>                :            : int
+<span class="lineNum">     754 </span>                :<span class="lineNoCov">          0 : zfs_show_diffs(zfs_handle_t *zhp, int outfd, const char *fromsnap,</span>
+<span class="lineNum">     755 </span>                :            :     const char *tosnap, int flags)
+<span class="lineNum">     756 </span>                :            : {
+<span class="lineNum">     757 </span>                :<span class="lineNoCov">          0 :         zfs_cmd_t zc = {&quot;\0&quot;};</span>
+<span class="lineNum">     758 </span>                :            :         char errbuf[1024];
+<span class="lineNum">     759 </span>                :<span class="lineNoCov">          0 :         differ_info_t di = { 0 };</span>
+<span class="lineNum">     760 </span>                :            :         pthread_t tid;
+<span class="lineNum">     761 </span>                :            :         int pipefd[2];
+<span class="lineNum">     762 </span>                :            :         int iocerr;
+<span class="lineNum">     763 </span>                :            : 
+<span class="lineNum">     764 </span>                :<span class="lineNoCov">          0 :         (void) snprintf(errbuf, sizeof (errbuf),</span>
+<span class="lineNum">     765 </span>                :<span class="lineNoCov">          0 :             dgettext(TEXT_DOMAIN, &quot;zfs diff failed&quot;));</span>
+<span class="lineNum">     766 </span>                :            : 
+<span class="lineNum">     767 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (setup_differ_info(zhp, fromsnap, tosnap, &amp;di)) {</span>
+<span class="lineNum">     768 </span>                :<span class="lineNoCov">          0 :                 teardown_differ_info(&amp;di);</span>
+<span class="lineNum">     769 </span>                :<span class="lineNoCov">          0 :                 return (-1);</span>
+<span class="lineNum">     770 </span>                :            :         }
+<span class="lineNum">     771 </span>                :            : 
+<span class="lineNum">     772 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (pipe(pipefd)) {</span>
+<span class="lineNum">     773 </span>                :<span class="lineNoCov">          0 :                 zfs_error_aux(zhp-&gt;zfs_hdl, strerror(errno));</span>
+<span class="lineNum">     774 </span>                :<span class="lineNoCov">          0 :                 teardown_differ_info(&amp;di);</span>
+<span class="lineNum">     775 </span>                :<span class="lineNoCov">          0 :                 return (zfs_error(zhp-&gt;zfs_hdl, EZFS_PIPEFAILED, errbuf));</span>
+<span class="lineNum">     776 </span>                :            :         }
+<span class="lineNum">     777 </span>                :            : 
+<span class="lineNum">     778 </span>                :<span class="lineNoCov">          0 :         di.scripted = (flags &amp; ZFS_DIFF_PARSEABLE);</span>
+<span class="lineNum">     779 </span>                :<span class="lineNoCov">          0 :         di.classify = (flags &amp; ZFS_DIFF_CLASSIFY);</span>
+<span class="lineNum">     780 </span>                :<span class="lineNoCov">          0 :         di.timestamped = (flags &amp; ZFS_DIFF_TIMESTAMP);</span>
+<span class="lineNum">     781 </span>                :            : 
+<span class="lineNum">     782 </span>                :<span class="lineNoCov">          0 :         di.outputfd = outfd;</span>
+<span class="lineNum">     783 </span>                :<span class="lineNoCov">          0 :         di.datafd = pipefd[0];</span>
+<span class="lineNum">     784 </span>                :            : 
+<span class="lineNum">     785 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (pthread_create(&amp;tid, NULL, differ, &amp;di)) {</span>
+<span class="lineNum">     786 </span>                :<span class="lineNoCov">          0 :                 zfs_error_aux(zhp-&gt;zfs_hdl, strerror(errno));</span>
+<span class="lineNum">     787 </span>                :<span class="lineNoCov">          0 :                 (void) close(pipefd[0]);</span>
+<span class="lineNum">     788 </span>                :<span class="lineNoCov">          0 :                 (void) close(pipefd[1]);</span>
+<span class="lineNum">     789 </span>                :<span class="lineNoCov">          0 :                 teardown_differ_info(&amp;di);</span>
+<span class="lineNum">     790 </span>                :<span class="lineNoCov">          0 :                 return (zfs_error(zhp-&gt;zfs_hdl,</span>
+<span class="lineNum">     791 </span>                :            :                     EZFS_THREADCREATEFAILED, errbuf));
+<span class="lineNum">     792 </span>                :            :         }
+<span class="lineNum">     793 </span>                :            : 
+<span class="lineNum">     794 </span>                :            :         /* do the ioctl() */
+<span class="lineNum">     795 </span>                :<span class="lineNoCov">          0 :         (void) strlcpy(zc.zc_value, di.fromsnap, strlen(di.fromsnap) + 1);</span>
+<span class="lineNum">     796 </span>                :<span class="lineNoCov">          0 :         (void) strlcpy(zc.zc_name, di.tosnap, strlen(di.tosnap) + 1);</span>
+<span class="lineNum">     797 </span>                :<span class="lineNoCov">          0 :         zc.zc_cookie = pipefd[1];</span>
+<span class="lineNum">     798 </span>                :            : 
+<span class="lineNum">     799 </span>                :<span class="lineNoCov">          0 :         iocerr = ioctl(zhp-&gt;zfs_hdl-&gt;libzfs_fd, ZFS_IOC_DIFF, &amp;zc);</span>
+<span class="lineNum">     800 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (iocerr != 0) {</span>
+<span class="lineNum">     801 </span>                :<span class="lineNoCov">          0 :                 (void) snprintf(errbuf, sizeof (errbuf),</span>
+<span class="lineNum">     802 </span>                :<span class="lineNoCov">          0 :                     dgettext(TEXT_DOMAIN, &quot;Unable to obtain diffs&quot;));</span>
+<span class="lineNum">     803 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (errno == EPERM) {</span>
+<span class="lineNum">     804 </span>                :<span class="lineNoCov">          0 :                         zfs_error_aux(zhp-&gt;zfs_hdl, dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     805 </span>                :            :                             &quot;\n   The sys_mount privilege or diff delegated &quot;
+<span class="lineNum">     806 </span>                :            :                             &quot;permission is needed\n   to execute the &quot;
+<span class="lineNum">     807 </span>                :            :                             &quot;diff ioctl&quot;));
+<span class="lineNum">     808 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (errno == EXDEV) {</span>
+<span class="lineNum">     809 </span>                :<span class="lineNoCov">          0 :                         zfs_error_aux(zhp-&gt;zfs_hdl, dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     810 </span>                :            :                             &quot;\n   Not an earlier snapshot from the same fs&quot;));
+<span class="lineNum">     811 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (errno != EPIPE || di.zerr == 0) {</span>
+<span class="lineNum">     812 </span>                :<span class="lineNoCov">          0 :                         zfs_error_aux(zhp-&gt;zfs_hdl, strerror(errno));</span>
+<span class="lineNum">     813 </span>                :            :                 }
+<span class="lineNum">     814 </span>                :<span class="lineNoCov">          0 :                 (void) close(pipefd[1]);</span>
+<span class="lineNum">     815 </span>                :<span class="lineNoCov">          0 :                 (void) pthread_cancel(tid);</span>
+<span class="lineNum">     816 </span>                :<span class="lineNoCov">          0 :                 (void) pthread_join(tid, NULL);</span>
+<span class="lineNum">     817 </span>                :<span class="lineNoCov">          0 :                 teardown_differ_info(&amp;di);</span>
+<span class="lineNum">     818 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (di.zerr != 0 &amp;&amp; di.zerr != EPIPE) {</span>
+<span class="lineNum">     819 </span>                :<span class="lineNoCov">          0 :                         zfs_error_aux(zhp-&gt;zfs_hdl, strerror(di.zerr));</span>
+<span class="lineNum">     820 </span>                :<span class="lineNoCov">          0 :                         return (zfs_error(zhp-&gt;zfs_hdl, EZFS_DIFF, di.errbuf));</span>
+<span class="lineNum">     821 </span>                :            :                 } else {
+<span class="lineNum">     822 </span>                :<span class="lineNoCov">          0 :                         return (zfs_error(zhp-&gt;zfs_hdl, EZFS_DIFFDATA, errbuf));</span>
+<span class="lineNum">     823 </span>                :            :                 }
+<span class="lineNum">     824 </span>                :            :         }
+<span class="lineNum">     825 </span>                :            : 
+<span class="lineNum">     826 </span>                :<span class="lineNoCov">          0 :         (void) close(pipefd[1]);</span>
+<span class="lineNum">     827 </span>                :<span class="lineNoCov">          0 :         (void) pthread_join(tid, NULL);</span>
+<span class="lineNum">     828 </span>                :            : 
+<span class="lineNum">     829 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (di.zerr != 0) {</span>
+<span class="lineNum">     830 </span>                :<span class="lineNoCov">          0 :                 zfs_error_aux(zhp-&gt;zfs_hdl, strerror(di.zerr));</span>
+<span class="lineNum">     831 </span>                :<span class="lineNoCov">          0 :                 return (zfs_error(zhp-&gt;zfs_hdl, EZFS_DIFF, di.errbuf));</span>
+<span class="lineNum">     832 </span>                :            :         }
+<span class="lineNum">     833 </span>                :<span class="lineNoCov">          0 :         teardown_differ_info(&amp;di);</span>
+<span class="lineNum">     834 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     835 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

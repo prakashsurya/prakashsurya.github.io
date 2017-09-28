@@ -1,0 +1,613 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/lib/libzfs/libzfs_iter.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/lib/libzfs</a> - libzfs_iter.c<span style="font-size: 80%;"> (source / <a href="libzfs_iter.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">174</td>
+            <td class="headerCovTableEntry">191</td>
+            <td class="headerCovTableEntryHi">91.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">86</td>
+            <td class="headerCovTableEntry">105</td>
+            <td class="headerCovTableEntryMed">81.9 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : /*
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright (c) 2013, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  * Copyright 2014 Nexenta Systems, Inc.  All rights reserved.
+<span class="lineNum">      26 </span>                :            :  */
+<span class="lineNum">      27 </span>                :            : 
+<span class="lineNum">      28 </span>                :            : #include &lt;stdio.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;strings.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;unistd.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;stddef.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;libintl.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;libzfs.h&gt;
+<span class="lineNum">      35 </span>                :            : 
+<span class="lineNum">      36 </span>                :            : #include &quot;libzfs_impl.h&quot;
+<a name="37"><span class="lineNum">      37 </span>                :            : </a>
+<span class="lineNum">      38 </span>                :            : int
+<span class="lineNum">      39 </span>                :<span class="lineCov">       2548 : zfs_iter_clones(zfs_handle_t *zhp, zfs_iter_f func, void *data)</span>
+<span class="lineNum">      40 </span>                :            : {
+<span class="lineNum">      41 </span>                :<span class="lineCov">       2548 :         nvlist_t *nvl = zfs_get_clones_nvl(zhp);</span>
+<span class="lineNum">      42 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">      43 </span>                :            : 
+<span class="lineNum">      44 </span>        [<span class="branchCov" title="Branch 0 was taken 2548 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       2548 :         if (nvl == NULL)</span>
+<span class="lineNum">      45 </span>                :            :                 return (0);
+<span class="lineNum">      46 </span>                :            : 
+<span class="lineNum">      47 </span>        [<span class="branchCov" title="Branch 1 was taken 141 times"> + </span><span class="branchCov" title="Branch 2 was taken 2548 times"> + </span>]:<span class="lineCov">       2689 :         for (pair = nvlist_next_nvpair(nvl, NULL); pair != NULL;</span>
+<span class="lineNum">      48 </span>                :<span class="lineCov">        141 :             pair = nvlist_next_nvpair(nvl, pair)) {</span>
+<span class="lineNum">      49 </span>                :<span class="lineCov">        141 :                 zfs_handle_t *clone = zfs_open(zhp-&gt;zfs_hdl, nvpair_name(pair),</span>
+<span class="lineNum">      50 </span>                :            :                     ZFS_TYPE_FILESYSTEM | ZFS_TYPE_VOLUME);
+<span class="lineNum">      51 </span>        [<span class="branchCov" title="Branch 0 was taken 141 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        141 :                 if (clone != NULL) {</span>
+<span class="lineNum">      52 </span>                :<span class="lineCov">        141 :                         int err = func(clone, data);</span>
+<span class="lineNum">      53 </span>        [<span class="branchCov" title="Branch 0 was taken 141 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        141 :                         if (err != 0)</span>
+<span class="lineNum">      54 </span>                :            :                                 return (err);
+<span class="lineNum">      55 </span>                :            :                 }
+<span class="lineNum">      56 </span>                :            :         }
+<span class="lineNum">      57 </span>                :            :         return (0);
+<span class="lineNum">      58 </span>                :            : }
+<a name="59"><span class="lineNum">      59 </span>                :            : </a>
+<span class="lineNum">      60 </span>                :            : static int
+<span class="lineNum">      61 </span>                :<span class="lineCov">      35018 : zfs_do_list_ioctl(zfs_handle_t *zhp, int arg, zfs_cmd_t *zc)</span>
+<span class="lineNum">      62 </span>                :            : {
+<span class="lineNum">      63 </span>                :            :         int rc;
+<span class="lineNum">      64 </span>                :            :         uint64_t        orig_cookie;
+<span class="lineNum">      65 </span>                :            : 
+<span class="lineNum">      66 </span>                :<span class="lineCov">      35018 :         orig_cookie = zc-&gt;zc_cookie;</span>
+<span class="lineNum">      67 </span>                :            : top:
+<span class="lineNum">      68 </span>                :<span class="lineCov">      36687 :         (void) strlcpy(zc-&gt;zc_name, zhp-&gt;zfs_name, sizeof (zc-&gt;zc_name));</span>
+<span class="lineNum">      69 </span>                :<span class="lineCov">      36687 :         rc = ioctl(zhp-&gt;zfs_hdl-&gt;libzfs_fd, arg, zc);</span>
+<span class="lineNum">      70 </span>                :            : 
+<span class="lineNum">      71 </span>        [<span class="branchCov" title="Branch 0 was taken 20024 times"> + </span><span class="branchCov" title="Branch 1 was taken 16663 times"> + </span>]:<span class="lineCov">      36687 :         if (rc == -1) {</span>
+<span class="lineNum">      72 </span>     [<span class="branchCov" title="Branch 1 was taken 1669 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 18355 times"> + </span>]:<span class="lineCov">      20024 :                 switch (errno) {</span>
+<span class="lineNum">      73 </span>                :            :                 case ENOMEM:
+<span class="lineNum">      74 </span>                :            :                         /* expand nvlist memory and try again */
+<span class="lineNum">      75 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1669 times"> + </span>]:<span class="lineCov">       1669 :                         if (zcmd_expand_dst_nvlist(zhp-&gt;zfs_hdl, zc) != 0) {</span>
+<span class="lineNum">      76 </span>                :<span class="lineNoCov">          0 :                                 zcmd_free_nvlists(zc);</span>
+<span class="lineNum">      77 </span>                :<span class="lineNoCov">          0 :                                 return (-1);</span>
+<span class="lineNum">      78 </span>                :            :                         }
+<span class="lineNum">      79 </span>                :<span class="lineCov">       1669 :                         zc-&gt;zc_cookie = orig_cookie;</span>
+<span class="lineNum">      80 </span>                :<span class="lineCov">       1669 :                         goto top;</span>
+<span class="lineNum">      81 </span>                :            :                 /*
+<span class="lineNum">      82 </span>                :            :                  * An errno value of ESRCH indicates normal completion.
+<span class="lineNum">      83 </span>                :            :                  * If ENOENT is returned, then the underlying dataset
+<span class="lineNum">      84 </span>                :            :                  * has been removed since we obtained the handle.
+<span class="lineNum">      85 </span>                :            :                  */
+<span class="lineNum">      86 </span>                :            :                 case ESRCH:
+<span class="lineNum">      87 </span>                :            :                 case ENOENT:
+<span class="lineNum">      88 </span>                :            :                         rc = 1;
+<span class="lineNum">      89 </span>                :            :                         break;
+<span class="lineNum">      90 </span>                :            :                 default:
+<span class="lineNum">      91 </span>                :<span class="lineNoCov">          0 :                         rc = zfs_standard_error(zhp-&gt;zfs_hdl, errno,</span>
+<span class="lineNum">      92 </span>                :<span class="lineNoCov">          0 :                             dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">      93 </span>                :            :                             &quot;cannot iterate filesystems&quot;));
+<span class="lineNum">      94 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">      95 </span>                :            :                 }
+<span class="lineNum">      96 </span>                :            :         }
+<span class="lineNum">      97 </span>                :            :         return (rc);
+<span class="lineNum">      98 </span>                :            : }
+<span class="lineNum">      99 </span>                :            : 
+<span class="lineNum">     100 </span>                :            : /*
+<span class="lineNum">     101 </span>                :            :  * Iterate over all child filesystems
+<a name="102"><span class="lineNum">     102 </span>                :            :  */</a>
+<span class="lineNum">     103 </span>                :            : int
+<span class="lineNum">     104 </span>                :<span class="lineCov">      11619 : zfs_iter_filesystems(zfs_handle_t *zhp, zfs_iter_f func, void *data)</span>
+<span class="lineNum">     105 </span>                :            : {
+<span class="lineNum">     106 </span>                :<span class="lineCov">      11619 :         zfs_cmd_t zc = {&quot;\0&quot;};</span>
+<span class="lineNum">     107 </span>                :            :         zfs_handle_t *nzhp;
+<span class="lineNum">     108 </span>                :            :         int ret;
+<span class="lineNum">     109 </span>                :            : 
+<span class="lineNum">     110 </span>        [<span class="branchCov" title="Branch 0 was taken 10094 times"> + </span><span class="branchCov" title="Branch 1 was taken 1525 times"> + </span>]:<span class="lineCov">      11619 :         if (zhp-&gt;zfs_type != ZFS_TYPE_FILESYSTEM)</span>
+<span class="lineNum">     111 </span>                :            :                 return (0);
+<span class="lineNum">     112 </span>                :            : 
+<span class="lineNum">     113 </span>        [<span class="branchCov" title="Branch 1 was taken 10094 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">      10094 :         if (zcmd_alloc_dst_nvlist(zhp-&gt;zfs_hdl, &amp;zc, 0) != 0)</span>
+<span class="lineNum">     114 </span>                :            :                 return (-1);
+<span class="lineNum">     115 </span>                :            : 
+<span class="lineNum">     116 </span>        [<span class="branchCov" title="Branch 1 was taken 6422 times"> + </span><span class="branchCov" title="Branch 2 was taken 10045 times"> + </span>]:<span class="lineCov">      16467 :         while ((ret = zfs_do_list_ioctl(zhp, ZFS_IOC_DATASET_LIST_NEXT,</span>
+<span class="lineNum">     117 </span>                :            :             &amp;zc)) == 0) {
+<span class="lineNum">     118 </span>                :            :                 /*
+<span class="lineNum">     119 </span>                :            :                  * Silently ignore errors, as the only plausible explanation is
+<span class="lineNum">     120 </span>                :            :                  * that the pool has since been removed.
+<span class="lineNum">     121 </span>                :            :                  */
+<span class="lineNum">     122 </span>        [<span class="branchCov" title="Branch 1 was taken 40 times"> + </span><span class="branchCov" title="Branch 2 was taken 6382 times"> + </span>]:<span class="lineCov">       6422 :                 if ((nzhp = make_dataset_handle_zc(zhp-&gt;zfs_hdl,</span>
+<span class="lineNum">     123 </span>                :            :                     &amp;zc)) == NULL) {
+<span class="lineNum">     124 </span>                :<span class="lineCov">         40 :                         continue;</span>
+<span class="lineNum">     125 </span>                :            :                 }
+<span class="lineNum">     126 </span>                :            : 
+<span class="lineNum">     127 </span>        [<span class="branchCov" title="Branch 1 was taken 49 times"> + </span><span class="branchCov" title="Branch 2 was taken 6333 times"> + </span>]:<span class="lineCov">       6382 :                 if ((ret = func(nzhp, data)) != 0) {</span>
+<span class="lineNum">     128 </span>                :<span class="lineCov">         49 :                         zcmd_free_nvlists(&amp;zc);</span>
+<span class="lineNum">     129 </span>                :<span class="lineCov">       6422 :                         return (ret);</span>
+<span class="lineNum">     130 </span>                :            :                 }
+<span class="lineNum">     131 </span>                :            :         }
+<span class="lineNum">     132 </span>                :<span class="lineCov">      10045 :         zcmd_free_nvlists(&amp;zc);</span>
+<span class="lineNum">     133 </span>                :<span class="lineCov">      10045 :         return ((ret &lt; 0) ? ret : 0);</span>
+<span class="lineNum">     134 </span>                :            : }
+<span class="lineNum">     135 </span>                :            : 
+<span class="lineNum">     136 </span>                :            : /*
+<span class="lineNum">     137 </span>                :            :  * Iterate over all snapshots
+<a name="138"><span class="lineNum">     138 </span>                :            :  */</a>
+<span class="lineNum">     139 </span>                :            : int
+<span class="lineNum">     140 </span>                :<span class="lineCov">       9019 : zfs_iter_snapshots(zfs_handle_t *zhp, boolean_t simple, zfs_iter_f func,</span>
+<span class="lineNum">     141 </span>                :            :     void *data)
+<span class="lineNum">     142 </span>                :            : {
+<span class="lineNum">     143 </span>                :<span class="lineCov">       9019 :         zfs_cmd_t zc = {&quot;\0&quot;};</span>
+<span class="lineNum">     144 </span>                :            :         zfs_handle_t *nzhp;
+<span class="lineNum">     145 </span>                :            :         int ret;
+<span class="lineNum">     146 </span>                :            : 
+<span class="lineNum">     147 </span>        [<span class="branchCov" title="Branch 0 was taken 8396 times"> + </span><span class="branchCov" title="Branch 1 was taken 623 times"> + </span>]:<span class="lineCov">       9019 :         if (zhp-&gt;zfs_type == ZFS_TYPE_SNAPSHOT ||</span>
+<span class="lineNum">     148 </span>                :            :             zhp-&gt;zfs_type == ZFS_TYPE_BOOKMARK)
+<span class="lineNum">     149 </span>                :            :                 return (0);
+<span class="lineNum">     150 </span>                :            : 
+<span class="lineNum">     151 </span>                :<span class="lineCov">       8396 :         zc.zc_simple = simple;</span>
+<span class="lineNum">     152 </span>                :            : 
+<span class="lineNum">     153 </span>        [<span class="branchCov" title="Branch 1 was taken 8396 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       8396 :         if (zcmd_alloc_dst_nvlist(zhp-&gt;zfs_hdl, &amp;zc, 0) != 0)</span>
+<span class="lineNum">     154 </span>                :            :                 return (-1);
+<span class="lineNum">     155 </span>        [<span class="branchCov" title="Branch 1 was taken 10241 times"> + </span><span class="branchCov" title="Branch 2 was taken 8310 times"> + </span>]:<span class="lineCov">      18551 :         while ((ret = zfs_do_list_ioctl(zhp, ZFS_IOC_SNAPSHOT_LIST_NEXT,</span>
+<span class="lineNum">     156 </span>                :            :             &amp;zc)) == 0) {
+<span class="lineNum">     157 </span>                :            : 
+<span class="lineNum">     158 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 10241 times"> + </span>]:<span class="lineCov">      10241 :                 if (simple)</span>
+<span class="lineNum">     159 </span>                :<span class="lineNoCov">          0 :                         nzhp = make_dataset_simple_handle_zc(zhp, &amp;zc);</span>
+<span class="lineNum">     160 </span>                :            :                 else
+<span class="lineNum">     161 </span>                :<span class="lineCov">      10241 :                         nzhp = make_dataset_handle_zc(zhp-&gt;zfs_hdl, &amp;zc);</span>
+<span class="lineNum">     162 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 10241 times"> + </span>]:<span class="lineCov">      10241 :                 if (nzhp == NULL)</span>
+<span class="lineNum">     163 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     164 </span>                :            : 
+<span class="lineNum">     165 </span>        [<span class="branchCov" title="Branch 1 was taken 86 times"> + </span><span class="branchCov" title="Branch 2 was taken 10155 times"> + </span>]:<span class="lineCov">      10241 :                 if ((ret = func(nzhp, data)) != 0) {</span>
+<span class="lineNum">     166 </span>                :<span class="lineCov">         86 :                         zcmd_free_nvlists(&amp;zc);</span>
+<span class="lineNum">     167 </span>                :<span class="lineCov">      10241 :                         return (ret);</span>
+<span class="lineNum">     168 </span>                :            :                 }
+<span class="lineNum">     169 </span>                :            :         }
+<span class="lineNum">     170 </span>                :<span class="lineCov">       8310 :         zcmd_free_nvlists(&amp;zc);</span>
+<span class="lineNum">     171 </span>                :<span class="lineCov">       8310 :         return ((ret &lt; 0) ? ret : 0);</span>
+<span class="lineNum">     172 </span>                :            : }
+<span class="lineNum">     173 </span>                :            : 
+<span class="lineNum">     174 </span>                :            : /*
+<span class="lineNum">     175 </span>                :            :  * Iterate over all bookmarks
+<a name="176"><span class="lineNum">     176 </span>                :            :  */</a>
+<span class="lineNum">     177 </span>                :            : int
+<span class="lineNum">     178 </span>                :<span class="lineCov">       2530 : zfs_iter_bookmarks(zfs_handle_t *zhp, zfs_iter_f func, void *data)</span>
+<span class="lineNum">     179 </span>                :            : {
+<span class="lineNum">     180 </span>                :            :         zfs_handle_t *nzhp;
+<span class="lineNum">     181 </span>                :<span class="lineCov">       2530 :         nvlist_t *props = NULL;</span>
+<span class="lineNum">     182 </span>                :<span class="lineCov">       2530 :         nvlist_t *bmarks = NULL;</span>
+<span class="lineNum">     183 </span>                :            :         int err;
+<span class="lineNum">     184 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     185 </span>                :            : 
+<span class="lineNum">     186 </span>        [<span class="branchCov" title="Branch 1 was taken 2524 times"> + </span><span class="branchCov" title="Branch 2 was taken 6 times"> + </span>]:<span class="lineCov">       2530 :         if ((zfs_get_type(zhp) &amp; (ZFS_TYPE_SNAPSHOT | ZFS_TYPE_BOOKMARK)) != 0)</span>
+<span class="lineNum">     187 </span>                :            :                 return (0);
+<span class="lineNum">     188 </span>                :            : 
+<span class="lineNum">     189 </span>                :            :         /* Setup the requested properties nvlist. */
+<span class="lineNum">     190 </span>                :<span class="lineCov">       2524 :         props = fnvlist_alloc();</span>
+<span class="lineNum">     191 </span>                :<span class="lineCov">       2524 :         fnvlist_add_boolean(props, zfs_prop_to_name(ZFS_PROP_GUID));</span>
+<span class="lineNum">     192 </span>                :<span class="lineCov">       2524 :         fnvlist_add_boolean(props, zfs_prop_to_name(ZFS_PROP_CREATETXG));</span>
+<span class="lineNum">     193 </span>                :<span class="lineCov">       2524 :         fnvlist_add_boolean(props, zfs_prop_to_name(ZFS_PROP_CREATION));</span>
+<span class="lineNum">     194 </span>                :            : 
+<span class="lineNum">     195 </span>        [<span class="branchCov" title="Branch 1 was taken 2524 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       2524 :         if ((err = lzc_get_bookmarks(zhp-&gt;zfs_name, props, &amp;bmarks)) != 0)</span>
+<span class="lineNum">     196 </span>                :            :                 goto out;
+<span class="lineNum">     197 </span>                :            : 
+<span class="lineNum">     198 </span>        [<span class="branchCov" title="Branch 1 was taken 837 times"> + </span><span class="branchCov" title="Branch 2 was taken 2457 times"> + </span>]:<span class="lineCov">       3294 :         for (pair = nvlist_next_nvpair(bmarks, NULL);</span>
+<span class="lineNum">     199 </span>                :<span class="lineCov">        770 :             pair != NULL; pair = nvlist_next_nvpair(bmarks, pair)) {</span>
+<span class="lineNum">     200 </span>                :            :                 char name[ZFS_MAX_DATASET_NAME_LEN];
+<span class="lineNum">     201 </span>                :            :                 char *bmark_name;
+<span class="lineNum">     202 </span>                :            :                 nvlist_t *bmark_props;
+<span class="lineNum">     203 </span>                :            : 
+<span class="lineNum">     204 </span>                :<span class="lineCov">        837 :                 bmark_name = nvpair_name(pair);</span>
+<span class="lineNum">     205 </span>                :<span class="lineCov">        837 :                 bmark_props = fnvpair_value_nvlist(pair);</span>
+<span class="lineNum">     206 </span>                :            : 
+<span class="lineNum">     207 </span>        [<span class="branchCov" title="Branch 0 was taken 837 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        837 :                 if (snprintf(name, sizeof (name), &quot;%s#%s&quot;, zhp-&gt;zfs_name,</span>
+<span class="lineNum">     208 </span>                :            :                     bmark_name) &gt;= sizeof (name)) {
+<span class="lineNum">     209 </span>                :            :                         err = EINVAL;
+<span class="lineNum">     210 </span>                :<span class="lineCov">         67 :                         goto out;</span>
+<span class="lineNum">     211 </span>                :            :                 }
+<span class="lineNum">     212 </span>                :            : 
+<span class="lineNum">     213 </span>                :<span class="lineCov">        837 :                 nzhp = make_bookmark_handle(zhp, name, bmark_props);</span>
+<span class="lineNum">     214 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 837 times"> + </span>]:<span class="lineCov">        837 :                 if (nzhp == NULL)</span>
+<span class="lineNum">     215 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     216 </span>                :            : 
+<span class="lineNum">     217 </span>        [<span class="branchCov" title="Branch 1 was taken 770 times"> + </span><span class="branchCov" title="Branch 2 was taken 67 times"> + </span>]:<span class="lineCov">        837 :                 if ((err = func(nzhp, data)) != 0)</span>
+<span class="lineNum">     218 </span>                :            :                         goto out;
+<span class="lineNum">     219 </span>                :            :         }
+<span class="lineNum">     220 </span>                :            : 
+<span class="lineNum">     221 </span>                :            : out:
+<span class="lineNum">     222 </span>                :<span class="lineCov">       2524 :         fnvlist_free(props);</span>
+<span class="lineNum">     223 </span>                :<span class="lineCov">       2524 :         fnvlist_free(bmarks);</span>
+<span class="lineNum">     224 </span>                :            : 
+<span class="lineNum">     225 </span>                :<span class="lineCov">       2524 :         return (err);</span>
+<span class="lineNum">     226 </span>                :            : }
+<span class="lineNum">     227 </span>                :            : 
+<span class="lineNum">     228 </span>                :            : /*
+<span class="lineNum">     229 </span>                :            :  * Routines for dealing with the sorted snapshot functionality
+<span class="lineNum">     230 </span>                :            :  */
+<span class="lineNum">     231 </span>                :            : typedef struct zfs_node {
+<span class="lineNum">     232 </span>                :            :         zfs_handle_t    *zn_handle;
+<span class="lineNum">     233 </span>                :            :         avl_node_t      zn_avlnode;
+<span class="lineNum">     234 </span>                :            : } zfs_node_t;
+<a name="235"><span class="lineNum">     235 </span>                :            : </a>
+<span class="lineNum">     236 </span>                :            : static int
+<span class="lineNum">     237 </span>                :<span class="lineCov">       3504 : zfs_sort_snaps(zfs_handle_t *zhp, void *data)</span>
+<span class="lineNum">     238 </span>                :            : {
+<span class="lineNum">     239 </span>                :<span class="lineCov">       3504 :         avl_tree_t *avl = data;</span>
+<span class="lineNum">     240 </span>                :            :         zfs_node_t *node;
+<span class="lineNum">     241 </span>                :            :         zfs_node_t search;
+<span class="lineNum">     242 </span>                :            : 
+<span class="lineNum">     243 </span>                :<span class="lineCov">       3504 :         search.zn_handle = zhp;</span>
+<span class="lineNum">     244 </span>                :<span class="lineCov">       3504 :         node = avl_find(avl, &amp;search, NULL);</span>
+<span class="lineNum">     245 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3504 times"> + </span>]:<span class="lineCov">       3504 :         if (node) {</span>
+<span class="lineNum">     246 </span>                :            :                 /*
+<span class="lineNum">     247 </span>                :            :                  * If this snapshot was renamed while we were creating the
+<span class="lineNum">     248 </span>                :            :                  * AVL tree, it's possible that we already inserted it under
+<span class="lineNum">     249 </span>                :            :                  * its old name. Remove the old handle before adding the new
+<span class="lineNum">     250 </span>                :            :                  * one.
+<span class="lineNum">     251 </span>                :            :                  */
+<span class="lineNum">     252 </span>                :<span class="lineNoCov">          0 :                 zfs_close(node-&gt;zn_handle);</span>
+<span class="lineNum">     253 </span>                :<span class="lineNoCov">          0 :                 avl_remove(avl, node);</span>
+<span class="lineNum">     254 </span>                :<span class="lineNoCov">          0 :                 free(node);</span>
+<span class="lineNum">     255 </span>                :            :         }
+<span class="lineNum">     256 </span>                :            : 
+<span class="lineNum">     257 </span>                :<span class="lineCov">       3504 :         node = zfs_alloc(zhp-&gt;zfs_hdl, sizeof (zfs_node_t));</span>
+<span class="lineNum">     258 </span>                :<span class="lineCov">       3504 :         node-&gt;zn_handle = zhp;</span>
+<span class="lineNum">     259 </span>                :<span class="lineCov">       3504 :         avl_add(avl, node);</span>
+<span class="lineNum">     260 </span>                :            : 
+<span class="lineNum">     261 </span>                :<span class="lineCov">       3504 :         return (0);</span>
+<span class="lineNum">     262 </span>                :            : }
+<a name="263"><span class="lineNum">     263 </span>                :            : </a>
+<span class="lineNum">     264 </span>                :            : static int
+<span class="lineNum">     265 </span>                :<span class="lineCov">       7250 : zfs_snapshot_compare(const void *larg, const void *rarg)</span>
+<span class="lineNum">     266 </span>                :            : {
+<span class="lineNum">     267 </span>                :<span class="lineCov">       7250 :         zfs_handle_t *l = ((zfs_node_t *)larg)-&gt;zn_handle;</span>
+<span class="lineNum">     268 </span>                :<span class="lineCov">       7250 :         zfs_handle_t *r = ((zfs_node_t *)rarg)-&gt;zn_handle;</span>
+<span class="lineNum">     269 </span>                :            :         uint64_t lcreate, rcreate;
+<span class="lineNum">     270 </span>                :            : 
+<span class="lineNum">     271 </span>                :            :         /*
+<span class="lineNum">     272 </span>                :            :          * Sort them according to creation time.  We use the hidden
+<span class="lineNum">     273 </span>                :            :          * CREATETXG property to get an absolute ordering of snapshots.
+<span class="lineNum">     274 </span>                :            :          */
+<span class="lineNum">     275 </span>                :<span class="lineCov">       7250 :         lcreate = zfs_prop_get_int(l, ZFS_PROP_CREATETXG);</span>
+<span class="lineNum">     276 </span>                :<span class="lineCov">       7250 :         rcreate = zfs_prop_get_int(r, ZFS_PROP_CREATETXG);</span>
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>                :<span class="lineCov">       7250 :         return (AVL_CMP(lcreate, rcreate));</span>
+<span class="lineNum">     279 </span>                :            : }
+<a name="280"><span class="lineNum">     280 </span>                :            : </a>
+<span class="lineNum">     281 </span>                :            : int
+<span class="lineNum">     282 </span>                :<span class="lineCov">       1206 : zfs_iter_snapshots_sorted(zfs_handle_t *zhp, zfs_iter_f callback, void *data)</span>
+<span class="lineNum">     283 </span>                :            : {
+<span class="lineNum">     284 </span>                :<span class="lineCov">       1206 :         int ret = 0;</span>
+<span class="lineNum">     285 </span>                :            :         zfs_node_t *node;
+<span class="lineNum">     286 </span>                :            :         avl_tree_t avl;
+<span class="lineNum">     287 </span>                :<span class="lineCov">       1206 :         void *cookie = NULL;</span>
+<span class="lineNum">     288 </span>                :            : 
+<span class="lineNum">     289 </span>                :<span class="lineCov">       1206 :         avl_create(&amp;avl, zfs_snapshot_compare,</span>
+<span class="lineNum">     290 </span>                :            :             sizeof (zfs_node_t), offsetof(zfs_node_t, zn_avlnode));
+<span class="lineNum">     291 </span>                :            : 
+<span class="lineNum">     292 </span>                :<span class="lineCov">       1206 :         ret = zfs_iter_snapshots(zhp, B_FALSE, zfs_sort_snaps, &amp;avl);</span>
+<span class="lineNum">     293 </span>                :            : 
+<span class="lineNum">     294 </span>        [<span class="branchCov" title="Branch 2 was taken 3504 times"> + </span><span class="branchCov" title="Branch 3 was taken 1206 times"> + </span>]:<span class="lineCov">       4710 :         for (node = avl_first(&amp;avl); node != NULL; node = AVL_NEXT(&amp;avl, node))</span>
+<span class="lineNum">     295 </span>                :<span class="lineCov">       3504 :                 ret |= callback(node-&gt;zn_handle, data);</span>
+<span class="lineNum">     296 </span>                :            : 
+<span class="lineNum">     297 </span>        [<span class="branchCov" title="Branch 1 was taken 3504 times"> + </span><span class="branchCov" title="Branch 2 was taken 1206 times"> + </span>]:<span class="lineCov">       4710 :         while ((node = avl_destroy_nodes(&amp;avl, &amp;cookie)) != NULL)</span>
+<span class="lineNum">     298 </span>                :<span class="lineCov">       3504 :                 free(node);</span>
+<span class="lineNum">     299 </span>                :            : 
+<span class="lineNum">     300 </span>                :<span class="lineCov">       1206 :         avl_destroy(&amp;avl);</span>
+<span class="lineNum">     301 </span>                :            : 
+<span class="lineNum">     302 </span>                :<span class="lineCov">       1206 :         return (ret);</span>
+<span class="lineNum">     303 </span>                :            : }
+<span class="lineNum">     304 </span>                :            : 
+<span class="lineNum">     305 </span>                :            : typedef struct {
+<span class="lineNum">     306 </span>                :            :         char *ssa_first;
+<span class="lineNum">     307 </span>                :            :         char *ssa_last;
+<span class="lineNum">     308 </span>                :            :         boolean_t ssa_seenfirst;
+<span class="lineNum">     309 </span>                :            :         boolean_t ssa_seenlast;
+<span class="lineNum">     310 </span>                :            :         zfs_iter_f ssa_func;
+<span class="lineNum">     311 </span>                :            :         void *ssa_arg;
+<span class="lineNum">     312 </span>                :            : } snapspec_arg_t;
+<a name="313"><span class="lineNum">     313 </span>                :            : </a>
+<span class="lineNum">     314 </span>                :            : static int
+<span class="lineNum">     315 </span>                :<span class="lineCov">        174 : snapspec_cb(zfs_handle_t *zhp, void *arg)</span>
+<span class="lineNum">     316 </span>                :            : {
+<span class="lineNum">     317 </span>                :<span class="lineCov">        174 :         snapspec_arg_t *ssa = arg;</span>
+<span class="lineNum">     318 </span>                :            :         const char *shortsnapname;
+<span class="lineNum">     319 </span>                :<span class="lineCov">        174 :         int err = 0;</span>
+<span class="lineNum">     320 </span>                :            : 
+<span class="lineNum">     321 </span>        [<span class="branchCov" title="Branch 0 was taken 144 times"> + </span><span class="branchCov" title="Branch 1 was taken 30 times"> + </span>]:<span class="lineCov">        174 :         if (ssa-&gt;ssa_seenlast)</span>
+<span class="lineNum">     322 </span>                :            :                 return (0);
+<span class="lineNum">     323 </span>                :            : 
+<span class="lineNum">     324 </span>                :<span class="lineCov">        144 :         shortsnapname = strchr(zfs_get_name(zhp), '@') + 1;</span>
+<span class="lineNum">     325 </span>[<span class="branchCov" title="Branch 0 was taken 78 times"> + </span><span class="branchCov" title="Branch 1 was taken 66 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 18 times"> + </span><span class="branchCov" title="Branch 3 was taken 60 times"> + </span>]:<span class="lineCov">        144 :         if (!ssa-&gt;ssa_seenfirst &amp;&amp; strcmp(shortsnapname, ssa-&gt;ssa_first) == 0)</span>
+<span class="lineNum">     326 </span>                :<span class="lineCov">         18 :                 ssa-&gt;ssa_seenfirst = B_TRUE;</span>
+<span class="lineNum">     327 </span>        [<span class="branchCov" title="Branch 0 was taken 24 times"> + </span><span class="branchCov" title="Branch 1 was taken 120 times"> + </span>]:<span class="lineCov">        144 :         if (strcmp(shortsnapname, ssa-&gt;ssa_last) == 0)</span>
+<span class="lineNum">     328 </span>                :<span class="lineCov">         24 :                 ssa-&gt;ssa_seenlast = B_TRUE;</span>
+<span class="lineNum">     329 </span>                :            : 
+<span class="lineNum">     330 </span>        [<span class="branchCov" title="Branch 0 was taken 84 times"> + </span><span class="branchCov" title="Branch 1 was taken 60 times"> + </span>]:<span class="lineCov">        144 :         if (ssa-&gt;ssa_seenfirst) {</span>
+<span class="lineNum">     331 </span>                :<span class="lineCov">         84 :                 err = ssa-&gt;ssa_func(zhp, ssa-&gt;ssa_arg);</span>
+<span class="lineNum">     332 </span>                :            :         } else {
+<span class="lineNum">     333 </span>                :<span class="lineCov">         60 :                 zfs_close(zhp);</span>
+<span class="lineNum">     334 </span>                :            :         }
+<span class="lineNum">     335 </span>                :            : 
+<span class="lineNum">     336 </span>                :            :         return (err);
+<span class="lineNum">     337 </span>                :            : }
+<span class="lineNum">     338 </span>                :            : 
+<span class="lineNum">     339 </span>                :            : /*
+<span class="lineNum">     340 </span>                :            :  * spec is a string like &quot;A,B%C,D&quot;
+<span class="lineNum">     341 </span>                :            :  *
+<span class="lineNum">     342 </span>                :            :  * &lt;snaps&gt;, where &lt;snaps&gt; can be:
+<span class="lineNum">     343 </span>                :            :  *      &lt;snap&gt;          (single snapshot)
+<span class="lineNum">     344 </span>                :            :  *      &lt;snap&gt;%&lt;snap&gt;   (range of snapshots, inclusive)
+<span class="lineNum">     345 </span>                :            :  *      %&lt;snap&gt;         (range of snapshots, starting with earliest)
+<span class="lineNum">     346 </span>                :            :  *      &lt;snap&gt;%         (range of snapshots, ending with last)
+<span class="lineNum">     347 </span>                :            :  *      %               (all snapshots)
+<span class="lineNum">     348 </span>                :            :  *      &lt;snaps&gt;[,...]   (comma separated list of the above)
+<span class="lineNum">     349 </span>                :            :  *
+<span class="lineNum">     350 </span>                :            :  * If a snapshot can not be opened, continue trying to open the others, but
+<span class="lineNum">     351 </span>                :            :  * return ENOENT at the end.
+<a name="352"><span class="lineNum">     352 </span>                :            :  */</a>
+<span class="lineNum">     353 </span>                :            : int
+<span class="lineNum">     354 </span>                :<span class="lineCov">        510 : zfs_iter_snapspec(zfs_handle_t *fs_zhp, const char *spec_orig,</span>
+<span class="lineNum">     355 </span>                :            :     zfs_iter_f func, void *arg)
+<span class="lineNum">     356 </span>                :            : {
+<span class="lineNum">     357 </span>                :            :         char *buf, *comma_separated, *cp;
+<span class="lineNum">     358 </span>                :<span class="lineCov">        510 :         int err = 0;</span>
+<span class="lineNum">     359 </span>                :<span class="lineCov">        510 :         int ret = 0;</span>
+<span class="lineNum">     360 </span>                :            : 
+<span class="lineNum">     361 </span>                :<span class="lineCov">        510 :         buf = zfs_strdup(fs_zhp-&gt;zfs_hdl, spec_orig);</span>
+<span class="lineNum">     362 </span>                :<span class="lineCov">        510 :         cp = buf;</span>
+<span class="lineNum">     363 </span>                :            : 
+<span class="lineNum">     364 </span>        [<span class="branchCov" title="Branch 1 was taken 655 times"> + </span><span class="branchCov" title="Branch 2 was taken 510 times"> + </span>]:<span class="lineCov">       1165 :         while ((comma_separated = strsep(&amp;cp, &quot;,&quot;)) != NULL) {</span>
+<span class="lineNum">     365 </span>                :<span class="lineCov">        655 :                 char *pct = strchr(comma_separated, '%');</span>
+<span class="lineNum">     366 </span>        [<span class="branchCov" title="Branch 0 was taken 43 times"> + </span><span class="branchCov" title="Branch 1 was taken 612 times"> + </span>]:<span class="lineCov">        655 :                 if (pct != NULL) {</span>
+<span class="lineNum">     367 </span>                :<span class="lineCov">         43 :                         snapspec_arg_t ssa = { 0 };</span>
+<span class="lineNum">     368 </span>                :<span class="lineCov">         43 :                         ssa.ssa_func = func;</span>
+<span class="lineNum">     369 </span>                :<span class="lineCov">         43 :                         ssa.ssa_arg = arg;</span>
+<span class="lineNum">     370 </span>                :            : 
+<span class="lineNum">     371 </span>        [<span class="branchCov" title="Branch 0 was taken 4 times"> + </span><span class="branchCov" title="Branch 1 was taken 39 times"> + </span>]:<span class="lineCov">         43 :                         if (pct == comma_separated)</span>
+<span class="lineNum">     372 </span>                :<span class="lineCov">          4 :                                 ssa.ssa_seenfirst = B_TRUE;</span>
+<span class="lineNum">     373 </span>                :            :                         else
+<span class="lineNum">     374 </span>                :<span class="lineCov">         39 :                                 ssa.ssa_first = comma_separated;</span>
+<span class="lineNum">     375 </span>                :<span class="lineCov">         43 :                         *pct = '\0';</span>
+<span class="lineNum">     376 </span>                :<span class="lineCov">         43 :                         ssa.ssa_last = pct + 1;</span>
+<span class="lineNum">     377 </span>                :            : 
+<span class="lineNum">     378 </span>                :            :                         /*
+<span class="lineNum">     379 </span>                :            :                          * If there is a lastname specified, make sure it
+<span class="lineNum">     380 </span>                :            :                          * exists.
+<span class="lineNum">     381 </span>                :            :                          */
+<span class="lineNum">     382 </span>        [<span class="branchCov" title="Branch 0 was taken 39 times"> + </span><span class="branchCov" title="Branch 1 was taken 4 times"> + </span>]:<span class="lineCov">         43 :                         if (ssa.ssa_last[0] != '\0') {</span>
+<span class="lineNum">     383 </span>                :            :                                 char snapname[ZFS_MAX_DATASET_NAME_LEN];
+<span class="lineNum">     384 </span>                :<span class="lineCov">         39 :                                 (void) snprintf(snapname, sizeof (snapname),</span>
+<span class="lineNum">     385 </span>                :            :                                     &quot;%s@%s&quot;, zfs_get_name(fs_zhp),
+<span class="lineNum">     386 </span>                :            :                                     ssa.ssa_last);
+<span class="lineNum">     387 </span>        [<span class="branchCov" title="Branch 1 was taken 15 times"> + </span><span class="branchCov" title="Branch 2 was taken 24 times"> + </span>]:<span class="lineCov">         39 :                                 if (!zfs_dataset_exists(fs_zhp-&gt;zfs_hdl,</span>
+<span class="lineNum">     388 </span>                :            :                                     snapname, ZFS_TYPE_SNAPSHOT)) {
+<span class="lineNum">     389 </span>                :<span class="lineCov">         15 :                                         ret = ENOENT;</span>
+<span class="lineNum">     390 </span>                :<span class="lineCov">         39 :                                         continue;</span>
+<span class="lineNum">     391 </span>                :            :                                 }
+<span class="lineNum">     392 </span>                :            :                         }
+<span class="lineNum">     393 </span>                :            : 
+<span class="lineNum">     394 </span>                :<span class="lineCov">         28 :                         err = zfs_iter_snapshots_sorted(fs_zhp,</span>
+<span class="lineNum">     395 </span>                :            :                             snapspec_cb, &amp;ssa);
+<span class="lineNum">     396 </span>        [<span class="branchCov" title="Branch 0 was taken 28 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         28 :                         if (ret == 0)</span>
+<span class="lineNum">     397 </span>                :<span class="lineCov">         28 :                                 ret = err;</span>
+<span class="lineNum">     398 </span>[<span class="branchCov" title="Branch 0 was taken 28 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 22 times"> + </span><span class="branchCov" title="Branch 3 was taken 6 times"> + </span>]:<span class="lineCov">         28 :                         if (ret == 0 &amp;&amp; (!ssa.ssa_seenfirst ||</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 18 times"> + </span><span class="branchCov" title="Branch 5 was taken 4 times"> + </span>]
+<span class="lineNum">     399 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 18 times"> + </span>]:<span class="lineCov">         18 :                             (ssa.ssa_last[0] != '\0' &amp;&amp; !ssa.ssa_seenlast))) {</span>
+<span class="lineNum">     400 </span>                :<span class="lineCov">         28 :                                 ret = ENOENT;</span>
+<span class="lineNum">     401 </span>                :            :                         }
+<span class="lineNum">     402 </span>                :            :                 } else {
+<span class="lineNum">     403 </span>                :            :                         char snapname[ZFS_MAX_DATASET_NAME_LEN];
+<span class="lineNum">     404 </span>                :            :                         zfs_handle_t *snap_zhp;
+<span class="lineNum">     405 </span>                :<span class="lineCov">        612 :                         (void) snprintf(snapname, sizeof (snapname), &quot;%s@%s&quot;,</span>
+<span class="lineNum">     406 </span>                :            :                             zfs_get_name(fs_zhp), comma_separated);
+<span class="lineNum">     407 </span>                :<span class="lineCov">        612 :                         snap_zhp = make_dataset_handle(fs_zhp-&gt;zfs_hdl,</span>
+<span class="lineNum">     408 </span>                :            :                             snapname);
+<span class="lineNum">     409 </span>        [<span class="branchCov" title="Branch 0 was taken 51 times"> + </span><span class="branchCov" title="Branch 1 was taken 561 times"> + </span>]:<span class="lineCov">        612 :                         if (snap_zhp == NULL) {</span>
+<span class="lineNum">     410 </span>                :<span class="lineCov">         51 :                                 ret = ENOENT;</span>
+<span class="lineNum">     411 </span>                :<span class="lineCov">         51 :                                 continue;</span>
+<span class="lineNum">     412 </span>                :            :                         }
+<span class="lineNum">     413 </span>                :<span class="lineCov">        561 :                         err = func(snap_zhp, arg);</span>
+<span class="lineNum">     414 </span>        [<span class="branchCov" title="Branch 0 was taken 556 times"> + </span><span class="branchCov" title="Branch 1 was taken 5 times"> + </span>]:<span class="lineCov">        561 :                         if (ret == 0)</span>
+<span class="lineNum">     415 </span>                :<span class="lineCov">        655 :                                 ret = err;</span>
+<span class="lineNum">     416 </span>                :            :                 }
+<span class="lineNum">     417 </span>                :            :         }
+<span class="lineNum">     418 </span>                :            : 
+<span class="lineNum">     419 </span>                :<span class="lineCov">        510 :         free(buf);</span>
+<span class="lineNum">     420 </span>                :<span class="lineCov">        510 :         return (ret);</span>
+<span class="lineNum">     421 </span>                :            : }
+<span class="lineNum">     422 </span>                :            : 
+<span class="lineNum">     423 </span>                :            : /*
+<span class="lineNum">     424 </span>                :            :  * Iterate over all children, snapshots and filesystems
+<a name="425"><span class="lineNum">     425 </span>                :            :  */</a>
+<span class="lineNum">     426 </span>                :            : int
+<span class="lineNum">     427 </span>                :<span class="lineCov">       2283 : zfs_iter_children(zfs_handle_t *zhp, zfs_iter_f func, void *data)</span>
+<span class="lineNum">     428 </span>                :            : {
+<span class="lineNum">     429 </span>                :            :         int ret;
+<span class="lineNum">     430 </span>                :            : 
+<span class="lineNum">     431 </span>        [<span class="branchCov" title="Branch 1 was taken 2234 times"> + </span><span class="branchCov" title="Branch 2 was taken 49 times"> + </span>]:<span class="lineCov">       2283 :         if ((ret = zfs_iter_filesystems(zhp, func, data)) != 0)</span>
+<span class="lineNum">     432 </span>                :            :                 return (ret);
+<span class="lineNum">     433 </span>                :            : 
+<span class="lineNum">     434 </span>                :<span class="lineCov">       2234 :         return (zfs_iter_snapshots(zhp, B_FALSE, func, data));</span>
+<span class="lineNum">     435 </span>                :            : }
+<span class="lineNum">     436 </span>                :            : 
+<span class="lineNum">     437 </span>                :            : 
+<span class="lineNum">     438 </span>                :            : typedef struct iter_stack_frame {
+<span class="lineNum">     439 </span>                :            :         struct iter_stack_frame *next;
+<span class="lineNum">     440 </span>                :            :         zfs_handle_t *zhp;
+<span class="lineNum">     441 </span>                :            : } iter_stack_frame_t;
+<span class="lineNum">     442 </span>                :            : 
+<span class="lineNum">     443 </span>                :            : typedef struct iter_dependents_arg {
+<span class="lineNum">     444 </span>                :            :         boolean_t first;
+<span class="lineNum">     445 </span>                :            :         boolean_t allowrecursion;
+<span class="lineNum">     446 </span>                :            :         iter_stack_frame_t *stack;
+<span class="lineNum">     447 </span>                :            :         zfs_iter_f func;
+<span class="lineNum">     448 </span>                :            :         void *data;
+<span class="lineNum">     449 </span>                :            : } iter_dependents_arg_t;
+<a name="450"><span class="lineNum">     450 </span>                :            : </a>
+<span class="lineNum">     451 </span>                :            : static int
+<span class="lineNum">     452 </span>                :<span class="lineCov">       5214 : iter_dependents_cb(zfs_handle_t *zhp, void *arg)</span>
+<span class="lineNum">     453 </span>                :            : {
+<span class="lineNum">     454 </span>                :<span class="lineCov">       5214 :         iter_dependents_arg_t *ida = arg;</span>
+<span class="lineNum">     455 </span>                :<span class="lineCov">       5214 :         int err = 0;</span>
+<span class="lineNum">     456 </span>                :<span class="lineCov">       5214 :         boolean_t first = ida-&gt;first;</span>
+<span class="lineNum">     457 </span>                :<span class="lineCov">       5214 :         ida-&gt;first = B_FALSE;</span>
+<span class="lineNum">     458 </span>                :            : 
+<span class="lineNum">     459 </span>        [<span class="branchCov" title="Branch 0 was taken 2548 times"> + </span><span class="branchCov" title="Branch 1 was taken 2666 times"> + </span>]:<span class="lineCov">       5214 :         if (zhp-&gt;zfs_type == ZFS_TYPE_SNAPSHOT) {</span>
+<span class="lineNum">     460 </span>                :<span class="lineCov">       2548 :                 err = zfs_iter_clones(zhp, iter_dependents_cb, ida);</span>
+<span class="lineNum">     461 </span>        [<span class="branchCov" title="Branch 0 was taken 2666 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       2666 :         } else if (zhp-&gt;zfs_type != ZFS_TYPE_BOOKMARK) {</span>
+<span class="lineNum">     462 </span>                :            :                 iter_stack_frame_t isf;
+<span class="lineNum">     463 </span>                :            :                 iter_stack_frame_t *f;
+<span class="lineNum">     464 </span>                :            : 
+<span class="lineNum">     465 </span>                :            :                 /*
+<span class="lineNum">     466 </span>                :            :                  * check if there is a cycle by seeing if this fs is already
+<span class="lineNum">     467 </span>                :            :                  * on the stack.
+<span class="lineNum">     468 </span>                :            :                  */
+<span class="lineNum">     469 </span>        [<span class="branchCov" title="Branch 0 was taken 4870 times"> + </span><span class="branchCov" title="Branch 1 was taken 2664 times"> + </span>]:<span class="lineCov">       7534 :                 for (f = ida-&gt;stack; f != NULL; f = f-&gt;next) {</span>
+<span class="lineNum">     470 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 4868 times"> + </span>]:<span class="lineCov">       4870 :                         if (f-&gt;zhp-&gt;zfs_dmustats.dds_guid ==</span>
+<span class="lineNum">     471 </span>                :<span class="lineCov">       4870 :                             zhp-&gt;zfs_dmustats.dds_guid) {</span>
+<span class="lineNum">     472 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          2 :                                 if (ida-&gt;allowrecursion) {</span>
+<span class="lineNum">     473 </span>                :<span class="lineCov">          2 :                                         zfs_close(zhp);</span>
+<span class="lineNum">     474 </span>                :<span class="lineCov">          2 :                                         return (0);</span>
+<span class="lineNum">     475 </span>                :            :                                 } else {
+<span class="lineNum">     476 </span>                :<span class="lineNoCov">          0 :                                         zfs_error_aux(zhp-&gt;zfs_hdl,</span>
+<span class="lineNum">     477 </span>                :<span class="lineNoCov">          0 :                                             dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     478 </span>                :            :                                             &quot;recursive dependency at '%s'&quot;),
+<span class="lineNum">     479 </span>                :            :                                             zfs_get_name(zhp));
+<span class="lineNum">     480 </span>                :<span class="lineNoCov">          0 :                                         err = zfs_error(zhp-&gt;zfs_hdl,</span>
+<span class="lineNum">     481 </span>                :            :                                             EZFS_RECURSIVE,
+<span class="lineNum">     482 </span>                :<span class="lineNoCov">          0 :                                             dgettext(TEXT_DOMAIN,</span>
+<span class="lineNum">     483 </span>                :            :                                             &quot;cannot determine dependent &quot;
+<span class="lineNum">     484 </span>                :            :                                             &quot;datasets&quot;));
+<span class="lineNum">     485 </span>                :<span class="lineNoCov">          0 :                                         zfs_close(zhp);</span>
+<span class="lineNum">     486 </span>                :<span class="lineNoCov">          0 :                                         return (err);</span>
+<span class="lineNum">     487 </span>                :            :                                 }
+<span class="lineNum">     488 </span>                :            :                         }
+<span class="lineNum">     489 </span>                :            :                 }
+<span class="lineNum">     490 </span>                :            : 
+<span class="lineNum">     491 </span>                :<span class="lineCov">       2664 :                 isf.zhp = zhp;</span>
+<span class="lineNum">     492 </span>                :<span class="lineCov">       2664 :                 isf.next = ida-&gt;stack;</span>
+<span class="lineNum">     493 </span>                :<span class="lineCov">       2664 :                 ida-&gt;stack = &amp;isf;</span>
+<span class="lineNum">     494 </span>                :<span class="lineCov">       2664 :                 err = zfs_iter_filesystems(zhp, iter_dependents_cb, ida);</span>
+<span class="lineNum">     495 </span>        [<span class="branchCov" title="Branch 0 was taken 2664 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       2664 :                 if (err == 0)</span>
+<span class="lineNum">     496 </span>                :<span class="lineCov">       2664 :                         err = zfs_iter_snapshots(zhp, B_FALSE,</span>
+<span class="lineNum">     497 </span>                :            :                             iter_dependents_cb, ida);
+<span class="lineNum">     498 </span>                :<span class="lineCov">       2664 :                 ida-&gt;stack = isf.next;</span>
+<span class="lineNum">     499 </span>                :            :         }
+<span class="lineNum">     500 </span>                :            : 
+<span class="lineNum">     501 </span>        [<span class="branchCov" title="Branch 0 was taken 2993 times"> + </span><span class="branchCov" title="Branch 1 was taken 2219 times"> + </span>]:<span class="lineCov">       5212 :         if (!first &amp;&amp; err == 0)</span>
+<span class="lineNum">     502 </span>                :<span class="lineCov">       2993 :                 err = ida-&gt;func(zhp, ida-&gt;data);</span>
+<span class="lineNum">     503 </span>                :            :         else
+<span class="lineNum">     504 </span>                :<span class="lineCov">       2219 :                 zfs_close(zhp);</span>
+<span class="lineNum">     505 </span>                :            : 
+<span class="lineNum">     506 </span>                :            :         return (err);
+<span class="lineNum">     507 </span>                :            : }
+<a name="508"><span class="lineNum">     508 </span>                :            : </a>
+<span class="lineNum">     509 </span>                :            : int
+<span class="lineNum">     510 </span>                :<span class="lineCov">       2219 : zfs_iter_dependents(zfs_handle_t *zhp, boolean_t allowrecursion,</span>
+<span class="lineNum">     511 </span>                :            :     zfs_iter_f func, void *data)
+<span class="lineNum">     512 </span>                :            : {
+<span class="lineNum">     513 </span>                :            :         iter_dependents_arg_t ida;
+<span class="lineNum">     514 </span>                :<span class="lineCov">       2219 :         ida.allowrecursion = allowrecursion;</span>
+<span class="lineNum">     515 </span>                :<span class="lineCov">       2219 :         ida.stack = NULL;</span>
+<span class="lineNum">     516 </span>                :<span class="lineCov">       2219 :         ida.func = func;</span>
+<span class="lineNum">     517 </span>                :<span class="lineCov">       2219 :         ida.data = data;</span>
+<span class="lineNum">     518 </span>                :<span class="lineCov">       2219 :         ida.first = B_TRUE;</span>
+<span class="lineNum">     519 </span>                :<span class="lineCov">       2219 :         return (iter_dependents_cb(zfs_handle_dup(zhp), &amp;ida));</span>
+<span class="lineNum">     520 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

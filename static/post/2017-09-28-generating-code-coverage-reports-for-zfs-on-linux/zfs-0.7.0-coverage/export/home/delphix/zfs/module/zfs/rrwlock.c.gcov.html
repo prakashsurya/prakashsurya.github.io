@@ -1,0 +1,489 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/rrwlock.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - rrwlock.c<span style="font-size: 80%;"> (source / <a href="rrwlock.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">98</td>
+            <td class="headerCovTableEntry">136</td>
+            <td class="headerCovTableEntryLo">72.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntryLo">60.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">54</td>
+            <td class="headerCovTableEntry">92</td>
+            <td class="headerCovTableEntryLo">58.7 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : /*
+<span class="lineNum">      26 </span>                :            :  * Copyright (c) 2012 by Delphix. All rights reserved.
+<span class="lineNum">      27 </span>                :            :  */
+<span class="lineNum">      28 </span>                :            : 
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/refcount.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/rrwlock.h&gt;
+<span class="lineNum">      31 </span>                :            : 
+<span class="lineNum">      32 </span>                :            : /*
+<span class="lineNum">      33 </span>                :            :  * This file contains the implementation of a re-entrant read
+<span class="lineNum">      34 </span>                :            :  * reader/writer lock (aka &quot;rrwlock&quot;).
+<span class="lineNum">      35 </span>                :            :  *
+<span class="lineNum">      36 </span>                :            :  * This is a normal reader/writer lock with the additional feature
+<span class="lineNum">      37 </span>                :            :  * of allowing threads who have already obtained a read lock to
+<span class="lineNum">      38 </span>                :            :  * re-enter another read lock (re-entrant read) - even if there are
+<span class="lineNum">      39 </span>                :            :  * waiting writers.
+<span class="lineNum">      40 </span>                :            :  *
+<span class="lineNum">      41 </span>                :            :  * Callers who have not obtained a read lock give waiting writers priority.
+<span class="lineNum">      42 </span>                :            :  *
+<span class="lineNum">      43 </span>                :            :  * The rrwlock_t lock does not allow re-entrant writers, nor does it
+<span class="lineNum">      44 </span>                :            :  * allow a re-entrant mix of reads and writes (that is, it does not
+<span class="lineNum">      45 </span>                :            :  * allow a caller who has already obtained a read lock to be able to
+<span class="lineNum">      46 </span>                :            :  * then grab a write lock without first dropping all read locks, and
+<span class="lineNum">      47 </span>                :            :  * vice versa).
+<span class="lineNum">      48 </span>                :            :  *
+<span class="lineNum">      49 </span>                :            :  * The rrwlock_t uses tsd (thread specific data) to keep a list of
+<span class="lineNum">      50 </span>                :            :  * nodes (rrw_node_t), where each node keeps track of which specific
+<span class="lineNum">      51 </span>                :            :  * lock (rrw_node_t::rn_rrl) the thread has grabbed.  Since re-entering
+<span class="lineNum">      52 </span>                :            :  * should be rare, a thread that grabs multiple reads on the same rrwlock_t
+<span class="lineNum">      53 </span>                :            :  * will store multiple rrw_node_ts of the same 'rrn_rrl'. Nodes on the
+<span class="lineNum">      54 </span>                :            :  * tsd list can represent a different rrwlock_t.  This allows a thread
+<span class="lineNum">      55 </span>                :            :  * to enter multiple and unique rrwlock_ts for read locks at the same time.
+<span class="lineNum">      56 </span>                :            :  *
+<span class="lineNum">      57 </span>                :            :  * Since using tsd exposes some overhead, the rrwlock_t only needs to
+<span class="lineNum">      58 </span>                :            :  * keep tsd data when writers are waiting.  If no writers are waiting, then
+<span class="lineNum">      59 </span>                :            :  * a reader just bumps the anonymous read count (rr_anon_rcount) - no tsd
+<span class="lineNum">      60 </span>                :            :  * is needed.  Once a writer attempts to grab the lock, readers then
+<span class="lineNum">      61 </span>                :            :  * keep tsd data and bump the linked readers count (rr_linked_rcount).
+<span class="lineNum">      62 </span>                :            :  *
+<span class="lineNum">      63 </span>                :            :  * If there are waiting writers and there are anonymous readers, then a
+<span class="lineNum">      64 </span>                :            :  * reader doesn't know if it is a re-entrant lock. But since it may be one,
+<span class="lineNum">      65 </span>                :            :  * we allow the read to proceed (otherwise it could deadlock).  Since once
+<span class="lineNum">      66 </span>                :            :  * waiting writers are active, readers no longer bump the anonymous count,
+<span class="lineNum">      67 </span>                :            :  * the anonymous readers will eventually flush themselves out.  At this point,
+<span class="lineNum">      68 </span>                :            :  * readers will be able to tell if they are a re-entrant lock (have a
+<span class="lineNum">      69 </span>                :            :  * rrw_node_t entry for the lock) or not. If they are a re-entrant lock, then
+<span class="lineNum">      70 </span>                :            :  * we must let the proceed.  If they are not, then the reader blocks for the
+<span class="lineNum">      71 </span>                :            :  * waiting writers.  Hence, we do not starve writers.
+<span class="lineNum">      72 </span>                :            :  */
+<span class="lineNum">      73 </span>                :            : 
+<span class="lineNum">      74 </span>                :            : /* global key for TSD */
+<span class="lineNum">      75 </span>                :            : uint_t rrw_tsd_key;
+<span class="lineNum">      76 </span>                :            : 
+<span class="lineNum">      77 </span>                :            : typedef struct rrw_node {
+<span class="lineNum">      78 </span>                :            :         struct rrw_node *rn_next;
+<span class="lineNum">      79 </span>                :            :         rrwlock_t *rn_rrl;
+<span class="lineNum">      80 </span>                :            :         void *rn_tag;
+<span class="lineNum">      81 </span>                :            : } rrw_node_t;
+<a name="82"><span class="lineNum">      82 </span>                :            : </a>
+<span class="lineNum">      83 </span>                :            : static rrw_node_t *
+<span class="lineNum">      84 </span>                :<span class="lineCov">    1240153 : rrn_find(rrwlock_t *rrl)</span>
+<span class="lineNum">      85 </span>                :            : {
+<span class="lineNum">      86 </span>                :            :         rrw_node_t *rn;
+<span class="lineNum">      87 </span>                :            : 
+<span class="lineNum">      88 </span>        [<span class="branchCov" title="Branch 1 was taken 739427 times"> + </span><span class="branchCov" title="Branch 2 was taken 500726 times"> + </span>]:<span class="lineCov">    1240153 :         if (refcount_count(&amp;rrl-&gt;rr_linked_rcount) == 0)</span>
+<span class="lineNum">      89 </span>                :            :                 return (NULL);
+<span class="lineNum">      90 </span>                :            : 
+<span class="lineNum">      91 </span>        [<span class="branchCov" title="Branch 1 was taken 684390 times"> + </span><span class="branchCov" title="Branch 2 was taken 55037 times"> + </span>]:<span class="lineCov">     739427 :         for (rn = tsd_get(rrw_tsd_key); rn != NULL; rn = rn-&gt;rn_next) {</span>
+<span class="lineNum">      92 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 684390 times"> + </span>]:<span class="lineCov">     684390 :                 if (rn-&gt;rn_rrl == rrl)</span>
+<span class="lineNum">      93 </span>                :            :                         return (rn);
+<span class="lineNum">      94 </span>                :            :         }
+<span class="lineNum">      95 </span>                :            :         return (NULL);
+<span class="lineNum">      96 </span>                :            : }
+<span class="lineNum">      97 </span>                :            : 
+<span class="lineNum">      98 </span>                :            : /*
+<span class="lineNum">      99 </span>                :            :  * Add a node to the head of the singly linked list.
+<a name="100"><span class="lineNum">     100 </span>                :            :  */</a>
+<span class="lineNum">     101 </span>                :            : static void
+<span class="lineNum">     102 </span>                :<span class="lineCov">      60411 : rrn_add(rrwlock_t *rrl, void *tag)</span>
+<span class="lineNum">     103 </span>                :            : {
+<span class="lineNum">     104 </span>                :            :         rrw_node_t *rn;
+<span class="lineNum">     105 </span>                :            : 
+<span class="lineNum">     106 </span>                :<span class="lineCov">      60411 :         rn = kmem_alloc(sizeof (*rn), KM_SLEEP);</span>
+<span class="lineNum">     107 </span>                :<span class="lineCov">      60411 :         rn-&gt;rn_rrl = rrl;</span>
+<span class="lineNum">     108 </span>                :<span class="lineCov">      60411 :         rn-&gt;rn_next = tsd_get(rrw_tsd_key);</span>
+<span class="lineNum">     109 </span>                :<span class="lineCov">      60411 :         rn-&gt;rn_tag = tag;</span>
+<span class="lineNum">     110 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 60411 times"> + </span>]:<span class="lineCov">      60411 :         VERIFY(tsd_set(rrw_tsd_key, rn) == 0);</span>
+<span class="lineNum">     111 </span>                :<span class="lineCov">      60411 : }</span>
+<span class="lineNum">     112 </span>                :            : 
+<span class="lineNum">     113 </span>                :            : /*
+<span class="lineNum">     114 </span>                :            :  * If a node is found for 'rrl', then remove the node from this
+<span class="lineNum">     115 </span>                :            :  * thread's list and return TRUE; otherwise return FALSE.
+<a name="116"><span class="lineNum">     116 </span>                :            :  */</a>
+<span class="lineNum">     117 </span>                :            : static boolean_t
+<span class="lineNum">     118 </span>                :<span class="lineCov">     934496 : rrn_find_and_remove(rrwlock_t *rrl, void *tag)</span>
+<span class="lineNum">     119 </span>                :            : {
+<span class="lineNum">     120 </span>                :            :         rrw_node_t *rn;
+<span class="lineNum">     121 </span>                :<span class="lineCov">     934496 :         rrw_node_t *prev = NULL;</span>
+<span class="lineNum">     122 </span>                :            : 
+<span class="lineNum">     123 </span>        [<span class="branchCov" title="Branch 1 was taken 60411 times"> + </span><span class="branchCov" title="Branch 2 was taken 873993 times"> + </span>]:<span class="lineCov">     934496 :         if (refcount_count(&amp;rrl-&gt;rr_linked_rcount) == 0)</span>
+<span class="lineNum">     124 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>        [<span class="branchCov" title="Branch 1 was taken 60411 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">      60411 :         for (rn = tsd_get(rrw_tsd_key); rn != NULL; rn = rn-&gt;rn_next) {</span>
+<span class="lineNum">     127 </span>[<span class="branchCov" title="Branch 0 was taken 60411 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 60411 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">      60411 :                 if (rn-&gt;rn_rrl == rrl &amp;&amp; rn-&gt;rn_tag == tag) {</span>
+<span class="lineNum">     128 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 60411 times"> + </span>]:<span class="lineCov">      60411 :                         if (prev)</span>
+<span class="lineNum">     129 </span>                :<span class="lineNoCov">          0 :                                 prev-&gt;rn_next = rn-&gt;rn_next;</span>
+<span class="lineNum">     130 </span>                :            :                         else
+<span class="lineNum">     131 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 60411 times"> + </span>]:<span class="lineCov">      60411 :                                 VERIFY(tsd_set(rrw_tsd_key, rn-&gt;rn_next) == 0);</span>
+<span class="lineNum">     132 </span>                :<span class="lineCov">      60411 :                         kmem_free(rn, sizeof (*rn));</span>
+<span class="lineNum">     133 </span>                :<span class="lineCov">      60411 :                         return (B_TRUE);</span>
+<span class="lineNum">     134 </span>                :            :                 }
+<span class="lineNum">     135 </span>                :<span class="lineNoCov">          0 :                 prev = rn;</span>
+<span class="lineNum">     136 </span>                :            :         }
+<span class="lineNum">     137 </span>                :            :         return (B_FALSE);
+<span class="lineNum">     138 </span>                :            : }
+<a name="139"><span class="lineNum">     139 </span>                :            : </a>
+<span class="lineNum">     140 </span>                :            : void
+<span class="lineNum">     141 </span>                :<span class="lineCov">      45381 : rrw_init(rrwlock_t *rrl, boolean_t track_all)</span>
+<span class="lineNum">     142 </span>                :            : {
+<span class="lineNum">     143 </span>                :<span class="lineCov">      45381 :         mutex_init(&amp;rrl-&gt;rr_lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     144 </span>                :<span class="lineCov">      45383 :         cv_init(&amp;rrl-&gt;rr_cv, NULL, CV_DEFAULT, NULL);</span>
+<span class="lineNum">     145 </span>                :<span class="lineCov">      45383 :         rrl-&gt;rr_writer = NULL;</span>
+<span class="lineNum">     146 </span>                :<span class="lineCov">      45383 :         refcount_create(&amp;rrl-&gt;rr_anon_rcount);</span>
+<span class="lineNum">     147 </span>                :<span class="lineCov">      45384 :         refcount_create(&amp;rrl-&gt;rr_linked_rcount);</span>
+<span class="lineNum">     148 </span>                :<span class="lineCov">      45387 :         rrl-&gt;rr_writer_wanted = B_FALSE;</span>
+<span class="lineNum">     149 </span>                :<span class="lineCov">      45387 :         rrl-&gt;rr_track_all = track_all;</span>
+<span class="lineNum">     150 </span>                :<span class="lineCov">      45387 : }</span>
+<a name="151"><span class="lineNum">     151 </span>                :            : </a>
+<span class="lineNum">     152 </span>                :            : void
+<span class="lineNum">     153 </span>                :<span class="lineCov">      45334 : rrw_destroy(rrwlock_t *rrl)</span>
+<span class="lineNum">     154 </span>                :            : {
+<span class="lineNum">     155 </span>                :<span class="lineCov">      45334 :         mutex_destroy(&amp;rrl-&gt;rr_lock);</span>
+<span class="lineNum">     156 </span>                :<span class="lineCov">      45334 :         cv_destroy(&amp;rrl-&gt;rr_cv);</span>
+<span class="lineNum">     157 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 45334 times"> + </span>]:<span class="lineCov">      45334 :         ASSERT(rrl-&gt;rr_writer == NULL);</span>
+<span class="lineNum">     158 </span>                :<span class="lineCov">      45334 :         refcount_destroy(&amp;rrl-&gt;rr_anon_rcount);</span>
+<span class="lineNum">     159 </span>                :<span class="lineCov">      45334 :         refcount_destroy(&amp;rrl-&gt;rr_linked_rcount);</span>
+<span class="lineNum">     160 </span>                :<span class="lineCov">      45334 : }</span>
+<a name="161"><span class="lineNum">     161 </span>                :            : </a>
+<span class="lineNum">     162 </span>                :            : static void
+<span class="lineNum">     163 </span>                :<span class="lineCov">     933326 : rrw_enter_read_impl(rrwlock_t *rrl, boolean_t prio, void *tag)</span>
+<span class="lineNum">     164 </span>                :            : {
+<span class="lineNum">     165 </span>                :<span class="lineCov">     933326 :         mutex_enter(&amp;rrl-&gt;rr_lock);</span>
+<span class="lineNum">     166 </span>                :            : #if !defined(DEBUG) &amp;&amp; defined(_KERNEL)
+<span class="lineNum">     167 </span>                :            :         if (rrl-&gt;rr_writer == NULL &amp;&amp; !rrl-&gt;rr_writer_wanted &amp;&amp;
+<span class="lineNum">     168 </span>                :            :             !rrl-&gt;rr_track_all) {
+<span class="lineNum">     169 </span>                :            :                 rrl-&gt;rr_anon_rcount.rc_count++;
+<span class="lineNum">     170 </span>                :            :                 mutex_exit(&amp;rrl-&gt;rr_lock);
+<span class="lineNum">     171 </span>                :            :                 return;
+<span class="lineNum">     172 </span>                :            :         }
+<span class="lineNum">     173 </span>                :            :         DTRACE_PROBE(zfs__rrwfastpath__rdmiss);
+<span class="lineNum">     174 </span>                :            : #endif
+<span class="lineNum">     175 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 934472 times"> + </span>]:<span class="lineCov">     934426 :         ASSERT(rrl-&gt;rr_writer != curthread);</span>
+<span class="lineNum">     176 </span>        [<span class="branchCov" title="Branch 1 was taken 934326 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">     934472 :         ASSERT(refcount_count(&amp;rrl-&gt;rr_anon_rcount) &gt;= 0);</span>
+<span class="lineNum">     177 </span>                :            : 
+<span class="lineNum">     178 </span>        [<span class="branchCov" title="Branch 0 was taken 3611 times"> + </span><span class="branchCov" title="Branch 1 was taken 935127 times"> + </span>]:<span class="lineCov">     939529 :         while (rrl-&gt;rr_writer != NULL || (rrl-&gt;rr_writer_wanted &amp;&amp;</span>
+<span class="lineNum">         </span>  [<span class="branchCov" title="Branch 2 was taken 791 times"> + </span><span class="branchCov" title="Branch 3 was taken 934336 times"> + </span><span class="branchCov" title="Branch 4 was taken 791 times"> + </span><span class="branchNoCov" title="Branch 5 was not taken"> - </span>]
+<span class="lineNum">     179 </span>  [<span class="branchCov" title="Branch 1 was taken 791 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 639 times"> + </span><span class="branchCov" title="Branch 4 was taken 152 times"> + </span>]:<span class="lineCov">       2373 :             refcount_is_zero(&amp;rrl-&gt;rr_anon_rcount) &amp;&amp; !prio &amp;&amp;</span>
+<span class="lineNum">     180 </span>                :<span class="lineCov">        791 :             rrn_find(rrl) == NULL))</span>
+<span class="lineNum">     181 </span>                :<span class="lineCov">       4250 :                 cv_wait(&amp;rrl-&gt;rr_cv, &amp;rrl-&gt;rr_lock);</span>
+<span class="lineNum">     182 </span>                :            : 
+<span class="lineNum">     183 </span>        [<span class="branchCov" title="Branch 0 was taken 60411 times"> + </span><span class="branchCov" title="Branch 1 was taken 874077 times"> + </span>]:<span class="lineCov">     934488 :         if (rrl-&gt;rr_writer_wanted || rrl-&gt;rr_track_all) {</span>
+<span class="lineNum">     184 </span>                :            :                 /* may or may not be a re-entrant enter */
+<span class="lineNum">     185 </span>                :<span class="lineCov">      60411 :                 rrn_add(rrl, tag);</span>
+<span class="lineNum">     186 </span>                :<span class="lineCov">      60411 :                 (void) refcount_add(&amp;rrl-&gt;rr_linked_rcount, tag);</span>
+<span class="lineNum">     187 </span>                :            :         } else {
+<span class="lineNum">     188 </span>                :<span class="lineCov">     874077 :                 (void) refcount_add(&amp;rrl-&gt;rr_anon_rcount, tag);</span>
+<span class="lineNum">     189 </span>                :            :         }
+<span class="lineNum">     190 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 934586 times"> + </span>]:<span class="lineCov">     934586 :         ASSERT(rrl-&gt;rr_writer == NULL);</span>
+<span class="lineNum">     191 </span>                :<span class="lineCov">     934586 :         mutex_exit(&amp;rrl-&gt;rr_lock);</span>
+<span class="lineNum">     192 </span>                :<span class="lineCov">     934422 : }</span>
+<a name="193"><span class="lineNum">     193 </span>                :            : </a>
+<span class="lineNum">     194 </span>                :            : void
+<span class="lineNum">     195 </span>                :<span class="lineCov">     920219 : rrw_enter_read(rrwlock_t *rrl, void *tag)</span>
+<span class="lineNum">     196 </span>                :            : {
+<span class="lineNum">     197 </span>                :<span class="lineCov">     920219 :         rrw_enter_read_impl(rrl, B_FALSE, tag);</span>
+<span class="lineNum">     198 </span>                :<span class="lineCov">     921224 : }</span>
+<span class="lineNum">     199 </span>                :            : 
+<span class="lineNum">     200 </span>                :            : /*
+<span class="lineNum">     201 </span>                :            :  * take a read lock even if there are pending write lock requests. if we want
+<span class="lineNum">     202 </span>                :            :  * to take a lock reentrantly, but from different threads (that have a
+<span class="lineNum">     203 </span>                :            :  * relationship to each other), the normal detection mechanism to overrule
+<span class="lineNum">     204 </span>                :            :  * the pending writer does not work, so we have to give an explicit hint here.
+<a name="205"><span class="lineNum">     205 </span>                :            :  */</a>
+<span class="lineNum">     206 </span>                :            : void
+<span class="lineNum">     207 </span>                :<span class="lineCov">      13220 : rrw_enter_read_prio(rrwlock_t *rrl, void *tag)</span>
+<span class="lineNum">     208 </span>                :            : {
+<span class="lineNum">     209 </span>                :<span class="lineCov">      13220 :         rrw_enter_read_impl(rrl, B_TRUE, tag);</span>
+<span class="lineNum">     210 </span>                :<span class="lineCov">      13219 : }</span>
+<span class="lineNum">     211 </span>                :            : 
+<a name="212"><span class="lineNum">     212 </span>                :            : </a>
+<span class="lineNum">     213 </span>                :            : void
+<span class="lineNum">     214 </span>                :<span class="lineCov">      60567 : rrw_enter_write(rrwlock_t *rrl)</span>
+<span class="lineNum">     215 </span>                :            : {
+<span class="lineNum">     216 </span>                :<span class="lineCov">      60567 :         mutex_enter(&amp;rrl-&gt;rr_lock);</span>
+<span class="lineNum">     217 </span>        [<span class="branchCov" title="Branch 1 was taken 60567 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">      60567 :         ASSERT(rrl-&gt;rr_writer != curthread);</span>
+<span class="lineNum">     218 </span>                :            : 
+<span class="lineNum">     219 </span>  [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 61736 times"> + </span><span class="branchCov" title="Branch 3 was taken 1169 times"> + </span><span class="branchCov" title="Branch 4 was taken 60567 times"> + </span>]:<span class="lineCov">     123472 :         while (refcount_count(&amp;rrl-&gt;rr_anon_rcount) &gt; 0 ||</span>
+<span class="lineNum">     220 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 60567 times"> + </span>]:<span class="lineCov">     122303 :             refcount_count(&amp;rrl-&gt;rr_linked_rcount) &gt; 0 ||</span>
+<span class="lineNum">     221 </span>                :<span class="lineCov">      60567 :             rrl-&gt;rr_writer != NULL) {</span>
+<span class="lineNum">     222 </span>                :<span class="lineCov">       1169 :                 rrl-&gt;rr_writer_wanted = B_TRUE;</span>
+<span class="lineNum">     223 </span>                :<span class="lineCov">       1169 :                 cv_wait(&amp;rrl-&gt;rr_cv, &amp;rrl-&gt;rr_lock);</span>
+<span class="lineNum">     224 </span>                :            :         }
+<span class="lineNum">     225 </span>                :<span class="lineCov">      60567 :         rrl-&gt;rr_writer_wanted = B_FALSE;</span>
+<span class="lineNum">     226 </span>                :<span class="lineCov">      60567 :         rrl-&gt;rr_writer = curthread;</span>
+<span class="lineNum">     227 </span>                :<span class="lineCov">      60567 :         mutex_exit(&amp;rrl-&gt;rr_lock);</span>
+<span class="lineNum">     228 </span>                :<span class="lineCov">      60567 : }</span>
+<a name="229"><span class="lineNum">     229 </span>                :            : </a>
+<span class="lineNum">     230 </span>                :            : void
+<span class="lineNum">     231 </span>                :<span class="lineCov">     980840 : rrw_enter(rrwlock_t *rrl, krw_t rw, void *tag)</span>
+<span class="lineNum">     232 </span>                :            : {
+<span class="lineNum">     233 </span>        [<span class="branchCov" title="Branch 0 was taken 920273 times"> + </span><span class="branchCov" title="Branch 1 was taken 60567 times"> + </span>]:<span class="lineCov">     980840 :         if (rw == RW_READER)</span>
+<span class="lineNum">     234 </span>                :<span class="lineCov">     920273 :                 rrw_enter_read(rrl, tag);</span>
+<span class="lineNum">     235 </span>                :            :         else
+<span class="lineNum">     236 </span>                :<span class="lineCov">      60567 :                 rrw_enter_write(rrl);</span>
+<span class="lineNum">     237 </span>                :<span class="lineCov">     981825 : }</span>
+<a name="238"><span class="lineNum">     238 </span>                :            : </a>
+<span class="lineNum">     239 </span>                :            : void
+<span class="lineNum">     240 </span>                :<span class="lineCov">     994527 : rrw_exit(rrwlock_t *rrl, void *tag)</span>
+<span class="lineNum">     241 </span>                :            : {
+<span class="lineNum">     242 </span>                :<span class="lineCov">     994527 :         mutex_enter(&amp;rrl-&gt;rr_lock);</span>
+<span class="lineNum">     243 </span>                :            : #if !defined(DEBUG) &amp;&amp; defined(_KERNEL)
+<span class="lineNum">     244 </span>                :            :         if (!rrl-&gt;rr_writer &amp;&amp; rrl-&gt;rr_linked_rcount.rc_count == 0) {
+<span class="lineNum">     245 </span>                :            :                 rrl-&gt;rr_anon_rcount.rc_count--;
+<span class="lineNum">     246 </span>                :            :                 if (rrl-&gt;rr_anon_rcount.rc_count == 0)
+<span class="lineNum">     247 </span>                :            :                         cv_broadcast(&amp;rrl-&gt;rr_cv);
+<span class="lineNum">     248 </span>                :            :                 mutex_exit(&amp;rrl-&gt;rr_lock);
+<span class="lineNum">     249 </span>                :            :                 return;
+<span class="lineNum">     250 </span>                :            :         }
+<span class="lineNum">     251 </span>                :            :         DTRACE_PROBE(zfs__rrwfastpath__exitmiss);
+<span class="lineNum">     252 </span>                :            : #endif
+<span class="lineNum">     253 </span>[<span class="branchCov" title="Branch 1 was taken 120978 times"> + </span><span class="branchCov" title="Branch 2 was taken 874148 times"> + </span>][<span class="branchCov" title="Branch 4 was taken 60567 times"> + </span><span class="branchCov" title="Branch 5 was taken 60411 times"> + </span>]:<span class="lineCov">     995218 :         ASSERT(!refcount_is_zero(&amp;rrl-&gt;rr_anon_rcount) ||</span>
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 6 was not taken"> - </span><span class="branchCov" title="Branch 7 was taken 60567 times"> + </span>]
+<span class="lineNum">     254 </span>                :            :             !refcount_is_zero(&amp;rrl-&gt;rr_linked_rcount) ||
+<span class="lineNum">     255 </span>                :            :             rrl-&gt;rr_writer != NULL);
+<span class="lineNum">     256 </span>                :            : 
+<span class="lineNum">     257 </span>        [<span class="branchCov" title="Branch 0 was taken 934559 times"> + </span><span class="branchCov" title="Branch 1 was taken 60567 times"> + </span>]:<span class="lineCov">     995126 :         if (rrl-&gt;rr_writer == NULL) {</span>
+<span class="lineNum">     258 </span>                :            :                 int64_t count;
+<span class="lineNum">     259 </span>        [<span class="branchCov" title="Branch 1 was taken 60411 times"> + </span><span class="branchCov" title="Branch 2 was taken 874064 times"> + </span>]:<span class="lineCov">     934559 :                 if (rrn_find_and_remove(rrl, tag)) {</span>
+<span class="lineNum">     260 </span>                :<span class="lineCov">      60411 :                         count = refcount_remove(&amp;rrl-&gt;rr_linked_rcount, tag);</span>
+<span class="lineNum">     261 </span>                :            :                 } else {
+<span class="lineNum">     262 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 874064 times"> + </span>]:<span class="lineCov">     874064 :                         ASSERT(!rrl-&gt;rr_track_all);</span>
+<span class="lineNum">     263 </span>                :<span class="lineCov">     874064 :                         count = refcount_remove(&amp;rrl-&gt;rr_anon_rcount, tag);</span>
+<span class="lineNum">     264 </span>                :            :                 }
+<span class="lineNum">     265 </span>        [<span class="branchCov" title="Branch 0 was taken 914137 times"> + </span><span class="branchCov" title="Branch 1 was taken 20506 times"> + </span>]:<span class="lineCov">     934643 :                 if (count == 0)</span>
+<span class="lineNum">     266 </span>                :<span class="lineCov">     914137 :                         cv_broadcast(&amp;rrl-&gt;rr_cv);</span>
+<span class="lineNum">     267 </span>                :            :         } else {
+<span class="lineNum">     268 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 60567 times"> + </span>]:<span class="lineCov">      60567 :                 ASSERT(rrl-&gt;rr_writer == curthread);</span>
+<span class="lineNum">     269 </span>[<span class="branchCov" title="Branch 1 was taken 60567 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 60567 times"> + </span>]:<span class="lineCov">      60567 :                 ASSERT(refcount_is_zero(&amp;rrl-&gt;rr_anon_rcount) &amp;&amp;</span>
+<span class="lineNum">     270 </span>                :            :                     refcount_is_zero(&amp;rrl-&gt;rr_linked_rcount));
+<span class="lineNum">     271 </span>                :<span class="lineCov">      60567 :                 rrl-&gt;rr_writer = NULL;</span>
+<span class="lineNum">     272 </span>                :<span class="lineCov">      60567 :                 cv_broadcast(&amp;rrl-&gt;rr_cv);</span>
+<span class="lineNum">     273 </span>                :            :         }
+<span class="lineNum">     274 </span>                :<span class="lineCov">     995354 :         mutex_exit(&amp;rrl-&gt;rr_lock);</span>
+<span class="lineNum">     275 </span>                :<span class="lineCov">     995320 : }</span>
+<span class="lineNum">     276 </span>                :            : 
+<span class="lineNum">     277 </span>                :            : /*
+<span class="lineNum">     278 </span>                :            :  * If the lock was created with track_all, rrw_held(RW_READER) will return
+<span class="lineNum">     279 </span>                :            :  * B_TRUE iff the current thread has the lock for reader.  Otherwise it may
+<span class="lineNum">     280 </span>                :            :  * return B_TRUE if any thread has the lock for reader.
+<a name="281"><span class="lineNum">     281 </span>                :            :  */</a>
+<span class="lineNum">     282 </span>                :            : boolean_t
+<span class="lineNum">     283 </span>                :<span class="lineCov">    2597715 : rrw_held(rrwlock_t *rrl, krw_t rw)</span>
+<span class="lineNum">     284 </span>                :            : {
+<span class="lineNum">     285 </span>                :            :         boolean_t held;
+<span class="lineNum">     286 </span>                :            : 
+<span class="lineNum">     287 </span>                :<span class="lineCov">    2597715 :         mutex_enter(&amp;rrl-&gt;rr_lock);</span>
+<span class="lineNum">     288 </span>        [<span class="branchCov" title="Branch 0 was taken 1359632 times"> + </span><span class="branchCov" title="Branch 1 was taken 1239362 times"> + </span>]:<span class="lineCov">    2598994 :         if (rw == RW_WRITER) {</span>
+<span class="lineNum">     289 </span>                :<span class="lineCov">    1359632 :                 held = (rrl-&gt;rr_writer == curthread);</span>
+<span class="lineNum">     290 </span>                :            :         } else {
+<span class="lineNum">     291 </span>  [<span class="branchCov" title="Branch 1 was taken 1239362 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 684390 times"> + </span><span class="branchCov" title="Branch 4 was taken 554972 times"> + </span>]:<span class="lineCov">    2478724 :                 held = (!refcount_is_zero(&amp;rrl-&gt;rr_anon_rcount) ||</span>
+<span class="lineNum">     292 </span>                :<span class="lineCov">    1239362 :                     rrn_find(rrl) != NULL);</span>
+<span class="lineNum">     293 </span>                :            :         }
+<span class="lineNum">     294 </span>                :<span class="lineCov">    2598994 :         mutex_exit(&amp;rrl-&gt;rr_lock);</span>
+<span class="lineNum">     295 </span>                :            : 
+<span class="lineNum">     296 </span>                :<span class="lineCov">    2598884 :         return (held);</span>
+<span class="lineNum">     297 </span>                :            : }
+<a name="298"><span class="lineNum">     298 </span>                :            : </a>
+<span class="lineNum">     299 </span>                :            : void
+<span class="lineNum">     300 </span>                :<span class="lineNoCov">          0 : rrw_tsd_destroy(void *arg)</span>
+<span class="lineNum">     301 </span>                :            : {
+<span class="lineNum">     302 </span>                :<span class="lineNoCov">          0 :         rrw_node_t *rn = arg;</span>
+<span class="lineNum">     303 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rn != NULL) {</span>
+<span class="lineNum">     304 </span>                :<span class="lineNoCov">          0 :                 panic(&quot;thread %p terminating with rrw lock %p held&quot;,</span>
+<span class="lineNum">     305 </span>                :<span class="lineNoCov">          0 :                     (void *)curthread, (void *)rn-&gt;rn_rrl);</span>
+<span class="lineNum">     306 </span>                :            :         }
+<span class="lineNum">     307 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     308 </span>                :            : 
+<span class="lineNum">     309 </span>                :            : /*
+<span class="lineNum">     310 </span>                :            :  * A reader-mostly lock implementation, tuning above reader-writer locks
+<span class="lineNum">     311 </span>                :            :  * for hightly parallel read acquisitions, while pessimizing writes.
+<span class="lineNum">     312 </span>                :            :  *
+<span class="lineNum">     313 </span>                :            :  * The idea is to split single busy lock into array of locks, so that
+<span class="lineNum">     314 </span>                :            :  * each reader can lock only one of them for read, depending on result
+<span class="lineNum">     315 </span>                :            :  * of simple hash function.  That proportionally reduces lock congestion.
+<span class="lineNum">     316 </span>                :            :  * Writer at the same time has to sequentially acquire write on all the locks.
+<span class="lineNum">     317 </span>                :            :  * That makes write acquisition proportionally slower, but in places where
+<span class="lineNum">     318 </span>                :            :  * it is used (filesystem unmount) performance is not critical.
+<span class="lineNum">     319 </span>                :            :  *
+<span class="lineNum">     320 </span>                :            :  * All the functions below are direct wrappers around functions above.
+<a name="321"><span class="lineNum">     321 </span>                :            :  */</a>
+<span class="lineNum">     322 </span>                :            : void
+<span class="lineNum">     323 </span>                :<span class="lineNoCov">          0 : rrm_init(rrmlock_t *rrl, boolean_t track_all)</span>
+<span class="lineNum">     324 </span>                :            : {
+<span class="lineNum">     325 </span>                :            :         int i;
+<span class="lineNum">     326 </span>                :            : 
+<span class="lineNum">     327 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0; i &lt; RRM_NUM_LOCKS; i++)</span>
+<span class="lineNum">     328 </span>                :<span class="lineNoCov">          0 :                 rrw_init(&amp;rrl-&gt;locks[i], track_all);</span>
+<span class="lineNum">     329 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="330"><span class="lineNum">     330 </span>                :            : </a>
+<span class="lineNum">     331 </span>                :            : void
+<span class="lineNum">     332 </span>                :<span class="lineNoCov">          0 : rrm_destroy(rrmlock_t *rrl)</span>
+<span class="lineNum">     333 </span>                :            : {
+<span class="lineNum">     334 </span>                :            :         int i;
+<span class="lineNum">     335 </span>                :            : 
+<span class="lineNum">     336 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0; i &lt; RRM_NUM_LOCKS; i++)</span>
+<span class="lineNum">     337 </span>                :<span class="lineNoCov">          0 :                 rrw_destroy(&amp;rrl-&gt;locks[i]);</span>
+<span class="lineNum">     338 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="339"><span class="lineNum">     339 </span>                :            : </a>
+<span class="lineNum">     340 </span>                :            : void
+<span class="lineNum">     341 </span>                :<span class="lineNoCov">          0 : rrm_enter(rrmlock_t *rrl, krw_t rw, void *tag)</span>
+<span class="lineNum">     342 </span>                :            : {
+<span class="lineNum">     343 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rw == RW_READER)</span>
+<span class="lineNum">     344 </span>                :<span class="lineNoCov">          0 :                 rrm_enter_read(rrl, tag);</span>
+<span class="lineNum">     345 </span>                :            :         else
+<span class="lineNum">     346 </span>                :<span class="lineNoCov">          0 :                 rrm_enter_write(rrl);</span>
+<span class="lineNum">     347 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     348 </span>                :            : 
+<span class="lineNum">     349 </span>                :            : /*
+<span class="lineNum">     350 </span>                :            :  * This maps the current thread to a specific lock.  Note that the lock
+<span class="lineNum">     351 </span>                :            :  * must be released by the same thread that acquired it.  We do this
+<span class="lineNum">     352 </span>                :            :  * mapping by taking the thread pointer mod a prime number.  We examine
+<span class="lineNum">     353 </span>                :            :  * only the low 32 bits of the thread pointer, because 32-bit division
+<span class="lineNum">     354 </span>                :            :  * is faster than 64-bit division, and the high 32 bits have little
+<span class="lineNum">     355 </span>                :            :  * entropy anyway.
+<span class="lineNum">     356 </span>                :            :  */
+<span class="lineNum">     357 </span>                :            : #define RRM_TD_LOCK()   (((uint32_t)(uintptr_t)(curthread)) % RRM_NUM_LOCKS)
+<a name="358"><span class="lineNum">     358 </span>                :            : </a>
+<span class="lineNum">     359 </span>                :            : void
+<span class="lineNum">     360 </span>                :<span class="lineNoCov">          0 : rrm_enter_read(rrmlock_t *rrl, void *tag)</span>
+<span class="lineNum">     361 </span>                :            : {
+<span class="lineNum">     362 </span>                :<span class="lineNoCov">          0 :         rrw_enter_read(&amp;rrl-&gt;locks[RRM_TD_LOCK()], tag);</span>
+<span class="lineNum">     363 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="364"><span class="lineNum">     364 </span>                :            : </a>
+<span class="lineNum">     365 </span>                :            : void
+<span class="lineNum">     366 </span>                :<span class="lineNoCov">          0 : rrm_enter_write(rrmlock_t *rrl)</span>
+<span class="lineNum">     367 </span>                :            : {
+<span class="lineNum">     368 </span>                :            :         int i;
+<span class="lineNum">     369 </span>                :            : 
+<span class="lineNum">     370 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0; i &lt; RRM_NUM_LOCKS; i++)</span>
+<span class="lineNum">     371 </span>                :<span class="lineNoCov">          0 :                 rrw_enter_write(&amp;rrl-&gt;locks[i]);</span>
+<span class="lineNum">     372 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="373"><span class="lineNum">     373 </span>                :            : </a>
+<span class="lineNum">     374 </span>                :            : void
+<span class="lineNum">     375 </span>                :<span class="lineNoCov">          0 : rrm_exit(rrmlock_t *rrl, void *tag)</span>
+<span class="lineNum">     376 </span>                :            : {
+<span class="lineNum">     377 </span>                :            :         int i;
+<span class="lineNum">     378 </span>                :            : 
+<span class="lineNum">     379 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rrl-&gt;locks[0].rr_writer == curthread) {</span>
+<span class="lineNum">     380 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 for (i = 0; i &lt; RRM_NUM_LOCKS; i++)</span>
+<span class="lineNum">     381 </span>                :<span class="lineNoCov">          0 :                         rrw_exit(&amp;rrl-&gt;locks[i], tag);</span>
+<span class="lineNum">     382 </span>                :            :         } else {
+<span class="lineNum">     383 </span>                :<span class="lineNoCov">          0 :                 rrw_exit(&amp;rrl-&gt;locks[RRM_TD_LOCK()], tag);</span>
+<span class="lineNum">     384 </span>                :            :         }
+<span class="lineNum">     385 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="386"><span class="lineNum">     386 </span>                :            : </a>
+<span class="lineNum">     387 </span>                :            : boolean_t
+<span class="lineNum">     388 </span>                :<span class="lineNoCov">          0 : rrm_held(rrmlock_t *rrl, krw_t rw)</span>
+<span class="lineNum">     389 </span>                :            : {
+<span class="lineNum">     390 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rw == RW_WRITER) {</span>
+<span class="lineNum">     391 </span>                :<span class="lineNoCov">          0 :                 return (rrw_held(&amp;rrl-&gt;locks[0], rw));</span>
+<span class="lineNum">     392 </span>                :            :         } else {
+<span class="lineNum">     393 </span>                :<span class="lineNoCov">          0 :                 return (rrw_held(&amp;rrl-&gt;locks[RRM_TD_LOCK()], rw));</span>
+<span class="lineNum">     394 </span>                :            :         }
+<span class="lineNum">     395 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

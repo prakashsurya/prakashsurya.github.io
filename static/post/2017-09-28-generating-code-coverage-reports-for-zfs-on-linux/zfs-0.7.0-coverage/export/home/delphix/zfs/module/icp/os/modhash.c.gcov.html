@@ -1,0 +1,1018 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/icp/os/modhash.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/icp/os</a> - modhash.c<span style="font-size: 80%;"> (source / <a href="modhash.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">112</td>
+            <td class="headerCovTableEntry">262</td>
+            <td class="headerCovTableEntryLo">42.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">41</td>
+            <td class="headerCovTableEntryLo">39.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">26</td>
+            <td class="headerCovTableEntry">92</td>
+            <td class="headerCovTableEntryLo">28.3 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : /*
+<span class="lineNum">      27 </span>                :            :  * mod_hash: flexible hash table implementation.
+<span class="lineNum">      28 </span>                :            :  *
+<span class="lineNum">      29 </span>                :            :  * This is a reasonably fast, reasonably flexible hash table implementation
+<span class="lineNum">      30 </span>                :            :  * which features pluggable hash algorithms to support storing arbitrary keys
+<span class="lineNum">      31 </span>                :            :  * and values.  It is designed to handle small (&lt; 100,000 items) amounts of
+<span class="lineNum">      32 </span>                :            :  * data.  The hash uses chaining to resolve collisions, and does not feature a
+<span class="lineNum">      33 </span>                :            :  * mechanism to grow the hash.  Care must be taken to pick nchains to be large
+<span class="lineNum">      34 </span>                :            :  * enough for the application at hand, or lots of time will be wasted searching
+<span class="lineNum">      35 </span>                :            :  * hash chains.
+<span class="lineNum">      36 </span>                :            :  *
+<span class="lineNum">      37 </span>                :            :  * The client of the hash is required to supply a number of items to support
+<span class="lineNum">      38 </span>                :            :  * the various hash functions:
+<span class="lineNum">      39 </span>                :            :  *
+<span class="lineNum">      40 </span>                :            :  *      - Destructor functions for the key and value being hashed.
+<span class="lineNum">      41 </span>                :            :  *        A destructor is responsible for freeing an object when the hash
+<span class="lineNum">      42 </span>                :            :  *        table is no longer storing it.  Since keys and values can be of
+<span class="lineNum">      43 </span>                :            :  *        arbitrary type, separate destructors for keys &amp; values are used.
+<span class="lineNum">      44 </span>                :            :  *        These may be mod_hash_null_keydtor and mod_hash_null_valdtor if no
+<span class="lineNum">      45 </span>                :            :  *        destructor is needed for either a key or value.
+<span class="lineNum">      46 </span>                :            :  *
+<span class="lineNum">      47 </span>                :            :  *      - A hashing algorithm which returns a uint_t representing a hash index
+<span class="lineNum">      48 </span>                :            :  *        The number returned need _not_ be between 0 and nchains.  The mod_hash
+<span class="lineNum">      49 </span>                :            :  *        code will take care of doing that.  The second argument (after the
+<span class="lineNum">      50 </span>                :            :  *        key) to the hashing function is a void * that represents
+<span class="lineNum">      51 </span>                :            :  *        hash_alg_data-- this is provided so that the hashing algrorithm can
+<span class="lineNum">      52 </span>                :            :  *        maintain some state across calls, or keep algorithm-specific
+<span class="lineNum">      53 </span>                :            :  *        constants associated with the hash table.
+<span class="lineNum">      54 </span>                :            :  *
+<span class="lineNum">      55 </span>                :            :  *        A pointer-hashing and a string-hashing algorithm are supplied in
+<span class="lineNum">      56 </span>                :            :  *        this file.
+<span class="lineNum">      57 </span>                :            :  *
+<span class="lineNum">      58 </span>                :            :  *      - A key comparator (a la qsort).
+<span class="lineNum">      59 </span>                :            :  *        This is used when searching the hash chain.  The key comparator
+<span class="lineNum">      60 </span>                :            :  *        determines if two keys match.  It should follow the return value
+<span class="lineNum">      61 </span>                :            :  *        semantics of strcmp.
+<span class="lineNum">      62 </span>                :            :  *
+<span class="lineNum">      63 </span>                :            :  *        string and pointer comparators are supplied in this file.
+<span class="lineNum">      64 </span>                :            :  *
+<span class="lineNum">      65 </span>                :            :  * mod_hash_create_strhash() and mod_hash_create_ptrhash() provide good
+<span class="lineNum">      66 </span>                :            :  * examples of how to create a customized hash table.
+<span class="lineNum">      67 </span>                :            :  *
+<span class="lineNum">      68 </span>                :            :  * Basic hash operations:
+<span class="lineNum">      69 </span>                :            :  *
+<span class="lineNum">      70 </span>                :            :  *   mod_hash_create_strhash(name, nchains, dtor),
+<span class="lineNum">      71 </span>                :            :  *      create a hash using strings as keys.
+<span class="lineNum">      72 </span>                :            :  *      NOTE: This create a hash which automatically cleans up the string
+<span class="lineNum">      73 </span>                :            :  *            values it is given for keys.
+<span class="lineNum">      74 </span>                :            :  *
+<span class="lineNum">      75 </span>                :            :  *   mod_hash_create_ptrhash(name, nchains, dtor, key_elem_size):
+<span class="lineNum">      76 </span>                :            :  *      create a hash using pointers as keys.
+<span class="lineNum">      77 </span>                :            :  *
+<span class="lineNum">      78 </span>                :            :  *   mod_hash_create_extended(name, nchains, kdtor, vdtor,
+<span class="lineNum">      79 </span>                :            :  *                            hash_alg, hash_alg_data,
+<span class="lineNum">      80 </span>                :            :  *                            keycmp, sleep)
+<span class="lineNum">      81 </span>                :            :  *      create a customized hash table.
+<span class="lineNum">      82 </span>                :            :  *
+<span class="lineNum">      83 </span>                :            :  *   mod_hash_destroy_hash(hash):
+<span class="lineNum">      84 </span>                :            :  *      destroy the given hash table, calling the key and value destructors
+<span class="lineNum">      85 </span>                :            :  *      on each key-value pair stored in the hash.
+<span class="lineNum">      86 </span>                :            :  *
+<span class="lineNum">      87 </span>                :            :  *   mod_hash_insert(hash, key, val):
+<span class="lineNum">      88 </span>                :            :  *      place a key, value pair into the given hash.
+<span class="lineNum">      89 </span>                :            :  *      duplicate keys are rejected.
+<span class="lineNum">      90 </span>                :            :  *
+<span class="lineNum">      91 </span>                :            :  *   mod_hash_insert_reserve(hash, key, val, handle):
+<span class="lineNum">      92 </span>                :            :  *      place a key, value pair into the given hash, using handle to indicate
+<span class="lineNum">      93 </span>                :            :  *      the reserved storage for the pair.  (no memory allocation is needed
+<span class="lineNum">      94 </span>                :            :  *      during a mod_hash_insert_reserve.)  duplicate keys are rejected.
+<span class="lineNum">      95 </span>                :            :  *
+<span class="lineNum">      96 </span>                :            :  *   mod_hash_reserve(hash, *handle):
+<span class="lineNum">      97 </span>                :            :  *      reserve storage for a key-value pair using the memory allocation
+<span class="lineNum">      98 </span>                :            :  *      policy of 'hash', returning the storage handle in 'handle'.
+<span class="lineNum">      99 </span>                :            :  *
+<span class="lineNum">     100 </span>                :            :  *   mod_hash_reserve_nosleep(hash, *handle): reserve storage for a key-value
+<span class="lineNum">     101 </span>                :            :  *      pair ignoring the memory allocation policy of 'hash' and always without
+<span class="lineNum">     102 </span>                :            :  *      sleep, returning the storage handle in 'handle'.
+<span class="lineNum">     103 </span>                :            :  *
+<span class="lineNum">     104 </span>                :            :  *   mod_hash_remove(hash, key, *val):
+<span class="lineNum">     105 </span>                :            :  *      remove a key-value pair with key 'key' from 'hash', destroying the
+<span class="lineNum">     106 </span>                :            :  *      stored key, and returning the value in val.
+<span class="lineNum">     107 </span>                :            :  *
+<span class="lineNum">     108 </span>                :            :  *   mod_hash_replace(hash, key, val)
+<span class="lineNum">     109 </span>                :            :  *      atomically remove an existing key-value pair from a hash, and replace
+<span class="lineNum">     110 </span>                :            :  *      the key and value with the ones supplied.  The removed key and value
+<span class="lineNum">     111 </span>                :            :  *      (if any) are destroyed.
+<span class="lineNum">     112 </span>                :            :  *
+<span class="lineNum">     113 </span>                :            :  *   mod_hash_destroy(hash, key):
+<span class="lineNum">     114 </span>                :            :  *      remove a key-value pair with key 'key' from 'hash', destroying both
+<span class="lineNum">     115 </span>                :            :  *      stored key and stored value.
+<span class="lineNum">     116 </span>                :            :  *
+<span class="lineNum">     117 </span>                :            :  *   mod_hash_find(hash, key, val):
+<span class="lineNum">     118 </span>                :            :  *      find a value in the hash table corresponding to the given key.
+<span class="lineNum">     119 </span>                :            :  *
+<span class="lineNum">     120 </span>                :            :  *   mod_hash_find_cb(hash, key, val, found_callback)
+<span class="lineNum">     121 </span>                :            :  *      find a value in the hash table corresponding to the given key.
+<span class="lineNum">     122 </span>                :            :  *      If a value is found, call specified callback passing key and val to it.
+<span class="lineNum">     123 </span>                :            :  *      The callback is called with the hash lock held.
+<span class="lineNum">     124 </span>                :            :  *      It is intended to be used in situations where the act of locating the
+<span class="lineNum">     125 </span>                :            :  *      data must also modify it - such as in reference counting schemes.
+<span class="lineNum">     126 </span>                :            :  *
+<span class="lineNum">     127 </span>                :            :  *   mod_hash_walk(hash, callback(key, elem, arg), arg)
+<span class="lineNum">     128 </span>                :            :  *      walks all the elements in the hashtable and invokes the callback
+<span class="lineNum">     129 </span>                :            :  *      function with the key/value pair for each element.  the hashtable
+<span class="lineNum">     130 </span>                :            :  *      is locked for readers so the callback function should not attempt
+<span class="lineNum">     131 </span>                :            :  *      to do any updates to the hashable.  the callback function should
+<span class="lineNum">     132 </span>                :            :  *      return MH_WALK_CONTINUE to continue walking the hashtable or
+<span class="lineNum">     133 </span>                :            :  *      MH_WALK_TERMINATE to abort the walk of the hashtable.
+<span class="lineNum">     134 </span>                :            :  *
+<span class="lineNum">     135 </span>                :            :  *   mod_hash_clear(hash):
+<span class="lineNum">     136 </span>                :            :  *      clears the given hash table of entries, calling the key and value
+<span class="lineNum">     137 </span>                :            :  *      destructors for every element in the hash.
+<span class="lineNum">     138 </span>                :            :  */
+<span class="lineNum">     139 </span>                :            : 
+<span class="lineNum">     140 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">     141 </span>                :            : #include &lt;sys/bitmap.h&gt;
+<span class="lineNum">     142 </span>                :            : #include &lt;sys/modhash_impl.h&gt;
+<span class="lineNum">     143 </span>                :            : #include &lt;sys/sysmacros.h&gt;
+<span class="lineNum">     144 </span>                :            : 
+<span class="lineNum">     145 </span>                :            : /*
+<span class="lineNum">     146 </span>                :            :  * MH_KEY_DESTROY()
+<span class="lineNum">     147 </span>                :            :  *      Invoke the key destructor.
+<span class="lineNum">     148 </span>                :            :  */
+<span class="lineNum">     149 </span>                :            : #define MH_KEY_DESTROY(hash, key) ((hash-&gt;mh_kdtor)(key))
+<span class="lineNum">     150 </span>                :            : 
+<span class="lineNum">     151 </span>                :            : /*
+<span class="lineNum">     152 </span>                :            :  * MH_VAL_DESTROY()
+<span class="lineNum">     153 </span>                :            :  *      Invoke the value destructor.
+<span class="lineNum">     154 </span>                :            :  */
+<span class="lineNum">     155 </span>                :            : #define MH_VAL_DESTROY(hash, val) ((hash-&gt;mh_vdtor)(val))
+<span class="lineNum">     156 </span>                :            : 
+<span class="lineNum">     157 </span>                :            : /*
+<span class="lineNum">     158 </span>                :            :  * MH_KEYCMP()
+<span class="lineNum">     159 </span>                :            :  *      Call the key comparator for the given hash keys.
+<span class="lineNum">     160 </span>                :            :  */
+<span class="lineNum">     161 </span>                :            : #define MH_KEYCMP(hash, key1, key2) ((hash-&gt;mh_keycmp)(key1, key2))
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>                :            : /*
+<span class="lineNum">     164 </span>                :            :  * Cache for struct mod_hash_entry
+<span class="lineNum">     165 </span>                :            :  */
+<span class="lineNum">     166 </span>                :            : kmem_cache_t *mh_e_cache = NULL;
+<span class="lineNum">     167 </span>                :            : mod_hash_t *mh_head = NULL;
+<span class="lineNum">     168 </span>                :            : kmutex_t mh_head_lock;
+<span class="lineNum">     169 </span>                :            : 
+<span class="lineNum">     170 </span>                :            : /*
+<span class="lineNum">     171 </span>                :            :  * mod_hash_null_keydtor()
+<span class="lineNum">     172 </span>                :            :  * mod_hash_null_valdtor()
+<span class="lineNum">     173 </span>                :            :  *      no-op key and value destructors.
+<span class="lineNum">     174 </span>                :            :  */
+<a name="175"><span class="lineNum">     175 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     176 </span>                :            : void
+<span class="lineNum">     177 </span>                :<span class="lineCov">      31045 : mod_hash_null_keydtor(mod_hash_key_t key)</span>
+<span class="lineNum">     178 </span>                :            : {
+<span class="lineNum">     179 </span>                :<span class="lineCov">      31045 : }</span>
+<span class="lineNum">     180 </span>                :            : 
+<a name="181"><span class="lineNum">     181 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     182 </span>                :            : void
+<span class="lineNum">     183 </span>                :<span class="lineCov">      31045 : mod_hash_null_valdtor(mod_hash_val_t val)</span>
+<span class="lineNum">     184 </span>                :            : {
+<span class="lineNum">     185 </span>                :<span class="lineCov">      31045 : }</span>
+<span class="lineNum">     186 </span>                :            : 
+<span class="lineNum">     187 </span>                :            : /*
+<span class="lineNum">     188 </span>                :            :  * mod_hash_bystr()
+<span class="lineNum">     189 </span>                :            :  * mod_hash_strkey_cmp()
+<span class="lineNum">     190 </span>                :            :  * mod_hash_strkey_dtor()
+<span class="lineNum">     191 </span>                :            :  * mod_hash_strval_dtor()
+<span class="lineNum">     192 </span>                :            :  *      Hash and key comparison routines for hashes with string keys.
+<span class="lineNum">     193 </span>                :            :  *
+<span class="lineNum">     194 </span>                :            :  * mod_hash_create_strhash()
+<span class="lineNum">     195 </span>                :            :  *      Create a hash using strings as keys
+<span class="lineNum">     196 </span>                :            :  *
+<span class="lineNum">     197 </span>                :            :  *      The string hashing algorithm is from the &quot;Dragon Book&quot; --
+<span class="lineNum">     198 </span>                :            :  *      &quot;Compilers: Principles, Tools &amp; Techniques&quot;, by Aho, Sethi, Ullman
+<span class="lineNum">     199 </span>                :            :  */
+<span class="lineNum">     200 </span>                :            : 
+<a name="201"><span class="lineNum">     201 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     202 </span>                :            : uint_t
+<span class="lineNum">     203 </span>                :<span class="lineCov">     190294 : mod_hash_bystr(void *hash_data, mod_hash_key_t key)</span>
+<span class="lineNum">     204 </span>                :            : {
+<span class="lineNum">     205 </span>                :<span class="lineCov">     190294 :         uint_t hash = 0;</span>
+<span class="lineNum">     206 </span>                :            :         uint_t g;
+<span class="lineNum">     207 </span>                :<span class="lineCov">     190294 :         char *p, *k = (char *)key;</span>
+<span class="lineNum">     208 </span>                :            : 
+<span class="lineNum">     209 </span>        [<span class="branchCov" title="Branch 0 was taken 190294 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">     190294 :         ASSERT(k);</span>
+<span class="lineNum">     210 </span>        [<span class="branchCov" title="Branch 0 was taken 2678578 times"> + </span><span class="branchCov" title="Branch 1 was taken 190294 times"> + </span>]:<span class="lineCov">    2868872 :         for (p = k; *p != '\0'; p++) {</span>
+<span class="lineNum">     211 </span>                :<span class="lineCov">    2678578 :                 hash = (hash &lt;&lt; 4) + *p;</span>
+<span class="lineNum">     212 </span>        [<span class="branchCov" title="Branch 0 was taken 1320492 times"> + </span><span class="branchCov" title="Branch 1 was taken 1358086 times"> + </span>]:<span class="lineCov">    2678578 :                 if ((g = (hash &amp; 0xf0000000)) != 0) {</span>
+<span class="lineNum">     213 </span>                :<span class="lineCov">    1320492 :                         hash ^= (g &gt;&gt; 24);</span>
+<span class="lineNum">     214 </span>                :<span class="lineCov">    1320492 :                         hash ^= g;</span>
+<span class="lineNum">     215 </span>                :            :                 }
+<span class="lineNum">     216 </span>                :            :         }
+<span class="lineNum">     217 </span>                :<span class="lineCov">     190294 :         return (hash);</span>
+<span class="lineNum">     218 </span>                :            : }
+<a name="219"><span class="lineNum">     219 </span>                :            : </a>
+<span class="lineNum">     220 </span>                :            : int
+<span class="lineNum">     221 </span>                :<span class="lineCov">      53454 : mod_hash_strkey_cmp(mod_hash_key_t key1, mod_hash_key_t key2)</span>
+<span class="lineNum">     222 </span>                :            : {
+<span class="lineNum">     223 </span>                :<span class="lineCov">      53454 :         return (strcmp((char *)key1, (char *)key2));</span>
+<span class="lineNum">     224 </span>                :            : }
+<a name="225"><span class="lineNum">     225 </span>                :            : </a>
+<span class="lineNum">     226 </span>                :            : void
+<span class="lineNum">     227 </span>                :<span class="lineNoCov">          0 : mod_hash_strkey_dtor(mod_hash_key_t key)</span>
+<span class="lineNum">     228 </span>                :            : {
+<span class="lineNum">     229 </span>                :<span class="lineNoCov">          0 :         char *c = (char *)key;</span>
+<span class="lineNum">     230 </span>                :<span class="lineNoCov">          0 :         kmem_free(c, strlen(c) + 1);</span>
+<span class="lineNum">     231 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="232"><span class="lineNum">     232 </span>                :            : </a>
+<span class="lineNum">     233 </span>                :            : void
+<span class="lineNum">     234 </span>                :<span class="lineNoCov">          0 : mod_hash_strval_dtor(mod_hash_val_t val)</span>
+<span class="lineNum">     235 </span>                :            : {
+<span class="lineNum">     236 </span>                :<span class="lineNoCov">          0 :         char *c = (char *)val;</span>
+<span class="lineNum">     237 </span>                :<span class="lineNoCov">          0 :         kmem_free(c, strlen(c) + 1);</span>
+<span class="lineNum">     238 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="239"><span class="lineNum">     239 </span>                :            : </a>
+<span class="lineNum">     240 </span>                :            : mod_hash_t *
+<span class="lineNum">     241 </span>                :<span class="lineCov">       1336 : mod_hash_create_strhash_nodtr(char *name, size_t nchains,</span>
+<span class="lineNum">     242 </span>                :            :     void (*val_dtor)(mod_hash_val_t))
+<span class="lineNum">     243 </span>                :            : {
+<span class="lineNum">     244 </span>                :<span class="lineCov">       1336 :         return mod_hash_create_extended(name, nchains, mod_hash_null_keydtor,</span>
+<span class="lineNum">     245 </span>                :            :             val_dtor, mod_hash_bystr, NULL, mod_hash_strkey_cmp, KM_SLEEP);
+<span class="lineNum">     246 </span>                :            : }
+<a name="247"><span class="lineNum">     247 </span>                :            : </a>
+<span class="lineNum">     248 </span>                :            : mod_hash_t *
+<span class="lineNum">     249 </span>                :<span class="lineNoCov">          0 : mod_hash_create_strhash(char *name, size_t nchains,</span>
+<span class="lineNum">     250 </span>                :            :     void (*val_dtor)(mod_hash_val_t))
+<span class="lineNum">     251 </span>                :            : {
+<span class="lineNum">     252 </span>                :<span class="lineNoCov">          0 :         return mod_hash_create_extended(name, nchains, mod_hash_strkey_dtor,</span>
+<span class="lineNum">     253 </span>                :            :             val_dtor, mod_hash_bystr, NULL, mod_hash_strkey_cmp, KM_SLEEP);
+<span class="lineNum">     254 </span>                :            : }
+<a name="255"><span class="lineNum">     255 </span>                :            : </a>
+<span class="lineNum">     256 </span>                :            : void
+<span class="lineNum">     257 </span>                :<span class="lineNoCov">          0 : mod_hash_destroy_strhash(mod_hash_t *strhash)</span>
+<span class="lineNum">     258 </span>                :            : {
+<span class="lineNum">     259 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(strhash);</span>
+<span class="lineNum">     260 </span>                :<span class="lineNoCov">          0 :         mod_hash_destroy_hash(strhash);</span>
+<span class="lineNum">     261 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     262 </span>                :            : 
+<span class="lineNum">     263 </span>                :            : 
+<span class="lineNum">     264 </span>                :            : /*
+<span class="lineNum">     265 </span>                :            :  * mod_hash_byptr()
+<span class="lineNum">     266 </span>                :            :  * mod_hash_ptrkey_cmp()
+<span class="lineNum">     267 </span>                :            :  *      Hash and key comparison routines for hashes with pointer keys.
+<span class="lineNum">     268 </span>                :            :  *
+<span class="lineNum">     269 </span>                :            :  * mod_hash_create_ptrhash()
+<span class="lineNum">     270 </span>                :            :  * mod_hash_destroy_ptrhash()
+<span class="lineNum">     271 </span>                :            :  *      Create a hash that uses pointers as keys.  This hash algorithm
+<span class="lineNum">     272 </span>                :            :  *      picks an appropriate set of middle bits in the address to hash on
+<span class="lineNum">     273 </span>                :            :  *      based on the size of the hash table and a hint about the size of
+<span class="lineNum">     274 </span>                :            :  *      the items pointed at.
+<a name="275"><span class="lineNum">     275 </span>                :            :  */</a>
+<span class="lineNum">     276 </span>                :            : uint_t
+<span class="lineNum">     277 </span>                :<span class="lineNoCov">          0 : mod_hash_byptr(void *hash_data, mod_hash_key_t key)</span>
+<span class="lineNum">     278 </span>                :            : {
+<span class="lineNum">     279 </span>                :<span class="lineNoCov">          0 :         uintptr_t k = (uintptr_t)key;</span>
+<span class="lineNum">     280 </span>                :<span class="lineNoCov">          0 :         k &gt;&gt;= (int)(uintptr_t)hash_data;</span>
+<span class="lineNum">     281 </span>                :            : 
+<span class="lineNum">     282 </span>                :<span class="lineNoCov">          0 :         return ((uint_t)k);</span>
+<span class="lineNum">     283 </span>                :            : }
+<a name="284"><span class="lineNum">     284 </span>                :            : </a>
+<span class="lineNum">     285 </span>                :            : int
+<span class="lineNum">     286 </span>                :<span class="lineNoCov">          0 : mod_hash_ptrkey_cmp(mod_hash_key_t key1, mod_hash_key_t key2)</span>
+<span class="lineNum">     287 </span>                :            : {
+<span class="lineNum">     288 </span>                :<span class="lineNoCov">          0 :         uintptr_t k1 = (uintptr_t)key1;</span>
+<span class="lineNum">     289 </span>                :<span class="lineNoCov">          0 :         uintptr_t k2 = (uintptr_t)key2;</span>
+<span class="lineNum">     290 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (k1 &gt; k2)</span>
+<span class="lineNum">     291 </span>                :            :                 return (-1);
+<span class="lineNum">     292 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         else if (k1 &lt; k2)</span>
+<span class="lineNum">     293 </span>                :            :                 return (1);
+<span class="lineNum">     294 </span>                :            :         else
+<span class="lineNum">     295 </span>                :<span class="lineNoCov">          0 :                 return (0);</span>
+<span class="lineNum">     296 </span>                :            : }
+<a name="297"><span class="lineNum">     297 </span>                :            : </a>
+<span class="lineNum">     298 </span>                :            : mod_hash_t *
+<span class="lineNum">     299 </span>                :<span class="lineNoCov">          0 : mod_hash_create_ptrhash(char *name, size_t nchains,</span>
+<span class="lineNum">     300 </span>                :            :     void (*val_dtor)(mod_hash_val_t), size_t key_elem_size)
+<span class="lineNum">     301 </span>                :            : {
+<span class="lineNum">     302 </span>                :            :         size_t rshift;
+<span class="lineNum">     303 </span>                :            : 
+<span class="lineNum">     304 </span>                :            :         /*
+<span class="lineNum">     305 </span>                :            :          * We want to hash on the bits in the middle of the address word
+<span class="lineNum">     306 </span>                :            :          * Bits far to the right in the word have little significance, and
+<span class="lineNum">     307 </span>                :            :          * are likely to all look the same (for example, an array of
+<span class="lineNum">     308 </span>                :            :          * 256-byte structures will have the bottom 8 bits of address
+<span class="lineNum">     309 </span>                :            :          * words the same).  So we want to right-shift each address to
+<span class="lineNum">     310 </span>                :            :          * ignore the bottom bits.
+<span class="lineNum">     311 </span>                :            :          *
+<span class="lineNum">     312 </span>                :            :          * The high bits, which are also unused, will get taken out when
+<span class="lineNum">     313 </span>                :            :          * mod_hash takes hashkey % nchains.
+<span class="lineNum">     314 </span>                :            :          */
+<span class="lineNum">     315 </span>                :<span class="lineNoCov">          0 :         rshift = highbit64(key_elem_size);</span>
+<span class="lineNum">     316 </span>                :            : 
+<span class="lineNum">     317 </span>                :<span class="lineNoCov">          0 :         return mod_hash_create_extended(name, nchains, mod_hash_null_keydtor,</span>
+<span class="lineNum">     318 </span>                :            :             val_dtor, mod_hash_byptr, (void *)rshift, mod_hash_ptrkey_cmp,
+<span class="lineNum">     319 </span>                :            :             KM_SLEEP);
+<span class="lineNum">     320 </span>                :            : }
+<a name="321"><span class="lineNum">     321 </span>                :            : </a>
+<span class="lineNum">     322 </span>                :            : void
+<span class="lineNum">     323 </span>                :<span class="lineNoCov">          0 : mod_hash_destroy_ptrhash(mod_hash_t *hash)</span>
+<span class="lineNum">     324 </span>                :            : {
+<span class="lineNum">     325 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(hash);</span>
+<span class="lineNum">     326 </span>                :<span class="lineNoCov">          0 :         mod_hash_destroy_hash(hash);</span>
+<span class="lineNum">     327 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     328 </span>                :            : 
+<span class="lineNum">     329 </span>                :            : /*
+<span class="lineNum">     330 </span>                :            :  * mod_hash_byid()
+<span class="lineNum">     331 </span>                :            :  * mod_hash_idkey_cmp()
+<span class="lineNum">     332 </span>                :            :  *      Hash and key comparison routines for hashes with 32-bit unsigned keys.
+<span class="lineNum">     333 </span>                :            :  *
+<span class="lineNum">     334 </span>                :            :  * mod_hash_create_idhash()
+<span class="lineNum">     335 </span>                :            :  * mod_hash_destroy_idhash()
+<span class="lineNum">     336 </span>                :            :  * mod_hash_iddata_gen()
+<span class="lineNum">     337 </span>                :            :  *      Create a hash that uses numeric keys.
+<span class="lineNum">     338 </span>                :            :  *
+<span class="lineNum">     339 </span>                :            :  *      The hash algorithm is documented in &quot;Introduction to Algorithms&quot;
+<span class="lineNum">     340 </span>                :            :  *      (Cormen, Leiserson, Rivest);  when the hash table is created, it
+<span class="lineNum">     341 </span>                :            :  *      attempts to find the next largest prime above the number of hash
+<span class="lineNum">     342 </span>                :            :  *      slots.  The hash index is then this number times the key modulo
+<span class="lineNum">     343 </span>                :            :  *      the hash size, or (key * prime) % nchains.
+<a name="344"><span class="lineNum">     344 </span>                :            :  */</a>
+<span class="lineNum">     345 </span>                :            : uint_t
+<span class="lineNum">     346 </span>                :<span class="lineNoCov">          0 : mod_hash_byid(void *hash_data, mod_hash_key_t key)</span>
+<span class="lineNum">     347 </span>                :            : {
+<span class="lineNum">     348 </span>                :<span class="lineNoCov">          0 :         uint_t kval = (uint_t)(uintptr_t)hash_data;</span>
+<span class="lineNum">     349 </span>                :<span class="lineNoCov">          0 :         return ((uint_t)(uintptr_t)key * (uint_t)kval);</span>
+<span class="lineNum">     350 </span>                :            : }
+<a name="351"><span class="lineNum">     351 </span>                :            : </a>
+<span class="lineNum">     352 </span>                :            : int
+<span class="lineNum">     353 </span>                :<span class="lineNoCov">          0 : mod_hash_idkey_cmp(mod_hash_key_t key1, mod_hash_key_t key2)</span>
+<span class="lineNum">     354 </span>                :            : {
+<span class="lineNum">     355 </span>                :<span class="lineNoCov">          0 :         return ((uint_t)(uintptr_t)key1 - (uint_t)(uintptr_t)key2);</span>
+<span class="lineNum">     356 </span>                :            : }
+<span class="lineNum">     357 </span>                :            : 
+<span class="lineNum">     358 </span>                :            : /*
+<span class="lineNum">     359 </span>                :            :  * Generate the next largest prime number greater than nchains; this value
+<span class="lineNum">     360 </span>                :            :  * is intended to be later passed in to mod_hash_create_extended() as the
+<span class="lineNum">     361 </span>                :            :  * hash_data.
+<a name="362"><span class="lineNum">     362 </span>                :            :  */</a>
+<span class="lineNum">     363 </span>                :            : uint_t
+<span class="lineNum">     364 </span>                :<span class="lineNoCov">          0 : mod_hash_iddata_gen(size_t nchains)</span>
+<span class="lineNum">     365 </span>                :            : {
+<span class="lineNum">     366 </span>                :            :         uint_t kval, i, prime;
+<span class="lineNum">     367 </span>                :            : 
+<span class="lineNum">     368 </span>                :            :         /*
+<span class="lineNum">     369 </span>                :            :          * Pick the first (odd) prime greater than nchains.  Make sure kval is
+<span class="lineNum">     370 </span>                :            :          * odd (so start with nchains +1 or +2 as appropriate).
+<span class="lineNum">     371 </span>                :            :          */
+<span class="lineNum">     372 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         kval = (nchains % 2 == 0) ? nchains + 1 : nchains + 2;</span>
+<span class="lineNum">     373 </span>                :            : 
+<span class="lineNum">     374 </span>                :            :         for (;;) {
+<span class="lineNum">     375 </span>                :<span class="lineNoCov">          0 :                 prime = 1;</span>
+<span class="lineNum">     376 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 for (i = 3; i * i &lt;= kval; i += 2) {</span>
+<span class="lineNum">     377 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (kval % i == 0)</span>
+<span class="lineNum">     378 </span>                :<span class="lineNoCov">          0 :                                 prime = 0;</span>
+<span class="lineNum">     379 </span>                :            :                 }
+<span class="lineNum">     380 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (prime == 1)</span>
+<span class="lineNum">     381 </span>                :            :                         break;
+<span class="lineNum">     382 </span>                :<span class="lineNoCov">          0 :                 kval += 2;</span>
+<span class="lineNum">     383 </span>                :            :         }
+<span class="lineNum">     384 </span>                :<span class="lineNoCov">          0 :         return (kval);</span>
+<span class="lineNum">     385 </span>                :            : }
+<a name="386"><span class="lineNum">     386 </span>                :            : </a>
+<span class="lineNum">     387 </span>                :            : mod_hash_t *
+<span class="lineNum">     388 </span>                :<span class="lineNoCov">          0 : mod_hash_create_idhash(char *name, size_t nchains,</span>
+<span class="lineNum">     389 </span>                :            :     void (*val_dtor)(mod_hash_val_t))
+<span class="lineNum">     390 </span>                :            : {
+<span class="lineNum">     391 </span>                :<span class="lineNoCov">          0 :         uint_t kval = mod_hash_iddata_gen(nchains);</span>
+<span class="lineNum">     392 </span>                :            : 
+<span class="lineNum">     393 </span>                :<span class="lineNoCov">          0 :         return (mod_hash_create_extended(name, nchains, mod_hash_null_keydtor,</span>
+<span class="lineNum">     394 </span>                :<span class="lineNoCov">          0 :             val_dtor, mod_hash_byid, (void *)(uintptr_t)kval,</span>
+<span class="lineNum">     395 </span>                :            :             mod_hash_idkey_cmp, KM_SLEEP));
+<span class="lineNum">     396 </span>                :            : }
+<a name="397"><span class="lineNum">     397 </span>                :            : </a>
+<span class="lineNum">     398 </span>                :            : void
+<span class="lineNum">     399 </span>                :<span class="lineNoCov">          0 : mod_hash_destroy_idhash(mod_hash_t *hash)</span>
+<span class="lineNum">     400 </span>                :            : {
+<span class="lineNum">     401 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(hash);</span>
+<span class="lineNum">     402 </span>                :<span class="lineNoCov">          0 :         mod_hash_destroy_hash(hash);</span>
+<span class="lineNum">     403 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="404"><span class="lineNum">     404 </span>                :            : </a>
+<span class="lineNum">     405 </span>                :            : void
+<span class="lineNum">     406 </span>                :<span class="lineCov">        887 : mod_hash_fini(void)</span>
+<span class="lineNum">     407 </span>                :            : {
+<span class="lineNum">     408 </span>                :<span class="lineCov">        887 :         mutex_destroy(&amp;mh_head_lock);</span>
+<span class="lineNum">     409 </span>                :            : 
+<span class="lineNum">     410 </span>        [<span class="branchCov" title="Branch 0 was taken 887 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        887 :         if (mh_e_cache) {</span>
+<span class="lineNum">     411 </span>                :<span class="lineCov">        887 :                 kmem_cache_destroy(mh_e_cache);</span>
+<span class="lineNum">     412 </span>                :<span class="lineCov">        887 :                 mh_e_cache = NULL;</span>
+<span class="lineNum">     413 </span>                :            :         }
+<span class="lineNum">     414 </span>                :<span class="lineCov">        887 : }</span>
+<span class="lineNum">     415 </span>                :            : 
+<span class="lineNum">     416 </span>                :            : /*
+<span class="lineNum">     417 </span>                :            :  * mod_hash_init()
+<span class="lineNum">     418 </span>                :            :  *      sets up globals, etc for mod_hash_*
+<a name="419"><span class="lineNum">     419 </span>                :            :  */</a>
+<span class="lineNum">     420 </span>                :            : void
+<span class="lineNum">     421 </span>                :<span class="lineCov">       1336 : mod_hash_init(void)</span>
+<span class="lineNum">     422 </span>                :            : {
+<span class="lineNum">     423 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1336 times"> + </span>]:<span class="lineCov">       1336 :         ASSERT(mh_e_cache == NULL);</span>
+<span class="lineNum">     424 </span>                :<span class="lineCov">       1336 :         mh_e_cache = kmem_cache_create(&quot;mod_hash_entries&quot;,</span>
+<span class="lineNum">     425 </span>                :            :             sizeof (struct mod_hash_entry), 0, NULL, NULL, NULL, NULL,
+<span class="lineNum">     426 </span>                :            :             NULL, 0);
+<span class="lineNum">     427 </span>                :            : 
+<span class="lineNum">     428 </span>                :<span class="lineCov">       1336 :         mutex_init(&amp;mh_head_lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     429 </span>                :<span class="lineCov">       1336 : }</span>
+<span class="lineNum">     430 </span>                :            : 
+<span class="lineNum">     431 </span>                :            : /*
+<span class="lineNum">     432 </span>                :            :  * mod_hash_create_extended()
+<span class="lineNum">     433 </span>                :            :  *      The full-blown hash creation function.
+<span class="lineNum">     434 </span>                :            :  *
+<span class="lineNum">     435 </span>                :            :  * notes:
+<span class="lineNum">     436 </span>                :            :  *      nchains         - how many hash slots to create.  More hash slots will
+<span class="lineNum">     437 </span>                :            :  *                        result in shorter hash chains, but will consume
+<span class="lineNum">     438 </span>                :            :  *                        slightly more memory up front.
+<span class="lineNum">     439 </span>                :            :  *      sleep           - should be KM_SLEEP or KM_NOSLEEP, to indicate whether
+<span class="lineNum">     440 </span>                :            :  *                        to sleep for memory, or fail in low-memory conditions.
+<span class="lineNum">     441 </span>                :            :  *
+<span class="lineNum">     442 </span>                :            :  *      Fails only if KM_NOSLEEP was specified, and no memory was available.
+<a name="443"><span class="lineNum">     443 </span>                :            :  */</a>
+<span class="lineNum">     444 </span>                :            : mod_hash_t *
+<span class="lineNum">     445 </span>                :<span class="lineCov">       1336 : mod_hash_create_extended(</span>
+<span class="lineNum">     446 </span>                :            :     char *hname,                        /* descriptive name for hash */
+<span class="lineNum">     447 </span>                :            :     size_t nchains,                     /* number of hash slots */
+<span class="lineNum">     448 </span>                :            :     void (*kdtor)(mod_hash_key_t),      /* key destructor */
+<span class="lineNum">     449 </span>                :            :     void (*vdtor)(mod_hash_val_t),      /* value destructor */
+<span class="lineNum">     450 </span>                :            :     uint_t (*hash_alg)(void *, mod_hash_key_t), /* hash algorithm */
+<span class="lineNum">     451 </span>                :            :     void *hash_alg_data,                /* pass-thru arg for hash_alg */
+<span class="lineNum">     452 </span>                :            :     int (*keycmp)(mod_hash_key_t, mod_hash_key_t), /* key comparator */
+<span class="lineNum">     453 </span>                :            :     int sleep)                          /* whether to sleep for mem */
+<span class="lineNum">     454 </span>                :            : {
+<span class="lineNum">     455 </span>                :            :         mod_hash_t *mod_hash;
+<span class="lineNum">     456 </span>[<span class="branchCov" title="Branch 0 was taken 1336 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 1336 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">       1336 :         ASSERT(hname &amp;&amp; keycmp &amp;&amp; hash_alg &amp;&amp; vdtor &amp;&amp; kdtor);</span>
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 1336 times"> + </span>]
+<span class="lineNum">     457 </span>                :            : 
+<span class="lineNum">     458 </span>        [<span class="branchCov" title="Branch 1 was taken 1336 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       1336 :         if ((mod_hash = kmem_zalloc(MH_SIZE(nchains), sleep)) == NULL)</span>
+<span class="lineNum">     459 </span>                :            :                 return (NULL);
+<span class="lineNum">     460 </span>                :            : 
+<span class="lineNum">     461 </span>                :<span class="lineCov">       1336 :         mod_hash-&gt;mh_name = kmem_alloc(strlen(hname) + 1, sleep);</span>
+<span class="lineNum">     462 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1336 times"> + </span>]:<span class="lineCov">       1336 :         if (mod_hash-&gt;mh_name == NULL) {</span>
+<span class="lineNum">     463 </span>                :<span class="lineNoCov">          0 :                 kmem_free(mod_hash, MH_SIZE(nchains));</span>
+<span class="lineNum">     464 </span>                :<span class="lineNoCov">          0 :                 return (NULL);</span>
+<span class="lineNum">     465 </span>                :            :         }
+<span class="lineNum">     466 </span>                :<span class="lineCov">       2672 :         (void) strcpy(mod_hash-&gt;mh_name, hname);</span>
+<span class="lineNum">     467 </span>                :            : 
+<span class="lineNum">     468 </span>                :<span class="lineCov">       1336 :         rw_init(&amp;mod_hash-&gt;mh_contents, NULL, RW_DEFAULT, NULL);</span>
+<span class="lineNum">     469 </span>                :<span class="lineCov">       1336 :         mod_hash-&gt;mh_sleep = sleep;</span>
+<span class="lineNum">     470 </span>                :<span class="lineCov">       1336 :         mod_hash-&gt;mh_nchains = nchains;</span>
+<span class="lineNum">     471 </span>                :<span class="lineCov">       1336 :         mod_hash-&gt;mh_kdtor = kdtor;</span>
+<span class="lineNum">     472 </span>                :<span class="lineCov">       1336 :         mod_hash-&gt;mh_vdtor = vdtor;</span>
+<span class="lineNum">     473 </span>                :<span class="lineCov">       1336 :         mod_hash-&gt;mh_hashalg = hash_alg;</span>
+<span class="lineNum">     474 </span>                :<span class="lineCov">       1336 :         mod_hash-&gt;mh_hashalg_data = hash_alg_data;</span>
+<span class="lineNum">     475 </span>                :<span class="lineCov">       1336 :         mod_hash-&gt;mh_keycmp = keycmp;</span>
+<span class="lineNum">     476 </span>                :            : 
+<span class="lineNum">     477 </span>                :            :         /*
+<span class="lineNum">     478 </span>                :            :          * Link the hash up on the list of hashes
+<span class="lineNum">     479 </span>                :            :          */
+<span class="lineNum">     480 </span>                :<span class="lineCov">       1336 :         mutex_enter(&amp;mh_head_lock);</span>
+<span class="lineNum">     481 </span>                :<span class="lineCov">       1336 :         mod_hash-&gt;mh_next = mh_head;</span>
+<span class="lineNum">     482 </span>                :<span class="lineCov">       1336 :         mh_head = mod_hash;</span>
+<span class="lineNum">     483 </span>                :<span class="lineCov">       1336 :         mutex_exit(&amp;mh_head_lock);</span>
+<span class="lineNum">     484 </span>                :            : 
+<span class="lineNum">     485 </span>                :<span class="lineCov">       1336 :         return (mod_hash);</span>
+<span class="lineNum">     486 </span>                :            : }
+<span class="lineNum">     487 </span>                :            : 
+<span class="lineNum">     488 </span>                :            : /*
+<span class="lineNum">     489 </span>                :            :  * mod_hash_destroy_hash()
+<span class="lineNum">     490 </span>                :            :  *      destroy a hash table, destroying all of its stored keys and values
+<span class="lineNum">     491 </span>                :            :  *      as well.
+<a name="492"><span class="lineNum">     492 </span>                :            :  */</a>
+<span class="lineNum">     493 </span>                :            : void
+<span class="lineNum">     494 </span>                :<span class="lineCov">        887 : mod_hash_destroy_hash(mod_hash_t *hash)</span>
+<span class="lineNum">     495 </span>                :            : {
+<span class="lineNum">     496 </span>                :            :         mod_hash_t *mhp, *mhpp;
+<span class="lineNum">     497 </span>                :            : 
+<span class="lineNum">     498 </span>                :<span class="lineCov">        887 :         mutex_enter(&amp;mh_head_lock);</span>
+<span class="lineNum">     499 </span>                :            :         /*
+<span class="lineNum">     500 </span>                :            :          * Remove the hash from the hash list
+<span class="lineNum">     501 </span>                :            :          */
+<span class="lineNum">     502 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 887 times"> + </span>]:<span class="lineCov">        887 :         if (hash == mh_head) {          /* removing 1st list elem */</span>
+<span class="lineNum">     503 </span>                :<span class="lineCov">        887 :                 mh_head = mh_head-&gt;mh_next;</span>
+<span class="lineNum">     504 </span>                :            :         } else {
+<span class="lineNum">     505 </span>                :            :                 /*
+<span class="lineNum">     506 </span>                :            :                  * mhpp can start out NULL since we know the 1st elem isn't the
+<span class="lineNum">     507 </span>                :            :                  * droid we're looking for.
+<span class="lineNum">     508 </span>                :            :                  */
+<span class="lineNum">     509 </span>                :            :                 mhpp = NULL;
+<span class="lineNum">     510 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 for (mhp = mh_head; mhp != NULL; mhp = mhp-&gt;mh_next) {</span>
+<span class="lineNum">     511 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (mhp == hash) {</span>
+<span class="lineNum">     512 </span>                :<span class="lineNoCov">          0 :                                 mhpp-&gt;mh_next = mhp-&gt;mh_next;</span>
+<span class="lineNum">     513 </span>                :<span class="lineNoCov">          0 :                                 break;</span>
+<span class="lineNum">     514 </span>                :            :                         }
+<span class="lineNum">     515 </span>                :<span class="lineNoCov">          0 :                         mhpp = mhp;</span>
+<span class="lineNum">     516 </span>                :            :                 }
+<span class="lineNum">     517 </span>                :            :         }
+<span class="lineNum">     518 </span>                :<span class="lineCov">        887 :         mutex_exit(&amp;mh_head_lock);</span>
+<span class="lineNum">     519 </span>                :            : 
+<span class="lineNum">     520 </span>                :            :         /*
+<span class="lineNum">     521 </span>                :            :          * Clean out keys and values.
+<span class="lineNum">     522 </span>                :            :          */
+<span class="lineNum">     523 </span>                :<span class="lineCov">        887 :         mod_hash_clear(hash);</span>
+<span class="lineNum">     524 </span>                :            : 
+<span class="lineNum">     525 </span>                :<span class="lineCov">        887 :         rw_destroy(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     526 </span>                :<span class="lineCov">        887 :         kmem_free(hash-&gt;mh_name, strlen(hash-&gt;mh_name) + 1);</span>
+<span class="lineNum">     527 </span>                :<span class="lineCov">        887 :         kmem_free(hash, MH_SIZE(hash-&gt;mh_nchains));</span>
+<span class="lineNum">     528 </span>                :<span class="lineCov">        887 : }</span>
+<span class="lineNum">     529 </span>                :            : 
+<span class="lineNum">     530 </span>                :            : /*
+<span class="lineNum">     531 </span>                :            :  * i_mod_hash()
+<span class="lineNum">     532 </span>                :            :  *      Call the hashing algorithm for this hash table, with the given key.
+<a name="533"><span class="lineNum">     533 </span>                :            :  */</a>
+<span class="lineNum">     534 </span>                :            : uint_t
+<span class="lineNum">     535 </span>                :<span class="lineCov">     190294 : i_mod_hash(mod_hash_t *hash, mod_hash_key_t key)</span>
+<span class="lineNum">     536 </span>                :            : {
+<span class="lineNum">     537 </span>                :            :         uint_t h;
+<span class="lineNum">     538 </span>                :            :         /*
+<span class="lineNum">     539 </span>                :            :          * Prevent div by 0 problems;
+<span class="lineNum">     540 </span>                :            :          * Also a nice shortcut when using a hash as a list
+<span class="lineNum">     541 </span>                :            :          */
+<span class="lineNum">     542 </span>        [<span class="branchCov" title="Branch 0 was taken 190294 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">     190294 :         if (hash-&gt;mh_nchains == 1)</span>
+<span class="lineNum">     543 </span>                :            :                 return (0);
+<span class="lineNum">     544 </span>                :            : 
+<span class="lineNum">     545 </span>                :<span class="lineCov">     190294 :         h = (hash-&gt;mh_hashalg)(hash-&gt;mh_hashalg_data, key);</span>
+<span class="lineNum">     546 </span>                :<span class="lineCov">     190294 :         return (h % (hash-&gt;mh_nchains - 1));</span>
+<span class="lineNum">     547 </span>                :            : }
+<span class="lineNum">     548 </span>                :            : 
+<span class="lineNum">     549 </span>                :            : /*
+<span class="lineNum">     550 </span>                :            :  * i_mod_hash_insert_nosync()
+<span class="lineNum">     551 </span>                :            :  * mod_hash_insert()
+<span class="lineNum">     552 </span>                :            :  * mod_hash_insert_reserve()
+<span class="lineNum">     553 </span>                :            :  *      insert 'val' into the hash table, using 'key' as its key.  If 'key' is
+<span class="lineNum">     554 </span>                :            :  *      already a key in the hash, an error will be returned, and the key-val
+<span class="lineNum">     555 </span>                :            :  *      pair will not be inserted.  i_mod_hash_insert_nosync() supports a simple
+<span class="lineNum">     556 </span>                :            :  *      handle abstraction, allowing hash entry allocation to be separated from
+<span class="lineNum">     557 </span>                :            :  *      the hash insertion.  this abstraction allows simple use of the mod_hash
+<span class="lineNum">     558 </span>                :            :  *      structure in situations where mod_hash_insert() with a KM_SLEEP
+<span class="lineNum">     559 </span>                :            :  *      allocation policy would otherwise be unsafe.
+<a name="560"><span class="lineNum">     560 </span>                :            :  */</a>
+<span class="lineNum">     561 </span>                :            : int
+<span class="lineNum">     562 </span>                :<span class="lineCov">      46760 : i_mod_hash_insert_nosync(mod_hash_t *hash, mod_hash_key_t key,</span>
+<span class="lineNum">     563 </span>                :            :     mod_hash_val_t val, mod_hash_hndl_t handle)
+<span class="lineNum">     564 </span>                :            : {
+<span class="lineNum">     565 </span>                :            :         uint_t hashidx;
+<span class="lineNum">     566 </span>                :            :         struct mod_hash_entry *entry;
+<span class="lineNum">     567 </span>                :            : 
+<span class="lineNum">     568 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 46760 times"> + </span>]:<span class="lineCov">      46760 :         ASSERT(hash);</span>
+<span class="lineNum">     569 </span>                :            : 
+<span class="lineNum">     570 </span>                :            :         /*
+<span class="lineNum">     571 </span>                :            :          * If we've not been given reserved storage, allocate storage directly,
+<span class="lineNum">     572 </span>                :            :          * using the hash's allocation policy.
+<span class="lineNum">     573 </span>                :            :          */
+<span class="lineNum">     574 </span>        [<span class="branchCov" title="Branch 0 was taken 46760 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      46760 :         if (handle == (mod_hash_hndl_t)0) {</span>
+<span class="lineNum">     575 </span>                :<span class="lineCov">      46760 :                 entry = kmem_cache_alloc(mh_e_cache, hash-&gt;mh_sleep);</span>
+<span class="lineNum">     576 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 46760 times"> + </span>]:<span class="lineCov">      46760 :                 if (entry == NULL) {</span>
+<span class="lineNum">     577 </span>                :<span class="lineNoCov">          0 :                         hash-&gt;mh_stat.mhs_nomem++;</span>
+<span class="lineNum">     578 </span>                :<span class="lineNoCov">          0 :                         return (MH_ERR_NOMEM);</span>
+<span class="lineNum">     579 </span>                :            :                 }
+<span class="lineNum">     580 </span>                :            :         } else {
+<span class="lineNum">     581 </span>                :            :                 entry = (struct mod_hash_entry *)handle;
+<span class="lineNum">     582 </span>                :            :         }
+<span class="lineNum">     583 </span>                :            : 
+<span class="lineNum">     584 </span>                :<span class="lineCov">      46760 :         hashidx = i_mod_hash(hash, key);</span>
+<span class="lineNum">     585 </span>                :<span class="lineCov">      46760 :         entry-&gt;mhe_key = key;</span>
+<span class="lineNum">     586 </span>                :<span class="lineCov">      46760 :         entry-&gt;mhe_val = val;</span>
+<span class="lineNum">     587 </span>                :<span class="lineCov">      46760 :         entry-&gt;mhe_next = hash-&gt;mh_entries[hashidx];</span>
+<span class="lineNum">     588 </span>                :            : 
+<span class="lineNum">     589 </span>                :<span class="lineCov">      46760 :         hash-&gt;mh_entries[hashidx] = entry;</span>
+<span class="lineNum">     590 </span>                :<span class="lineCov">      46760 :         hash-&gt;mh_stat.mhs_nelems++;</span>
+<span class="lineNum">     591 </span>                :            : 
+<span class="lineNum">     592 </span>                :<span class="lineCov">      46760 :         return (0);</span>
+<span class="lineNum">     593 </span>                :            : }
+<a name="594"><span class="lineNum">     594 </span>                :            : </a>
+<span class="lineNum">     595 </span>                :            : int
+<span class="lineNum">     596 </span>                :<span class="lineCov">      46760 : mod_hash_insert(mod_hash_t *hash, mod_hash_key_t key, mod_hash_val_t val)</span>
+<span class="lineNum">     597 </span>                :            : {
+<span class="lineNum">     598 </span>                :            :         int res;
+<span class="lineNum">     599 </span>                :            :         mod_hash_val_t v;
+<span class="lineNum">     600 </span>                :            : 
+<span class="lineNum">     601 </span>                :<span class="lineCov">      46760 :         rw_enter(&amp;hash-&gt;mh_contents, RW_WRITER);</span>
+<span class="lineNum">     602 </span>                :            : 
+<span class="lineNum">     603 </span>                :            :         /*
+<span class="lineNum">     604 </span>                :            :          * Disallow duplicate keys in the hash
+<span class="lineNum">     605 </span>                :            :          */
+<span class="lineNum">     606 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 46760 times"> + </span>]:<span class="lineCov">      46760 :         if (i_mod_hash_find_nosync(hash, key, &amp;v) == 0) {</span>
+<span class="lineNum">     607 </span>                :<span class="lineNoCov">          0 :                 rw_exit(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     608 </span>                :<span class="lineNoCov">          0 :                 hash-&gt;mh_stat.mhs_coll++;</span>
+<span class="lineNum">     609 </span>                :<span class="lineNoCov">          0 :                 return (MH_ERR_DUPLICATE);</span>
+<span class="lineNum">     610 </span>                :            :         }
+<span class="lineNum">     611 </span>                :            : 
+<span class="lineNum">     612 </span>                :<span class="lineCov">      46760 :         res = i_mod_hash_insert_nosync(hash, key, val, (mod_hash_hndl_t)0);</span>
+<span class="lineNum">     613 </span>                :<span class="lineCov">      46760 :         rw_exit(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     614 </span>                :            : 
+<span class="lineNum">     615 </span>                :<span class="lineCov">      46760 :         return (res);</span>
+<span class="lineNum">     616 </span>                :            : }
+<a name="617"><span class="lineNum">     617 </span>                :            : </a>
+<span class="lineNum">     618 </span>                :            : int
+<span class="lineNum">     619 </span>                :<span class="lineNoCov">          0 : mod_hash_insert_reserve(mod_hash_t *hash, mod_hash_key_t key,</span>
+<span class="lineNum">     620 </span>                :            :     mod_hash_val_t val, mod_hash_hndl_t handle)
+<span class="lineNum">     621 </span>                :            : {
+<span class="lineNum">     622 </span>                :            :         int res;
+<span class="lineNum">     623 </span>                :            :         mod_hash_val_t v;
+<span class="lineNum">     624 </span>                :            : 
+<span class="lineNum">     625 </span>                :<span class="lineNoCov">          0 :         rw_enter(&amp;hash-&gt;mh_contents, RW_WRITER);</span>
+<span class="lineNum">     626 </span>                :            : 
+<span class="lineNum">     627 </span>                :            :         /*
+<span class="lineNum">     628 </span>                :            :          * Disallow duplicate keys in the hash
+<span class="lineNum">     629 </span>                :            :          */
+<span class="lineNum">     630 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (i_mod_hash_find_nosync(hash, key, &amp;v) == 0) {</span>
+<span class="lineNum">     631 </span>                :<span class="lineNoCov">          0 :                 rw_exit(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     632 </span>                :<span class="lineNoCov">          0 :                 hash-&gt;mh_stat.mhs_coll++;</span>
+<span class="lineNum">     633 </span>                :<span class="lineNoCov">          0 :                 return (MH_ERR_DUPLICATE);</span>
+<span class="lineNum">     634 </span>                :            :         }
+<span class="lineNum">     635 </span>                :<span class="lineNoCov">          0 :         res = i_mod_hash_insert_nosync(hash, key, val, handle);</span>
+<span class="lineNum">     636 </span>                :<span class="lineNoCov">          0 :         rw_exit(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     637 </span>                :            : 
+<span class="lineNum">     638 </span>                :<span class="lineNoCov">          0 :         return (res);</span>
+<span class="lineNum">     639 </span>                :            : }
+<span class="lineNum">     640 </span>                :            : 
+<span class="lineNum">     641 </span>                :            : /*
+<span class="lineNum">     642 </span>                :            :  * mod_hash_reserve()
+<span class="lineNum">     643 </span>                :            :  * mod_hash_reserve_nosleep()
+<span class="lineNum">     644 </span>                :            :  * mod_hash_cancel()
+<span class="lineNum">     645 </span>                :            :  *   Make or cancel a mod_hash_entry_t reservation.  Reservations are used in
+<span class="lineNum">     646 </span>                :            :  *   mod_hash_insert_reserve() above.
+<a name="647"><span class="lineNum">     647 </span>                :            :  */</a>
+<span class="lineNum">     648 </span>                :            : int
+<span class="lineNum">     649 </span>                :<span class="lineNoCov">          0 : mod_hash_reserve(mod_hash_t *hash, mod_hash_hndl_t *handlep)</span>
+<span class="lineNum">     650 </span>                :            : {
+<span class="lineNum">     651 </span>                :<span class="lineNoCov">          0 :         *handlep = kmem_cache_alloc(mh_e_cache, hash-&gt;mh_sleep);</span>
+<span class="lineNum">     652 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (*handlep == NULL) {</span>
+<span class="lineNum">     653 </span>                :<span class="lineNoCov">          0 :                 hash-&gt;mh_stat.mhs_nomem++;</span>
+<span class="lineNum">     654 </span>                :<span class="lineNoCov">          0 :                 return (MH_ERR_NOMEM);</span>
+<span class="lineNum">     655 </span>                :            :         }
+<span class="lineNum">     656 </span>                :            : 
+<span class="lineNum">     657 </span>                :            :         return (0);
+<span class="lineNum">     658 </span>                :            : }
+<a name="659"><span class="lineNum">     659 </span>                :            : </a>
+<span class="lineNum">     660 </span>                :            : int
+<span class="lineNum">     661 </span>                :<span class="lineNoCov">          0 : mod_hash_reserve_nosleep(mod_hash_t *hash, mod_hash_hndl_t *handlep)</span>
+<span class="lineNum">     662 </span>                :            : {
+<span class="lineNum">     663 </span>                :<span class="lineNoCov">          0 :         *handlep = kmem_cache_alloc(mh_e_cache, KM_NOSLEEP);</span>
+<span class="lineNum">     664 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (*handlep == NULL) {</span>
+<span class="lineNum">     665 </span>                :<span class="lineNoCov">          0 :                 hash-&gt;mh_stat.mhs_nomem++;</span>
+<span class="lineNum">     666 </span>                :<span class="lineNoCov">          0 :                 return (MH_ERR_NOMEM);</span>
+<span class="lineNum">     667 </span>                :            :         }
+<span class="lineNum">     668 </span>                :            : 
+<span class="lineNum">     669 </span>                :            :         return (0);
+<span class="lineNum">     670 </span>                :            : 
+<span class="lineNum">     671 </span>                :            : }
+<span class="lineNum">     672 </span>                :            : 
+<a name="673"><span class="lineNum">     673 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     674 </span>                :            : void
+<span class="lineNum">     675 </span>                :<span class="lineNoCov">          0 : mod_hash_cancel(mod_hash_t *hash, mod_hash_hndl_t *handlep)</span>
+<span class="lineNum">     676 </span>                :            : {
+<span class="lineNum">     677 </span>                :<span class="lineNoCov">          0 :         kmem_cache_free(mh_e_cache, *handlep);</span>
+<span class="lineNum">     678 </span>                :<span class="lineNoCov">          0 :         *handlep = (mod_hash_hndl_t)0;</span>
+<span class="lineNum">     679 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     680 </span>                :            : 
+<span class="lineNum">     681 </span>                :            : /*
+<span class="lineNum">     682 </span>                :            :  * i_mod_hash_remove_nosync()
+<span class="lineNum">     683 </span>                :            :  * mod_hash_remove()
+<span class="lineNum">     684 </span>                :            :  *      Remove an element from the hash table.
+<a name="685"><span class="lineNum">     685 </span>                :            :  */</a>
+<span class="lineNum">     686 </span>                :            : int
+<span class="lineNum">     687 </span>                :<span class="lineNoCov">          0 : i_mod_hash_remove_nosync(mod_hash_t *hash, mod_hash_key_t key,</span>
+<span class="lineNum">     688 </span>                :            :     mod_hash_val_t *val)
+<span class="lineNum">     689 </span>                :            : {
+<span class="lineNum">     690 </span>                :            :         int hashidx;
+<span class="lineNum">     691 </span>                :            :         struct mod_hash_entry *e, *ep;
+<span class="lineNum">     692 </span>                :            : 
+<span class="lineNum">     693 </span>                :<span class="lineNoCov">          0 :         hashidx = i_mod_hash(hash, key);</span>
+<span class="lineNum">     694 </span>                :<span class="lineNoCov">          0 :         ep = NULL; /* e's parent */</span>
+<span class="lineNum">     695 </span>                :            : 
+<span class="lineNum">     696 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (e = hash-&gt;mh_entries[hashidx]; e != NULL; e = e-&gt;mhe_next) {</span>
+<span class="lineNum">     697 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (MH_KEYCMP(hash, e-&gt;mhe_key, key) == 0)</span>
+<span class="lineNum">     698 </span>                :            :                         break;
+<span class="lineNum">     699 </span>                :<span class="lineNoCov">          0 :                 ep = e;</span>
+<span class="lineNum">     700 </span>                :            :         }
+<span class="lineNum">     701 </span>                :            : 
+<span class="lineNum">     702 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (e == NULL) {        /* not found */</span>
+<span class="lineNum">     703 </span>                :            :                 return (MH_ERR_NOTFOUND);
+<span class="lineNum">     704 </span>                :            :         }
+<span class="lineNum">     705 </span>                :            : 
+<span class="lineNum">     706 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ep == NULL)         /* special case 1st element in bucket */</span>
+<span class="lineNum">     707 </span>                :<span class="lineNoCov">          0 :                 hash-&gt;mh_entries[hashidx] = e-&gt;mhe_next;</span>
+<span class="lineNum">     708 </span>                :            :         else
+<span class="lineNum">     709 </span>                :<span class="lineNoCov">          0 :                 ep-&gt;mhe_next = e-&gt;mhe_next;</span>
+<span class="lineNum">     710 </span>                :            : 
+<span class="lineNum">     711 </span>                :            :         /*
+<span class="lineNum">     712 </span>                :            :          * Clean up resources used by the node's key.
+<span class="lineNum">     713 </span>                :            :          */
+<span class="lineNum">     714 </span>                :<span class="lineNoCov">          0 :         MH_KEY_DESTROY(hash, e-&gt;mhe_key);</span>
+<span class="lineNum">     715 </span>                :            : 
+<span class="lineNum">     716 </span>                :<span class="lineNoCov">          0 :         *val = e-&gt;mhe_val;</span>
+<span class="lineNum">     717 </span>                :<span class="lineNoCov">          0 :         kmem_cache_free(mh_e_cache, e);</span>
+<span class="lineNum">     718 </span>                :<span class="lineNoCov">          0 :         hash-&gt;mh_stat.mhs_nelems--;</span>
+<span class="lineNum">     719 </span>                :            : 
+<span class="lineNum">     720 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     721 </span>                :            : }
+<a name="722"><span class="lineNum">     722 </span>                :            : </a>
+<span class="lineNum">     723 </span>                :            : int
+<span class="lineNum">     724 </span>                :<span class="lineNoCov">          0 : mod_hash_remove(mod_hash_t *hash, mod_hash_key_t key, mod_hash_val_t *val)</span>
+<span class="lineNum">     725 </span>                :            : {
+<span class="lineNum">     726 </span>                :            :         int res;
+<span class="lineNum">     727 </span>                :            : 
+<span class="lineNum">     728 </span>                :<span class="lineNoCov">          0 :         rw_enter(&amp;hash-&gt;mh_contents, RW_WRITER);</span>
+<span class="lineNum">     729 </span>                :<span class="lineNoCov">          0 :         res = i_mod_hash_remove_nosync(hash, key, val);</span>
+<span class="lineNum">     730 </span>                :<span class="lineNoCov">          0 :         rw_exit(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     731 </span>                :            : 
+<span class="lineNum">     732 </span>                :<span class="lineNoCov">          0 :         return (res);</span>
+<span class="lineNum">     733 </span>                :            : }
+<span class="lineNum">     734 </span>                :            : 
+<span class="lineNum">     735 </span>                :            : /*
+<span class="lineNum">     736 </span>                :            :  * mod_hash_replace()
+<span class="lineNum">     737 </span>                :            :  *      atomically remove an existing key-value pair from a hash, and replace
+<span class="lineNum">     738 </span>                :            :  *      the key and value with the ones supplied.  The removed key and value
+<span class="lineNum">     739 </span>                :            :  *      (if any) are destroyed.
+<a name="740"><span class="lineNum">     740 </span>                :            :  */</a>
+<span class="lineNum">     741 </span>                :            : int
+<span class="lineNum">     742 </span>                :<span class="lineNoCov">          0 : mod_hash_replace(mod_hash_t *hash, mod_hash_key_t key, mod_hash_val_t val)</span>
+<span class="lineNum">     743 </span>                :            : {
+<span class="lineNum">     744 </span>                :            :         int res;
+<span class="lineNum">     745 </span>                :            :         mod_hash_val_t v;
+<span class="lineNum">     746 </span>                :            : 
+<span class="lineNum">     747 </span>                :<span class="lineNoCov">          0 :         rw_enter(&amp;hash-&gt;mh_contents, RW_WRITER);</span>
+<span class="lineNum">     748 </span>                :            : 
+<span class="lineNum">     749 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (i_mod_hash_remove_nosync(hash, key, &amp;v) == 0) {</span>
+<span class="lineNum">     750 </span>                :            :                 /*
+<span class="lineNum">     751 </span>                :            :                  * mod_hash_remove() takes care of freeing up the key resources.
+<span class="lineNum">     752 </span>                :            :                  */
+<span class="lineNum">     753 </span>                :<span class="lineNoCov">          0 :                 MH_VAL_DESTROY(hash, v);</span>
+<span class="lineNum">     754 </span>                :            :         }
+<span class="lineNum">     755 </span>                :<span class="lineNoCov">          0 :         res = i_mod_hash_insert_nosync(hash, key, val, (mod_hash_hndl_t)0);</span>
+<span class="lineNum">     756 </span>                :            : 
+<span class="lineNum">     757 </span>                :<span class="lineNoCov">          0 :         rw_exit(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     758 </span>                :            : 
+<span class="lineNum">     759 </span>                :<span class="lineNoCov">          0 :         return (res);</span>
+<span class="lineNum">     760 </span>                :            : }
+<span class="lineNum">     761 </span>                :            : 
+<span class="lineNum">     762 </span>                :            : /*
+<span class="lineNum">     763 </span>                :            :  * mod_hash_destroy()
+<span class="lineNum">     764 </span>                :            :  *      Remove an element from the hash table matching 'key', and destroy it.
+<a name="765"><span class="lineNum">     765 </span>                :            :  */</a>
+<span class="lineNum">     766 </span>                :            : int
+<span class="lineNum">     767 </span>                :<span class="lineNoCov">          0 : mod_hash_destroy(mod_hash_t *hash, mod_hash_key_t key)</span>
+<span class="lineNum">     768 </span>                :            : {
+<span class="lineNum">     769 </span>                :            :         mod_hash_val_t val;
+<span class="lineNum">     770 </span>                :            :         int rv;
+<span class="lineNum">     771 </span>                :            : 
+<span class="lineNum">     772 </span>                :<span class="lineNoCov">          0 :         rw_enter(&amp;hash-&gt;mh_contents, RW_WRITER);</span>
+<span class="lineNum">     773 </span>                :            : 
+<span class="lineNum">     774 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((rv = i_mod_hash_remove_nosync(hash, key, &amp;val)) == 0) {</span>
+<span class="lineNum">     775 </span>                :            :                 /*
+<span class="lineNum">     776 </span>                :            :                  * mod_hash_remove() takes care of freeing up the key resources.
+<span class="lineNum">     777 </span>                :            :                  */
+<span class="lineNum">     778 </span>                :<span class="lineNoCov">          0 :                 MH_VAL_DESTROY(hash, val);</span>
+<span class="lineNum">     779 </span>                :            :         }
+<span class="lineNum">     780 </span>                :            : 
+<span class="lineNum">     781 </span>                :<span class="lineNoCov">          0 :         rw_exit(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     782 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     783 </span>                :            : }
+<span class="lineNum">     784 </span>                :            : 
+<span class="lineNum">     785 </span>                :            : /*
+<span class="lineNum">     786 </span>                :            :  * i_mod_hash_find_nosync()
+<span class="lineNum">     787 </span>                :            :  * mod_hash_find()
+<span class="lineNum">     788 </span>                :            :  *      Find a value in the hash table corresponding to the given key.
+<a name="789"><span class="lineNum">     789 </span>                :            :  */</a>
+<span class="lineNum">     790 </span>                :            : int
+<span class="lineNum">     791 </span>                :<span class="lineCov">     143534 : i_mod_hash_find_nosync(mod_hash_t *hash, mod_hash_key_t key,</span>
+<span class="lineNum">     792 </span>                :            :     mod_hash_val_t *val)
+<span class="lineNum">     793 </span>                :            : {
+<span class="lineNum">     794 </span>                :            :         uint_t hashidx;
+<span class="lineNum">     795 </span>                :            :         struct mod_hash_entry *e;
+<span class="lineNum">     796 </span>                :            : 
+<span class="lineNum">     797 </span>                :<span class="lineCov">     143534 :         hashidx = i_mod_hash(hash, key);</span>
+<span class="lineNum">     798 </span>                :            : 
+<span class="lineNum">     799 </span>        [<span class="branchCov" title="Branch 0 was taken 53454 times"> + </span><span class="branchCov" title="Branch 1 was taken 90080 times"> + </span>]:<span class="lineCov">     143534 :         for (e = hash-&gt;mh_entries[hashidx]; e != NULL; e = e-&gt;mhe_next) {</span>
+<span class="lineNum">     800 </span>        [<span class="branchCov" title="Branch 1 was taken 53454 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">      53454 :                 if (MH_KEYCMP(hash, e-&gt;mhe_key, key) == 0) {</span>
+<span class="lineNum">     801 </span>                :<span class="lineCov">      53454 :                         *val = e-&gt;mhe_val;</span>
+<span class="lineNum">     802 </span>                :<span class="lineCov">      53454 :                         hash-&gt;mh_stat.mhs_hit++;</span>
+<span class="lineNum">     803 </span>                :<span class="lineCov">      53454 :                         return (0);</span>
+<span class="lineNum">     804 </span>                :            :                 }
+<span class="lineNum">     805 </span>                :            :         }
+<span class="lineNum">     806 </span>                :<span class="lineCov">      90080 :         hash-&gt;mh_stat.mhs_miss++;</span>
+<span class="lineNum">     807 </span>                :<span class="lineCov">      90080 :         return (MH_ERR_NOTFOUND);</span>
+<span class="lineNum">     808 </span>                :            : }
+<a name="809"><span class="lineNum">     809 </span>                :            : </a>
+<span class="lineNum">     810 </span>                :            : int
+<span class="lineNum">     811 </span>                :<span class="lineCov">      96774 : mod_hash_find(mod_hash_t *hash, mod_hash_key_t key, mod_hash_val_t *val)</span>
+<span class="lineNum">     812 </span>                :            : {
+<span class="lineNum">     813 </span>                :            :         int res;
+<span class="lineNum">     814 </span>                :            : 
+<span class="lineNum">     815 </span>                :<span class="lineCov">      96774 :         rw_enter(&amp;hash-&gt;mh_contents, RW_READER);</span>
+<span class="lineNum">     816 </span>                :<span class="lineCov">      96774 :         res = i_mod_hash_find_nosync(hash, key, val);</span>
+<span class="lineNum">     817 </span>                :<span class="lineCov">      96774 :         rw_exit(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     818 </span>                :            : 
+<span class="lineNum">     819 </span>                :<span class="lineCov">      96774 :         return (res);</span>
+<span class="lineNum">     820 </span>                :            : }
+<a name="821"><span class="lineNum">     821 </span>                :            : </a>
+<span class="lineNum">     822 </span>                :            : int
+<span class="lineNum">     823 </span>                :<span class="lineNoCov">          0 : mod_hash_find_cb(mod_hash_t *hash, mod_hash_key_t key, mod_hash_val_t *val,</span>
+<span class="lineNum">     824 </span>                :            :     void (*find_cb)(mod_hash_key_t, mod_hash_val_t))
+<span class="lineNum">     825 </span>                :            : {
+<span class="lineNum">     826 </span>                :            :         int res;
+<span class="lineNum">     827 </span>                :            : 
+<span class="lineNum">     828 </span>                :<span class="lineNoCov">          0 :         rw_enter(&amp;hash-&gt;mh_contents, RW_READER);</span>
+<span class="lineNum">     829 </span>                :<span class="lineNoCov">          0 :         res = i_mod_hash_find_nosync(hash, key, val);</span>
+<span class="lineNum">     830 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (res == 0) {</span>
+<span class="lineNum">     831 </span>                :<span class="lineNoCov">          0 :                 find_cb(key, *val);</span>
+<span class="lineNum">     832 </span>                :            :         }
+<span class="lineNum">     833 </span>                :<span class="lineNoCov">          0 :         rw_exit(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     834 </span>                :            : 
+<span class="lineNum">     835 </span>                :<span class="lineNoCov">          0 :         return (res);</span>
+<span class="lineNum">     836 </span>                :            : }
+<a name="837"><span class="lineNum">     837 </span>                :            : </a>
+<span class="lineNum">     838 </span>                :            : int
+<span class="lineNum">     839 </span>                :<span class="lineNoCov">          0 : mod_hash_find_cb_rval(mod_hash_t *hash, mod_hash_key_t key, mod_hash_val_t *val,</span>
+<span class="lineNum">     840 </span>                :            :     int (*find_cb)(mod_hash_key_t, mod_hash_val_t), int *cb_rval)
+<span class="lineNum">     841 </span>                :            : {
+<span class="lineNum">     842 </span>                :            :         int res;
+<span class="lineNum">     843 </span>                :            : 
+<span class="lineNum">     844 </span>                :<span class="lineNoCov">          0 :         rw_enter(&amp;hash-&gt;mh_contents, RW_READER);</span>
+<span class="lineNum">     845 </span>                :<span class="lineNoCov">          0 :         res = i_mod_hash_find_nosync(hash, key, val);</span>
+<span class="lineNum">     846 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (res == 0) {</span>
+<span class="lineNum">     847 </span>                :<span class="lineNoCov">          0 :                 *cb_rval = find_cb(key, *val);</span>
+<span class="lineNum">     848 </span>                :            :         }
+<span class="lineNum">     849 </span>                :<span class="lineNoCov">          0 :         rw_exit(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     850 </span>                :            : 
+<span class="lineNum">     851 </span>                :<span class="lineNoCov">          0 :         return (res);</span>
+<span class="lineNum">     852 </span>                :            : }
+<a name="853"><span class="lineNum">     853 </span>                :            : </a>
+<span class="lineNum">     854 </span>                :            : void
+<span class="lineNum">     855 </span>                :<span class="lineNoCov">          0 : i_mod_hash_walk_nosync(mod_hash_t *hash,</span>
+<span class="lineNum">     856 </span>                :            :     uint_t (*callback)(mod_hash_key_t, mod_hash_val_t *, void *), void *arg)
+<span class="lineNum">     857 </span>                :            : {
+<span class="lineNum">     858 </span>                :            :         struct mod_hash_entry   *e;
+<span class="lineNum">     859 </span>                :            :         uint_t                  hashidx;
+<span class="lineNum">     860 </span>                :<span class="lineNoCov">          0 :         int                     res = MH_WALK_CONTINUE;</span>
+<span class="lineNum">     861 </span>                :            : 
+<span class="lineNum">     862 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (hashidx = 0;</span>
+<span class="lineNum">     863 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :             (hashidx &lt; (hash-&gt;mh_nchains - 1)) &amp;&amp; (res == MH_WALK_CONTINUE);</span>
+<span class="lineNum">     864 </span>                :<span class="lineNoCov">          0 :             hashidx++) {</span>
+<span class="lineNum">     865 </span>                :<span class="lineNoCov">          0 :                 e = hash-&gt;mh_entries[hashidx];</span>
+<span class="lineNum">     866 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 while ((e != NULL) &amp;&amp; (res == MH_WALK_CONTINUE)) {</span>
+<span class="lineNum">     867 </span>                :<span class="lineNoCov">          0 :                         res = callback(e-&gt;mhe_key, e-&gt;mhe_val, arg);</span>
+<span class="lineNum">     868 </span>                :<span class="lineNoCov">          0 :                         e = e-&gt;mhe_next;</span>
+<span class="lineNum">     869 </span>                :            :                 }
+<span class="lineNum">     870 </span>                :            :         }
+<span class="lineNum">     871 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     872 </span>                :            : 
+<span class="lineNum">     873 </span>                :            : /*
+<span class="lineNum">     874 </span>                :            :  * mod_hash_walk()
+<span class="lineNum">     875 </span>                :            :  *      Walks all the elements in the hashtable and invokes the callback
+<span class="lineNum">     876 </span>                :            :  *      function with the key/value pair for each element.  The hashtable
+<span class="lineNum">     877 </span>                :            :  *      is locked for readers so the callback function should not attempt
+<span class="lineNum">     878 </span>                :            :  *      to do any updates to the hashable.  The callback function should
+<span class="lineNum">     879 </span>                :            :  *      return MH_WALK_CONTINUE to continue walking the hashtable or
+<span class="lineNum">     880 </span>                :            :  *      MH_WALK_TERMINATE to abort the walk of the hashtable.
+<a name="881"><span class="lineNum">     881 </span>                :            :  */</a>
+<span class="lineNum">     882 </span>                :            : void
+<span class="lineNum">     883 </span>                :<span class="lineNoCov">          0 : mod_hash_walk(mod_hash_t *hash,</span>
+<span class="lineNum">     884 </span>                :            :     uint_t (*callback)(mod_hash_key_t, mod_hash_val_t *, void *), void *arg)
+<span class="lineNum">     885 </span>                :            : {
+<span class="lineNum">     886 </span>                :<span class="lineNoCov">          0 :         rw_enter(&amp;hash-&gt;mh_contents, RW_READER);</span>
+<span class="lineNum">     887 </span>                :<span class="lineNoCov">          0 :         i_mod_hash_walk_nosync(hash, callback, arg);</span>
+<span class="lineNum">     888 </span>                :<span class="lineNoCov">          0 :         rw_exit(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     889 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     890 </span>                :            : 
+<span class="lineNum">     891 </span>                :            : 
+<span class="lineNum">     892 </span>                :            : /*
+<span class="lineNum">     893 </span>                :            :  * i_mod_hash_clear_nosync()
+<span class="lineNum">     894 </span>                :            :  * mod_hash_clear()
+<span class="lineNum">     895 </span>                :            :  *      Clears the given hash table by calling the destructor of every hash
+<span class="lineNum">     896 </span>                :            :  *      element and freeing up all mod_hash_entry's.
+<a name="897"><span class="lineNum">     897 </span>                :            :  */</a>
+<span class="lineNum">     898 </span>                :            : void
+<span class="lineNum">     899 </span>                :<span class="lineCov">        887 : i_mod_hash_clear_nosync(mod_hash_t *hash)</span>
+<span class="lineNum">     900 </span>                :            : {
+<span class="lineNum">     901 </span>                :            :         int i;
+<span class="lineNum">     902 </span>                :            :         struct mod_hash_entry *e, *old_e;
+<span class="lineNum">     903 </span>                :            : 
+<span class="lineNum">     904 </span>        [<span class="branchCov" title="Branch 0 was taken 227072 times"> + </span><span class="branchCov" title="Branch 1 was taken 887 times"> + </span>]:<span class="lineCov">     227959 :         for (i = 0; i &lt; hash-&gt;mh_nchains; i++) {</span>
+<span class="lineNum">     905 </span>                :<span class="lineCov">     227072 :                 e = hash-&gt;mh_entries[i];</span>
+<span class="lineNum">     906 </span>        [<span class="branchCov" title="Branch 0 was taken 31045 times"> + </span><span class="branchCov" title="Branch 1 was taken 227072 times"> + </span>]:<span class="lineCov">     258117 :                 while (e != NULL) {</span>
+<span class="lineNum">     907 </span>                :<span class="lineCov">      31045 :                         MH_KEY_DESTROY(hash, e-&gt;mhe_key);</span>
+<span class="lineNum">     908 </span>                :<span class="lineCov">      31045 :                         MH_VAL_DESTROY(hash, e-&gt;mhe_val);</span>
+<span class="lineNum">     909 </span>                :<span class="lineCov">      31045 :                         old_e = e;</span>
+<span class="lineNum">     910 </span>                :<span class="lineCov">      31045 :                         e = e-&gt;mhe_next;</span>
+<span class="lineNum">     911 </span>                :<span class="lineCov">      31045 :                         kmem_cache_free(mh_e_cache, old_e);</span>
+<span class="lineNum">     912 </span>                :            :                 }
+<span class="lineNum">     913 </span>                :<span class="lineCov">     227072 :                 hash-&gt;mh_entries[i] = NULL;</span>
+<span class="lineNum">     914 </span>                :            :         }
+<span class="lineNum">     915 </span>                :<span class="lineCov">        887 :         hash-&gt;mh_stat.mhs_nelems = 0;</span>
+<span class="lineNum">     916 </span>                :<span class="lineCov">        887 : }</span>
+<a name="917"><span class="lineNum">     917 </span>                :            : </a>
+<span class="lineNum">     918 </span>                :            : void
+<span class="lineNum">     919 </span>                :<span class="lineCov">        887 : mod_hash_clear(mod_hash_t *hash)</span>
+<span class="lineNum">     920 </span>                :            : {
+<span class="lineNum">     921 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 887 times"> + </span>]:<span class="lineCov">        887 :         ASSERT(hash);</span>
+<span class="lineNum">     922 </span>                :<span class="lineCov">        887 :         rw_enter(&amp;hash-&gt;mh_contents, RW_WRITER);</span>
+<span class="lineNum">     923 </span>                :<span class="lineCov">        887 :         i_mod_hash_clear_nosync(hash);</span>
+<span class="lineNum">     924 </span>                :<span class="lineCov">        887 :         rw_exit(&amp;hash-&gt;mh_contents);</span>
+<span class="lineNum">     925 </span>                :<span class="lineCov">        887 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

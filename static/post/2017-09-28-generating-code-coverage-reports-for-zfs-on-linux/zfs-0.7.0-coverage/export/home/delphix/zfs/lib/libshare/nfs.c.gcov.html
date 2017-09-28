@@ -1,0 +1,839 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/lib/libshare/nfs.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/lib/libshare</a> - nfs.c<span style="font-size: 80%;"> (source / <a href="nfs.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">221</td>
+            <td class="headerCovTableEntry">257</td>
+            <td class="headerCovTableEntryMed">86.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">129</td>
+            <td class="headerCovTableEntry">202</td>
+            <td class="headerCovTableEntryLo">63.9 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : /*
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright (c) 2011 Gunnar Beutner
+<span class="lineNum">      25 </span>                :            :  * Copyright (c) 2012 Cyril Plisko. All rights reserved.
+<span class="lineNum">      26 </span>                :            :  */
+<span class="lineNum">      27 </span>                :            : 
+<span class="lineNum">      28 </span>                :            : #include &lt;stdio.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;strings.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;fcntl.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/wait.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;unistd.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;libzfs.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;libshare.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &quot;libshare_impl.h&quot;
+<span class="lineNum">      36 </span>                :            : 
+<span class="lineNum">      37 </span>                :            : static boolean_t nfs_available(void);
+<span class="lineNum">      38 </span>                :            : 
+<span class="lineNum">      39 </span>                :            : static sa_fstype_t *nfs_fstype;
+<span class="lineNum">      40 </span>                :            : 
+<span class="lineNum">      41 </span>                :            : /*
+<span class="lineNum">      42 </span>                :            :  * nfs_exportfs_temp_fd refers to a temporary copy of the output
+<span class="lineNum">      43 </span>                :            :  * from exportfs -v.
+<span class="lineNum">      44 </span>                :            :  */
+<span class="lineNum">      45 </span>                :            : static int nfs_exportfs_temp_fd = -1;
+<span class="lineNum">      46 </span>                :            : 
+<span class="lineNum">      47 </span>                :            : typedef int (*nfs_shareopt_callback_t)(const char *opt, const char *value,
+<span class="lineNum">      48 </span>                :            :     void *cookie);
+<span class="lineNum">      49 </span>                :            : 
+<span class="lineNum">      50 </span>                :            : typedef int (*nfs_host_callback_t)(const char *sharepath, const char *host,
+<span class="lineNum">      51 </span>                :            :     const char *security, const char *access, void *cookie);
+<span class="lineNum">      52 </span>                :            : 
+<span class="lineNum">      53 </span>                :            : /*
+<span class="lineNum">      54 </span>                :            :  * Invokes the specified callback function for each Solaris share option
+<span class="lineNum">      55 </span>                :            :  * listed in the specified string.
+<a name="56"><span class="lineNum">      56 </span>                :            :  */</a>
+<span class="lineNum">      57 </span>                :            : static int
+<span class="lineNum">      58 </span>                :<span class="lineCov">        805 : foreach_nfs_shareopt(const char *shareopts,</span>
+<span class="lineNum">      59 </span>                :            :     nfs_shareopt_callback_t callback, void *cookie)
+<span class="lineNum">      60 </span>                :            : {
+<span class="lineNum">      61 </span>                :            :         char *shareopts_dup, *opt, *cur, *value;
+<span class="lineNum">      62 </span>                :            :         int was_nul, rc;
+<span class="lineNum">      63 </span>                :            : 
+<span class="lineNum">      64 </span>        [<span class="branchCov" title="Branch 0 was taken 740 times"> + </span><span class="branchCov" title="Branch 1 was taken 65 times"> + </span>]:<span class="lineCov">        805 :         if (shareopts == NULL)</span>
+<span class="lineNum">      65 </span>                :            :                 return (SA_OK);
+<span class="lineNum">      66 </span>                :            : 
+<span class="lineNum">      67 </span>                :<span class="lineCov">        740 :         shareopts_dup = strdup(shareopts);</span>
+<span class="lineNum">      68 </span>                :            : 
+<span class="lineNum">      69 </span>        [<span class="branchCov" title="Branch 0 was taken 740 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        740 :         if (shareopts_dup == NULL)</span>
+<span class="lineNum">      70 </span>                :            :                 return (SA_NO_MEMORY);
+<span class="lineNum">      71 </span>                :            : 
+<span class="lineNum">      72 </span>                :            :         opt = shareopts_dup;
+<span class="lineNum">      73 </span>                :            :         was_nul = 0;
+<span class="lineNum">      74 </span>                :            : 
+<span class="lineNum">      75 </span>                :            :         while (1) {
+<span class="lineNum">      76 </span>                :<span class="lineCov">       1451 :                 cur = opt;</span>
+<span class="lineNum">      77 </span>                :            : 
+<span class="lineNum">      78 </span>        [<span class="branchCov" title="Branch 0 was taken 7226 times"> + </span><span class="branchCov" title="Branch 1 was taken 1451 times"> + </span>]:<span class="lineCov">       8677 :                 while (*cur != ',' &amp;&amp; *cur != '\0')</span>
+<span class="lineNum">      79 </span>                :<span class="lineCov">       7226 :                         cur++;</span>
+<span class="lineNum">      80 </span>                :            : 
+<span class="lineNum">      81 </span>        [<span class="branchCov" title="Branch 0 was taken 740 times"> + </span><span class="branchCov" title="Branch 1 was taken 711 times"> + </span>]:<span class="lineCov">       1451 :                 if (*cur == '\0')</span>
+<span class="lineNum">      82 </span>                :<span class="lineCov">        740 :                         was_nul = 1;</span>
+<span class="lineNum">      83 </span>                :            : 
+<span class="lineNum">      84 </span>                :<span class="lineCov">       1451 :                 *cur = '\0';</span>
+<span class="lineNum">      85 </span>                :            : 
+<span class="lineNum">      86 </span>        [<span class="branchCov" title="Branch 0 was taken 1450 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">       1451 :                 if (cur &gt; opt) {</span>
+<span class="lineNum">      87 </span>                :<span class="lineCov">       1450 :                         value = strchr(opt, '=');</span>
+<span class="lineNum">      88 </span>                :            : 
+<span class="lineNum">      89 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 1448 times"> + </span>]:<span class="lineCov">       1450 :                         if (value != NULL) {</span>
+<span class="lineNum">      90 </span>                :<span class="lineCov">          2 :                                 *value = '\0';</span>
+<span class="lineNum">      91 </span>                :<span class="lineCov">          2 :                                 value++;</span>
+<span class="lineNum">      92 </span>                :            :                         }
+<span class="lineNum">      93 </span>                :            : 
+<span class="lineNum">      94 </span>                :<span class="lineCov">       1450 :                         rc = callback(opt, value, cookie);</span>
+<span class="lineNum">      95 </span>                :            : 
+<span class="lineNum">      96 </span>        [<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchCov" title="Branch 1 was taken 1433 times"> + </span>]:<span class="lineCov">       1450 :                         if (rc != SA_OK) {</span>
+<span class="lineNum">      97 </span>                :<span class="lineCov">         17 :                                 free(shareopts_dup);</span>
+<span class="lineNum">      98 </span>                :<span class="lineCov">         17 :                                 return (rc);</span>
+<span class="lineNum">      99 </span>                :            :                         }
+<span class="lineNum">     100 </span>                :            :                 }
+<span class="lineNum">     101 </span>                :            : 
+<span class="lineNum">     102 </span>                :<span class="lineCov">       1434 :                 opt = cur + 1;</span>
+<span class="lineNum">     103 </span>                :            : 
+<span class="lineNum">     104 </span>        [<span class="branchCov" title="Branch 0 was taken 711 times"> + </span><span class="branchCov" title="Branch 1 was taken 723 times"> + </span>]:<span class="lineCov">       1434 :                 if (was_nul)</span>
+<span class="lineNum">     105 </span>                :            :                         break;
+<span class="lineNum">     106 </span>                :            :         }
+<span class="lineNum">     107 </span>                :            : 
+<span class="lineNum">     108 </span>                :<span class="lineCov">        723 :         free(shareopts_dup);</span>
+<span class="lineNum">     109 </span>                :            : 
+<span class="lineNum">     110 </span>                :<span class="lineCov">        723 :         return (0);</span>
+<span class="lineNum">     111 </span>                :            : }
+<span class="lineNum">     112 </span>                :            : 
+<span class="lineNum">     113 </span>                :            : typedef struct nfs_host_cookie_s {
+<span class="lineNum">     114 </span>                :            :         nfs_host_callback_t callback;
+<span class="lineNum">     115 </span>                :            :         const char *sharepath;
+<span class="lineNum">     116 </span>                :            :         void *cookie;
+<span class="lineNum">     117 </span>                :            :         const char *security;
+<span class="lineNum">     118 </span>                :            : } nfs_host_cookie_t;
+<span class="lineNum">     119 </span>                :            : 
+<span class="lineNum">     120 </span>                :            : /*
+<span class="lineNum">     121 </span>                :            :  * Helper function for foreach_nfs_host. This function checks whether the
+<span class="lineNum">     122 </span>                :            :  * current share option is a host specification and invokes a callback
+<span class="lineNum">     123 </span>                :            :  * function with information about the host.
+<a name="124"><span class="lineNum">     124 </span>                :            :  */</a>
+<span class="lineNum">     125 </span>                :            : static int
+<span class="lineNum">     126 </span>                :<span class="lineCov">        913 : foreach_nfs_host_cb(const char *opt, const char *value, void *pcookie)</span>
+<span class="lineNum">     127 </span>                :            : {
+<span class="lineNum">     128 </span>                :            :         int rc;
+<span class="lineNum">     129 </span>                :            :         const char *access;
+<span class="lineNum">     130 </span>                :            :         char *host_dup, *host, *next;
+<span class="lineNum">     131 </span>                :<span class="lineCov">        913 :         nfs_host_cookie_t *udata = (nfs_host_cookie_t *)pcookie;</span>
+<span class="lineNum">     132 </span>                :            : 
+<span class="lineNum">     133 </span>                :            : #ifdef DEBUG
+<span class="lineNum">     134 </span>                :<span class="lineCov">       1826 :         fprintf(stderr, &quot;foreach_nfs_host_cb: key=%s, value=%s\n&quot;, opt, value);</span>
+<span class="lineNum">     135 </span>                :            : #endif
+<span class="lineNum">     136 </span>                :            : 
+<span class="lineNum">     137 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 913 times"> + </span>]:<span class="lineCov">        913 :         if (strcmp(opt, &quot;sec&quot;) == 0)</span>
+<span class="lineNum">     138 </span>                :<span class="lineNoCov">          0 :                 udata-&gt;security = value;</span>
+<span class="lineNum">     139 </span>                :            : 
+<span class="lineNum">     140 </span>[<span class="branchCov" title="Branch 0 was taken 459 times"> + </span><span class="branchCov" title="Branch 1 was taken 454 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 5 times"> + </span><span class="branchCov" title="Branch 3 was taken 454 times"> + </span>]:<span class="lineCov">        913 :         if (strcmp(opt, &quot;rw&quot;) == 0 || strcmp(opt, &quot;ro&quot;) == 0) {</span>
+<span class="lineNum">     141 </span>        [<span class="branchCov" title="Branch 0 was taken 459 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        459 :                 if (value == NULL)</span>
+<span class="lineNum">     142 </span>                :<span class="lineCov">        459 :                         value = &quot;*&quot;;</span>
+<span class="lineNum">     143 </span>                :            : 
+<span class="lineNum">     144 </span>                :<span class="lineCov">        459 :                 access = opt;</span>
+<span class="lineNum">     145 </span>                :            : 
+<span class="lineNum">     146 </span>                :<span class="lineCov">        459 :                 host_dup = strdup(value);</span>
+<span class="lineNum">     147 </span>                :            : 
+<span class="lineNum">     148 </span>        [<span class="branchCov" title="Branch 0 was taken 459 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        459 :                 if (host_dup == NULL)</span>
+<span class="lineNum">     149 </span>                :            :                         return (SA_NO_MEMORY);
+<span class="lineNum">     150 </span>                :            : 
+<span class="lineNum">     151 </span>                :            :                 host = host_dup;
+<span class="lineNum">     152 </span>                :            : 
+<span class="lineNum">     153 </span>                :            :                 do {
+<span class="lineNum">     154 </span>                :<span class="lineCov">        459 :                         next = strchr(host, ':');</span>
+<span class="lineNum">     155 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 459 times"> + </span>]:<span class="lineCov">        459 :                         if (next != NULL) {</span>
+<span class="lineNum">     156 </span>                :<span class="lineNoCov">          0 :                                 *next = '\0';</span>
+<span class="lineNum">     157 </span>                :<span class="lineNoCov">          0 :                                 next++;</span>
+<span class="lineNum">     158 </span>                :            :                         }
+<span class="lineNum">     159 </span>                :            : 
+<span class="lineNum">     160 </span>                :<span class="lineCov">        459 :                         rc = udata-&gt;callback(udata-&gt;sharepath, host,</span>
+<span class="lineNum">     161 </span>                :            :                             udata-&gt;security, access, udata-&gt;cookie);
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 459 times"> + </span>]:<span class="lineCov">        459 :                         if (rc != SA_OK) {</span>
+<span class="lineNum">     164 </span>                :<span class="lineNoCov">          0 :                                 free(host_dup);</span>
+<span class="lineNum">     165 </span>                :            : 
+<span class="lineNum">     166 </span>                :<span class="lineNoCov">          0 :                                 return (rc);</span>
+<span class="lineNum">     167 </span>                :            :                         }
+<span class="lineNum">     168 </span>                :            : 
+<span class="lineNum">     169 </span>                :<span class="lineCov">        459 :                         host = next;</span>
+<span class="lineNum">     170 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 459 times"> + </span>]:<span class="lineCov">        459 :                 } while (host != NULL);</span>
+<span class="lineNum">     171 </span>                :            : 
+<span class="lineNum">     172 </span>                :<span class="lineCov">        459 :                 free(host_dup);</span>
+<span class="lineNum">     173 </span>                :            :         }
+<span class="lineNum">     174 </span>                :            : 
+<span class="lineNum">     175 </span>                :            :         return (SA_OK);
+<span class="lineNum">     176 </span>                :            : }
+<span class="lineNum">     177 </span>                :            : 
+<span class="lineNum">     178 </span>                :            : /*
+<span class="lineNum">     179 </span>                :            :  * Invokes a callback function for all NFS hosts that are set for a share.
+<a name="180"><span class="lineNum">     180 </span>                :            :  */</a>
+<span class="lineNum">     181 </span>                :            : static int
+<span class="lineNum">     182 </span>                :<span class="lineCov">       1048 : foreach_nfs_host(sa_share_impl_t impl_share, nfs_host_callback_t callback,</span>
+<span class="lineNum">     183 </span>                :            :     void *cookie)
+<span class="lineNum">     184 </span>                :            : {
+<span class="lineNum">     185 </span>                :            :         nfs_host_cookie_t udata;
+<span class="lineNum">     186 </span>                :            :         char *shareopts;
+<span class="lineNum">     187 </span>                :            : 
+<span class="lineNum">     188 </span>                :<span class="lineCov">        524 :         udata.callback = callback;</span>
+<span class="lineNum">     189 </span>                :<span class="lineCov">        524 :         udata.sharepath = impl_share-&gt;sharepath;</span>
+<span class="lineNum">     190 </span>                :<span class="lineCov">        524 :         udata.cookie = cookie;</span>
+<span class="lineNum">     191 </span>                :<span class="lineCov">        524 :         udata.security = &quot;sys&quot;;</span>
+<span class="lineNum">     192 </span>                :            : 
+<span class="lineNum">     193 </span>                :<span class="lineCov">        524 :         shareopts = FSINFO(impl_share, nfs_fstype)-&gt;shareopts;</span>
+<span class="lineNum">     194 </span>                :            : 
+<span class="lineNum">     195 </span>                :<span class="lineCov">        524 :         return foreach_nfs_shareopt(shareopts, foreach_nfs_host_cb,</span>
+<span class="lineNum">     196 </span>                :            :             &amp;udata);
+<span class="lineNum">     197 </span>                :            : }
+<span class="lineNum">     198 </span>                :            : 
+<span class="lineNum">     199 </span>                :            : /*
+<span class="lineNum">     200 </span>                :            :  * Converts a Solaris NFS host specification to its Linux equivalent.
+<a name="201"><span class="lineNum">     201 </span>                :            :  */</a>
+<span class="lineNum">     202 </span>                :            : static int
+<span class="lineNum">     203 </span>                :<span class="lineCov">        459 : get_linux_hostspec(const char *solaris_hostspec, char **plinux_hostspec)</span>
+<span class="lineNum">     204 </span>                :            : {
+<span class="lineNum">     205 </span>                :            :         /*
+<span class="lineNum">     206 </span>                :            :          * For now we just support CIDR masks (e.g. @192.168.0.0/16) and host
+<span class="lineNum">     207 </span>                :            :          * wildcards (e.g. *.example.org).
+<span class="lineNum">     208 </span>                :            :          */
+<span class="lineNum">     209 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 459 times"> + </span>]:<span class="lineCov">        459 :         if (solaris_hostspec[0] == '@') {</span>
+<span class="lineNum">     210 </span>                :            :                 /*
+<span class="lineNum">     211 </span>                :            :                  * Solaris host specifier, e.g. @192.168.0.0/16; we just need
+<span class="lineNum">     212 </span>                :            :                  * to skip the @ in this case
+<span class="lineNum">     213 </span>                :            :                  */
+<span class="lineNum">     214 </span>                :<span class="lineNoCov">          0 :                 *plinux_hostspec = strdup(solaris_hostspec + 1);</span>
+<span class="lineNum">     215 </span>                :            :         } else {
+<span class="lineNum">     216 </span>                :<span class="lineCov">        459 :                 *plinux_hostspec = strdup(solaris_hostspec);</span>
+<span class="lineNum">     217 </span>                :            :         }
+<span class="lineNum">     218 </span>                :            : 
+<span class="lineNum">     219 </span>        [<span class="branchCov" title="Branch 0 was taken 459 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        459 :         if (*plinux_hostspec == NULL) {</span>
+<span class="lineNum">     220 </span>                :            :                 return (SA_NO_MEMORY);
+<span class="lineNum">     221 </span>                :            :         }
+<span class="lineNum">     222 </span>                :            : 
+<span class="lineNum">     223 </span>                :<span class="lineCov">        459 :         return (SA_OK);</span>
+<span class="lineNum">     224 </span>                :            : }
+<span class="lineNum">     225 </span>                :            : 
+<span class="lineNum">     226 </span>                :            : /*
+<span class="lineNum">     227 </span>                :            :  * Used internally by nfs_enable_share to enable sharing for a single host.
+<a name="228"><span class="lineNum">     228 </span>                :            :  */</a>
+<span class="lineNum">     229 </span>                :            : static int
+<span class="lineNum">     230 </span>                :<span class="lineCov">        257 : nfs_enable_share_one(const char *sharepath, const char *host,</span>
+<span class="lineNum">     231 </span>                :            :     const char *security, const char *access, void *pcookie)
+<span class="lineNum">     232 </span>                :            : {
+<span class="lineNum">     233 </span>                :            :         int rc;
+<span class="lineNum">     234 </span>                :            :         char *linuxhost, *hostpath, *opts;
+<span class="lineNum">     235 </span>                :<span class="lineCov">        257 :         const char *linux_opts = (const char *)pcookie;</span>
+<span class="lineNum">     236 </span>                :            :         char *argv[6];
+<span class="lineNum">     237 </span>                :            : 
+<span class="lineNum">     238 </span>                :            :         /* exportfs -i -o sec=XX,rX,&lt;opts&gt; &lt;host&gt;:&lt;sharepath&gt; */
+<span class="lineNum">     239 </span>                :            : 
+<span class="lineNum">     240 </span>                :<span class="lineCov">        257 :         rc = get_linux_hostspec(host, &amp;linuxhost);</span>
+<span class="lineNum">     241 </span>                :            : 
+<span class="lineNum">     242 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 257 times"> + </span>]:<span class="lineCov">        257 :         if (rc &lt; 0)</span>
+<span class="lineNum">     243 </span>                :<span class="lineNoCov">          0 :                 exit(1);</span>
+<span class="lineNum">     244 </span>                :            : 
+<span class="lineNum">     245 </span>                :<span class="lineCov">        257 :         hostpath = malloc(strlen(linuxhost) + 1 + strlen(sharepath) + 1);</span>
+<span class="lineNum">     246 </span>                :            : 
+<span class="lineNum">     247 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 257 times"> + </span>]:<span class="lineCov">        257 :         if (hostpath == NULL) {</span>
+<span class="lineNum">     248 </span>                :<span class="lineNoCov">          0 :                 free(linuxhost);</span>
+<span class="lineNum">     249 </span>                :            : 
+<span class="lineNum">     250 </span>                :<span class="lineNoCov">          0 :                 exit(1);</span>
+<span class="lineNum">     251 </span>                :            :         }
+<span class="lineNum">     252 </span>                :            : 
+<span class="lineNum">     253 </span>                :<span class="lineCov">        514 :         sprintf(hostpath, &quot;%s:%s&quot;, linuxhost, sharepath);</span>
+<span class="lineNum">     254 </span>                :            : 
+<span class="lineNum">     255 </span>                :<span class="lineCov">        257 :         free(linuxhost);</span>
+<span class="lineNum">     256 </span>                :            : 
+<span class="lineNum">     257 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 257 times"> + </span>]:<span class="lineCov">        257 :         if (linux_opts == NULL)</span>
+<span class="lineNum">     258 </span>                :<span class="lineNoCov">          0 :                 linux_opts = &quot;&quot;;</span>
+<span class="lineNum">     259 </span>                :            : 
+<span class="lineNum">     260 </span>                :<span class="lineCov">        257 :         opts = malloc(4 + strlen(security) + 4 + strlen(linux_opts) + 1);</span>
+<span class="lineNum">     261 </span>                :            : 
+<span class="lineNum">     262 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 257 times"> + </span>]:<span class="lineCov">        257 :         if (opts == NULL)</span>
+<span class="lineNum">     263 </span>                :<span class="lineNoCov">          0 :                 exit(1);</span>
+<span class="lineNum">     264 </span>                :            : 
+<span class="lineNum">     265 </span>                :<span class="lineCov">        257 :         sprintf(opts, &quot;sec=%s,%s,%s&quot;, security, access, linux_opts);</span>
+<span class="lineNum">     266 </span>                :            : 
+<span class="lineNum">     267 </span>                :            : #ifdef DEBUG
+<span class="lineNum">     268 </span>                :<span class="lineCov">        514 :         fprintf(stderr, &quot;sharing %s with opts %s\n&quot;, hostpath, opts);</span>
+<span class="lineNum">     269 </span>                :            : #endif
+<span class="lineNum">     270 </span>                :            : 
+<span class="lineNum">     271 </span>                :<span class="lineCov">        257 :         argv[0] = &quot;/usr/sbin/exportfs&quot;;</span>
+<span class="lineNum">     272 </span>                :<span class="lineCov">        257 :         argv[1] = &quot;-i&quot;;</span>
+<span class="lineNum">     273 </span>                :<span class="lineCov">        257 :         argv[2] = &quot;-o&quot;;</span>
+<span class="lineNum">     274 </span>                :<span class="lineCov">        257 :         argv[3] = opts;</span>
+<span class="lineNum">     275 </span>                :<span class="lineCov">        257 :         argv[4] = hostpath;</span>
+<span class="lineNum">     276 </span>                :<span class="lineCov">        257 :         argv[5] = NULL;</span>
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>                :<span class="lineCov">        257 :         rc = libzfs_run_process(argv[0], argv, 0);</span>
+<span class="lineNum">     279 </span>                :            : 
+<span class="lineNum">     280 </span>                :<span class="lineCov">        257 :         free(hostpath);</span>
+<span class="lineNum">     281 </span>                :<span class="lineCov">        257 :         free(opts);</span>
+<span class="lineNum">     282 </span>                :            : 
+<span class="lineNum">     283 </span>        [<span class="branchCov" title="Branch 0 was taken 257 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        257 :         if (rc &lt; 0)</span>
+<span class="lineNum">     284 </span>                :            :                 return (SA_SYSTEM_ERR);
+<span class="lineNum">     285 </span>                :            :         else
+<span class="lineNum">     286 </span>                :<span class="lineCov">        257 :                 return (SA_OK);</span>
+<span class="lineNum">     287 </span>                :            : }
+<span class="lineNum">     288 </span>                :            : 
+<span class="lineNum">     289 </span>                :            : /*
+<span class="lineNum">     290 </span>                :            :  * Adds a Linux share option to an array of NFS options.
+<a name="291"><span class="lineNum">     291 </span>                :            :  */</a>
+<span class="lineNum">     292 </span>                :            : static int
+<span class="lineNum">     293 </span>                :<span class="lineCov">       1100 : add_linux_shareopt(char **plinux_opts, const char *key, const char *value)</span>
+<span class="lineNum">     294 </span>                :            : {
+<span class="lineNum">     295 </span>                :<span class="lineCov">       1100 :         size_t len = 0;</span>
+<span class="lineNum">     296 </span>                :            :         char *new_linux_opts;
+<span class="lineNum">     297 </span>                :            : 
+<span class="lineNum">     298 </span>        [<span class="branchCov" title="Branch 0 was taken 819 times"> + </span><span class="branchCov" title="Branch 1 was taken 281 times"> + </span>]:<span class="lineCov">       1100 :         if (*plinux_opts != NULL)</span>
+<span class="lineNum">     299 </span>                :<span class="lineCov">        819 :                 len = strlen(*plinux_opts);</span>
+<span class="lineNum">     300 </span>                :            : 
+<span class="lineNum">     301 </span>                :<span class="lineCov">       2200 :         new_linux_opts = realloc(*plinux_opts, len + 1 + strlen(key) +</span>
+<span class="lineNum">     302 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1100 times"> + </span>]:<span class="lineCov">       1100 :             (value ? 1 + strlen(value) : 0) + 1);</span>
+<span class="lineNum">     303 </span>                :            : 
+<span class="lineNum">     304 </span>        [<span class="branchCov" title="Branch 0 was taken 1100 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       1100 :         if (new_linux_opts == NULL)</span>
+<span class="lineNum">     305 </span>                :            :                 return (SA_NO_MEMORY);
+<span class="lineNum">     306 </span>                :            : 
+<span class="lineNum">     307 </span>                :<span class="lineCov">       1100 :         new_linux_opts[len] = '\0';</span>
+<span class="lineNum">     308 </span>                :            : 
+<span class="lineNum">     309 </span>        [<span class="branchCov" title="Branch 0 was taken 819 times"> + </span><span class="branchCov" title="Branch 1 was taken 281 times"> + </span>]:<span class="lineCov">       1100 :         if (len &gt; 0)</span>
+<span class="lineNum">     310 </span>                :            :                 strcat(new_linux_opts, &quot;,&quot;);
+<span class="lineNum">     311 </span>                :            : 
+<span class="lineNum">     312 </span>                :<span class="lineCov">       1100 :         strcat(new_linux_opts, key);</span>
+<span class="lineNum">     313 </span>                :            : 
+<span class="lineNum">     314 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1100 times"> + </span>]:<span class="lineCov">       1100 :         if (value != NULL) {</span>
+<span class="lineNum">     315 </span>                :<span class="lineNoCov">          0 :                 strcat(new_linux_opts, &quot;=&quot;);</span>
+<span class="lineNum">     316 </span>                :            :                 strcat(new_linux_opts, value);
+<span class="lineNum">     317 </span>                :            :         }
+<span class="lineNum">     318 </span>                :            : 
+<span class="lineNum">     319 </span>                :<span class="lineCov">       1100 :         *plinux_opts = new_linux_opts;</span>
+<span class="lineNum">     320 </span>                :            : 
+<span class="lineNum">     321 </span>                :<span class="lineCov">       1100 :         return (SA_OK);</span>
+<span class="lineNum">     322 </span>                :            : }
+<span class="lineNum">     323 </span>                :            : 
+<span class="lineNum">     324 </span>                :            : /*
+<span class="lineNum">     325 </span>                :            :  * Validates and converts a single Solaris share option to its Linux
+<span class="lineNum">     326 </span>                :            :  * equivalent.
+<a name="327"><span class="lineNum">     327 </span>                :            :  */</a>
+<span class="lineNum">     328 </span>                :            : static int
+<span class="lineNum">     329 </span>                :<span class="lineCov">        537 : get_linux_shareopts_cb(const char *key, const char *value, void *cookie)</span>
+<span class="lineNum">     330 </span>                :            : {
+<span class="lineNum">     331 </span>                :<span class="lineCov">        537 :         char **plinux_opts = (char **)cookie;</span>
+<span class="lineNum">     332 </span>                :            : 
+<span class="lineNum">     333 </span>                :            :         /* host-specific options, these are taken care of elsewhere */
+<span class="lineNum">     334 </span>[<span class="branchCov" title="Branch 0 was taken 532 times"> + </span><span class="branchCov" title="Branch 1 was taken 5 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 274 times"> + </span><span class="branchCov" title="Branch 3 was taken 258 times"> + </span>]:<span class="lineCov">        537 :         if (strcmp(key, &quot;ro&quot;) == 0 || strcmp(key, &quot;rw&quot;) == 0 ||</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 274 times"> + </span><span class="branchNoCov" title="Branch 5 was not taken"> - </span>]
+<span class="lineNum">     335 </span>                :<span class="lineCov">        274 :             strcmp(key, &quot;sec&quot;) == 0)</span>
+<span class="lineNum">     336 </span>                :            :                 return (SA_OK);
+<span class="lineNum">     337 </span>                :            : 
+<span class="lineNum">     338 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 274 times"> + </span>]:<span class="lineCov">        274 :         if (strcmp(key, &quot;anon&quot;) == 0)</span>
+<span class="lineNum">     339 </span>                :<span class="lineNoCov">          0 :                 key = &quot;anonuid&quot;;</span>
+<span class="lineNum">     340 </span>                :            : 
+<span class="lineNum">     341 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 274 times"> + </span>]:<span class="lineCov">        274 :         if (strcmp(key, &quot;root_mapping&quot;) == 0) {</span>
+<span class="lineNum">     342 </span>                :<span class="lineNoCov">          0 :                 (void) add_linux_shareopt(plinux_opts, &quot;root_squash&quot;, NULL);</span>
+<span class="lineNum">     343 </span>                :<span class="lineNoCov">          0 :                 key = &quot;anonuid&quot;;</span>
+<span class="lineNum">     344 </span>                :            :         }
+<span class="lineNum">     345 </span>                :            : 
+<span class="lineNum">     346 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 274 times"> + </span>]:<span class="lineCov">        274 :         if (strcmp(key, &quot;nosub&quot;) == 0)</span>
+<span class="lineNum">     347 </span>                :<span class="lineNoCov">          0 :                 key = &quot;subtree_check&quot;;</span>
+<span class="lineNum">     348 </span>                :            : 
+<span class="lineNum">     349 </span>[<span class="branchCov" title="Branch 0 was taken 271 times"> + </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 271 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">        274 :         if (strcmp(key, &quot;insecure&quot;) != 0 &amp;&amp; strcmp(key, &quot;secure&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 268 times"> + </span><span class="branchCov" title="Branch 5 was taken 3 times"> + </span>]
+<span class="lineNum">     350 </span>[<span class="branchCov" title="Branch 0 was taken 268 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 268 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">        268 :             strcmp(key, &quot;async&quot;) != 0 &amp;&amp; strcmp(key, &quot;sync&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     351 </span>[<span class="branchCov" title="Branch 0 was taken 268 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 268 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">        268 :             strcmp(key, &quot;no_wdelay&quot;) != 0 &amp;&amp; strcmp(key, &quot;wdelay&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     352 </span>[<span class="branchCov" title="Branch 0 was taken 268 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 17 times"> + </span><span class="branchCov" title="Branch 3 was taken 251 times"> + </span>]:<span class="lineCov">        268 :             strcmp(key, &quot;nohide&quot;) != 0 &amp;&amp; strcmp(key, &quot;hide&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     353 </span>        [<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;crossmnt&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     354 </span>        [<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;no_subtree_check&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     355 </span>        [<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;subtree_check&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     356 </span>        [<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;insecure_locks&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     357 </span>        [<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;secure_locks&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     358 </span>[<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;no_auth_nlm&quot;) != 0 &amp;&amp; strcmp(key, &quot;auth_nlm&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     359 </span>[<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;no_acl&quot;) != 0 &amp;&amp; strcmp(key, &quot;mountpoint&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     360 </span>[<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;mp&quot;) != 0 &amp;&amp; strcmp(key, &quot;fsuid&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     361 </span>[<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;refer&quot;) != 0 &amp;&amp; strcmp(key, &quot;replicas&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     362 </span>        [<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;root_squash&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     363 </span>        [<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;no_root_squash&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     364 </span>        [<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;all_squash&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     365 </span>[<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 17 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;no_all_squash&quot;) != 0 &amp;&amp; strcmp(key, &quot;fsid&quot;) != 0 &amp;&amp;</span>
+<span class="lineNum">     366 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 17 times"> + </span>]:<span class="lineCov">         17 :             strcmp(key, &quot;anonuid&quot;) != 0 &amp;&amp; strcmp(key, &quot;anongid&quot;) != 0) {</span>
+<span class="lineNum">     367 </span>                :            :                 return (SA_SYNTAX_ERR);
+<span class="lineNum">     368 </span>                :            :         }
+<span class="lineNum">     369 </span>                :            : 
+<span class="lineNum">     370 </span>                :<span class="lineCov">        257 :         (void) add_linux_shareopt(plinux_opts, key, value);</span>
+<span class="lineNum">     371 </span>                :            : 
+<span class="lineNum">     372 </span>                :<span class="lineCov">        257 :         return (SA_OK);</span>
+<span class="lineNum">     373 </span>                :            : }
+<span class="lineNum">     374 </span>                :            : 
+<span class="lineNum">     375 </span>                :            : /*
+<span class="lineNum">     376 </span>                :            :  * Takes a string containing Solaris share options (e.g. &quot;sync,no_acl&quot;) and
+<span class="lineNum">     377 </span>                :            :  * converts them to a NULL-terminated array of Linux NFS options.
+<a name="378"><span class="lineNum">     378 </span>                :            :  */</a>
+<span class="lineNum">     379 </span>                :            : static int
+<span class="lineNum">     380 </span>                :<span class="lineCov">        281 : get_linux_shareopts(const char *shareopts, char **plinux_opts)</span>
+<span class="lineNum">     381 </span>                :            : {
+<span class="lineNum">     382 </span>                :            :         int rc;
+<span class="lineNum">     383 </span>                :            : 
+<span class="lineNum">     384 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 281 times"> + </span>]:<span class="lineCov">        281 :         assert(plinux_opts != NULL);</span>
+<span class="lineNum">     385 </span>                :            : 
+<span class="lineNum">     386 </span>                :<span class="lineCov">        281 :         *plinux_opts = NULL;</span>
+<span class="lineNum">     387 </span>                :            : 
+<span class="lineNum">     388 </span>                :            :         /* default options for Solaris shares */
+<span class="lineNum">     389 </span>                :<span class="lineCov">        281 :         (void) add_linux_shareopt(plinux_opts, &quot;no_subtree_check&quot;, NULL);</span>
+<span class="lineNum">     390 </span>                :<span class="lineCov">        281 :         (void) add_linux_shareopt(plinux_opts, &quot;no_root_squash&quot;, NULL);</span>
+<span class="lineNum">     391 </span>                :<span class="lineCov">        281 :         (void) add_linux_shareopt(plinux_opts, &quot;mountpoint&quot;, NULL);</span>
+<span class="lineNum">     392 </span>                :            : 
+<span class="lineNum">     393 </span>                :<span class="lineCov">        281 :         rc = foreach_nfs_shareopt(shareopts, get_linux_shareopts_cb,</span>
+<span class="lineNum">     394 </span>                :            :             plinux_opts);
+<span class="lineNum">     395 </span>                :            : 
+<span class="lineNum">     396 </span>        [<span class="branchCov" title="Branch 0 was taken 17 times"> + </span><span class="branchCov" title="Branch 1 was taken 264 times"> + </span>]:<span class="lineCov">        281 :         if (rc != SA_OK) {</span>
+<span class="lineNum">     397 </span>                :<span class="lineCov">         17 :                 free(*plinux_opts);</span>
+<span class="lineNum">     398 </span>                :<span class="lineCov">         17 :                 *plinux_opts = NULL;</span>
+<span class="lineNum">     399 </span>                :            :         }
+<span class="lineNum">     400 </span>                :            : 
+<span class="lineNum">     401 </span>                :<span class="lineCov">        281 :         return (rc);</span>
+<span class="lineNum">     402 </span>                :            : }
+<span class="lineNum">     403 </span>                :            : 
+<span class="lineNum">     404 </span>                :            : /*
+<span class="lineNum">     405 </span>                :            :  * Enables NFS sharing for the specified share.
+<a name="406"><span class="lineNum">     406 </span>                :            :  */</a>
+<span class="lineNum">     407 </span>                :            : static int
+<span class="lineNum">     408 </span>                :<span class="lineCov">        257 : nfs_enable_share(sa_share_impl_t impl_share)</span>
+<span class="lineNum">     409 </span>                :            : {
+<span class="lineNum">     410 </span>                :            :         char *shareopts, *linux_opts;
+<span class="lineNum">     411 </span>                :            :         int rc;
+<span class="lineNum">     412 </span>                :            : 
+<span class="lineNum">     413 </span>        [<span class="branchCov" title="Branch 1 was taken 257 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        257 :         if (!nfs_available()) {</span>
+<span class="lineNum">     414 </span>                :            :                 return (SA_SYSTEM_ERR);
+<span class="lineNum">     415 </span>                :            :         }
+<span class="lineNum">     416 </span>                :            : 
+<span class="lineNum">     417 </span>                :<span class="lineCov">        257 :         shareopts = FSINFO(impl_share, nfs_fstype)-&gt;shareopts;</span>
+<span class="lineNum">     418 </span>                :            : 
+<span class="lineNum">     419 </span>        [<span class="branchCov" title="Branch 0 was taken 257 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        257 :         if (shareopts == NULL)</span>
+<span class="lineNum">     420 </span>                :            :                 return (SA_OK);
+<span class="lineNum">     421 </span>                :            : 
+<span class="lineNum">     422 </span>                :<span class="lineCov">        257 :         rc = get_linux_shareopts(shareopts, &amp;linux_opts);</span>
+<span class="lineNum">     423 </span>                :            : 
+<span class="lineNum">     424 </span>        [<span class="branchCov" title="Branch 0 was taken 257 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        257 :         if (rc != SA_OK)</span>
+<span class="lineNum">     425 </span>                :            :                 return (rc);
+<span class="lineNum">     426 </span>                :            : 
+<span class="lineNum">     427 </span>                :<span class="lineCov">        257 :         rc = foreach_nfs_host(impl_share, nfs_enable_share_one, linux_opts);</span>
+<span class="lineNum">     428 </span>                :            : 
+<span class="lineNum">     429 </span>                :<span class="lineCov">        257 :         free(linux_opts);</span>
+<span class="lineNum">     430 </span>                :            : 
+<span class="lineNum">     431 </span>                :<span class="lineCov">        257 :         return (rc);</span>
+<span class="lineNum">     432 </span>                :            : }
+<span class="lineNum">     433 </span>                :            : 
+<span class="lineNum">     434 </span>                :            : /*
+<span class="lineNum">     435 </span>                :            :  * Used internally by nfs_disable_share to disable sharing for a single host.
+<a name="436"><span class="lineNum">     436 </span>                :            :  */</a>
+<span class="lineNum">     437 </span>                :            : static int
+<span class="lineNum">     438 </span>                :<span class="lineCov">        202 : nfs_disable_share_one(const char *sharepath, const char *host,</span>
+<span class="lineNum">     439 </span>                :            :     const char *security, const char *access, void *cookie)
+<span class="lineNum">     440 </span>                :            : {
+<span class="lineNum">     441 </span>                :            :         int rc;
+<span class="lineNum">     442 </span>                :            :         char *linuxhost, *hostpath;
+<span class="lineNum">     443 </span>                :            :         char *argv[4];
+<span class="lineNum">     444 </span>                :            : 
+<span class="lineNum">     445 </span>                :<span class="lineCov">        202 :         rc = get_linux_hostspec(host, &amp;linuxhost);</span>
+<span class="lineNum">     446 </span>                :            : 
+<span class="lineNum">     447 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 202 times"> + </span>]:<span class="lineCov">        202 :         if (rc &lt; 0)</span>
+<span class="lineNum">     448 </span>                :<span class="lineNoCov">          0 :                 exit(1);</span>
+<span class="lineNum">     449 </span>                :            : 
+<span class="lineNum">     450 </span>                :<span class="lineCov">        202 :         hostpath = malloc(strlen(linuxhost) + 1 + strlen(sharepath) + 1);</span>
+<span class="lineNum">     451 </span>                :            : 
+<span class="lineNum">     452 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 202 times"> + </span>]:<span class="lineCov">        202 :         if (hostpath == NULL) {</span>
+<span class="lineNum">     453 </span>                :<span class="lineNoCov">          0 :                 free(linuxhost);</span>
+<span class="lineNum">     454 </span>                :<span class="lineNoCov">          0 :                 exit(1);</span>
+<span class="lineNum">     455 </span>                :            :         }
+<span class="lineNum">     456 </span>                :            : 
+<span class="lineNum">     457 </span>                :<span class="lineCov">        404 :         sprintf(hostpath, &quot;%s:%s&quot;, linuxhost, sharepath);</span>
+<span class="lineNum">     458 </span>                :            : 
+<span class="lineNum">     459 </span>                :<span class="lineCov">        202 :         free(linuxhost);</span>
+<span class="lineNum">     460 </span>                :            : 
+<span class="lineNum">     461 </span>                :            : #ifdef DEBUG
+<span class="lineNum">     462 </span>                :<span class="lineCov">        404 :         fprintf(stderr, &quot;unsharing %s\n&quot;, hostpath);</span>
+<span class="lineNum">     463 </span>                :            : #endif
+<span class="lineNum">     464 </span>                :            : 
+<span class="lineNum">     465 </span>                :<span class="lineCov">        202 :         argv[0] = &quot;/usr/sbin/exportfs&quot;;</span>
+<span class="lineNum">     466 </span>                :<span class="lineCov">        202 :         argv[1] = &quot;-u&quot;;</span>
+<span class="lineNum">     467 </span>                :<span class="lineCov">        202 :         argv[2] = hostpath;</span>
+<span class="lineNum">     468 </span>                :<span class="lineCov">        202 :         argv[3] = NULL;</span>
+<span class="lineNum">     469 </span>                :            : 
+<span class="lineNum">     470 </span>                :<span class="lineCov">        202 :         rc = libzfs_run_process(argv[0], argv, 0);</span>
+<span class="lineNum">     471 </span>                :            : 
+<span class="lineNum">     472 </span>                :<span class="lineCov">        202 :         free(hostpath);</span>
+<span class="lineNum">     473 </span>                :            : 
+<span class="lineNum">     474 </span>        [<span class="branchCov" title="Branch 0 was taken 202 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        202 :         if (rc &lt; 0)</span>
+<span class="lineNum">     475 </span>                :            :                 return (SA_SYSTEM_ERR);
+<span class="lineNum">     476 </span>                :            :         else
+<span class="lineNum">     477 </span>                :<span class="lineCov">        202 :                 return (SA_OK);</span>
+<span class="lineNum">     478 </span>                :            : }
+<span class="lineNum">     479 </span>                :            : 
+<span class="lineNum">     480 </span>                :            : /*
+<span class="lineNum">     481 </span>                :            :  * Disables NFS sharing for the specified share.
+<a name="482"><span class="lineNum">     482 </span>                :            :  */</a>
+<span class="lineNum">     483 </span>                :            : static int
+<span class="lineNum">     484 </span>                :<span class="lineCov">        267 : nfs_disable_share(sa_share_impl_t impl_share)</span>
+<span class="lineNum">     485 </span>                :            : {
+<span class="lineNum">     486 </span>        [<span class="branchCov" title="Branch 1 was taken 267 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        267 :         if (!nfs_available()) {</span>
+<span class="lineNum">     487 </span>                :            :                 /*
+<span class="lineNum">     488 </span>                :            :                  * The share can't possibly be active, so nothing
+<span class="lineNum">     489 </span>                :            :                  * needs to be done to disable it.
+<span class="lineNum">     490 </span>                :            :                  */
+<span class="lineNum">     491 </span>                :            :                 return (SA_OK);
+<span class="lineNum">     492 </span>                :            :         }
+<span class="lineNum">     493 </span>                :            : 
+<span class="lineNum">     494 </span>                :<span class="lineCov">        267 :         return (foreach_nfs_host(impl_share, nfs_disable_share_one, NULL));</span>
+<span class="lineNum">     495 </span>                :            : }
+<span class="lineNum">     496 </span>                :            : 
+<span class="lineNum">     497 </span>                :            : /*
+<span class="lineNum">     498 </span>                :            :  * Checks whether the specified NFS share options are syntactically correct.
+<a name="499"><span class="lineNum">     499 </span>                :            :  */</a>
+<span class="lineNum">     500 </span>                :            : static int
+<span class="lineNum">     501 </span>                :<span class="lineCov">         24 : nfs_validate_shareopts(const char *shareopts)</span>
+<span class="lineNum">     502 </span>                :            : {
+<span class="lineNum">     503 </span>                :            :         char *linux_opts;
+<span class="lineNum">     504 </span>                :            :         int rc;
+<span class="lineNum">     505 </span>                :            : 
+<span class="lineNum">     506 </span>                :<span class="lineCov">         24 :         rc = get_linux_shareopts(shareopts, &amp;linux_opts);</span>
+<span class="lineNum">     507 </span>                :            : 
+<span class="lineNum">     508 </span>        [<span class="branchCov" title="Branch 0 was taken 7 times"> + </span><span class="branchCov" title="Branch 1 was taken 17 times"> + </span>]:<span class="lineCov">         24 :         if (rc != SA_OK)</span>
+<span class="lineNum">     509 </span>                :            :                 return (rc);
+<span class="lineNum">     510 </span>                :            : 
+<span class="lineNum">     511 </span>                :<span class="lineCov">          7 :         free(linux_opts);</span>
+<span class="lineNum">     512 </span>                :            : 
+<span class="lineNum">     513 </span>                :<span class="lineCov">          7 :         return (SA_OK);</span>
+<span class="lineNum">     514 </span>                :            : }
+<span class="lineNum">     515 </span>                :            : 
+<span class="lineNum">     516 </span>                :            : /*
+<span class="lineNum">     517 </span>                :            :  * Checks whether a share is currently active.
+<a name="518"><span class="lineNum">     518 </span>                :            :  */</a>
+<span class="lineNum">     519 </span>                :            : static boolean_t
+<span class="lineNum">     520 </span>                :<span class="lineCov">       1185 : nfs_is_share_active(sa_share_impl_t impl_share)</span>
+<span class="lineNum">     521 </span>                :            : {
+<span class="lineNum">     522 </span>                :            :         int fd;
+<span class="lineNum">     523 </span>                :            :         char line[512];
+<span class="lineNum">     524 </span>                :            :         char *tab, *cur;
+<span class="lineNum">     525 </span>                :            :         FILE *nfs_exportfs_temp_fp;
+<span class="lineNum">     526 </span>                :            : 
+<span class="lineNum">     527 </span>        [<span class="branchCov" title="Branch 1 was taken 1185 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       1185 :         if (!nfs_available())</span>
+<span class="lineNum">     528 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     529 </span>                :            : 
+<span class="lineNum">     530 </span>        [<span class="branchCov" title="Branch 1 was taken 1185 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       1185 :         if ((fd = dup(nfs_exportfs_temp_fd)) == -1)</span>
+<span class="lineNum">     531 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     532 </span>                :            : 
+<span class="lineNum">     533 </span>                :<span class="lineCov">       1185 :         nfs_exportfs_temp_fp = fdopen(fd, &quot;r&quot;);</span>
+<span class="lineNum">     534 </span>                :            : 
+<span class="lineNum">     535 </span>        [<span class="branchCov" title="Branch 0 was taken 1185 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       1185 :         if (nfs_exportfs_temp_fp == NULL)</span>
+<span class="lineNum">     536 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     537 </span>                :            : 
+<span class="lineNum">     538 </span>        [<span class="branchCov" title="Branch 1 was taken 1185 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       1185 :         if (fseek(nfs_exportfs_temp_fp, 0, SEEK_SET) &lt; 0) {</span>
+<span class="lineNum">     539 </span>                :<span class="lineNoCov">          0 :                 fclose(nfs_exportfs_temp_fp);</span>
+<span class="lineNum">     540 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     541 </span>                :            :         }
+<span class="lineNum">     542 </span>                :            : 
+<span class="lineNum">     543 </span>        [<span class="branchCov" title="Branch 0 was taken 3735 times"> + </span><span class="branchCov" title="Branch 1 was taken 608 times"> + </span>]:<span class="lineCov">       4343 :         while (fgets(line, sizeof (line), nfs_exportfs_temp_fp) != NULL) {</span>
+<span class="lineNum">     544 </span>                :            :                 /*
+<span class="lineNum">     545 </span>                :            :                  * exportfs uses separate lines for the share path
+<span class="lineNum">     546 </span>                :            :                  * and the export options when the share path is longer
+<span class="lineNum">     547 </span>                :            :                  * than a certain amount of characters; this ignores
+<span class="lineNum">     548 </span>                :            :                  * the option lines
+<span class="lineNum">     549 </span>                :            :                  */
+<span class="lineNum">     550 </span>        [<span class="branchCov" title="Branch 0 was taken 1529 times"> + </span><span class="branchCov" title="Branch 1 was taken 2206 times"> + </span>]:<span class="lineCov">       3735 :                 if (line[0] == '\t')</span>
+<span class="lineNum">     551 </span>                :<span class="lineCov">       1529 :                         continue;</span>
+<span class="lineNum">     552 </span>                :            : 
+<span class="lineNum">     553 </span>                :<span class="lineCov">       2206 :                 tab = strchr(line, '\t');</span>
+<span class="lineNum">     554 </span>                :            : 
+<span class="lineNum">     555 </span>        [<span class="branchCov" title="Branch 0 was taken 200 times"> + </span><span class="branchCov" title="Branch 1 was taken 2006 times"> + </span>]:<span class="lineCov">       2206 :                 if (tab != NULL) {</span>
+<span class="lineNum">     556 </span>                :<span class="lineCov">        200 :                         *tab = '\0';</span>
+<span class="lineNum">     557 </span>                :<span class="lineCov">       2206 :                         cur = tab - 1;</span>
+<span class="lineNum">     558 </span>                :            :                 } else {
+<span class="lineNum">     559 </span>                :            :                         /*
+<span class="lineNum">     560 </span>                :            :                          * there's no tab character, which means the
+<span class="lineNum">     561 </span>                :            :                          * NFS options are on a separate line; we just
+<span class="lineNum">     562 </span>                :            :                          * need to remove the new-line character
+<span class="lineNum">     563 </span>                :            :                          * at the end of the line
+<span class="lineNum">     564 </span>                :            :                          */
+<span class="lineNum">     565 </span>                :<span class="lineCov">       2006 :                         cur = line + strlen(line) - 1;</span>
+<span class="lineNum">     566 </span>                :            :                 }
+<span class="lineNum">     567 </span>                :            : 
+<span class="lineNum">     568 </span>                :            :                 /* remove trailing spaces and new-line characters */
+<span class="lineNum">     569 </span>[<span class="branchCov" title="Branch 0 was taken 5182 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 2976 times"> + </span><span class="branchCov" title="Branch 3 was taken 2206 times"> + </span>]:<span class="lineCov">       5182 :                 while (cur &gt;= line &amp;&amp; (*cur == ' ' || *cur == '\n'))</span>
+<span class="lineNum">     570 </span>                :<span class="lineCov">       2976 :                         *cur-- = '\0';</span>
+<span class="lineNum">     571 </span>                :            : 
+<span class="lineNum">     572 </span>        [<span class="branchCov" title="Branch 0 was taken 577 times"> + </span><span class="branchCov" title="Branch 1 was taken 1629 times"> + </span>]:<span class="lineCov">       2206 :                 if (strcmp(line, impl_share-&gt;sharepath) == 0) {</span>
+<span class="lineNum">     573 </span>                :<span class="lineCov">       3735 :                         fclose(nfs_exportfs_temp_fp);</span>
+<span class="lineNum">     574 </span>                :            :                         return (B_TRUE);
+<span class="lineNum">     575 </span>                :            :                 }
+<span class="lineNum">     576 </span>                :            :         }
+<span class="lineNum">     577 </span>                :            : 
+<span class="lineNum">     578 </span>                :<span class="lineCov">        608 :         fclose(nfs_exportfs_temp_fp);</span>
+<span class="lineNum">     579 </span>                :            : 
+<span class="lineNum">     580 </span>                :            :         return (B_FALSE);
+<span class="lineNum">     581 </span>                :            : }
+<span class="lineNum">     582 </span>                :            : 
+<span class="lineNum">     583 </span>                :            : /*
+<span class="lineNum">     584 </span>                :            :  * Called to update a share's options. A share's options might be out of
+<span class="lineNum">     585 </span>                :            :  * date if the share was loaded from disk (i.e. /etc/dfs/sharetab) and the
+<span class="lineNum">     586 </span>                :            :  * &quot;sharenfs&quot; dataset property has changed in the meantime. This function
+<span class="lineNum">     587 </span>                :            :  * also takes care of re-enabling the share if necessary.
+<a name="588"><span class="lineNum">     588 </span>                :            :  */</a>
+<span class="lineNum">     589 </span>                :            : static int
+<span class="lineNum">     590 </span>                :<span class="lineCov">       1185 : nfs_update_shareopts(sa_share_impl_t impl_share, const char *resource,</span>
+<span class="lineNum">     591 </span>                :            :     const char *shareopts)
+<span class="lineNum">     592 </span>                :            : {
+<span class="lineNum">     593 </span>                :            :         char *shareopts_dup;
+<span class="lineNum">     594 </span>                :<span class="lineCov">       1185 :         boolean_t needs_reshare = B_FALSE;</span>
+<span class="lineNum">     595 </span>                :            :         char *old_shareopts;
+<span class="lineNum">     596 </span>                :            : 
+<span class="lineNum">     597 </span>                :<span class="lineCov">       2370 :         FSINFO(impl_share, nfs_fstype)-&gt;active =</span>
+<span class="lineNum">     598 </span>                :<span class="lineCov">       1185 :             nfs_is_share_active(impl_share);</span>
+<span class="lineNum">     599 </span>                :            : 
+<span class="lineNum">     600 </span>                :<span class="lineCov">       1185 :         old_shareopts = FSINFO(impl_share, nfs_fstype)-&gt;shareopts;</span>
+<span class="lineNum">     601 </span>                :            : 
+<span class="lineNum">     602 </span>        [<span class="branchCov" title="Branch 0 was taken 871 times"> + </span><span class="branchCov" title="Branch 1 was taken 314 times"> + </span>]:<span class="lineCov">       1185 :         if (strcmp(shareopts, &quot;on&quot;) == 0)</span>
+<span class="lineNum">     603 </span>                :<span class="lineCov">        871 :                 shareopts = &quot;rw,crossmnt&quot;;</span>
+<span class="lineNum">     604 </span>                :            : 
+<span class="lineNum">     605 </span>[<span class="branchCov" title="Branch 0 was taken 577 times"> + </span><span class="branchCov" title="Branch 1 was taken 608 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 269 times"> + </span><span class="branchCov" title="Branch 3 was taken 308 times"> + </span>]:<span class="lineCov">       1185 :         if (FSINFO(impl_share, nfs_fstype)-&gt;active &amp;&amp; old_shareopts != NULL &amp;&amp;</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 4 times"> + </span><span class="branchCov" title="Branch 5 was taken 265 times"> + </span>]
+<span class="lineNum">     606 </span>                :<span class="lineCov">        269 :             strcmp(old_shareopts, shareopts) != 0) {</span>
+<span class="lineNum">     607 </span>                :<span class="lineCov">          4 :                 needs_reshare = B_TRUE;</span>
+<span class="lineNum">     608 </span>                :<span class="lineCov">          4 :                 nfs_disable_share(impl_share);</span>
+<span class="lineNum">     609 </span>                :            :         }
+<span class="lineNum">     610 </span>                :            : 
+<span class="lineNum">     611 </span>                :<span class="lineCov">       1185 :         shareopts_dup = strdup(shareopts);</span>
+<span class="lineNum">     612 </span>                :            : 
+<span class="lineNum">     613 </span>        [<span class="branchCov" title="Branch 0 was taken 1185 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       1185 :         if (shareopts_dup == NULL)</span>
+<span class="lineNum">     614 </span>                :            :                 return (SA_NO_MEMORY);
+<span class="lineNum">     615 </span>                :            : 
+<span class="lineNum">     616 </span>        [<span class="branchCov" title="Branch 0 was taken 660 times"> + </span><span class="branchCov" title="Branch 1 was taken 525 times"> + </span>]:<span class="lineCov">       1185 :         if (old_shareopts != NULL)</span>
+<span class="lineNum">     617 </span>                :<span class="lineCov">        660 :                 free(old_shareopts);</span>
+<span class="lineNum">     618 </span>                :            : 
+<span class="lineNum">     619 </span>                :<span class="lineCov">       1185 :         FSINFO(impl_share, nfs_fstype)-&gt;shareopts = shareopts_dup;</span>
+<span class="lineNum">     620 </span>                :            : 
+<span class="lineNum">     621 </span>        [<span class="branchCov" title="Branch 0 was taken 4 times"> + </span><span class="branchCov" title="Branch 1 was taken 1181 times"> + </span>]:<span class="lineCov">       1185 :         if (needs_reshare)</span>
+<span class="lineNum">     622 </span>                :<span class="lineCov">          4 :                 nfs_enable_share(impl_share);</span>
+<span class="lineNum">     623 </span>                :            : 
+<span class="lineNum">     624 </span>                :            :         return (SA_OK);
+<span class="lineNum">     625 </span>                :            : }
+<span class="lineNum">     626 </span>                :            : 
+<span class="lineNum">     627 </span>                :            : /*
+<span class="lineNum">     628 </span>                :            :  * Clears a share's NFS options. Used by libshare to
+<span class="lineNum">     629 </span>                :            :  * clean up shares that are about to be free()'d.
+<a name="630"><span class="lineNum">     630 </span>                :            :  */</a>
+<span class="lineNum">     631 </span>                :            : static void
+<span class="lineNum">     632 </span>                :<span class="lineCov">        788 : nfs_clear_shareopts(sa_share_impl_t impl_share)</span>
+<span class="lineNum">     633 </span>                :            : {
+<span class="lineNum">     634 </span>                :<span class="lineCov">        788 :         free(FSINFO(impl_share, nfs_fstype)-&gt;shareopts);</span>
+<span class="lineNum">     635 </span>                :<span class="lineCov">        788 :         FSINFO(impl_share, nfs_fstype)-&gt;shareopts = NULL;</span>
+<span class="lineNum">     636 </span>                :<span class="lineCov">        788 : }</span>
+<span class="lineNum">     637 </span>                :            : 
+<span class="lineNum">     638 </span>                :            : static const sa_share_ops_t nfs_shareops = {
+<span class="lineNum">     639 </span>                :            :         .enable_share = nfs_enable_share,
+<span class="lineNum">     640 </span>                :            :         .disable_share = nfs_disable_share,
+<span class="lineNum">     641 </span>                :            : 
+<span class="lineNum">     642 </span>                :            :         .validate_shareopts = nfs_validate_shareopts,
+<span class="lineNum">     643 </span>                :            :         .update_shareopts = nfs_update_shareopts,
+<span class="lineNum">     644 </span>                :            :         .clear_shareopts = nfs_clear_shareopts,
+<span class="lineNum">     645 </span>                :            : };
+<span class="lineNum">     646 </span>                :            : 
+<span class="lineNum">     647 </span>                :            : /*
+<span class="lineNum">     648 </span>                :            :  * nfs_check_exportfs() checks that the exportfs command runs
+<span class="lineNum">     649 </span>                :            :  * and also maintains a temporary copy of the output from
+<span class="lineNum">     650 </span>                :            :  * exportfs -v.
+<span class="lineNum">     651 </span>                :            :  * To update this temporary copy simply call this function again.
+<span class="lineNum">     652 </span>                :            :  *
+<span class="lineNum">     653 </span>                :            :  * TODO : Use /var/lib/nfs/etab instead of our private copy.
+<span class="lineNum">     654 </span>                :            :  *        But must implement locking to prevent concurrent access.
+<span class="lineNum">     655 </span>                :            :  *
+<span class="lineNum">     656 </span>                :            :  * TODO : The temporary file descriptor is never closed since
+<span class="lineNum">     657 </span>                :            :  *        there is no libshare_nfs_fini() function.
+<a name="658"><span class="lineNum">     658 </span>                :            :  */</a>
+<span class="lineNum">     659 </span>                :            : static int
+<span class="lineNum">     660 </span>                :<span class="lineCov">        175 : nfs_check_exportfs(void)</span>
+<span class="lineNum">     661 </span>                :            : {
+<span class="lineNum">     662 </span>                :            :         pid_t pid;
+<span class="lineNum">     663 </span>                :            :         int rc, status;
+<span class="lineNum">     664 </span>                :            :         static char nfs_exportfs_tempfile[] = &quot;/tmp/exportfs.XXXXXX&quot;;
+<span class="lineNum">     665 </span>                :            : 
+<span class="lineNum">     666 </span>                :            :         /*
+<span class="lineNum">     667 </span>                :            :          * Close any existing temporary copies of output from exportfs.
+<span class="lineNum">     668 </span>                :            :          * We have already called unlink() so file will be deleted.
+<span class="lineNum">     669 </span>                :            :          */
+<span class="lineNum">     670 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 175 times"> + </span>]:<span class="lineCov">        175 :         if (nfs_exportfs_temp_fd &gt;= 0)</span>
+<span class="lineNum">     671 </span>                :<span class="lineNoCov">          0 :                 close(nfs_exportfs_temp_fd);</span>
+<span class="lineNum">     672 </span>                :            : 
+<span class="lineNum">     673 </span>                :<span class="lineCov">        175 :         nfs_exportfs_temp_fd = mkstemp(nfs_exportfs_tempfile);</span>
+<span class="lineNum">     674 </span>                :            : 
+<span class="lineNum">     675 </span>        [<span class="branchCov" title="Branch 0 was taken 175 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        175 :         if (nfs_exportfs_temp_fd &lt; 0)</span>
+<span class="lineNum">     676 </span>                :            :                 return (SA_SYSTEM_ERR);
+<span class="lineNum">     677 </span>                :            : 
+<span class="lineNum">     678 </span>                :<span class="lineCov">        175 :         unlink(nfs_exportfs_tempfile);</span>
+<span class="lineNum">     679 </span>                :            : 
+<span class="lineNum">     680 </span>                :<span class="lineCov">        175 :         (void) fcntl(nfs_exportfs_temp_fd, F_SETFD, FD_CLOEXEC);</span>
+<span class="lineNum">     681 </span>                :            : 
+<span class="lineNum">     682 </span>                :<span class="lineCov">        175 :         pid = fork();</span>
+<span class="lineNum">     683 </span>                :            : 
+<span class="lineNum">     684 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 350 times"> + </span>]:<span class="lineCov">        350 :         if (pid &lt; 0) {</span>
+<span class="lineNum">     685 </span>                :<span class="lineNoCov">          0 :                 (void) close(nfs_exportfs_temp_fd);</span>
+<span class="lineNum">     686 </span>                :<span class="lineNoCov">          0 :                 nfs_exportfs_temp_fd = -1;</span>
+<span class="lineNum">     687 </span>                :<span class="lineNoCov">          0 :                 return (SA_SYSTEM_ERR);</span>
+<span class="lineNum">     688 </span>                :            :         }
+<span class="lineNum">     689 </span>                :            : 
+<span class="lineNum">     690 </span>        [<span class="branchCov" title="Branch 0 was taken 175 times"> + </span><span class="branchCov" title="Branch 1 was taken 175 times"> + </span>]:<span class="lineCov">        350 :         if (pid &gt; 0) {</span>
+<span class="lineNum">     691 </span>  [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 175 times"> + </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineCov">        175 :                 while ((rc = waitpid(pid, &amp;status, 0)) &lt;= 0 &amp;&amp;</span>
+<span class="lineNum">     692 </span>                :<span class="lineNoCov">          0 :                     errno == EINTR) { }</span>
+<span class="lineNum">     693 </span>                :            : 
+<span class="lineNum">     694 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 175 times"> + </span>]:<span class="lineCov">        175 :                 if (rc &lt;= 0) {</span>
+<span class="lineNum">     695 </span>                :<span class="lineNoCov">          0 :                         (void) close(nfs_exportfs_temp_fd);</span>
+<span class="lineNum">     696 </span>                :<span class="lineNoCov">          0 :                         nfs_exportfs_temp_fd = -1;</span>
+<span class="lineNum">     697 </span>                :<span class="lineNoCov">          0 :                         return (SA_SYSTEM_ERR);</span>
+<span class="lineNum">     698 </span>                :            :                 }
+<span class="lineNum">     699 </span>                :            : 
+<span class="lineNum">     700 </span>[<span class="branchCov" title="Branch 0 was taken 175 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 175 times"> + </span>]:<span class="lineCov">        175 :                 if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {</span>
+<span class="lineNum">     701 </span>                :<span class="lineNoCov">          0 :                         (void) close(nfs_exportfs_temp_fd);</span>
+<span class="lineNum">     702 </span>                :<span class="lineNoCov">          0 :                         nfs_exportfs_temp_fd = -1;</span>
+<span class="lineNum">     703 </span>                :<span class="lineNoCov">          0 :                         return (SA_CONFIG_ERR);</span>
+<span class="lineNum">     704 </span>                :            :                 }
+<span class="lineNum">     705 </span>                :            : 
+<span class="lineNum">     706 </span>                :            :                 return (SA_OK);
+<span class="lineNum">     707 </span>                :            :         }
+<span class="lineNum">     708 </span>                :            : 
+<span class="lineNum">     709 </span>                :            :         /* child */
+<span class="lineNum">     710 </span>                :            : 
+<span class="lineNum">     711 </span>                :            :         /* exportfs -v */
+<span class="lineNum">     712 </span>                :            : 
+<span class="lineNum">     713 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineCov">        175 :         if (dup2(nfs_exportfs_temp_fd, STDOUT_FILENO) &lt; 0)</span>
+<span class="lineNum">     714 </span>                :<span class="lineNoCov">          0 :                 exit(1);</span>
+<span class="lineNum">     715 </span>                :            : 
+<span class="lineNum">     716 </span>                :<span class="lineNoCov">          0 :         rc = execlp(&quot;/usr/sbin/exportfs&quot;, &quot;exportfs&quot;, &quot;-v&quot;, NULL);</span>
+<span class="lineNum">     717 </span>                :            : 
+<span class="lineNum">     718 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rc &lt; 0) {</span>
+<span class="lineNum">     719 </span>                :<span class="lineNoCov">          0 :                 exit(1);</span>
+<span class="lineNum">     720 </span>                :            :         }
+<span class="lineNum">     721 </span>                :            : 
+<span class="lineNum">     722 </span>                :<span class="lineNoCov">          0 :         exit(0);</span>
+<span class="lineNum">     723 </span>                :            : }
+<span class="lineNum">     724 </span>                :            : 
+<span class="lineNum">     725 </span>                :            : /*
+<span class="lineNum">     726 </span>                :            :  * Provides a convenient wrapper for determining nfs availability
+<a name="727"><span class="lineNum">     727 </span>                :            :  */</a>
+<span class="lineNum">     728 </span>                :            : static boolean_t
+<span class="lineNum">     729 </span>                :<span class="lineCov">       1709 : nfs_available(void)</span>
+<span class="lineNum">     730 </span>                :            : {
+<span class="lineNum">     731 </span>        [<span class="branchCov" title="Branch 0 was taken 175 times"> + </span><span class="branchCov" title="Branch 1 was taken 1534 times"> + </span>]:<span class="lineCov">       1709 :         if (nfs_exportfs_temp_fd == -1)</span>
+<span class="lineNum">     732 </span>                :<span class="lineCov">        175 :                 (void) nfs_check_exportfs();</span>
+<span class="lineNum">     733 </span>                :            : 
+<span class="lineNum">     734 </span>                :<span class="lineCov">       1709 :         return ((nfs_exportfs_temp_fd != -1) ? B_TRUE : B_FALSE);</span>
+<span class="lineNum">     735 </span>                :            : }
+<span class="lineNum">     736 </span>                :            : 
+<span class="lineNum">     737 </span>                :            : /*
+<span class="lineNum">     738 </span>                :            :  * Initializes the NFS functionality of libshare.
+<a name="739"><span class="lineNum">     739 </span>                :            :  */</a>
+<span class="lineNum">     740 </span>                :            : void
+<span class="lineNum">     741 </span>                :<span class="lineCov">      58926 : libshare_nfs_init(void)</span>
+<span class="lineNum">     742 </span>                :            : {
+<span class="lineNum">     743 </span>                :<span class="lineCov">      58926 :         nfs_fstype = register_fstype(&quot;nfs&quot;, &amp;nfs_shareops);</span>
+<span class="lineNum">     744 </span>                :<span class="lineCov">      58926 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

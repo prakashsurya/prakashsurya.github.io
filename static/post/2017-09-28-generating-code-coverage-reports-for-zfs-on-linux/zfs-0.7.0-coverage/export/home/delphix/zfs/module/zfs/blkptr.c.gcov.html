@@ -1,0 +1,248 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/blkptr.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - blkptr.c<span style="font-size: 80%;"> (source / <a href="blkptr.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">40</td>
+            <td class="headerCovTableEntry">52</td>
+            <td class="headerCovTableEntryMed">76.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">66.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">36</td>
+            <td class="headerCovTableEntry">63</td>
+            <td class="headerCovTableEntryLo">57.1 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * This file and its contents are supplied under the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (&quot;CDDL&quot;), version 1.0.
+<span class="lineNum">       6 </span>                :            :  * You may only use this file in accordance with the terms of version
+<span class="lineNum">       7 </span>                :            :  * 1.0 of the CDDL.
+<span class="lineNum">       8 </span>                :            :  *
+<span class="lineNum">       9 </span>                :            :  * A full copy of the text of the CDDL should have accompanied this
+<span class="lineNum">      10 </span>                :            :  * source.  A copy of the CDDL is also available via the Internet at
+<span class="lineNum">      11 </span>                :            :  * http://www.illumos.org/license/CDDL.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      14 </span>                :            :  */
+<span class="lineNum">      15 </span>                :            : 
+<span class="lineNum">      16 </span>                :            : /*
+<span class="lineNum">      17 </span>                :            :  * Copyright (c) 2013, 2016 by Delphix. All rights reserved.
+<span class="lineNum">      18 </span>                :            :  */
+<span class="lineNum">      19 </span>                :            : 
+<span class="lineNum">      20 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      21 </span>                :            : #include &lt;sys/zio.h&gt;
+<span class="lineNum">      22 </span>                :            : #include &lt;sys/zio_compress.h&gt;
+<span class="lineNum">      23 </span>                :            : 
+<span class="lineNum">      24 </span>                :            : /*
+<span class="lineNum">      25 </span>                :            :  * Embedded-data Block Pointers
+<span class="lineNum">      26 </span>                :            :  *
+<span class="lineNum">      27 </span>                :            :  * Normally, block pointers point (via their DVAs) to a block which holds data.
+<span class="lineNum">      28 </span>                :            :  * If the data that we need to store is very small, this is an inefficient
+<span class="lineNum">      29 </span>                :            :  * use of space, because a block must be at minimum 1 sector (typically 512
+<span class="lineNum">      30 </span>                :            :  * bytes or 4KB).  Additionally, reading these small blocks tends to generate
+<span class="lineNum">      31 </span>                :            :  * more random reads.
+<span class="lineNum">      32 </span>                :            :  *
+<span class="lineNum">      33 </span>                :            :  * Embedded-data Block Pointers allow small pieces of data (the &quot;payload&quot;,
+<span class="lineNum">      34 </span>                :            :  * up to 112 bytes) to be stored in the block pointer itself, instead of
+<span class="lineNum">      35 </span>                :            :  * being pointed to.  The &quot;Pointer&quot; part of this name is a bit of a
+<span class="lineNum">      36 </span>                :            :  * misnomer, as nothing is pointed to.
+<span class="lineNum">      37 </span>                :            :  *
+<span class="lineNum">      38 </span>                :            :  * BP_EMBEDDED_TYPE_DATA block pointers allow highly-compressible data to
+<span class="lineNum">      39 </span>                :            :  * be embedded in the block pointer.  The logic for this is handled in
+<span class="lineNum">      40 </span>                :            :  * the SPA, by the zio pipeline.  Therefore most code outside the zio
+<span class="lineNum">      41 </span>                :            :  * pipeline doesn't need special-cases to handle these block pointers.
+<span class="lineNum">      42 </span>                :            :  *
+<span class="lineNum">      43 </span>                :            :  * See spa.h for details on the exact layout of embedded block pointers.
+<span class="lineNum">      44 </span>                :            :  */
+<a name="45"><span class="lineNum">      45 </span>                :            : </a>
+<span class="lineNum">      46 </span>                :            : void
+<span class="lineNum">      47 </span>                :<span class="lineCov">      33509 : encode_embedded_bp_compressed(blkptr_t *bp, void *data,</span>
+<span class="lineNum">      48 </span>                :            :     enum zio_compress comp, int uncompressed_size, int compressed_size)
+<span class="lineNum">      49 </span>                :            : {
+<span class="lineNum">      50 </span>                :<span class="lineCov">      33509 :         uint64_t *bp64 = (uint64_t *)bp;</span>
+<span class="lineNum">      51 </span>                :<span class="lineCov">      33509 :         uint64_t w = 0;</span>
+<span class="lineNum">      52 </span>                :<span class="lineCov">      33509 :         uint8_t *data8 = data;</span>
+<span class="lineNum">      53 </span>                :            :         int i;
+<span class="lineNum">      54 </span>                :            : 
+<span class="lineNum">      55 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 33509 times"> + </span>]:<span class="lineCov">      33509 :         ASSERT3U(compressed_size, &lt;=, BPE_PAYLOAD_SIZE);</span>
+<span class="lineNum">      56 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 33509 times"> + </span>]:<span class="lineCov">      33509 :         ASSERT(uncompressed_size == compressed_size ||</span>
+<span class="lineNum">      57 </span>                :            :             comp != ZIO_COMPRESS_OFF);
+<span class="lineNum">      58 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 33509 times"> + </span>]:<span class="lineCov">      33509 :         ASSERT3U(comp, &gt;=, ZIO_COMPRESS_OFF);</span>
+<span class="lineNum">      59 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 33509 times"> + </span>]:<span class="lineCov">      33509 :         ASSERT3U(comp, &lt;, ZIO_COMPRESS_FUNCTIONS);</span>
+<span class="lineNum">      60 </span>                :            : 
+<span class="lineNum">      61 </span>                :<span class="lineCov">      33509 :         bzero(bp, sizeof (*bp));</span>
+<span class="lineNum">      62 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 33509 times"> + </span>]:<span class="lineCov">      33509 :         BP_SET_EMBEDDED(bp, B_TRUE);</span>
+<span class="lineNum">      63 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 33509 times"> + </span>]:<span class="lineCov">      33509 :         BP_SET_COMPRESS(bp, comp);</span>
+<span class="lineNum">      64 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 33509 times"> + </span>]:<span class="lineCov">      33509 :         BP_SET_BYTEORDER(bp, ZFS_HOST_BYTEORDER);</span>
+<span class="lineNum">      65 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 33509 times"> + </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 33509 times"> + </span>]:<span class="lineCov">      33509 :         BPE_SET_LSIZE(bp, uncompressed_size);</span>
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 6 was not taken"> - </span><span class="branchCov" title="Branch 7 was taken 33509 times"> + </span>]
+<span class="lineNum">      66 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 33509 times"> + </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 33509 times"> + </span>]:<span class="lineCov">      33509 :         BPE_SET_PSIZE(bp, compressed_size);</span>
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 6 was not taken"> - </span><span class="branchCov" title="Branch 7 was taken 33509 times"> + </span>]
+<span class="lineNum">      67 </span>                :            : 
+<span class="lineNum">      68 </span>                :            :         /*
+<span class="lineNum">      69 </span>                :            :          * Encode the byte array into the words of the block pointer.
+<span class="lineNum">      70 </span>                :            :          * First byte goes into low bits of first word (little endian).
+<span class="lineNum">      71 </span>                :            :          */
+<span class="lineNum">      72 </span>        [<span class="branchCov" title="Branch 0 was taken 2055049 times"> + </span><span class="branchCov" title="Branch 1 was taken 33252 times"> + </span>]:<span class="lineCov">    2088301 :         for (i = 0; i &lt; compressed_size; i++) {</span>
+<span class="lineNum">      73 </span>        [<span class="branchCov" title="Branch 0 was taken 257 times"> + </span><span class="branchCov" title="Branch 1 was taken 2054792 times"> + </span>]:<span class="lineCov">    2055049 :                 BF64_SET(w, (i % sizeof (w)) * NBBY, NBBY, data8[i]);</span>
+<span class="lineNum">      74 </span>        [<span class="branchCov" title="Branch 0 was taken 242496 times"> + </span><span class="branchCov" title="Branch 1 was taken 1812296 times"> + </span>]:<span class="lineCov">    2054792 :                 if (i % sizeof (w) == sizeof (w) - 1) {</span>
+<span class="lineNum">      75 </span>                :            :                         /* we've reached the end of a word */
+<span class="lineNum">      76 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 242496 times"> + </span>]:<span class="lineCov">     242496 :                         ASSERT3P(bp64, &lt;, bp + 1);</span>
+<span class="lineNum">      77 </span>                :<span class="lineCov">     242496 :                         *bp64 = w;</span>
+<span class="lineNum">      78 </span>                :<span class="lineCov">     242496 :                         bp64++;</span>
+<span class="lineNum">      79 </span>[<span class="branchCov" title="Branch 0 was taken 220335 times"> + </span><span class="branchCov" title="Branch 1 was taken 22161 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 11972 times"> + </span><span class="branchCov" title="Branch 3 was taken 208363 times"> + </span>]:<span class="lineCov">     242496 :                         if (!BPE_IS_PAYLOADWORD(bp, bp64))</span>
+<span class="lineNum">      80 </span>                :<span class="lineCov">      34133 :                                 bp64++;</span>
+<span class="lineNum">      81 </span>                :            :                         w = 0;
+<span class="lineNum">      82 </span>                :            :                 }
+<span class="lineNum">      83 </span>                :            :         }
+<span class="lineNum">      84 </span>                :            :         /* write last partial word */
+<span class="lineNum">      85 </span>        [<span class="branchCov" title="Branch 0 was taken 33118 times"> + </span><span class="branchCov" title="Branch 1 was taken 134 times"> + </span>]:<span class="lineCov">      33252 :         if (bp64 &lt; (uint64_t *)(bp + 1))</span>
+<span class="lineNum">      86 </span>                :<span class="lineCov">      33118 :                 *bp64 = w;</span>
+<span class="lineNum">      87 </span>                :<span class="lineCov">      33252 : }</span>
+<span class="lineNum">      88 </span>                :            : 
+<span class="lineNum">      89 </span>                :            : /*
+<span class="lineNum">      90 </span>                :            :  * buf must be at least BPE_GET_PSIZE(bp) bytes long (which will never be
+<span class="lineNum">      91 </span>                :            :  * more than BPE_PAYLOAD_SIZE bytes).
+<a name="92"><span class="lineNum">      92 </span>                :            :  */</a>
+<span class="lineNum">      93 </span>                :            : void
+<span class="lineNum">      94 </span>                :<span class="lineCov">     996597 : decode_embedded_bp_compressed(const blkptr_t *bp, void *buf)</span>
+<span class="lineNum">      95 </span>                :            : {
+<span class="lineNum">      96 </span>                :            :         int psize;
+<span class="lineNum">      97 </span>                :<span class="lineCov">     996597 :         uint8_t *buf8 = buf;</span>
+<span class="lineNum">      98 </span>                :<span class="lineCov">     996597 :         uint64_t w = 0;</span>
+<span class="lineNum">      99 </span>                :<span class="lineCov">     996597 :         const uint64_t *bp64 = (const uint64_t *)bp;</span>
+<span class="lineNum">     100 </span>                :            :         int i;
+<span class="lineNum">     101 </span>                :            : 
+<span class="lineNum">     102 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 996597 times"> + </span>]:<span class="lineCov">     996597 :         ASSERT(BP_IS_EMBEDDED(bp));</span>
+<span class="lineNum">     103 </span>                :            : 
+<span class="lineNum">     104 </span>                :<span class="lineCov">     996597 :         psize = BPE_GET_PSIZE(bp);</span>
+<span class="lineNum">     105 </span>                :            : 
+<span class="lineNum">     106 </span>                :            :         /*
+<span class="lineNum">     107 </span>                :            :          * Decode the words of the block pointer into the byte array.
+<span class="lineNum">     108 </span>                :            :          * Low bits of first word are the first byte (little endian).
+<span class="lineNum">     109 </span>                :            :          */
+<span class="lineNum">     110 </span>        [<span class="branchCov" title="Branch 0 was taken 53952943 times"> + </span><span class="branchCov" title="Branch 1 was taken 999551 times"> + </span>]:<span class="lineCov">   54952494 :         for (i = 0; i &lt; psize; i++) {</span>
+<span class="lineNum">     111 </span>        [<span class="branchCov" title="Branch 0 was taken 7270266 times"> + </span><span class="branchCov" title="Branch 1 was taken 46682677 times"> + </span>]:<span class="lineCov">   53952943 :                 if (i % sizeof (w) == 0) {</span>
+<span class="lineNum">     112 </span>                :            :                         /* beginning of a word */
+<span class="lineNum">     113 </span>           [<span class="branchCov" title="Branch 1 was taken 7273220 times"> + </span>]:<span class="lineCov">    7270266 :                         ASSERT3P(bp64, &lt;, bp + 1);</span>
+<span class="lineNum">     114 </span>                :<span class="lineCov">    7273220 :                         w = *bp64;</span>
+<span class="lineNum">     115 </span>                :<span class="lineCov">    7273220 :                         bp64++;</span>
+<span class="lineNum">     116 </span>[<span class="branchCov" title="Branch 0 was taken 6673141 times"> + </span><span class="branchCov" title="Branch 1 was taken 600079 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 388201 times"> + </span><span class="branchCov" title="Branch 3 was taken 6284940 times"> + </span>]:<span class="lineCov">    7273220 :                         if (!BPE_IS_PAYLOADWORD(bp, bp64))</span>
+<span class="lineNum">     117 </span>                :<span class="lineCov">     988280 :                                 bp64++;</span>
+<span class="lineNum">     118 </span>                :            :                 }
+<span class="lineNum">     119 </span>                :<span class="lineCov">   53955897 :                 buf8[i] = BF64_GET(w, (i % sizeof (w)) * NBBY, NBBY);</span>
+<span class="lineNum">     120 </span>                :            :         }
+<span class="lineNum">     121 </span>                :<span class="lineCov">     999551 : }</span>
+<span class="lineNum">     122 </span>                :            : 
+<span class="lineNum">     123 </span>                :            : /*
+<span class="lineNum">     124 </span>                :            :  * Fill in the buffer with the (decompressed) payload of the embedded
+<span class="lineNum">     125 </span>                :            :  * blkptr_t.  Takes into account compression and byteorder (the payload is
+<span class="lineNum">     126 </span>                :            :  * treated as a stream of bytes).
+<span class="lineNum">     127 </span>                :            :  * Return 0 on success, or ENOSPC if it won't fit in the buffer.
+<a name="128"><span class="lineNum">     128 </span>                :            :  */</a>
+<span class="lineNum">     129 </span>                :            : int
+<span class="lineNum">     130 </span>                :<span class="lineNoCov">          0 : decode_embedded_bp(const blkptr_t *bp, void *buf, int buflen)</span>
+<span class="lineNum">     131 </span>                :            : {
+<span class="lineNum">     132 </span>                :            :         int lsize, psize;
+<span class="lineNum">     133 </span>                :            : 
+<span class="lineNum">     134 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(BP_IS_EMBEDDED(bp));</span>
+<span class="lineNum">     135 </span>                :            : 
+<span class="lineNum">     136 </span>                :<span class="lineNoCov">          0 :         lsize = BPE_GET_LSIZE(bp);</span>
+<span class="lineNum">     137 </span>                :<span class="lineNoCov">          0 :         psize = BPE_GET_PSIZE(bp);</span>
+<span class="lineNum">     138 </span>                :            : 
+<span class="lineNum">     139 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (lsize &gt; buflen)</span>
+<span class="lineNum">     140 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(ENOSPC));</span>
+<span class="lineNum">     141 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3U(lsize, ==, buflen);</span>
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (BP_GET_COMPRESS(bp) != ZIO_COMPRESS_OFF) {</span>
+<span class="lineNum">     144 </span>                :            :                 uint8_t dstbuf[BPE_PAYLOAD_SIZE];
+<span class="lineNum">     145 </span>                :<span class="lineNoCov">          0 :                 decode_embedded_bp_compressed(bp, dstbuf);</span>
+<span class="lineNum">     146 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY0(zio_decompress_data_buf(BP_GET_COMPRESS(bp),</span>
+<span class="lineNum">     147 </span>                :            :                     dstbuf, buf, psize, buflen));
+<span class="lineNum">     148 </span>                :            :         } else {
+<span class="lineNum">     149 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT3U(lsize, ==, psize);</span>
+<span class="lineNum">     150 </span>                :<span class="lineNoCov">          0 :                 decode_embedded_bp_compressed(bp, buf);</span>
+<span class="lineNum">     151 </span>                :            :         }
+<span class="lineNum">     152 </span>                :            : 
+<span class="lineNum">     153 </span>                :            :         return (0);
+<span class="lineNum">     154 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

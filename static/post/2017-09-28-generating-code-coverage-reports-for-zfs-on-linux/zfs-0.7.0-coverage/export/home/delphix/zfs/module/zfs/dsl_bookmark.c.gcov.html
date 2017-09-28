@@ -1,0 +1,558 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/dsl_bookmark.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - dsl_bookmark.c<span style="font-size: 80%;"> (source / <a href="dsl_bookmark.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">188</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">106</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * This file and its contents are supplied under the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (&quot;CDDL&quot;), version 1.0.
+<span class="lineNum">       6 </span>                :            :  * You may only use this file in accordance with the terms of version
+<span class="lineNum">       7 </span>                :            :  * 1.0 of the CDDL.
+<span class="lineNum">       8 </span>                :            :  *
+<span class="lineNum">       9 </span>                :            :  * A full copy of the text of the CDDL should have accompanied this
+<span class="lineNum">      10 </span>                :            :  * source.  A copy of the CDDL is also available via the Internet at
+<span class="lineNum">      11 </span>                :            :  * http://www.illumos.org/license/CDDL.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      14 </span>                :            :  */
+<span class="lineNum">      15 </span>                :            : 
+<span class="lineNum">      16 </span>                :            : /*
+<span class="lineNum">      17 </span>                :            :  * Copyright (c) 2013, 2014 by Delphix. All rights reserved.
+<span class="lineNum">      18 </span>                :            :  * Copyright 2017 Nexenta Systems, Inc.
+<span class="lineNum">      19 </span>                :            :  */
+<span class="lineNum">      20 </span>                :            : 
+<span class="lineNum">      21 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      22 </span>                :            : #include &lt;sys/dsl_dataset.h&gt;
+<span class="lineNum">      23 </span>                :            : #include &lt;sys/dsl_dir.h&gt;
+<span class="lineNum">      24 </span>                :            : #include &lt;sys/dsl_prop.h&gt;
+<span class="lineNum">      25 </span>                :            : #include &lt;sys/dsl_synctask.h&gt;
+<span class="lineNum">      26 </span>                :            : #include &lt;sys/dmu_impl.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/dmu_tx.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/arc.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/zap.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/zfeature.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/dsl_bookmark.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;zfs_namecheck.h&gt;
+<a name="34"><span class="lineNum">      34 </span>                :            : </a>
+<span class="lineNum">      35 </span>                :            : static int
+<span class="lineNum">      36 </span>                :<span class="lineNoCov">          0 : dsl_bookmark_hold_ds(dsl_pool_t *dp, const char *fullname,</span>
+<span class="lineNum">      37 </span>                :            :     dsl_dataset_t **dsp, void *tag, char **shortnamep)
+<span class="lineNum">      38 </span>                :            : {
+<span class="lineNum">      39 </span>                :            :         char buf[ZFS_MAX_DATASET_NAME_LEN];
+<span class="lineNum">      40 </span>                :            :         char *hashp;
+<span class="lineNum">      41 </span>                :            : 
+<span class="lineNum">      42 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (strlen(fullname) &gt;= ZFS_MAX_DATASET_NAME_LEN)</span>
+<span class="lineNum">      43 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(ENAMETOOLONG));</span>
+<span class="lineNum">      44 </span>                :<span class="lineNoCov">          0 :         hashp = strchr(fullname, '#');</span>
+<span class="lineNum">      45 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (hashp == NULL)</span>
+<span class="lineNum">      46 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EINVAL));</span>
+<span class="lineNum">      47 </span>                :            : 
+<span class="lineNum">      48 </span>                :<span class="lineNoCov">          0 :         *shortnamep = hashp + 1;</span>
+<span class="lineNum">      49 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (zfs_component_namecheck(*shortnamep, NULL, NULL))</span>
+<span class="lineNum">      50 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EINVAL));</span>
+<span class="lineNum">      51 </span>                :<span class="lineNoCov">          0 :         (void) strlcpy(buf, fullname, hashp - fullname + 1);</span>
+<span class="lineNum">      52 </span>                :<span class="lineNoCov">          0 :         return (dsl_dataset_hold(dp, buf, tag, dsp));</span>
+<span class="lineNum">      53 </span>                :            : }
+<span class="lineNum">      54 </span>                :            : 
+<span class="lineNum">      55 </span>                :            : /*
+<span class="lineNum">      56 </span>                :            :  * Returns ESRCH if bookmark is not found.
+<a name="57"><span class="lineNum">      57 </span>                :            :  */</a>
+<span class="lineNum">      58 </span>                :            : static int
+<span class="lineNum">      59 </span>                :<span class="lineNoCov">          0 : dsl_dataset_bmark_lookup(dsl_dataset_t *ds, const char *shortname,</span>
+<span class="lineNum">      60 </span>                :            :     zfs_bookmark_phys_t *bmark_phys)
+<span class="lineNum">      61 </span>                :            : {
+<span class="lineNum">      62 </span>                :<span class="lineNoCov">          0 :         objset_t *mos = ds-&gt;ds_dir-&gt;dd_pool-&gt;dp_meta_objset;</span>
+<span class="lineNum">      63 </span>                :<span class="lineNoCov">          0 :         uint64_t bmark_zapobj = ds-&gt;ds_bookmarks;</span>
+<span class="lineNum">      64 </span>                :<span class="lineNoCov">          0 :         matchtype_t mt = 0;</span>
+<span class="lineNum">      65 </span>                :            :         int err;
+<span class="lineNum">      66 </span>                :            : 
+<span class="lineNum">      67 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (bmark_zapobj == 0)</span>
+<span class="lineNum">      68 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(ESRCH));</span>
+<span class="lineNum">      69 </span>                :            : 
+<span class="lineNum">      70 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (dsl_dataset_phys(ds)-&gt;ds_flags &amp; DS_FLAG_CI_DATASET)</span>
+<span class="lineNum">      71 </span>                :<span class="lineNoCov">          0 :                 mt = MT_NORMALIZE;</span>
+<span class="lineNum">      72 </span>                :            : 
+<span class="lineNum">      73 </span>                :<span class="lineNoCov">          0 :         err = zap_lookup_norm(mos, bmark_zapobj, shortname, sizeof (uint64_t),</span>
+<span class="lineNum">      74 </span>                :            :             sizeof (*bmark_phys) / sizeof (uint64_t), bmark_phys, mt,
+<span class="lineNum">      75 </span>                :            :             NULL, 0, NULL);
+<span class="lineNum">      76 </span>                :            : 
+<span class="lineNum">      77 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         return (err == ENOENT ? ESRCH : err);</span>
+<span class="lineNum">      78 </span>                :            : }
+<span class="lineNum">      79 </span>                :            : 
+<span class="lineNum">      80 </span>                :            : /*
+<span class="lineNum">      81 </span>                :            :  * If later_ds is non-NULL, this will return EXDEV if the the specified bookmark
+<span class="lineNum">      82 </span>                :            :  * does not represents an earlier point in later_ds's timeline.
+<span class="lineNum">      83 </span>                :            :  *
+<span class="lineNum">      84 </span>                :            :  * Returns ENOENT if the dataset containing the bookmark does not exist.
+<span class="lineNum">      85 </span>                :            :  * Returns ESRCH if the dataset exists but the bookmark was not found in it.
+<a name="86"><span class="lineNum">      86 </span>                :            :  */</a>
+<span class="lineNum">      87 </span>                :            : int
+<span class="lineNum">      88 </span>                :<span class="lineNoCov">          0 : dsl_bookmark_lookup(dsl_pool_t *dp, const char *fullname,</span>
+<span class="lineNum">      89 </span>                :            :     dsl_dataset_t *later_ds, zfs_bookmark_phys_t *bmp)
+<span class="lineNum">      90 </span>                :            : {
+<span class="lineNum">      91 </span>                :            :         char *shortname;
+<span class="lineNum">      92 </span>                :            :         dsl_dataset_t *ds;
+<span class="lineNum">      93 </span>                :            :         int error;
+<span class="lineNum">      94 </span>                :            : 
+<span class="lineNum">      95 </span>                :<span class="lineNoCov">          0 :         error = dsl_bookmark_hold_ds(dp, fullname, &amp;ds, FTAG, &amp;shortname);</span>
+<span class="lineNum">      96 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error != 0)</span>
+<span class="lineNum">      97 </span>                :            :                 return (error);
+<span class="lineNum">      98 </span>                :            : 
+<span class="lineNum">      99 </span>                :<span class="lineNoCov">          0 :         error = dsl_dataset_bmark_lookup(ds, shortname, bmp);</span>
+<span class="lineNum">     100 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error == 0 &amp;&amp; later_ds != NULL) {</span>
+<span class="lineNum">     101 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (!dsl_dataset_is_before(later_ds, ds, bmp-&gt;zbm_creation_txg))</span>
+<span class="lineNum">     102 </span>                :<span class="lineNoCov">          0 :                         error = SET_ERROR(EXDEV);</span>
+<span class="lineNum">     103 </span>                :            :         }
+<span class="lineNum">     104 </span>                :<span class="lineNoCov">          0 :         dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     105 </span>                :<span class="lineNoCov">          0 :         return (error);</span>
+<span class="lineNum">     106 </span>                :            : }
+<span class="lineNum">     107 </span>                :            : 
+<span class="lineNum">     108 </span>                :            : typedef struct dsl_bookmark_create_arg {
+<span class="lineNum">     109 </span>                :            :         nvlist_t *dbca_bmarks;
+<span class="lineNum">     110 </span>                :            :         nvlist_t *dbca_errors;
+<span class="lineNum">     111 </span>                :            : } dsl_bookmark_create_arg_t;
+<a name="112"><span class="lineNum">     112 </span>                :            : </a>
+<span class="lineNum">     113 </span>                :            : static int
+<span class="lineNum">     114 </span>                :<span class="lineNoCov">          0 : dsl_bookmark_create_check_impl(dsl_dataset_t *snapds, const char *bookmark_name,</span>
+<span class="lineNum">     115 </span>                :            :     dmu_tx_t *tx)
+<span class="lineNum">     116 </span>                :            : {
+<span class="lineNum">     117 </span>                :<span class="lineNoCov">          0 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     118 </span>                :            :         dsl_dataset_t *bmark_fs;
+<span class="lineNum">     119 </span>                :            :         char *shortname;
+<span class="lineNum">     120 </span>                :            :         int error;
+<span class="lineNum">     121 </span>                :            :         zfs_bookmark_phys_t bmark_phys;
+<span class="lineNum">     122 </span>                :            : 
+<span class="lineNum">     123 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (!snapds-&gt;ds_is_snapshot)</span>
+<span class="lineNum">     124 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EINVAL));</span>
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>                :<span class="lineNoCov">          0 :         error = dsl_bookmark_hold_ds(dp, bookmark_name,</span>
+<span class="lineNum">     127 </span>                :            :             &amp;bmark_fs, FTAG, &amp;shortname);
+<span class="lineNum">     128 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error != 0)</span>
+<span class="lineNum">     129 </span>                :            :                 return (error);
+<span class="lineNum">     130 </span>                :            : 
+<span class="lineNum">     131 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (!dsl_dataset_is_before(bmark_fs, snapds, 0)) {</span>
+<span class="lineNum">     132 </span>                :<span class="lineNoCov">          0 :                 dsl_dataset_rele(bmark_fs, FTAG);</span>
+<span class="lineNum">     133 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EINVAL));</span>
+<span class="lineNum">     134 </span>                :            :         }
+<span class="lineNum">     135 </span>                :            : 
+<span class="lineNum">     136 </span>                :<span class="lineNoCov">          0 :         error = dsl_dataset_bmark_lookup(bmark_fs, shortname,</span>
+<span class="lineNum">     137 </span>                :            :             &amp;bmark_phys);
+<span class="lineNum">     138 </span>                :<span class="lineNoCov">          0 :         dsl_dataset_rele(bmark_fs, FTAG);</span>
+<span class="lineNum">     139 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error == 0)</span>
+<span class="lineNum">     140 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EEXIST));</span>
+<span class="lineNum">     141 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error == ESRCH)</span>
+<span class="lineNum">     142 </span>                :            :                 return (0);
+<span class="lineNum">     143 </span>                :<span class="lineNoCov">          0 :         return (error);</span>
+<span class="lineNum">     144 </span>                :            : }
+<a name="145"><span class="lineNum">     145 </span>                :            : </a>
+<span class="lineNum">     146 </span>                :            : static int
+<span class="lineNum">     147 </span>                :<span class="lineNoCov">          0 : dsl_bookmark_create_check(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     148 </span>                :            : {
+<span class="lineNum">     149 </span>                :<span class="lineNoCov">          0 :         dsl_bookmark_create_arg_t *dbca = arg;</span>
+<span class="lineNum">     150 </span>                :<span class="lineNoCov">          0 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     151 </span>                :<span class="lineNoCov">          0 :         int rv = 0;</span>
+<span class="lineNum">     152 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     153 </span>                :            : 
+<span class="lineNum">     154 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (!spa_feature_is_enabled(dp-&gt;dp_spa, SPA_FEATURE_BOOKMARKS))</span>
+<span class="lineNum">     155 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(ENOTSUP));</span>
+<span class="lineNum">     156 </span>                :            : 
+<span class="lineNum">     157 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (pair = nvlist_next_nvpair(dbca-&gt;dbca_bmarks, NULL);</span>
+<span class="lineNum">     158 </span>                :<span class="lineNoCov">          0 :             pair != NULL; pair = nvlist_next_nvpair(dbca-&gt;dbca_bmarks, pair)) {</span>
+<span class="lineNum">     159 </span>                :            :                 dsl_dataset_t *snapds;
+<span class="lineNum">     160 </span>                :            :                 int error;
+<span class="lineNum">     161 </span>                :            : 
+<span class="lineNum">     162 </span>                :            :                 /* note: validity of nvlist checked by ioctl layer */
+<span class="lineNum">     163 </span>                :<span class="lineNoCov">          0 :                 error = dsl_dataset_hold(dp, fnvpair_value_string(pair),</span>
+<span class="lineNum">     164 </span>                :            :                     FTAG, &amp;snapds);
+<span class="lineNum">     165 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (error == 0) {</span>
+<span class="lineNum">     166 </span>                :<span class="lineNoCov">          0 :                         error = dsl_bookmark_create_check_impl(snapds,</span>
+<span class="lineNum">     167 </span>                :<span class="lineNoCov">          0 :                             nvpair_name(pair), tx);</span>
+<span class="lineNum">     168 </span>                :<span class="lineNoCov">          0 :                         dsl_dataset_rele(snapds, FTAG);</span>
+<span class="lineNum">     169 </span>                :            :                 }
+<span class="lineNum">     170 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (error != 0) {</span>
+<span class="lineNum">     171 </span>                :<span class="lineNoCov">          0 :                         fnvlist_add_int32(dbca-&gt;dbca_errors,</span>
+<span class="lineNum">     172 </span>                :<span class="lineNoCov">          0 :                             nvpair_name(pair), error);</span>
+<span class="lineNum">     173 </span>                :<span class="lineNoCov">          0 :                         rv = error;</span>
+<span class="lineNum">     174 </span>                :            :                 }
+<span class="lineNum">     175 </span>                :            :         }
+<span class="lineNum">     176 </span>                :            : 
+<span class="lineNum">     177 </span>                :            :         return (rv);
+<span class="lineNum">     178 </span>                :            : }
+<a name="179"><span class="lineNum">     179 </span>                :            : </a>
+<span class="lineNum">     180 </span>                :            : static void
+<span class="lineNum">     181 </span>                :<span class="lineNoCov">          0 : dsl_bookmark_create_sync(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     182 </span>                :            : {
+<span class="lineNum">     183 </span>                :<span class="lineNoCov">          0 :         dsl_bookmark_create_arg_t *dbca = arg;</span>
+<span class="lineNum">     184 </span>                :<span class="lineNoCov">          0 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     185 </span>                :<span class="lineNoCov">          0 :         objset_t *mos = dp-&gt;dp_meta_objset;</span>
+<span class="lineNum">     186 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     187 </span>                :            : 
+<span class="lineNum">     188 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(spa_feature_is_enabled(dp-&gt;dp_spa, SPA_FEATURE_BOOKMARKS));</span>
+<span class="lineNum">     189 </span>                :            : 
+<span class="lineNum">     190 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (pair = nvlist_next_nvpair(dbca-&gt;dbca_bmarks, NULL);</span>
+<span class="lineNum">     191 </span>                :<span class="lineNoCov">          0 :             pair != NULL; pair = nvlist_next_nvpair(dbca-&gt;dbca_bmarks, pair)) {</span>
+<span class="lineNum">     192 </span>                :            :                 dsl_dataset_t *snapds, *bmark_fs;
+<span class="lineNum">     193 </span>                :            :                 zfs_bookmark_phys_t bmark_phys;
+<span class="lineNum">     194 </span>                :            :                 char *shortname;
+<span class="lineNum">     195 </span>                :            : 
+<span class="lineNum">     196 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY0(dsl_dataset_hold(dp, fnvpair_value_string(pair),</span>
+<span class="lineNum">     197 </span>                :            :                     FTAG, &amp;snapds));
+<span class="lineNum">     198 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY0(dsl_bookmark_hold_ds(dp, nvpair_name(pair),</span>
+<span class="lineNum">     199 </span>                :            :                     &amp;bmark_fs, FTAG, &amp;shortname));
+<span class="lineNum">     200 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (bmark_fs-&gt;ds_bookmarks == 0) {</span>
+<span class="lineNum">     201 </span>                :<span class="lineNoCov">          0 :                         bmark_fs-&gt;ds_bookmarks =</span>
+<span class="lineNum">     202 </span>                :<span class="lineNoCov">          0 :                             zap_create_norm(mos, U8_TEXTPREP_TOUPPER,</span>
+<span class="lineNum">     203 </span>                :            :                             DMU_OTN_ZAP_METADATA, DMU_OT_NONE, 0, tx);
+<span class="lineNum">     204 </span>                :<span class="lineNoCov">          0 :                         spa_feature_incr(dp-&gt;dp_spa, SPA_FEATURE_BOOKMARKS, tx);</span>
+<span class="lineNum">     205 </span>                :            : 
+<span class="lineNum">     206 </span>                :<span class="lineNoCov">          0 :                         dsl_dataset_zapify(bmark_fs, tx);</span>
+<span class="lineNum">     207 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         VERIFY0(zap_add(mos, bmark_fs-&gt;ds_object,</span>
+<span class="lineNum">     208 </span>                :            :                             DS_FIELD_BOOKMARK_NAMES,
+<span class="lineNum">     209 </span>                :            :                             sizeof (bmark_fs-&gt;ds_bookmarks), 1,
+<span class="lineNum">     210 </span>                :            :                             &amp;bmark_fs-&gt;ds_bookmarks, tx));
+<span class="lineNum">     211 </span>                :            :                 }
+<span class="lineNum">     212 </span>                :            : 
+<span class="lineNum">     213 </span>                :<span class="lineNoCov">          0 :                 bmark_phys.zbm_guid = dsl_dataset_phys(snapds)-&gt;ds_guid;</span>
+<span class="lineNum">     214 </span>                :<span class="lineNoCov">          0 :                 bmark_phys.zbm_creation_txg =</span>
+<span class="lineNum">     215 </span>                :<span class="lineNoCov">          0 :                     dsl_dataset_phys(snapds)-&gt;ds_creation_txg;</span>
+<span class="lineNum">     216 </span>                :<span class="lineNoCov">          0 :                 bmark_phys.zbm_creation_time =</span>
+<span class="lineNum">     217 </span>                :<span class="lineNoCov">          0 :                     dsl_dataset_phys(snapds)-&gt;ds_creation_time;</span>
+<span class="lineNum">     218 </span>                :            : 
+<span class="lineNum">     219 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY0(zap_add(mos, bmark_fs-&gt;ds_bookmarks,</span>
+<span class="lineNum">     220 </span>                :            :                     shortname, sizeof (uint64_t),
+<span class="lineNum">     221 </span>                :            :                     sizeof (zfs_bookmark_phys_t) / sizeof (uint64_t),
+<span class="lineNum">     222 </span>                :            :                     &amp;bmark_phys, tx));
+<span class="lineNum">     223 </span>                :            : 
+<span class="lineNum">     224 </span>                :<span class="lineNoCov">          0 :                 spa_history_log_internal_ds(bmark_fs, &quot;bookmark&quot;, tx,</span>
+<span class="lineNum">     225 </span>                :            :                     &quot;name=%s creation_txg=%llu target_snap=%llu&quot;,
+<span class="lineNum">     226 </span>                :            :                     shortname,
+<span class="lineNum">     227 </span>                :<span class="lineNoCov">          0 :                     (longlong_t)bmark_phys.zbm_creation_txg,</span>
+<span class="lineNum">     228 </span>                :<span class="lineNoCov">          0 :                     (longlong_t)snapds-&gt;ds_object);</span>
+<span class="lineNum">     229 </span>                :            : 
+<span class="lineNum">     230 </span>                :<span class="lineNoCov">          0 :                 dsl_dataset_rele(bmark_fs, FTAG);</span>
+<span class="lineNum">     231 </span>                :<span class="lineNoCov">          0 :                 dsl_dataset_rele(snapds, FTAG);</span>
+<span class="lineNum">     232 </span>                :            :         }
+<span class="lineNum">     233 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     234 </span>                :            : 
+<span class="lineNum">     235 </span>                :            : /*
+<span class="lineNum">     236 </span>                :            :  * The bookmarks must all be in the same pool.
+<a name="237"><span class="lineNum">     237 </span>                :            :  */</a>
+<span class="lineNum">     238 </span>                :            : int
+<span class="lineNum">     239 </span>                :<span class="lineNoCov">          0 : dsl_bookmark_create(nvlist_t *bmarks, nvlist_t *errors)</span>
+<span class="lineNum">     240 </span>                :            : {
+<span class="lineNum">     241 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     242 </span>                :            :         dsl_bookmark_create_arg_t dbca;
+<span class="lineNum">     243 </span>                :            : 
+<span class="lineNum">     244 </span>                :<span class="lineNoCov">          0 :         pair = nvlist_next_nvpair(bmarks, NULL);</span>
+<span class="lineNum">     245 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (pair == NULL)</span>
+<span class="lineNum">     246 </span>                :            :                 return (0);
+<span class="lineNum">     247 </span>                :            : 
+<span class="lineNum">     248 </span>                :<span class="lineNoCov">          0 :         dbca.dbca_bmarks = bmarks;</span>
+<span class="lineNum">     249 </span>                :<span class="lineNoCov">          0 :         dbca.dbca_errors = errors;</span>
+<span class="lineNum">     250 </span>                :            : 
+<span class="lineNum">     251 </span>                :<span class="lineNoCov">          0 :         return (dsl_sync_task(nvpair_name(pair), dsl_bookmark_create_check,</span>
+<span class="lineNum">     252 </span>                :            :             dsl_bookmark_create_sync, &amp;dbca,
+<span class="lineNum">     253 </span>                :<span class="lineNoCov">          0 :             fnvlist_num_pairs(bmarks), ZFS_SPACE_CHECK_NORMAL));</span>
+<span class="lineNum">     254 </span>                :            : }
+<a name="255"><span class="lineNum">     255 </span>                :            : </a>
+<span class="lineNum">     256 </span>                :            : int
+<span class="lineNum">     257 </span>                :<span class="lineNoCov">          0 : dsl_get_bookmarks_impl(dsl_dataset_t *ds, nvlist_t *props, nvlist_t *outnvl)</span>
+<span class="lineNum">     258 </span>                :            : {
+<span class="lineNum">     259 </span>                :<span class="lineNoCov">          0 :         int err = 0;</span>
+<span class="lineNum">     260 </span>                :            :         zap_cursor_t zc;
+<span class="lineNum">     261 </span>                :            :         zap_attribute_t attr;
+<span class="lineNum">     262 </span>                :<span class="lineNoCov">          0 :         dsl_pool_t *dp = ds-&gt;ds_dir-&gt;dd_pool;</span>
+<span class="lineNum">     263 </span>                :            : 
+<span class="lineNum">     264 </span>                :<span class="lineNoCov">          0 :         uint64_t bmark_zapobj = ds-&gt;ds_bookmarks;</span>
+<span class="lineNum">     265 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (bmark_zapobj == 0)</span>
+<span class="lineNum">     266 </span>                :            :                 return (0);
+<span class="lineNum">     267 </span>                :            : 
+<span class="lineNum">     268 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (zap_cursor_init(&amp;zc, dp-&gt;dp_meta_objset, bmark_zapobj);</span>
+<span class="lineNum">     269 </span>                :<span class="lineNoCov">          0 :             zap_cursor_retrieve(&amp;zc, &amp;attr) == 0;</span>
+<span class="lineNum">     270 </span>                :<span class="lineNoCov">          0 :             zap_cursor_advance(&amp;zc)) {</span>
+<span class="lineNum">     271 </span>                :            :                 nvlist_t *out_props;
+<span class="lineNum">     272 </span>                :<span class="lineNoCov">          0 :                 char *bmark_name = attr.za_name;</span>
+<span class="lineNum">     273 </span>                :            :                 zfs_bookmark_phys_t bmark_phys;
+<span class="lineNum">     274 </span>                :            : 
+<span class="lineNum">     275 </span>                :<span class="lineNoCov">          0 :                 err = dsl_dataset_bmark_lookup(ds, bmark_name, &amp;bmark_phys);</span>
+<span class="lineNum">     276 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT3U(err, !=, ENOENT);</span>
+<span class="lineNum">     277 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (err != 0)</span>
+<span class="lineNum">     278 </span>                :            :                         break;
+<span class="lineNum">     279 </span>                :            : 
+<span class="lineNum">     280 </span>                :<span class="lineNoCov">          0 :                 out_props = fnvlist_alloc();</span>
+<span class="lineNum">     281 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (nvlist_exists(props,</span>
+<span class="lineNum">     282 </span>                :            :                     zfs_prop_to_name(ZFS_PROP_GUID))) {
+<span class="lineNum">     283 </span>                :<span class="lineNoCov">          0 :                         dsl_prop_nvlist_add_uint64(out_props,</span>
+<span class="lineNum">     284 </span>                :            :                             ZFS_PROP_GUID, bmark_phys.zbm_guid);
+<span class="lineNum">     285 </span>                :            :                 }
+<span class="lineNum">     286 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (nvlist_exists(props,</span>
+<span class="lineNum">     287 </span>                :            :                     zfs_prop_to_name(ZFS_PROP_CREATETXG))) {
+<span class="lineNum">     288 </span>                :<span class="lineNoCov">          0 :                         dsl_prop_nvlist_add_uint64(out_props,</span>
+<span class="lineNum">     289 </span>                :            :                             ZFS_PROP_CREATETXG, bmark_phys.zbm_creation_txg);
+<span class="lineNum">     290 </span>                :            :                 }
+<span class="lineNum">     291 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (nvlist_exists(props,</span>
+<span class="lineNum">     292 </span>                :            :                     zfs_prop_to_name(ZFS_PROP_CREATION))) {
+<span class="lineNum">     293 </span>                :<span class="lineNoCov">          0 :                         dsl_prop_nvlist_add_uint64(out_props,</span>
+<span class="lineNum">     294 </span>                :            :                             ZFS_PROP_CREATION, bmark_phys.zbm_creation_time);
+<span class="lineNum">     295 </span>                :            :                 }
+<span class="lineNum">     296 </span>                :            : 
+<span class="lineNum">     297 </span>                :<span class="lineNoCov">          0 :                 fnvlist_add_nvlist(outnvl, bmark_name, out_props);</span>
+<span class="lineNum">     298 </span>                :<span class="lineNoCov">          0 :                 fnvlist_free(out_props);</span>
+<span class="lineNum">     299 </span>                :            :         }
+<span class="lineNum">     300 </span>                :<span class="lineNoCov">          0 :         zap_cursor_fini(&amp;zc);</span>
+<span class="lineNum">     301 </span>                :<span class="lineNoCov">          0 :         return (err);</span>
+<span class="lineNum">     302 </span>                :            : }
+<span class="lineNum">     303 </span>                :            : 
+<span class="lineNum">     304 </span>                :            : /*
+<span class="lineNum">     305 </span>                :            :  * Retrieve the bookmarks that exist in the specified dataset, and the
+<span class="lineNum">     306 </span>                :            :  * requested properties of each bookmark.
+<span class="lineNum">     307 </span>                :            :  *
+<span class="lineNum">     308 </span>                :            :  * The &quot;props&quot; nvlist specifies which properties are requested.
+<span class="lineNum">     309 </span>                :            :  * See lzc_get_bookmarks() for the list of valid properties.
+<a name="310"><span class="lineNum">     310 </span>                :            :  */</a>
+<span class="lineNum">     311 </span>                :            : int
+<span class="lineNum">     312 </span>                :<span class="lineNoCov">          0 : dsl_get_bookmarks(const char *dsname, nvlist_t *props, nvlist_t *outnvl)</span>
+<span class="lineNum">     313 </span>                :            : {
+<span class="lineNum">     314 </span>                :            :         dsl_pool_t *dp;
+<span class="lineNum">     315 </span>                :            :         dsl_dataset_t *ds;
+<span class="lineNum">     316 </span>                :            :         int err;
+<span class="lineNum">     317 </span>                :            : 
+<span class="lineNum">     318 </span>                :<span class="lineNoCov">          0 :         err = dsl_pool_hold(dsname, FTAG, &amp;dp);</span>
+<span class="lineNum">     319 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (err != 0)</span>
+<span class="lineNum">     320 </span>                :            :                 return (err);
+<span class="lineNum">     321 </span>                :<span class="lineNoCov">          0 :         err = dsl_dataset_hold(dp, dsname, FTAG, &amp;ds);</span>
+<span class="lineNum">     322 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (err != 0) {</span>
+<span class="lineNum">     323 </span>                :<span class="lineNoCov">          0 :                 dsl_pool_rele(dp, FTAG);</span>
+<span class="lineNum">     324 </span>                :<span class="lineNoCov">          0 :                 return (err);</span>
+<span class="lineNum">     325 </span>                :            :         }
+<span class="lineNum">     326 </span>                :            : 
+<span class="lineNum">     327 </span>                :<span class="lineNoCov">          0 :         err = dsl_get_bookmarks_impl(ds, props, outnvl);</span>
+<span class="lineNum">     328 </span>                :            : 
+<span class="lineNum">     329 </span>                :<span class="lineNoCov">          0 :         dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     330 </span>                :<span class="lineNoCov">          0 :         dsl_pool_rele(dp, FTAG);</span>
+<span class="lineNum">     331 </span>                :<span class="lineNoCov">          0 :         return (err);</span>
+<span class="lineNum">     332 </span>                :            : }
+<span class="lineNum">     333 </span>                :            : 
+<span class="lineNum">     334 </span>                :            : typedef struct dsl_bookmark_destroy_arg {
+<span class="lineNum">     335 </span>                :            :         nvlist_t *dbda_bmarks;
+<span class="lineNum">     336 </span>                :            :         nvlist_t *dbda_success;
+<span class="lineNum">     337 </span>                :            :         nvlist_t *dbda_errors;
+<span class="lineNum">     338 </span>                :            : } dsl_bookmark_destroy_arg_t;
+<a name="339"><span class="lineNum">     339 </span>                :            : </a>
+<span class="lineNum">     340 </span>                :            : static int
+<span class="lineNum">     341 </span>                :<span class="lineNoCov">          0 : dsl_dataset_bookmark_remove(dsl_dataset_t *ds, const char *name, dmu_tx_t *tx)</span>
+<span class="lineNum">     342 </span>                :            : {
+<span class="lineNum">     343 </span>                :<span class="lineNoCov">          0 :         objset_t *mos = ds-&gt;ds_dir-&gt;dd_pool-&gt;dp_meta_objset;</span>
+<span class="lineNum">     344 </span>                :<span class="lineNoCov">          0 :         uint64_t bmark_zapobj = ds-&gt;ds_bookmarks;</span>
+<span class="lineNum">     345 </span>                :<span class="lineNoCov">          0 :         matchtype_t mt = 0;</span>
+<span class="lineNum">     346 </span>                :            : 
+<span class="lineNum">     347 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (dsl_dataset_phys(ds)-&gt;ds_flags &amp; DS_FLAG_CI_DATASET)</span>
+<span class="lineNum">     348 </span>                :<span class="lineNoCov">          0 :                 mt = MT_NORMALIZE;</span>
+<span class="lineNum">     349 </span>                :            : 
+<span class="lineNum">     350 </span>                :<span class="lineNoCov">          0 :         return (zap_remove_norm(mos, bmark_zapobj, name, mt, tx));</span>
+<span class="lineNum">     351 </span>                :            : }
+<a name="352"><span class="lineNum">     352 </span>                :            : </a>
+<span class="lineNum">     353 </span>                :            : static int
+<span class="lineNum">     354 </span>                :<span class="lineNoCov">          0 : dsl_bookmark_destroy_check(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     355 </span>                :            : {
+<span class="lineNum">     356 </span>                :<span class="lineNoCov">          0 :         dsl_bookmark_destroy_arg_t *dbda = arg;</span>
+<span class="lineNum">     357 </span>                :<span class="lineNoCov">          0 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     358 </span>                :<span class="lineNoCov">          0 :         int rv = 0;</span>
+<span class="lineNum">     359 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     360 </span>                :            : 
+<span class="lineNum">     361 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(nvlist_empty(dbda-&gt;dbda_success));</span>
+<span class="lineNum">     362 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(nvlist_empty(dbda-&gt;dbda_errors));</span>
+<span class="lineNum">     363 </span>                :            : 
+<span class="lineNum">     364 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (!spa_feature_is_enabled(dp-&gt;dp_spa, SPA_FEATURE_BOOKMARKS))</span>
+<span class="lineNum">     365 </span>                :            :                 return (0);
+<span class="lineNum">     366 </span>                :            : 
+<span class="lineNum">     367 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (pair = nvlist_next_nvpair(dbda-&gt;dbda_bmarks, NULL);</span>
+<span class="lineNum">     368 </span>                :<span class="lineNoCov">          0 :             pair != NULL; pair = nvlist_next_nvpair(dbda-&gt;dbda_bmarks, pair)) {</span>
+<span class="lineNum">     369 </span>                :<span class="lineNoCov">          0 :                 const char *fullname = nvpair_name(pair);</span>
+<span class="lineNum">     370 </span>                :            :                 dsl_dataset_t *ds;
+<span class="lineNum">     371 </span>                :            :                 zfs_bookmark_phys_t bm;
+<span class="lineNum">     372 </span>                :            :                 int error;
+<span class="lineNum">     373 </span>                :            :                 char *shortname;
+<span class="lineNum">     374 </span>                :            : 
+<span class="lineNum">     375 </span>                :<span class="lineNoCov">          0 :                 error = dsl_bookmark_hold_ds(dp, fullname, &amp;ds,</span>
+<span class="lineNum">     376 </span>                :            :                     FTAG, &amp;shortname);
+<span class="lineNum">     377 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (error == ENOENT) {</span>
+<span class="lineNum">     378 </span>                :            :                         /* ignore it; the bookmark is &quot;already destroyed&quot; */
+<span class="lineNum">     379 </span>                :<span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     380 </span>                :            :                 }
+<span class="lineNum">     381 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (error == 0) {</span>
+<span class="lineNum">     382 </span>                :<span class="lineNoCov">          0 :                         error = dsl_dataset_bmark_lookup(ds, shortname, &amp;bm);</span>
+<span class="lineNum">     383 </span>                :<span class="lineNoCov">          0 :                         dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     384 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (error == ESRCH) {</span>
+<span class="lineNum">     385 </span>                :            :                                 /*
+<span class="lineNum">     386 </span>                :            :                                  * ignore it; the bookmark is
+<span class="lineNum">     387 </span>                :            :                                  * &quot;already destroyed&quot;
+<span class="lineNum">     388 </span>                :            :                                  */
+<span class="lineNum">     389 </span>                :<span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     390 </span>                :            :                         }
+<span class="lineNum">     391 </span>                :            :                 }
+<span class="lineNum">     392 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (error == 0) {</span>
+<span class="lineNum">     393 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (dmu_tx_is_syncing(tx)) {</span>
+<span class="lineNum">     394 </span>                :<span class="lineNoCov">          0 :                                 fnvlist_add_boolean(dbda-&gt;dbda_success,</span>
+<span class="lineNum">     395 </span>                :            :                                     fullname);
+<span class="lineNum">     396 </span>                :            :                         }
+<span class="lineNum">     397 </span>                :            :                 } else {
+<span class="lineNum">     398 </span>                :<span class="lineNoCov">          0 :                         fnvlist_add_int32(dbda-&gt;dbda_errors, fullname, error);</span>
+<span class="lineNum">     399 </span>                :<span class="lineNoCov">          0 :                         rv = error;</span>
+<span class="lineNum">     400 </span>                :            :                 }
+<span class="lineNum">     401 </span>                :            :         }
+<span class="lineNum">     402 </span>                :            :         return (rv);
+<span class="lineNum">     403 </span>                :            : }
+<a name="404"><span class="lineNum">     404 </span>                :            : </a>
+<span class="lineNum">     405 </span>                :            : static void
+<span class="lineNum">     406 </span>                :<span class="lineNoCov">          0 : dsl_bookmark_destroy_sync(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     407 </span>                :            : {
+<span class="lineNum">     408 </span>                :<span class="lineNoCov">          0 :         dsl_bookmark_destroy_arg_t *dbda = arg;</span>
+<span class="lineNum">     409 </span>                :<span class="lineNoCov">          0 :         dsl_pool_t *dp = dmu_tx_pool(tx);</span>
+<span class="lineNum">     410 </span>                :<span class="lineNoCov">          0 :         objset_t *mos = dp-&gt;dp_meta_objset;</span>
+<span class="lineNum">     411 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     412 </span>                :            : 
+<span class="lineNum">     413 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (pair = nvlist_next_nvpair(dbda-&gt;dbda_success, NULL);</span>
+<span class="lineNum">     414 </span>                :<span class="lineNoCov">          0 :             pair != NULL; pair = nvlist_next_nvpair(dbda-&gt;dbda_success, pair)) {</span>
+<span class="lineNum">     415 </span>                :            :                 dsl_dataset_t *ds;
+<span class="lineNum">     416 </span>                :            :                 char *shortname;
+<span class="lineNum">     417 </span>                :            :                 uint64_t zap_cnt;
+<span class="lineNum">     418 </span>                :            : 
+<span class="lineNum">     419 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY0(dsl_bookmark_hold_ds(dp, nvpair_name(pair),</span>
+<span class="lineNum">     420 </span>                :            :                     &amp;ds, FTAG, &amp;shortname));
+<span class="lineNum">     421 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY0(dsl_dataset_bookmark_remove(ds, shortname, tx));</span>
+<span class="lineNum">     422 </span>                :            : 
+<span class="lineNum">     423 </span>                :            :                 /*
+<span class="lineNum">     424 </span>                :            :                  * If all of this dataset's bookmarks have been destroyed,
+<span class="lineNum">     425 </span>                :            :                  * free the zap object and decrement the feature's use count.
+<span class="lineNum">     426 </span>                :            :                  */
+<span class="lineNum">     427 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY0(zap_count(mos, ds-&gt;ds_bookmarks,</span>
+<span class="lineNum">     428 </span>                :            :                     &amp;zap_cnt));
+<span class="lineNum">     429 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (zap_cnt == 0) {</span>
+<span class="lineNum">     430 </span>                :<span class="lineNoCov">          0 :                         dmu_buf_will_dirty(ds-&gt;ds_dbuf, tx);</span>
+<span class="lineNum">     431 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         VERIFY0(zap_destroy(mos, ds-&gt;ds_bookmarks, tx));</span>
+<span class="lineNum">     432 </span>                :<span class="lineNoCov">          0 :                         ds-&gt;ds_bookmarks = 0;</span>
+<span class="lineNum">     433 </span>                :<span class="lineNoCov">          0 :                         spa_feature_decr(dp-&gt;dp_spa, SPA_FEATURE_BOOKMARKS, tx);</span>
+<span class="lineNum">     434 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         VERIFY0(zap_remove(mos, ds-&gt;ds_object,</span>
+<span class="lineNum">     435 </span>                :            :                             DS_FIELD_BOOKMARK_NAMES, tx));
+<span class="lineNum">     436 </span>                :            :                 }
+<span class="lineNum">     437 </span>                :            : 
+<span class="lineNum">     438 </span>                :<span class="lineNoCov">          0 :                 spa_history_log_internal_ds(ds, &quot;remove bookmark&quot;, tx,</span>
+<span class="lineNum">     439 </span>                :            :                     &quot;name=%s&quot;, shortname);
+<span class="lineNum">     440 </span>                :            : 
+<span class="lineNum">     441 </span>                :<span class="lineNoCov">          0 :                 dsl_dataset_rele(ds, FTAG);</span>
+<span class="lineNum">     442 </span>                :            :         }
+<span class="lineNum">     443 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     444 </span>                :            : 
+<span class="lineNum">     445 </span>                :            : /*
+<span class="lineNum">     446 </span>                :            :  * The bookmarks must all be in the same pool.
+<a name="447"><span class="lineNum">     447 </span>                :            :  */</a>
+<span class="lineNum">     448 </span>                :            : int
+<span class="lineNum">     449 </span>                :<span class="lineNoCov">          0 : dsl_bookmark_destroy(nvlist_t *bmarks, nvlist_t *errors)</span>
+<span class="lineNum">     450 </span>                :            : {
+<span class="lineNum">     451 </span>                :            :         int rv;
+<span class="lineNum">     452 </span>                :            :         dsl_bookmark_destroy_arg_t dbda;
+<span class="lineNum">     453 </span>                :<span class="lineNoCov">          0 :         nvpair_t *pair = nvlist_next_nvpair(bmarks, NULL);</span>
+<span class="lineNum">     454 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (pair == NULL)</span>
+<span class="lineNum">     455 </span>                :            :                 return (0);
+<span class="lineNum">     456 </span>                :            : 
+<span class="lineNum">     457 </span>                :<span class="lineNoCov">          0 :         dbda.dbda_bmarks = bmarks;</span>
+<span class="lineNum">     458 </span>                :<span class="lineNoCov">          0 :         dbda.dbda_errors = errors;</span>
+<span class="lineNum">     459 </span>                :<span class="lineNoCov">          0 :         dbda.dbda_success = fnvlist_alloc();</span>
+<span class="lineNum">     460 </span>                :            : 
+<span class="lineNum">     461 </span>                :<span class="lineNoCov">          0 :         rv = dsl_sync_task(nvpair_name(pair), dsl_bookmark_destroy_check,</span>
+<span class="lineNum">     462 </span>                :<span class="lineNoCov">          0 :             dsl_bookmark_destroy_sync, &amp;dbda, fnvlist_num_pairs(bmarks),</span>
+<span class="lineNum">     463 </span>                :            :             ZFS_SPACE_CHECK_RESERVED);
+<span class="lineNum">     464 </span>                :<span class="lineNoCov">          0 :         fnvlist_free(dbda.dbda_success);</span>
+<span class="lineNum">     465 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     466 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

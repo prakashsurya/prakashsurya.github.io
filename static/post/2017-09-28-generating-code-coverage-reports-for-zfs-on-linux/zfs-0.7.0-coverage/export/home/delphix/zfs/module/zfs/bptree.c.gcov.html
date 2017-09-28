@@ -1,0 +1,400 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/bptree.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - bptree.c<span style="font-size: 80%;"> (source / <a href="bptree.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">85</td>
+            <td class="headerCovTableEntry">96</td>
+            <td class="headerCovTableEntryMed">88.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">50</td>
+            <td class="headerCovTableEntry">94</td>
+            <td class="headerCovTableEntryLo">53.2 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : /*
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2011, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : #include &lt;sys/arc.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/bptree.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/dmu.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/dmu_objset.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/dmu_tx.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/dmu_traverse.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/dsl_dataset.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/dsl_dir.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/dsl_pool.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/dnode.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;sys/refcount.h&gt;
+<span class="lineNum">      37 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      38 </span>                :            : 
+<span class="lineNum">      39 </span>                :            : /*
+<span class="lineNum">      40 </span>                :            :  * A bptree is a queue of root block pointers from destroyed datasets. When a
+<span class="lineNum">      41 </span>                :            :  * dataset is destroyed its root block pointer is put on the end of the pool's
+<span class="lineNum">      42 </span>                :            :  * bptree queue so the dataset's blocks can be freed asynchronously by
+<span class="lineNum">      43 </span>                :            :  * dsl_scan_sync. This allows the delete operation to finish without traversing
+<span class="lineNum">      44 </span>                :            :  * all the dataset's blocks.
+<span class="lineNum">      45 </span>                :            :  *
+<span class="lineNum">      46 </span>                :            :  * Note that while bt_begin and bt_end are only ever incremented in this code,
+<span class="lineNum">      47 </span>                :            :  * they are effectively reset to 0 every time the entire bptree is freed because
+<span class="lineNum">      48 </span>                :            :  * the bptree's object is destroyed and re-created.
+<span class="lineNum">      49 </span>                :            :  */
+<span class="lineNum">      50 </span>                :            : 
+<span class="lineNum">      51 </span>                :            : struct bptree_args {
+<span class="lineNum">      52 </span>                :            :         bptree_phys_t *ba_phys; /* data in bonus buffer, dirtied if freeing */
+<span class="lineNum">      53 </span>                :            :         boolean_t ba_free;      /* true if freeing during traversal */
+<span class="lineNum">      54 </span>                :            : 
+<span class="lineNum">      55 </span>                :            :         bptree_itor_t *ba_func; /* function to call for each blockpointer */
+<span class="lineNum">      56 </span>                :            :         void *ba_arg;           /* caller supplied argument to ba_func */
+<span class="lineNum">      57 </span>                :            :         dmu_tx_t *ba_tx;        /* caller supplied tx, NULL if not freeing */
+<span class="lineNum">      58 </span>                :            : } bptree_args_t;
+<a name="59"><span class="lineNum">      59 </span>                :            : </a>
+<span class="lineNum">      60 </span>                :            : uint64_t
+<span class="lineNum">      61 </span>                :<span class="lineCov">        108 : bptree_alloc(objset_t *os, dmu_tx_t *tx)</span>
+<span class="lineNum">      62 </span>                :            : {
+<span class="lineNum">      63 </span>                :            :         uint64_t obj;
+<span class="lineNum">      64 </span>                :            :         dmu_buf_t *db;
+<span class="lineNum">      65 </span>                :            :         bptree_phys_t *bt;
+<span class="lineNum">      66 </span>                :            : 
+<span class="lineNum">      67 </span>                :<span class="lineCov">        108 :         obj = dmu_object_alloc(os, DMU_OTN_UINT64_METADATA,</span>
+<span class="lineNum">      68 </span>                :            :             SPA_OLD_MAXBLOCKSIZE, DMU_OTN_UINT64_METADATA,
+<span class="lineNum">      69 </span>                :            :             sizeof (bptree_phys_t), tx);
+<span class="lineNum">      70 </span>                :            : 
+<span class="lineNum">      71 </span>                :            :         /*
+<span class="lineNum">      72 </span>                :            :          * Bonus buffer contents are already initialized to 0, but for
+<span class="lineNum">      73 </span>                :            :          * readability we make it explicit.
+<span class="lineNum">      74 </span>                :            :          */
+<span class="lineNum">      75 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 108 times"> + </span>]:<span class="lineCov">        108 :         VERIFY3U(0, ==, dmu_bonus_hold(os, obj, FTAG, &amp;db));</span>
+<span class="lineNum">      76 </span>                :<span class="lineCov">        108 :         dmu_buf_will_dirty(db, tx);</span>
+<span class="lineNum">      77 </span>                :<span class="lineCov">        108 :         bt = db-&gt;db_data;</span>
+<span class="lineNum">      78 </span>                :<span class="lineCov">        108 :         bt-&gt;bt_begin = 0;</span>
+<span class="lineNum">      79 </span>                :<span class="lineCov">        108 :         bt-&gt;bt_end = 0;</span>
+<span class="lineNum">      80 </span>                :<span class="lineCov">        108 :         bt-&gt;bt_bytes = 0;</span>
+<span class="lineNum">      81 </span>                :<span class="lineCov">        108 :         bt-&gt;bt_comp = 0;</span>
+<span class="lineNum">      82 </span>                :<span class="lineCov">        108 :         bt-&gt;bt_uncomp = 0;</span>
+<span class="lineNum">      83 </span>                :<span class="lineCov">        108 :         dmu_buf_rele(db, FTAG);</span>
+<span class="lineNum">      84 </span>                :            : 
+<span class="lineNum">      85 </span>                :<span class="lineCov">        108 :         return (obj);</span>
+<span class="lineNum">      86 </span>                :            : }
+<a name="87"><span class="lineNum">      87 </span>                :            : </a>
+<span class="lineNum">      88 </span>                :            : int
+<span class="lineNum">      89 </span>                :<span class="lineCov">        108 : bptree_free(objset_t *os, uint64_t obj, dmu_tx_t *tx)</span>
+<span class="lineNum">      90 </span>                :            : {
+<span class="lineNum">      91 </span>                :            :         dmu_buf_t *db;
+<span class="lineNum">      92 </span>                :            :         bptree_phys_t *bt;
+<span class="lineNum">      93 </span>                :            : 
+<span class="lineNum">      94 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 108 times"> + </span>]:<span class="lineCov">        108 :         VERIFY3U(0, ==, dmu_bonus_hold(os, obj, FTAG, &amp;db));</span>
+<span class="lineNum">      95 </span>                :<span class="lineCov">        108 :         bt = db-&gt;db_data;</span>
+<span class="lineNum">      96 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 108 times"> + </span>]:<span class="lineCov">        108 :         ASSERT3U(bt-&gt;bt_begin, ==, bt-&gt;bt_end);</span>
+<span class="lineNum">      97 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 108 times"> + </span>]:<span class="lineCov">        108 :         ASSERT0(bt-&gt;bt_bytes);</span>
+<span class="lineNum">      98 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 108 times"> + </span>]:<span class="lineCov">        108 :         ASSERT0(bt-&gt;bt_comp);</span>
+<span class="lineNum">      99 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 108 times"> + </span>]:<span class="lineCov">        108 :         ASSERT0(bt-&gt;bt_uncomp);</span>
+<span class="lineNum">     100 </span>                :<span class="lineCov">        108 :         dmu_buf_rele(db, FTAG);</span>
+<span class="lineNum">     101 </span>                :            : 
+<span class="lineNum">     102 </span>                :<span class="lineCov">        108 :         return (dmu_object_free(os, obj, tx));</span>
+<span class="lineNum">     103 </span>                :            : }
+<a name="104"><span class="lineNum">     104 </span>                :            : </a>
+<span class="lineNum">     105 </span>                :            : boolean_t
+<span class="lineNum">     106 </span>                :<span class="lineCov">        108 : bptree_is_empty(objset_t *os, uint64_t obj)</span>
+<span class="lineNum">     107 </span>                :            : {
+<span class="lineNum">     108 </span>                :            :         dmu_buf_t *db;
+<span class="lineNum">     109 </span>                :            :         bptree_phys_t *bt;
+<span class="lineNum">     110 </span>                :            :         boolean_t rv;
+<span class="lineNum">     111 </span>                :            : 
+<span class="lineNum">     112 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 108 times"> + </span>]:<span class="lineCov">        108 :         VERIFY0(dmu_bonus_hold(os, obj, FTAG, &amp;db));</span>
+<span class="lineNum">     113 </span>                :<span class="lineCov">        108 :         bt = db-&gt;db_data;</span>
+<span class="lineNum">     114 </span>                :<span class="lineCov">        108 :         rv = (bt-&gt;bt_begin == bt-&gt;bt_end);</span>
+<span class="lineNum">     115 </span>                :<span class="lineCov">        108 :         dmu_buf_rele(db, FTAG);</span>
+<span class="lineNum">     116 </span>                :<span class="lineCov">        108 :         return (rv);</span>
+<span class="lineNum">     117 </span>                :            : }
+<a name="118"><span class="lineNum">     118 </span>                :            : </a>
+<span class="lineNum">     119 </span>                :            : void
+<span class="lineNum">     120 </span>                :<span class="lineCov">        116 : bptree_add(objset_t *os, uint64_t obj, blkptr_t *bp, uint64_t birth_txg,</span>
+<span class="lineNum">     121 </span>                :            :     uint64_t bytes, uint64_t comp, uint64_t uncomp, dmu_tx_t *tx)
+<span class="lineNum">     122 </span>                :            : {
+<span class="lineNum">     123 </span>                :            :         dmu_buf_t *db;
+<span class="lineNum">     124 </span>                :            :         bptree_phys_t *bt;
+<span class="lineNum">     125 </span>                :            :         bptree_entry_phys_t *bte;
+<span class="lineNum">     126 </span>                :            : 
+<span class="lineNum">     127 </span>                :            :         /*
+<span class="lineNum">     128 </span>                :            :          * bptree objects are in the pool mos, therefore they can only be
+<span class="lineNum">     129 </span>                :            :          * modified in syncing context. Furthermore, this is only modified
+<span class="lineNum">     130 </span>                :            :          * by the sync thread, so no locking is necessary.
+<span class="lineNum">     131 </span>                :            :          */
+<span class="lineNum">     132 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         ASSERT(dmu_tx_is_syncing(tx));</span>
+<span class="lineNum">     133 </span>                :            : 
+<span class="lineNum">     134 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 116 times"> + </span>]:<span class="lineCov">        116 :         VERIFY3U(0, ==, dmu_bonus_hold(os, obj, FTAG, &amp;db));</span>
+<span class="lineNum">     135 </span>                :<span class="lineCov">        116 :         bt = db-&gt;db_data;</span>
+<span class="lineNum">     136 </span>                :            : 
+<span class="lineNum">     137 </span>                :<span class="lineCov">        116 :         bte = kmem_zalloc(sizeof (*bte), KM_SLEEP);</span>
+<span class="lineNum">     138 </span>                :<span class="lineCov">        116 :         bte-&gt;be_birth_txg = birth_txg;</span>
+<span class="lineNum">     139 </span>                :<span class="lineCov">        116 :         bte-&gt;be_bp = *bp;</span>
+<span class="lineNum">     140 </span>                :<span class="lineCov">        116 :         dmu_write(os, obj, bt-&gt;bt_end * sizeof (*bte), sizeof (*bte), bte, tx);</span>
+<span class="lineNum">     141 </span>                :<span class="lineCov">        116 :         kmem_free(bte, sizeof (*bte));</span>
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>                :<span class="lineCov">        116 :         dmu_buf_will_dirty(db, tx);</span>
+<span class="lineNum">     144 </span>                :<span class="lineCov">        116 :         bt-&gt;bt_end++;</span>
+<span class="lineNum">     145 </span>                :<span class="lineCov">        116 :         bt-&gt;bt_bytes += bytes;</span>
+<span class="lineNum">     146 </span>                :<span class="lineCov">        116 :         bt-&gt;bt_comp += comp;</span>
+<span class="lineNum">     147 </span>                :<span class="lineCov">        116 :         bt-&gt;bt_uncomp += uncomp;</span>
+<span class="lineNum">     148 </span>                :<span class="lineCov">        116 :         dmu_buf_rele(db, FTAG);</span>
+<span class="lineNum">     149 </span>                :<span class="lineCov">        116 : }</span>
+<span class="lineNum">     150 </span>                :            : 
+<a name="151"><span class="lineNum">     151 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     152 </span>                :            : static int
+<span class="lineNum">     153 </span>                :<span class="lineCov">     338766 : bptree_visit_cb(spa_t *spa, zilog_t *zilog, const blkptr_t *bp,</span>
+<span class="lineNum">     154 </span>                :            :     const zbookmark_phys_t *zb, const dnode_phys_t *dnp, void *arg)
+<span class="lineNum">     155 </span>                :            : {
+<span class="lineNum">     156 </span>                :            :         int err;
+<span class="lineNum">     157 </span>                :<span class="lineCov">     338766 :         struct bptree_args *ba = arg;</span>
+<span class="lineNum">     158 </span>                :            : 
+<span class="lineNum">     159 </span>[<span class="branchCov" title="Branch 0 was taken 336909 times"> + </span><span class="branchCov" title="Branch 1 was taken 1857 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 336834 times"> + </span><span class="branchCov" title="Branch 3 was taken 75 times"> + </span>]:<span class="lineCov">     338766 :         if (bp == NULL || BP_IS_HOLE(bp))</span>
+<span class="lineNum">         </span>[<span class="branchCov" title="Branch 4 was taken 335781 times"> + </span><span class="branchCov" title="Branch 5 was taken 1053 times"> + </span>][<span class="branchNoCov" title="Branch 6 was not taken"> - </span><span class="branchCov" title="Branch 7 was taken 335781 times"> + </span>]
+<span class="lineNum">     160 </span>                :            :                 return (0);
+<span class="lineNum">     161 </span>                :            : 
+<span class="lineNum">     162 </span>                :<span class="lineCov">       1128 :         err = ba-&gt;ba_func(ba-&gt;ba_arg, bp, ba-&gt;ba_tx);</span>
+<span class="lineNum">     163 </span>[<span class="branchCov" title="Branch 0 was taken 1128 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 1128 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">       1128 :         if (err == 0 &amp;&amp; ba-&gt;ba_free) {</span>
+<span class="lineNum">     164 </span>                :<span class="lineCov">       1128 :                 ba-&gt;ba_phys-&gt;bt_bytes -= bp_get_dsize_sync(spa, bp);</span>
+<span class="lineNum">     165 </span>        [<span class="branchCov" title="Branch 0 was taken 1053 times"> + </span><span class="branchCov" title="Branch 1 was taken 75 times"> + </span>]:<span class="lineCov">       1128 :                 ba-&gt;ba_phys-&gt;bt_comp -= BP_GET_PSIZE(bp);</span>
+<span class="lineNum">     166 </span>[<span class="branchCov" title="Branch 0 was taken 423 times"> + </span><span class="branchCov" title="Branch 1 was taken 705 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 423 times"> + </span>]:<span class="lineCov">       1128 :                 ba-&gt;ba_phys-&gt;bt_uncomp -= BP_GET_UCSIZE(bp);</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchCov" title="Branch 6 was taken 195 times"> + </span><span class="branchCov" title="Branch 7 was taken 228 times"> + </span>]
+<span class="lineNum">         </span>[<span class="branchCov" title="Branch 8 was taken 872 times"> + </span><span class="branchCov" title="Branch 9 was taken 28 times"> + </span>][<span class="branchCov" title="Branch 10 was taken 47 times"> + </span><span class="branchCov" title="Branch 11 was taken 181 times"> + </span>]
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 12 was taken 47 times"> + </span><span class="branchNoCov" title="Branch 13 was not taken"> - </span>]
+<span class="lineNum">     167 </span>                :            :         }
+<span class="lineNum">     168 </span>                :            :         return (err);
+<span class="lineNum">     169 </span>                :            : }
+<span class="lineNum">     170 </span>                :            : 
+<span class="lineNum">     171 </span>                :            : /*
+<span class="lineNum">     172 </span>                :            :  * If &quot;free&quot; is set:
+<span class="lineNum">     173 </span>                :            :  *  - It is assumed that &quot;func&quot; will be freeing the block pointers.
+<span class="lineNum">     174 </span>                :            :  *  - If &quot;func&quot; returns nonzero, the bookmark will be remembered and
+<span class="lineNum">     175 </span>                :            :  *    iteration will be restarted from this point on next invocation.
+<span class="lineNum">     176 </span>                :            :  *  - If an i/o error is encountered (e.g. &quot;func&quot; returns EIO or ECKSUM),
+<span class="lineNum">     177 </span>                :            :  *    bptree_iterate will remember the bookmark, continue traversing
+<span class="lineNum">     178 </span>                :            :  *    any additional entries, and return 0.
+<span class="lineNum">     179 </span>                :            :  *
+<span class="lineNum">     180 </span>                :            :  * If &quot;free&quot; is not set, traversal will stop and return an error if
+<span class="lineNum">     181 </span>                :            :  * an i/o error is encountered.
+<span class="lineNum">     182 </span>                :            :  *
+<span class="lineNum">     183 </span>                :            :  * In either case, if zfs_free_leak_on_eio is set, i/o errors will be
+<span class="lineNum">     184 </span>                :            :  * ignored and traversal will continue (i.e. TRAVERSE_HARD will be passed to
+<span class="lineNum">     185 </span>                :            :  * traverse_dataset_destroyed()).
+<a name="186"><span class="lineNum">     186 </span>                :            :  */</a>
+<span class="lineNum">     187 </span>                :            : int
+<span class="lineNum">     188 </span>                :<span class="lineCov">        108 : bptree_iterate(objset_t *os, uint64_t obj, boolean_t free, bptree_itor_t func,</span>
+<span class="lineNum">     189 </span>                :            :     void *arg, dmu_tx_t *tx)
+<span class="lineNum">     190 </span>                :            : {
+<span class="lineNum">     191 </span>                :<span class="lineCov">        108 :         boolean_t ioerr = B_FALSE;</span>
+<span class="lineNum">     192 </span>                :            :         int err;
+<span class="lineNum">     193 </span>                :            :         uint64_t i;
+<span class="lineNum">     194 </span>                :            :         dmu_buf_t *db;
+<span class="lineNum">     195 </span>                :            :         struct bptree_args ba;
+<span class="lineNum">     196 </span>                :            : 
+<span class="lineNum">     197 </span>[<span class="branchCov" title="Branch 0 was taken 108 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 108 times"> + </span>]:<span class="lineCov">        108 :         ASSERT(!free || dmu_tx_is_syncing(tx));</span>
+<span class="lineNum">     198 </span>                :            : 
+<span class="lineNum">     199 </span>                :<span class="lineCov">        108 :         err = dmu_bonus_hold(os, obj, FTAG, &amp;db);</span>
+<span class="lineNum">     200 </span>        [<span class="branchCov" title="Branch 0 was taken 108 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        108 :         if (err != 0)</span>
+<span class="lineNum">     201 </span>                :            :                 return (err);
+<span class="lineNum">     202 </span>                :            : 
+<span class="lineNum">     203 </span>        [<span class="branchCov" title="Branch 0 was taken 108 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        108 :         if (free)</span>
+<span class="lineNum">     204 </span>                :<span class="lineCov">        108 :                 dmu_buf_will_dirty(db, tx);</span>
+<span class="lineNum">     205 </span>                :            : 
+<span class="lineNum">     206 </span>                :<span class="lineCov">        108 :         ba.ba_phys = db-&gt;db_data;</span>
+<span class="lineNum">     207 </span>                :<span class="lineCov">        108 :         ba.ba_free = free;</span>
+<span class="lineNum">     208 </span>                :<span class="lineCov">        108 :         ba.ba_func = func;</span>
+<span class="lineNum">     209 </span>                :<span class="lineCov">        108 :         ba.ba_arg = arg;</span>
+<span class="lineNum">     210 </span>                :<span class="lineCov">        108 :         ba.ba_tx = tx;</span>
+<span class="lineNum">     211 </span>                :            : 
+<span class="lineNum">     212 </span>                :<span class="lineCov">        108 :         err = 0;</span>
+<span class="lineNum">     213 </span>        [<span class="branchCov" title="Branch 0 was taken 116 times"> + </span><span class="branchCov" title="Branch 1 was taken 108 times"> + </span>]:<span class="lineCov">        224 :         for (i = ba.ba_phys-&gt;bt_begin; i &lt; ba.ba_phys-&gt;bt_end; i++) {</span>
+<span class="lineNum">     214 </span>                :            :                 bptree_entry_phys_t bte;
+<span class="lineNum">     215 </span>                :<span class="lineCov">        116 :                 int flags = TRAVERSE_PREFETCH_METADATA | TRAVERSE_POST |</span>
+<span class="lineNum">     216 </span>                :            :                     TRAVERSE_NO_DECRYPT;
+<span class="lineNum">     217 </span>                :            : 
+<span class="lineNum">     218 </span>                :<span class="lineCov">        116 :                 err = dmu_read(os, obj, i * sizeof (bte), sizeof (bte),</span>
+<span class="lineNum">     219 </span>                :            :                     &amp;bte, DMU_READ_NO_PREFETCH);
+<span class="lineNum">     220 </span>        [<span class="branchCov" title="Branch 0 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        116 :                 if (err != 0)</span>
+<span class="lineNum">     221 </span>                :            :                         break;
+<span class="lineNum">     222 </span>                :            : 
+<span class="lineNum">     223 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 116 times"> + </span>]:<span class="lineCov">        116 :                 if (zfs_free_leak_on_eio)</span>
+<span class="lineNum">     224 </span>                :<span class="lineNoCov">          0 :                         flags |= TRAVERSE_HARD;</span>
+<span class="lineNum">     225 </span>                :<span class="lineCov">        116 :                 zfs_dbgmsg(&quot;bptree index %lld: traversing from min_txg=%lld &quot;</span>
+<span class="lineNum">     226 </span>                :            :                     &quot;bookmark %lld/%lld/%lld/%lld&quot;,
+<span class="lineNum">     227 </span>                :            :                     (longlong_t)i,
+<span class="lineNum">     228 </span>                :            :                     (longlong_t)bte.be_birth_txg,
+<span class="lineNum">     229 </span>                :            :                     (longlong_t)bte.be_zb.zb_objset,
+<span class="lineNum">     230 </span>                :            :                     (longlong_t)bte.be_zb.zb_object,
+<span class="lineNum">     231 </span>                :            :                     (longlong_t)bte.be_zb.zb_level,
+<span class="lineNum">     232 </span>                :            :                     (longlong_t)bte.be_zb.zb_blkid);
+<span class="lineNum">     233 </span>                :<span class="lineCov">        116 :                 err = traverse_dataset_destroyed(os-&gt;os_spa, &amp;bte.be_bp,</span>
+<span class="lineNum">     234 </span>                :            :                     bte.be_birth_txg, &amp;bte.be_zb, flags,
+<span class="lineNum">     235 </span>                :            :                     bptree_visit_cb, &amp;ba);
+<span class="lineNum">     236 </span>        [<span class="branchCov" title="Branch 0 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        116 :                 if (free) {</span>
+<span class="lineNum">     237 </span>                :            :                         /*
+<span class="lineNum">     238 </span>                :            :                          * The callback has freed the visited block pointers.
+<span class="lineNum">     239 </span>                :            :                          * Record our traversal progress on disk, either by
+<span class="lineNum">     240 </span>                :            :                          * updating this record's bookmark, or by logically
+<span class="lineNum">     241 </span>                :            :                          * removing this record by advancing bt_begin.
+<span class="lineNum">     242 </span>                :            :                          */
+<span class="lineNum">     243 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 116 times"> + </span>]:<span class="lineCov">        116 :                         if (err != 0) {</span>
+<span class="lineNum">     244 </span>                :            :                                 /* save bookmark for future resume */
+<span class="lineNum">     245 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 ASSERT3U(bte.be_zb.zb_objset, ==,</span>
+<span class="lineNum">     246 </span>                :            :                                     ZB_DESTROYED_OBJSET);
+<span class="lineNum">     247 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 ASSERT0(bte.be_zb.zb_level);</span>
+<span class="lineNum">     248 </span>                :<span class="lineNoCov">          0 :                                 dmu_write(os, obj, i * sizeof (bte),</span>
+<span class="lineNum">     249 </span>                :            :                                     sizeof (bte), &amp;bte, tx);
+<span class="lineNum">     250 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 if (err == EIO || err == ECKSUM ||</span>
+<span class="lineNum">     251 </span>                :            :                                     err == ENXIO) {
+<span class="lineNum">     252 </span>                :            :                                         /*
+<span class="lineNum">     253 </span>                :            :                                          * Skip the rest of this tree and
+<span class="lineNum">     254 </span>                :            :                                          * continue on to the next entry.
+<span class="lineNum">     255 </span>                :            :                                          */
+<span class="lineNum">     256 </span>                :            :                                         err = 0;
+<span class="lineNum">     257 </span>                :            :                                         ioerr = B_TRUE;
+<span class="lineNum">     258 </span>                :            :                                 } else {
+<span class="lineNum">     259 </span>                :            :                                         break;
+<span class="lineNum">     260 </span>                :            :                                 }
+<span class="lineNum">     261 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 116 times"> + </span>]:<span class="lineCov">        116 :                         } else if (ioerr) {</span>
+<span class="lineNum">     262 </span>                :            :                                 /*
+<span class="lineNum">     263 </span>                :            :                                  * This entry is finished, but there were
+<span class="lineNum">     264 </span>                :            :                                  * i/o errors on previous entries, so we
+<span class="lineNum">     265 </span>                :            :                                  * can't adjust bt_begin.  Set this entry's
+<span class="lineNum">     266 </span>                :            :                                  * be_birth_txg such that it will be
+<span class="lineNum">     267 </span>                :            :                                  * treated as a no-op in future traversals.
+<span class="lineNum">     268 </span>                :            :                                  */
+<span class="lineNum">     269 </span>                :<span class="lineNoCov">          0 :                                 bte.be_birth_txg = UINT64_MAX;</span>
+<span class="lineNum">     270 </span>                :<span class="lineNoCov">          0 :                                 dmu_write(os, obj, i * sizeof (bte),</span>
+<span class="lineNum">     271 </span>                :            :                                     sizeof (bte), &amp;bte, tx);
+<span class="lineNum">     272 </span>                :            :                         }
+<span class="lineNum">     273 </span>                :            : 
+<span class="lineNum">     274 </span>        [<span class="branchCov" title="Branch 0 was taken 116 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        116 :                         if (!ioerr) {</span>
+<span class="lineNum">     275 </span>                :<span class="lineCov">        116 :                                 ba.ba_phys-&gt;bt_begin++;</span>
+<span class="lineNum">     276 </span>                :<span class="lineCov">        116 :                                 (void) dmu_free_range(os, obj,</span>
+<span class="lineNum">     277 </span>                :            :                                     i * sizeof (bte), sizeof (bte), tx);
+<span class="lineNum">     278 </span>                :            :                         }
+<span class="lineNum">     279 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (err != 0) {</span>
+<span class="lineNum">     280 </span>                :            :                         break;
+<span class="lineNum">     281 </span>                :            :                 }
+<span class="lineNum">     282 </span>                :            :         }
+<span class="lineNum">     283 </span>                :            : 
+<span class="lineNum">     284 </span>[<span class="branchCov" title="Branch 0 was taken 108 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 108 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">        108 :         ASSERT(!free || err != 0 || ioerr ||</span>
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 108 times"> + </span>]
+<span class="lineNum">     285 </span>                :            :             ba.ba_phys-&gt;bt_begin == ba.ba_phys-&gt;bt_end);
+<span class="lineNum">     286 </span>                :            : 
+<span class="lineNum">     287 </span>                :            :         /* if all blocks are free there should be no used space */
+<span class="lineNum">     288 </span>        [<span class="branchCov" title="Branch 0 was taken 108 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        108 :         if (ba.ba_phys-&gt;bt_begin == ba.ba_phys-&gt;bt_end) {</span>
+<span class="lineNum">     289 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 108 times"> + </span>]:<span class="lineCov">        108 :                 if (zfs_free_leak_on_eio) {</span>
+<span class="lineNum">     290 </span>                :<span class="lineNoCov">          0 :                         ba.ba_phys-&gt;bt_bytes = 0;</span>
+<span class="lineNum">     291 </span>                :<span class="lineNoCov">          0 :                         ba.ba_phys-&gt;bt_comp = 0;</span>
+<span class="lineNum">     292 </span>                :<span class="lineNoCov">          0 :                         ba.ba_phys-&gt;bt_uncomp = 0;</span>
+<span class="lineNum">     293 </span>                :            :                 }
+<span class="lineNum">     294 </span>                :            : 
+<span class="lineNum">     295 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 108 times"> + </span>]:<span class="lineCov">        108 :                 ASSERT0(ba.ba_phys-&gt;bt_bytes);</span>
+<span class="lineNum">     296 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 108 times"> + </span>]:<span class="lineCov">        108 :                 ASSERT0(ba.ba_phys-&gt;bt_comp);</span>
+<span class="lineNum">     297 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 108 times"> + </span>]:<span class="lineCov">        108 :                 ASSERT0(ba.ba_phys-&gt;bt_uncomp);</span>
+<span class="lineNum">     298 </span>                :            :         }
+<span class="lineNum">     299 </span>                :            : 
+<span class="lineNum">     300 </span>                :<span class="lineCov">        108 :         dmu_buf_rele(db, FTAG);</span>
+<span class="lineNum">     301 </span>                :            : 
+<span class="lineNum">     302 </span>                :<span class="lineCov">        108 :         return (err);</span>
+<span class="lineNum">     303 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

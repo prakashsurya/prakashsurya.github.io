@@ -1,0 +1,745 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/vdev_raidz_math.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - vdev_raidz_math.c<span style="font-size: 80%;"> (source / <a href="vdev_raidz_math.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">115</td>
+            <td class="headerCovTableEntry">124</td>
+            <td class="headerCovTableEntryHi">92.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">80</td>
+            <td class="headerCovTableEntry">109</td>
+            <td class="headerCovTableEntryLo">73.4 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (C) 2016 Gvozden Nešković. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  */
+<span class="lineNum">      24 </span>                :            : 
+<span class="lineNum">      25 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      26 </span>                :            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/zio.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/debug.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/zfs_debug.h&gt;
+<span class="lineNum">      30 </span>                :            : 
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/vdev_raidz.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/vdev_raidz_impl.h&gt;
+<span class="lineNum">      33 </span>                :            : 
+<span class="lineNum">      34 </span>                :            : extern boolean_t raidz_will_scalar_work(void);
+<span class="lineNum">      35 </span>                :            : 
+<span class="lineNum">      36 </span>                :            : /* Opaque implementation with NULL methods to represent original methods */
+<span class="lineNum">      37 </span>                :            : static const raidz_impl_ops_t vdev_raidz_original_impl = {
+<span class="lineNum">      38 </span>                :            :         .name = &quot;original&quot;,
+<span class="lineNum">      39 </span>                :            :         .is_supported = raidz_will_scalar_work,
+<span class="lineNum">      40 </span>                :            : };
+<span class="lineNum">      41 </span>                :            : 
+<span class="lineNum">      42 </span>                :            : /* RAIDZ parity op that contain the fastest methods */
+<span class="lineNum">      43 </span>                :            : static raidz_impl_ops_t vdev_raidz_fastest_impl = {
+<span class="lineNum">      44 </span>                :            :         .name = &quot;fastest&quot;
+<span class="lineNum">      45 </span>                :            : };
+<span class="lineNum">      46 </span>                :            : 
+<span class="lineNum">      47 </span>                :            : /* All compiled in implementations */
+<span class="lineNum">      48 </span>                :            : const raidz_impl_ops_t *raidz_all_maths[] = {
+<span class="lineNum">      49 </span>                :            :         &amp;vdev_raidz_original_impl,
+<span class="lineNum">      50 </span>                :            :         &amp;vdev_raidz_scalar_impl,
+<span class="lineNum">      51 </span>                :            : #if defined(__x86_64) &amp;&amp; defined(HAVE_SSE2)     /* only x86_64 for now */
+<span class="lineNum">      52 </span>                :            :         &amp;vdev_raidz_sse2_impl,
+<span class="lineNum">      53 </span>                :            : #endif
+<span class="lineNum">      54 </span>                :            : #if defined(__x86_64) &amp;&amp; defined(HAVE_SSSE3)    /* only x86_64 for now */
+<span class="lineNum">      55 </span>                :            :         &amp;vdev_raidz_ssse3_impl,
+<span class="lineNum">      56 </span>                :            : #endif
+<span class="lineNum">      57 </span>                :            : #if defined(__x86_64) &amp;&amp; defined(HAVE_AVX2)     /* only x86_64 for now */
+<span class="lineNum">      58 </span>                :            :         &amp;vdev_raidz_avx2_impl,
+<span class="lineNum">      59 </span>                :            : #endif
+<span class="lineNum">      60 </span>                :            : #if defined(__x86_64) &amp;&amp; defined(HAVE_AVX512F)  /* only x86_64 for now */
+<span class="lineNum">      61 </span>                :            :         &amp;vdev_raidz_avx512f_impl,
+<span class="lineNum">      62 </span>                :            : #endif
+<span class="lineNum">      63 </span>                :            : #if defined(__x86_64) &amp;&amp; defined(HAVE_AVX512BW) /* only x86_64 for now */
+<span class="lineNum">      64 </span>                :            :         &amp;vdev_raidz_avx512bw_impl,
+<span class="lineNum">      65 </span>                :            : #endif
+<span class="lineNum">      66 </span>                :            : #if defined(__aarch64__)
+<span class="lineNum">      67 </span>                :            :         &amp;vdev_raidz_aarch64_neon_impl,
+<span class="lineNum">      68 </span>                :            :         &amp;vdev_raidz_aarch64_neonx2_impl,
+<span class="lineNum">      69 </span>                :            : #endif
+<span class="lineNum">      70 </span>                :            : };
+<span class="lineNum">      71 </span>                :            : 
+<span class="lineNum">      72 </span>                :            : /* Indicate that benchmark has been completed */
+<span class="lineNum">      73 </span>                :            : static boolean_t raidz_math_initialized = B_FALSE;
+<span class="lineNum">      74 </span>                :            : 
+<span class="lineNum">      75 </span>                :            : /* Select raidz implementation */
+<span class="lineNum">      76 </span>                :            : #define IMPL_FASTEST    (UINT32_MAX)
+<span class="lineNum">      77 </span>                :            : #define IMPL_CYCLE      (UINT32_MAX - 1)
+<span class="lineNum">      78 </span>                :            : #define IMPL_ORIGINAL   (0)
+<span class="lineNum">      79 </span>                :            : #define IMPL_SCALAR     (1)
+<span class="lineNum">      80 </span>                :            : 
+<span class="lineNum">      81 </span>                :            : #define RAIDZ_IMPL_READ(i)      (*(volatile uint32_t *) &amp;(i))
+<span class="lineNum">      82 </span>                :            : 
+<span class="lineNum">      83 </span>                :            : static uint32_t zfs_vdev_raidz_impl = IMPL_SCALAR;
+<span class="lineNum">      84 </span>                :            : static uint32_t user_sel_impl = IMPL_FASTEST;
+<span class="lineNum">      85 </span>                :            : 
+<span class="lineNum">      86 </span>                :            : /* Hold all supported implementations */
+<span class="lineNum">      87 </span>                :            : static size_t raidz_supp_impl_cnt = 0;
+<span class="lineNum">      88 </span>                :            : static raidz_impl_ops_t *raidz_supp_impl[ARRAY_SIZE(raidz_all_maths)];
+<span class="lineNum">      89 </span>                :            : 
+<span class="lineNum">      90 </span>                :            : /*
+<span class="lineNum">      91 </span>                :            :  * kstats values for supported implementations
+<span class="lineNum">      92 </span>                :            :  * Values represent per disk throughput of 8 disk+parity raidz vdev [B/s]
+<span class="lineNum">      93 </span>                :            :  */
+<span class="lineNum">      94 </span>                :            : static raidz_impl_kstat_t raidz_impl_kstats[ARRAY_SIZE(raidz_all_maths) + 1];
+<span class="lineNum">      95 </span>                :            : 
+<span class="lineNum">      96 </span>                :            : /* kstat for benchmarked implementations */
+<span class="lineNum">      97 </span>                :            : static kstat_t *raidz_math_kstat = NULL;
+<span class="lineNum">      98 </span>                :            : 
+<span class="lineNum">      99 </span>                :            : /*
+<span class="lineNum">     100 </span>                :            :  * Selects the raidz operation for raidz_map
+<span class="lineNum">     101 </span>                :            :  * If rm_ops is set to NULL original raidz implementation will be used
+<a name="102"><span class="lineNum">     102 </span>                :            :  */</a>
+<span class="lineNum">     103 </span>                :            : raidz_impl_ops_t *
+<span class="lineNum">     104 </span>                :<span class="lineCov">     678462 : vdev_raidz_math_get_ops()</span>
+<span class="lineNum">     105 </span>                :            : {
+<span class="lineNum">     106 </span>                :<span class="lineCov">     678462 :         raidz_impl_ops_t *ops = NULL;</span>
+<span class="lineNum">     107 </span>                :<span class="lineCov">     678462 :         const uint32_t impl = RAIDZ_IMPL_READ(zfs_vdev_raidz_impl);</span>
+<span class="lineNum">     108 </span>                :            : 
+<span class="lineNum">     109 </span>  [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 675724 times"> + </span><span class="branchCov" title="Branch 2 was taken 663 times"> + </span><span class="branchCov" title="Branch 3 was taken 1320 times"> + </span> :<span class="lineCov">     678462 :         switch (impl) {</span>
+<span class="lineNum">         </span>            <span class="branchCov" title="Branch 4 was taken 755 times"> + </span>]
+<span class="lineNum">     110 </span>                :            :         case IMPL_FASTEST:
+<span class="lineNum">     111 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(raidz_math_initialized);</span>
+<span class="lineNum">     112 </span>                :            :                 ops = &amp;vdev_raidz_fastest_impl;
+<span class="lineNum">     113 </span>                :            :                 break;
+<span class="lineNum">     114 </span>                :            : #if !defined(_KERNEL)
+<span class="lineNum">     115 </span>                :            :         case IMPL_CYCLE:
+<span class="lineNum">     116 </span>                :            :         {
+<span class="lineNum">     117 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 675724 times"> + </span>]:<span class="lineCov">     675724 :                 ASSERT(raidz_math_initialized);</span>
+<span class="lineNum">     118 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 675724 times"> + </span>]:<span class="lineCov">     675724 :                 ASSERT3U(raidz_supp_impl_cnt, &gt;, 0);</span>
+<span class="lineNum">     119 </span>                :            :                 /* Cycle through all supported implementations */
+<span class="lineNum">     120 </span>                :            :                 static size_t cycle_impl_idx = 0;
+<span class="lineNum">     121 </span>                :<span class="lineCov">     675724 :                 size_t idx = (++cycle_impl_idx) % raidz_supp_impl_cnt;</span>
+<span class="lineNum">     122 </span>                :<span class="lineCov">     675724 :                 ops = raidz_supp_impl[idx];</span>
+<span class="lineNum">     123 </span>                :            :         }
+<span class="lineNum">     124 </span>                :<span class="lineCov">     675724 :         break;</span>
+<span class="lineNum">     125 </span>                :            : #endif
+<span class="lineNum">     126 </span>                :            :         case IMPL_ORIGINAL:
+<span class="lineNum">     127 </span>                :            :                 ops = (raidz_impl_ops_t *)&amp;vdev_raidz_original_impl;
+<span class="lineNum">     128 </span>                :            :                 break;
+<span class="lineNum">     129 </span>                :            :         case IMPL_SCALAR:
+<span class="lineNum">     130 </span>                :<span class="lineCov">        663 :                 ops = (raidz_impl_ops_t *)&amp;vdev_raidz_scalar_impl;</span>
+<span class="lineNum">     131 </span>                :<span class="lineCov">        663 :                 break;</span>
+<span class="lineNum">     132 </span>                :            :         default:
+<span class="lineNum">     133 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1320 times"> + </span>]:<span class="lineCov">       1320 :                 ASSERT3U(impl, &lt;, raidz_supp_impl_cnt);</span>
+<span class="lineNum">     134 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1320 times"> + </span>]:<span class="lineCov">       1320 :                 ASSERT3U(raidz_supp_impl_cnt, &gt;, 0);</span>
+<span class="lineNum">     135 </span>                :<span class="lineCov">       1320 :                 ops = raidz_supp_impl[impl];</span>
+<span class="lineNum">     136 </span>                :<span class="lineCov">       1320 :                 break;</span>
+<span class="lineNum">     137 </span>                :            :         }
+<span class="lineNum">     138 </span>                :            : 
+<span class="lineNum">     139 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 678462 times"> + </span>]:<span class="lineCov">     678462 :         ASSERT3P(ops, !=, NULL);</span>
+<span class="lineNum">     140 </span>                :            : 
+<span class="lineNum">     141 </span>                :<span class="lineCov">     678462 :         return (ops);</span>
+<span class="lineNum">     142 </span>                :            : }
+<span class="lineNum">     143 </span>                :            : 
+<span class="lineNum">     144 </span>                :            : /*
+<span class="lineNum">     145 </span>                :            :  * Select parity generation method for raidz_map
+<a name="146"><span class="lineNum">     146 </span>                :            :  */</a>
+<span class="lineNum">     147 </span>                :            : int
+<span class="lineNum">     148 </span>                :<span class="lineCov">     583368 : vdev_raidz_math_generate(raidz_map_t *rm)</span>
+<span class="lineNum">     149 </span>                :            : {
+<span class="lineNum">     150 </span>                :<span class="lineCov">     583368 :         raidz_gen_f gen_parity = NULL;</span>
+<span class="lineNum">     151 </span>                :            : 
+<span class="lineNum">     152 </span>  [<span class="branchCov" title="Branch 0 was taken 257213 times"> + </span><span class="branchCov" title="Branch 1 was taken 285560 times"> + </span><span class="branchCov" title="Branch 2 was taken 40595 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">     583368 :         switch (raidz_parity(rm)) {</span>
+<span class="lineNum">     153 </span>                :            :                 case 1:
+<span class="lineNum">     154 </span>                :<span class="lineCov">     257213 :                         gen_parity = rm-&gt;rm_ops-&gt;gen[RAIDZ_GEN_P];</span>
+<span class="lineNum">     155 </span>                :<span class="lineCov">     257213 :                         break;</span>
+<span class="lineNum">     156 </span>                :            :                 case 2:
+<span class="lineNum">     157 </span>                :<span class="lineCov">     285560 :                         gen_parity = rm-&gt;rm_ops-&gt;gen[RAIDZ_GEN_PQ];</span>
+<span class="lineNum">     158 </span>                :<span class="lineCov">     285560 :                         break;</span>
+<span class="lineNum">     159 </span>                :            :                 case 3:
+<span class="lineNum">     160 </span>                :<span class="lineCov">      40595 :                         gen_parity = rm-&gt;rm_ops-&gt;gen[RAIDZ_GEN_PQR];</span>
+<span class="lineNum">     161 </span>                :<span class="lineCov">      40595 :                         break;</span>
+<span class="lineNum">     162 </span>                :            :                 default:
+<span class="lineNum">     163 </span>                :<span class="lineNoCov">          0 :                         gen_parity = NULL;</span>
+<span class="lineNum">     164 </span>                :<span class="lineNoCov">          0 :                         cmn_err(CE_PANIC, &quot;invalid RAID-Z configuration %d&quot;,</span>
+<span class="lineNum">     165 </span>                :            :                             raidz_parity(rm));
+<span class="lineNum">     166 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     167 </span>                :            :         }
+<span class="lineNum">     168 </span>                :            : 
+<span class="lineNum">     169 </span>                :            :         /* if method is NULL execute the original implementation */
+<span class="lineNum">     170 </span>        [<span class="branchCov" title="Branch 0 was taken 437499 times"> + </span><span class="branchCov" title="Branch 1 was taken 145869 times"> + </span>]:<span class="lineCov">     583368 :         if (gen_parity == NULL)</span>
+<span class="lineNum">     171 </span>                :            :                 return (RAIDZ_ORIGINAL_IMPL);
+<span class="lineNum">     172 </span>                :            : 
+<span class="lineNum">     173 </span>                :<span class="lineCov">     437499 :         gen_parity(rm);</span>
+<span class="lineNum">     174 </span>                :            : 
+<span class="lineNum">     175 </span>                :<span class="lineCov">     437490 :         return (0);</span>
+<span class="lineNum">     176 </span>                :            : }
+<a name="177"><span class="lineNum">     177 </span>                :            : </a>
+<span class="lineNum">     178 </span>                :            : static raidz_rec_f
+<span class="lineNum">     179 </span>                :<span class="lineCov">      32548 : reconstruct_fun_p_sel(raidz_map_t *rm, const int *parity_valid,</span>
+<span class="lineNum">     180 </span>                :            :     const int nbaddata)
+<span class="lineNum">     181 </span>                :            : {
+<span class="lineNum">     182 </span>[<span class="branchCov" title="Branch 0 was taken 16274 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 16274 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">      16274 :         if (nbaddata == 1 &amp;&amp; parity_valid[CODE_P]) {</span>
+<span class="lineNum">     183 </span>                :<span class="lineCov">      16274 :                 return (rm-&gt;rm_ops-&gt;rec[RAIDZ_REC_P]);</span>
+<span class="lineNum">     184 </span>                :            :         }
+<span class="lineNum">     185 </span>                :            :         return ((raidz_rec_f) NULL);
+<span class="lineNum">     186 </span>                :            : }
+<a name="187"><span class="lineNum">     187 </span>                :            : </a>
+<span class="lineNum">     188 </span>                :            : static raidz_rec_f
+<span class="lineNum">     189 </span>                :<span class="lineCov">      73598 : reconstruct_fun_pq_sel(raidz_map_t *rm, const int *parity_valid,</span>
+<span class="lineNum">     190 </span>                :            :     const int nbaddata)
+<span class="lineNum">     191 </span>                :            : {
+<span class="lineNum">     192 </span>        [<span class="branchCov" title="Branch 0 was taken 33612 times"> + </span><span class="branchCov" title="Branch 1 was taken 3187 times"> + </span>]:<span class="lineCov">      36799 :         if (nbaddata == 1) {</span>
+<span class="lineNum">     193 </span>        [<span class="branchCov" title="Branch 0 was taken 23101 times"> + </span><span class="branchCov" title="Branch 1 was taken 10511 times"> + </span>]:<span class="lineCov">      33612 :                 if (parity_valid[CODE_P]) {</span>
+<span class="lineNum">     194 </span>                :<span class="lineCov">      23101 :                         return (rm-&gt;rm_ops-&gt;rec[RAIDZ_REC_P]);</span>
+<span class="lineNum">     195 </span>        [<span class="branchCov" title="Branch 0 was taken 10511 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      10511 :                 } else if (parity_valid[CODE_Q]) {</span>
+<span class="lineNum">     196 </span>                :<span class="lineCov">      10511 :                         return (rm-&gt;rm_ops-&gt;rec[RAIDZ_REC_Q]);</span>
+<span class="lineNum">     197 </span>                :            :                 }
+<span class="lineNum">     198 </span>[<span class="branchCov" title="Branch 0 was taken 3187 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 3187 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">       3187 :         } else if (nbaddata == 2 &amp;&amp;</span>
+<span class="lineNum">     199 </span>        [<span class="branchCov" title="Branch 0 was taken 3187 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       3187 :             parity_valid[CODE_P] &amp;&amp; parity_valid[CODE_Q]) {</span>
+<span class="lineNum">     200 </span>                :<span class="lineCov">       3187 :                 return (rm-&gt;rm_ops-&gt;rec[RAIDZ_REC_PQ]);</span>
+<span class="lineNum">     201 </span>                :            :         }
+<span class="lineNum">     202 </span>                :            :         return ((raidz_rec_f) NULL);
+<span class="lineNum">     203 </span>                :            : }
+<a name="204"><span class="lineNum">     204 </span>                :            : </a>
+<span class="lineNum">     205 </span>                :            : static raidz_rec_f
+<span class="lineNum">     206 </span>                :<span class="lineCov">     230244 : reconstruct_fun_pqr_sel(raidz_map_t *rm, const int *parity_valid,</span>
+<span class="lineNum">     207 </span>                :            :     const int nbaddata)
+<span class="lineNum">     208 </span>                :            : {
+<span class="lineNum">     209 </span>        [<span class="branchCov" title="Branch 0 was taken 27199 times"> + </span><span class="branchCov" title="Branch 1 was taken 87923 times"> + </span>]:<span class="lineCov">     115122 :         if (nbaddata == 1) {</span>
+<span class="lineNum">     210 </span>        [<span class="branchCov" title="Branch 0 was taken 13795 times"> + </span><span class="branchCov" title="Branch 1 was taken 13404 times"> + </span>]:<span class="lineCov">      27199 :                 if (parity_valid[CODE_P]) {</span>
+<span class="lineNum">     211 </span>                :<span class="lineCov">      13795 :                         return (rm-&gt;rm_ops-&gt;rec[RAIDZ_REC_P]);</span>
+<span class="lineNum">     212 </span>        [<span class="branchCov" title="Branch 0 was taken 7950 times"> + </span><span class="branchCov" title="Branch 1 was taken 5454 times"> + </span>]:<span class="lineCov">      13404 :                 } else if (parity_valid[CODE_Q]) {</span>
+<span class="lineNum">     213 </span>                :<span class="lineCov">       7950 :                         return (rm-&gt;rm_ops-&gt;rec[RAIDZ_REC_Q]);</span>
+<span class="lineNum">     214 </span>        [<span class="branchCov" title="Branch 0 was taken 5454 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       5454 :                 } else if (parity_valid[CODE_R]) {</span>
+<span class="lineNum">     215 </span>                :<span class="lineCov">       5454 :                         return (rm-&gt;rm_ops-&gt;rec[RAIDZ_REC_R]);</span>
+<span class="lineNum">     216 </span>                :            :                 }
+<span class="lineNum">     217 </span>        [<span class="branchCov" title="Branch 0 was taken 42293 times"> + </span><span class="branchCov" title="Branch 1 was taken 45630 times"> + </span>]:<span class="lineCov">      87923 :         } else if (nbaddata == 2) {</span>
+<span class="lineNum">     218 </span>[<span class="branchCov" title="Branch 0 was taken 28524 times"> + </span><span class="branchCov" title="Branch 1 was taken 13769 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 14754 times"> + </span><span class="branchCov" title="Branch 3 was taken 13770 times"> + </span>]:<span class="lineCov">      42293 :                 if (parity_valid[CODE_P] &amp;&amp; parity_valid[CODE_Q]) {</span>
+<span class="lineNum">     219 </span>                :<span class="lineCov">      14754 :                         return (rm-&gt;rm_ops-&gt;rec[RAIDZ_REC_PQ]);</span>
+<span class="lineNum">     220 </span>[<span class="branchCov" title="Branch 0 was taken 13770 times"> + </span><span class="branchCov" title="Branch 1 was taken 13769 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 13770 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">      27539 :                 } else if (parity_valid[CODE_P] &amp;&amp; parity_valid[CODE_R]) {</span>
+<span class="lineNum">     221 </span>                :<span class="lineCov">      13770 :                         return (rm-&gt;rm_ops-&gt;rec[RAIDZ_REC_PR]);</span>
+<span class="lineNum">     222 </span>   [<span class="branchCov" title="Branch 0 was taken 13770 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 13770 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">      13769 :                 } else if (parity_valid[CODE_Q] &amp;&amp; parity_valid[CODE_R]) {</span>
+<span class="lineNum">     223 </span>                :<span class="lineCov">      13770 :                         return (rm-&gt;rm_ops-&gt;rec[RAIDZ_REC_QR]);</span>
+<span class="lineNum">     224 </span>                :            :                 }
+<span class="lineNum">     225 </span>   [<span class="branchCov" title="Branch 0 was taken 45630 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 45631 times"> + </span>]:<span class="lineCov">      45630 :         } else if (nbaddata == 3 &amp;&amp;</span>
+<span class="lineNum">     226 </span>[<span class="branchCov" title="Branch 0 was taken 45631 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 45629 times"> + </span><span class="branchCov" title="Branch 3 was taken 2 times"> + </span>]:<span class="lineCov">      45631 :             parity_valid[CODE_P] &amp;&amp; parity_valid[CODE_Q] &amp;&amp;</span>
+<span class="lineNum">     227 </span>                :<span class="lineCov">      45631 :             parity_valid[CODE_R]) {</span>
+<span class="lineNum">     228 </span>                :<span class="lineCov">      45629 :                 return (rm-&gt;rm_ops-&gt;rec[RAIDZ_REC_PQR]);</span>
+<span class="lineNum">     229 </span>                :            :         }
+<span class="lineNum">     230 </span>                :            :         return ((raidz_rec_f) NULL);
+<span class="lineNum">     231 </span>                :            : }
+<span class="lineNum">     232 </span>                :            : 
+<span class="lineNum">     233 </span>                :            : /*
+<span class="lineNum">     234 </span>                :            :  * Select data reconstruction method for raidz_map
+<span class="lineNum">     235 </span>                :            :  * @parity_valid - Parity validity flag
+<span class="lineNum">     236 </span>                :            :  * @dt           - Failed data index array
+<span class="lineNum">     237 </span>                :            :  * @nbaddata     - Number of failed data columns
+<a name="238"><span class="lineNum">     238 </span>                :            :  */</a>
+<span class="lineNum">     239 </span>                :            : int
+<span class="lineNum">     240 </span>                :<span class="lineCov">     168183 : vdev_raidz_math_reconstruct(raidz_map_t *rm, const int *parity_valid,</span>
+<span class="lineNum">     241 </span>                :            :     const int *dt, const int nbaddata)
+<span class="lineNum">     242 </span>                :            : {
+<span class="lineNum">     243 </span>                :<span class="lineCov">     168183 :         raidz_rec_f rec_fn = NULL;</span>
+<span class="lineNum">     244 </span>                :            : 
+<span class="lineNum">     245 </span>  [<span class="branchCov" title="Branch 0 was taken 16274 times"> + </span><span class="branchCov" title="Branch 1 was taken 36793 times"> + </span><span class="branchCov" title="Branch 2 was taken 115116 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">     168183 :         switch (raidz_parity(rm)) {</span>
+<span class="lineNum">     246 </span>                :            :         case PARITY_P:
+<span class="lineNum">     247 </span>                :<span class="lineCov">      16274 :                 rec_fn = reconstruct_fun_p_sel(rm, parity_valid, nbaddata);</span>
+<span class="lineNum">     248 </span>                :<span class="lineCov">      16270 :                 break;</span>
+<span class="lineNum">     249 </span>                :            :         case PARITY_PQ:
+<span class="lineNum">     250 </span>                :<span class="lineCov">      36793 :                 rec_fn = reconstruct_fun_pq_sel(rm, parity_valid, nbaddata);</span>
+<span class="lineNum">     251 </span>                :<span class="lineCov">      36795 :                 break;</span>
+<span class="lineNum">     252 </span>                :            :         case PARITY_PQR:
+<span class="lineNum">     253 </span>                :<span class="lineCov">     115116 :                 rec_fn = reconstruct_fun_pqr_sel(rm, parity_valid, nbaddata);</span>
+<span class="lineNum">     254 </span>                :<span class="lineCov">     115116 :                 break;</span>
+<span class="lineNum">     255 </span>                :            :         default:
+<span class="lineNum">     256 </span>                :<span class="lineNoCov">          0 :                 cmn_err(CE_PANIC, &quot;invalid RAID-Z configuration %d&quot;,</span>
+<span class="lineNum">     257 </span>                :            :                     raidz_parity(rm));
+<span class="lineNum">     258 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     259 </span>                :            :         }
+<span class="lineNum">     260 </span>                :            : 
+<span class="lineNum">     261 </span>        [<span class="branchCov" title="Branch 0 was taken 148996 times"> + </span><span class="branchCov" title="Branch 1 was taken 19185 times"> + </span>]:<span class="lineCov">     168181 :         if (rec_fn == NULL)</span>
+<span class="lineNum">     262 </span>                :            :                 return (RAIDZ_ORIGINAL_IMPL);
+<span class="lineNum">     263 </span>                :            :         else
+<span class="lineNum">     264 </span>                :<span class="lineCov">     148996 :                 return (rec_fn(rm, dt));</span>
+<span class="lineNum">     265 </span>                :            : }
+<span class="lineNum">     266 </span>                :            : 
+<span class="lineNum">     267 </span>                :            : const char *raidz_gen_name[] = {
+<span class="lineNum">     268 </span>                :            :         &quot;gen_p&quot;, &quot;gen_pq&quot;, &quot;gen_pqr&quot;
+<span class="lineNum">     269 </span>                :            : };
+<span class="lineNum">     270 </span>                :            : const char *raidz_rec_name[] = {
+<span class="lineNum">     271 </span>                :            :         &quot;rec_p&quot;, &quot;rec_q&quot;, &quot;rec_r&quot;,
+<span class="lineNum">     272 </span>                :            :         &quot;rec_pq&quot;, &quot;rec_pr&quot;, &quot;rec_qr&quot;, &quot;rec_pqr&quot;
+<span class="lineNum">     273 </span>                :            : };
+<span class="lineNum">     274 </span>                :            : 
+<span class="lineNum">     275 </span>                :            : #define RAIDZ_KSTAT_LINE_LEN    (17 + 10*12 + 1)
+<span class="lineNum">     276 </span>                :            : 
+<span class="lineNum">     277 </span>                :            : static int
+<span class="lineNum">     278 </span>                :            : raidz_math_kstat_headers(char *buf, size_t size)
+<span class="lineNum">     279 </span>                :            : {
+<span class="lineNum">     280 </span>                :            :         int i;
+<span class="lineNum">     281 </span>                :            :         ssize_t off;
+<span class="lineNum">     282 </span>                :            : 
+<span class="lineNum">     283 </span>                :            :         ASSERT3U(size, &gt;=, RAIDZ_KSTAT_LINE_LEN);
+<span class="lineNum">     284 </span>                :            : 
+<span class="lineNum">     285 </span>                :            :         off = snprintf(buf, size, &quot;%-17s&quot;, &quot;implementation&quot;);
+<span class="lineNum">     286 </span>                :            : 
+<span class="lineNum">     287 </span>                :            :         for (i = 0; i &lt; ARRAY_SIZE(raidz_gen_name); i++)
+<span class="lineNum">     288 </span>                :            :                 off += snprintf(buf + off, size - off, &quot;%-16s&quot;,
+<span class="lineNum">     289 </span>                :            :                     raidz_gen_name[i]);
+<span class="lineNum">     290 </span>                :            : 
+<span class="lineNum">     291 </span>                :            :         for (i = 0; i &lt; ARRAY_SIZE(raidz_rec_name); i++)
+<span class="lineNum">     292 </span>                :            :                 off += snprintf(buf + off, size - off, &quot;%-16s&quot;,
+<span class="lineNum">     293 </span>                :            :                     raidz_rec_name[i]);
+<span class="lineNum">     294 </span>                :            : 
+<span class="lineNum">     295 </span>                :            :         (void) snprintf(buf + off, size - off, &quot;\n&quot;);
+<span class="lineNum">     296 </span>                :            : 
+<span class="lineNum">     297 </span>                :            :         return (0);
+<span class="lineNum">     298 </span>                :            : }
+<span class="lineNum">     299 </span>                :            : 
+<span class="lineNum">     300 </span>                :            : static int
+<span class="lineNum">     301 </span>                :            : raidz_math_kstat_data(char *buf, size_t size, void *data)
+<span class="lineNum">     302 </span>                :            : {
+<span class="lineNum">     303 </span>                :            :         raidz_impl_kstat_t *fstat = &amp;raidz_impl_kstats[raidz_supp_impl_cnt];
+<span class="lineNum">     304 </span>                :            :         raidz_impl_kstat_t *cstat = (raidz_impl_kstat_t *)data;
+<span class="lineNum">     305 </span>                :            :         ssize_t off = 0;
+<span class="lineNum">     306 </span>                :            :         int i;
+<span class="lineNum">     307 </span>                :            : 
+<span class="lineNum">     308 </span>                :            :         ASSERT3U(size, &gt;=, RAIDZ_KSTAT_LINE_LEN);
+<span class="lineNum">     309 </span>                :            : 
+<span class="lineNum">     310 </span>                :            :         if (cstat == fstat) {
+<span class="lineNum">     311 </span>                :            :                 off += snprintf(buf + off, size - off, &quot;%-17s&quot;, &quot;fastest&quot;);
+<span class="lineNum">     312 </span>                :            : 
+<span class="lineNum">     313 </span>                :            :                 for (i = 0; i &lt; ARRAY_SIZE(raidz_gen_name); i++) {
+<span class="lineNum">     314 </span>                :            :                         int id = fstat-&gt;gen[i];
+<span class="lineNum">     315 </span>                :            :                         off += snprintf(buf + off, size - off, &quot;%-16s&quot;,
+<span class="lineNum">     316 </span>                :            :                             raidz_supp_impl[id]-&gt;name);
+<span class="lineNum">     317 </span>                :            :                 }
+<span class="lineNum">     318 </span>                :            :                 for (i = 0; i &lt; ARRAY_SIZE(raidz_rec_name); i++) {
+<span class="lineNum">     319 </span>                :            :                         int id = fstat-&gt;rec[i];
+<span class="lineNum">     320 </span>                :            :                         off += snprintf(buf + off, size - off, &quot;%-16s&quot;,
+<span class="lineNum">     321 </span>                :            :                             raidz_supp_impl[id]-&gt;name);
+<span class="lineNum">     322 </span>                :            :                 }
+<span class="lineNum">     323 </span>                :            :         } else {
+<span class="lineNum">     324 </span>                :            :                 ptrdiff_t id = cstat - raidz_impl_kstats;
+<span class="lineNum">     325 </span>                :            : 
+<span class="lineNum">     326 </span>                :            :                 off += snprintf(buf + off, size - off, &quot;%-17s&quot;,
+<span class="lineNum">     327 </span>                :            :                     raidz_supp_impl[id]-&gt;name);
+<span class="lineNum">     328 </span>                :            : 
+<span class="lineNum">     329 </span>                :            :                 for (i = 0; i &lt; ARRAY_SIZE(raidz_gen_name); i++)
+<span class="lineNum">     330 </span>                :            :                         off += snprintf(buf + off, size - off, &quot;%-16llu&quot;,
+<span class="lineNum">     331 </span>                :            :                             (u_longlong_t)cstat-&gt;gen[i]);
+<span class="lineNum">     332 </span>                :            : 
+<span class="lineNum">     333 </span>                :            :                 for (i = 0; i &lt; ARRAY_SIZE(raidz_rec_name); i++)
+<span class="lineNum">     334 </span>                :            :                         off += snprintf(buf + off, size - off, &quot;%-16llu&quot;,
+<span class="lineNum">     335 </span>                :            :                             (u_longlong_t)cstat-&gt;rec[i]);
+<span class="lineNum">     336 </span>                :            :         }
+<span class="lineNum">     337 </span>                :            : 
+<span class="lineNum">     338 </span>                :            :         (void) snprintf(buf + off, size - off, &quot;\n&quot;);
+<span class="lineNum">     339 </span>                :            : 
+<span class="lineNum">     340 </span>                :            :         return (0);
+<span class="lineNum">     341 </span>                :            : }
+<span class="lineNum">     342 </span>                :            : 
+<span class="lineNum">     343 </span>                :            : static void *
+<span class="lineNum">     344 </span>                :            : raidz_math_kstat_addr(kstat_t *ksp, loff_t n)
+<span class="lineNum">     345 </span>                :            : {
+<span class="lineNum">     346 </span>                :            :         if (n &lt;= raidz_supp_impl_cnt)
+<span class="lineNum">     347 </span>                :            :                 ksp-&gt;ks_private = (void *) (raidz_impl_kstats + n);
+<span class="lineNum">     348 </span>                :            :         else
+<span class="lineNum">     349 </span>                :            :                 ksp-&gt;ks_private = NULL;
+<span class="lineNum">     350 </span>                :            : 
+<span class="lineNum">     351 </span>                :            :         return (ksp-&gt;ks_private);
+<span class="lineNum">     352 </span>                :            : }
+<span class="lineNum">     353 </span>                :            : 
+<span class="lineNum">     354 </span>                :            : #define BENCH_D_COLS    (8ULL)
+<span class="lineNum">     355 </span>                :            : #define BENCH_COLS      (BENCH_D_COLS + PARITY_PQR)
+<span class="lineNum">     356 </span>                :            : #define BENCH_ZIO_SIZE  (1ULL &lt;&lt; SPA_OLD_MAXBLOCKSHIFT)   /* 128 kiB */
+<span class="lineNum">     357 </span>                :            : #define BENCH_NS        MSEC2NSEC(25)                   /* 25ms */
+<span class="lineNum">     358 </span>                :            : 
+<span class="lineNum">     359 </span>                :            : typedef void (*benchmark_fn)(raidz_map_t *rm, const int fn);
+<span class="lineNum">     360 </span>                :            : 
+<span class="lineNum">     361 </span>                :            : static void
+<span class="lineNum">     362 </span>                :            : benchmark_gen_impl(raidz_map_t *rm, const int fn)
+<span class="lineNum">     363 </span>                :            : {
+<span class="lineNum">     364 </span>                :            :         (void) fn;
+<span class="lineNum">     365 </span>                :            :         vdev_raidz_generate_parity(rm);
+<span class="lineNum">     366 </span>                :            : }
+<span class="lineNum">     367 </span>                :            : 
+<span class="lineNum">     368 </span>                :            : static void
+<span class="lineNum">     369 </span>                :            : benchmark_rec_impl(raidz_map_t *rm, const int fn)
+<span class="lineNum">     370 </span>                :            : {
+<span class="lineNum">     371 </span>                :            :         static const int rec_tgt[7][3] = {
+<span class="lineNum">     372 </span>                :            :                 {1, 2, 3},      /* rec_p:   bad QR &amp; D[0]   */
+<span class="lineNum">     373 </span>                :            :                 {0, 2, 3},      /* rec_q:   bad PR &amp; D[0]   */
+<span class="lineNum">     374 </span>                :            :                 {0, 1, 3},      /* rec_r:   bad PQ &amp; D[0]   */
+<span class="lineNum">     375 </span>                :            :                 {2, 3, 4},      /* rec_pq:  bad R  &amp; D[0][1]        */
+<span class="lineNum">     376 </span>                :            :                 {1, 3, 4},      /* rec_pr:  bad Q  &amp; D[0][1]        */
+<span class="lineNum">     377 </span>                :            :                 {0, 3, 4},      /* rec_qr:  bad P  &amp; D[0][1]        */
+<span class="lineNum">     378 </span>                :            :                 {3, 4, 5}       /* rec_pqr: bad    &amp; D[0][1][2] */
+<span class="lineNum">     379 </span>                :            :         };
+<span class="lineNum">     380 </span>                :            : 
+<span class="lineNum">     381 </span>                :            :         vdev_raidz_reconstruct(rm, rec_tgt[fn], 3);
+<span class="lineNum">     382 </span>                :            : }
+<span class="lineNum">     383 </span>                :            : 
+<span class="lineNum">     384 </span>                :            : /*
+<span class="lineNum">     385 </span>                :            :  * Benchmarking of all supported implementations (raidz_supp_impl_cnt)
+<span class="lineNum">     386 </span>                :            :  * is performed by setting the rm_ops pointer and calling the top level
+<span class="lineNum">     387 </span>                :            :  * generate/reconstruct methods of bench_rm.
+<span class="lineNum">     388 </span>                :            :  */
+<span class="lineNum">     389 </span>                :            : static void
+<span class="lineNum">     390 </span>                :            : benchmark_raidz_impl(raidz_map_t *bench_rm, const int fn, benchmark_fn bench_fn)
+<span class="lineNum">     391 </span>                :            : {
+<span class="lineNum">     392 </span>                :            :         uint64_t run_cnt, speed, best_speed = 0;
+<span class="lineNum">     393 </span>                :            :         hrtime_t t_start, t_diff;
+<span class="lineNum">     394 </span>                :            :         raidz_impl_ops_t *curr_impl;
+<span class="lineNum">     395 </span>                :            :         raidz_impl_kstat_t *fstat = &amp;raidz_impl_kstats[raidz_supp_impl_cnt];
+<span class="lineNum">     396 </span>                :            :         int impl, i;
+<span class="lineNum">     397 </span>                :            : 
+<span class="lineNum">     398 </span>                :            :         for (impl = 0; impl &lt; raidz_supp_impl_cnt; impl++) {
+<span class="lineNum">     399 </span>                :            :                 /* set an implementation to benchmark */
+<span class="lineNum">     400 </span>                :            :                 curr_impl = raidz_supp_impl[impl];
+<span class="lineNum">     401 </span>                :            :                 bench_rm-&gt;rm_ops = curr_impl;
+<span class="lineNum">     402 </span>                :            : 
+<span class="lineNum">     403 </span>                :            :                 run_cnt = 0;
+<span class="lineNum">     404 </span>                :            :                 t_start = gethrtime();
+<span class="lineNum">     405 </span>                :            : 
+<span class="lineNum">     406 </span>                :            :                 do {
+<span class="lineNum">     407 </span>                :            :                         for (i = 0; i &lt; 25; i++, run_cnt++)
+<span class="lineNum">     408 </span>                :            :                                 bench_fn(bench_rm, fn);
+<span class="lineNum">     409 </span>                :            : 
+<span class="lineNum">     410 </span>                :            :                         t_diff = gethrtime() - t_start;
+<span class="lineNum">     411 </span>                :            :                 } while (t_diff &lt; BENCH_NS);
+<span class="lineNum">     412 </span>                :            : 
+<span class="lineNum">     413 </span>                :            :                 speed = run_cnt * BENCH_ZIO_SIZE * NANOSEC;
+<span class="lineNum">     414 </span>                :            :                 speed /= (t_diff * BENCH_COLS);
+<span class="lineNum">     415 </span>                :            : 
+<span class="lineNum">     416 </span>                :            :                 if (bench_fn == benchmark_gen_impl)
+<span class="lineNum">     417 </span>                :            :                         raidz_impl_kstats[impl].gen[fn] = speed;
+<span class="lineNum">     418 </span>                :            :                 else
+<span class="lineNum">     419 </span>                :            :                         raidz_impl_kstats[impl].rec[fn] = speed;
+<span class="lineNum">     420 </span>                :            : 
+<span class="lineNum">     421 </span>                :            :                 /* Update fastest implementation method */
+<span class="lineNum">     422 </span>                :            :                 if (speed &gt; best_speed) {
+<span class="lineNum">     423 </span>                :            :                         best_speed = speed;
+<span class="lineNum">     424 </span>                :            : 
+<span class="lineNum">     425 </span>                :            :                         if (bench_fn == benchmark_gen_impl) {
+<span class="lineNum">     426 </span>                :            :                                 fstat-&gt;gen[fn] = impl;
+<span class="lineNum">     427 </span>                :            :                                 vdev_raidz_fastest_impl.gen[fn] =
+<span class="lineNum">     428 </span>                :            :                                     curr_impl-&gt;gen[fn];
+<span class="lineNum">     429 </span>                :            :                         } else {
+<span class="lineNum">     430 </span>                :            :                                 fstat-&gt;rec[fn] = impl;
+<span class="lineNum">     431 </span>                :            :                                 vdev_raidz_fastest_impl.rec[fn] =
+<span class="lineNum">     432 </span>                :            :                                     curr_impl-&gt;rec[fn];
+<span class="lineNum">     433 </span>                :            :                         }
+<span class="lineNum">     434 </span>                :            :                 }
+<span class="lineNum">     435 </span>                :            :         }
+<span class="lineNum">     436 </span>                :            : }
+<a name="437"><span class="lineNum">     437 </span>                :            : </a>
+<span class="lineNum">     438 </span>                :            : void
+<span class="lineNum">     439 </span>                :<span class="lineCov">       1234 : vdev_raidz_math_init(void)</span>
+<span class="lineNum">     440 </span>                :            : {
+<span class="lineNum">     441 </span>                :            :         raidz_impl_ops_t *curr_impl;
+<span class="lineNum">     442 </span>                :<span class="lineCov">       1234 :         zio_t *bench_zio = NULL;</span>
+<span class="lineNum">     443 </span>                :<span class="lineCov">       1234 :         raidz_map_t *bench_rm = NULL;</span>
+<span class="lineNum">     444 </span>                :            :         uint64_t bench_parity;
+<span class="lineNum">     445 </span>                :            :         int i, c, fn;
+<span class="lineNum">     446 </span>                :            : 
+<span class="lineNum">     447 </span>                :            :         /* move supported impl into raidz_supp_impl */
+<span class="lineNum">     448 </span>        [<span class="branchCov" title="Branch 0 was taken 8638 times"> + </span><span class="branchCov" title="Branch 1 was taken 1234 times"> + </span>]:<span class="lineCov">       9872 :         for (i = 0, c = 0; i &lt; ARRAY_SIZE(raidz_all_maths); i++) {</span>
+<span class="lineNum">     449 </span>                :<span class="lineCov">       8638 :                 curr_impl = (raidz_impl_ops_t *)raidz_all_maths[i];</span>
+<span class="lineNum">     450 </span>                :            : 
+<span class="lineNum">     451 </span>                :            :                 /* initialize impl */
+<span class="lineNum">     452 </span>        [<span class="branchCov" title="Branch 0 was taken 1234 times"> + </span><span class="branchCov" title="Branch 1 was taken 7404 times"> + </span>]:<span class="lineCov">       8638 :                 if (curr_impl-&gt;init)</span>
+<span class="lineNum">     453 </span>                :<span class="lineCov">       1234 :                         curr_impl-&gt;init();</span>
+<span class="lineNum">     454 </span>                :            : 
+<span class="lineNum">     455 </span>        [<span class="branchCov" title="Branch 1 was taken 4936 times"> + </span><span class="branchCov" title="Branch 2 was taken 3702 times"> + </span>]:<span class="lineCov">       8638 :                 if (curr_impl-&gt;is_supported())</span>
+<span class="lineNum">     456 </span>                :<span class="lineCov">       4936 :                         raidz_supp_impl[c++] = (raidz_impl_ops_t *)curr_impl;</span>
+<span class="lineNum">     457 </span>                :            :         }
+<span class="lineNum">     458 </span>                :<span class="lineCov">       1234 :         membar_producer();              /* complete raidz_supp_impl[] init */</span>
+<span class="lineNum">     459 </span>                :<span class="lineCov">       1234 :         raidz_supp_impl_cnt = c;        /* number of supported impl */</span>
+<span class="lineNum">     460 </span>                :            : 
+<span class="lineNum">     461 </span>                :            : #if !defined(_KERNEL)
+<span class="lineNum">     462 </span>                :            :         /* Skip benchmarking and use last implementation as fastest */
+<span class="lineNum">     463 </span>                :<span class="lineCov">       2468 :         memcpy(&amp;vdev_raidz_fastest_impl, raidz_supp_impl[raidz_supp_impl_cnt-1],</span>
+<span class="lineNum">     464 </span>                :            :             sizeof (vdev_raidz_fastest_impl));
+<span class="lineNum">     465 </span>                :<span class="lineCov">       1234 :         strcpy(vdev_raidz_fastest_impl.name, &quot;fastest&quot;);</span>
+<span class="lineNum">     466 </span>                :            : 
+<span class="lineNum">     467 </span>                :<span class="lineCov">       1234 :         raidz_math_initialized = B_TRUE;</span>
+<span class="lineNum">     468 </span>                :            : 
+<span class="lineNum">     469 </span>                :            :         /* Use 'cycle' math selection method for userspace */
+<span class="lineNum">     470 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         VERIFY0(vdev_raidz_impl_set(&quot;cycle&quot;));</span>
+<span class="lineNum">     471 </span>                :            :         return;
+<span class="lineNum">     472 </span>                :            : #endif
+<span class="lineNum">     473 </span>                :            : 
+<span class="lineNum">     474 </span>                :            :         /* Fake an zio and run the benchmark on a warmed up buffer */
+<span class="lineNum">     475 </span>                :            :         bench_zio = kmem_zalloc(sizeof (zio_t), KM_SLEEP);
+<span class="lineNum">     476 </span>                :            :         bench_zio-&gt;io_offset = 0;
+<span class="lineNum">     477 </span>                :            :         bench_zio-&gt;io_size = BENCH_ZIO_SIZE; /* only data columns */
+<span class="lineNum">     478 </span>                :            :         bench_zio-&gt;io_abd = abd_alloc_linear(BENCH_ZIO_SIZE, B_TRUE);
+<span class="lineNum">     479 </span>                :            :         memset(abd_to_buf(bench_zio-&gt;io_abd), 0xAA, BENCH_ZIO_SIZE);
+<span class="lineNum">     480 </span>                :            : 
+<span class="lineNum">     481 </span>                :            :         /* Benchmark parity generation methods */
+<span class="lineNum">     482 </span>                :            :         for (fn = 0; fn &lt; RAIDZ_GEN_NUM; fn++) {
+<span class="lineNum">     483 </span>                :            :                 bench_parity = fn + 1;
+<span class="lineNum">     484 </span>                :            :                 /* New raidz_map is needed for each generate_p/q/r */
+<span class="lineNum">     485 </span>                :            :                 bench_rm = vdev_raidz_map_alloc(bench_zio, SPA_MINBLOCKSHIFT,
+<span class="lineNum">     486 </span>                :            :                     BENCH_D_COLS + bench_parity, bench_parity);
+<span class="lineNum">     487 </span>                :            : 
+<span class="lineNum">     488 </span>                :            :                 benchmark_raidz_impl(bench_rm, fn, benchmark_gen_impl);
+<span class="lineNum">     489 </span>                :            : 
+<span class="lineNum">     490 </span>                :            :                 vdev_raidz_map_free(bench_rm);
+<span class="lineNum">     491 </span>                :            :         }
+<span class="lineNum">     492 </span>                :            : 
+<span class="lineNum">     493 </span>                :            :         /* Benchmark data reconstruction methods */
+<span class="lineNum">     494 </span>                :            :         bench_rm = vdev_raidz_map_alloc(bench_zio, SPA_MINBLOCKSHIFT,
+<span class="lineNum">     495 </span>                :            :             BENCH_COLS, PARITY_PQR);
+<span class="lineNum">     496 </span>                :            : 
+<span class="lineNum">     497 </span>                :            :         for (fn = 0; fn &lt; RAIDZ_REC_NUM; fn++)
+<span class="lineNum">     498 </span>                :            :                 benchmark_raidz_impl(bench_rm, fn, benchmark_rec_impl);
+<span class="lineNum">     499 </span>                :            : 
+<span class="lineNum">     500 </span>                :            :         vdev_raidz_map_free(bench_rm);
+<span class="lineNum">     501 </span>                :            : 
+<span class="lineNum">     502 </span>                :            :         /* cleanup the bench zio */
+<span class="lineNum">     503 </span>                :            :         abd_free(bench_zio-&gt;io_abd);
+<span class="lineNum">     504 </span>                :            :         kmem_free(bench_zio, sizeof (zio_t));
+<span class="lineNum">     505 </span>                :            : 
+<span class="lineNum">     506 </span>                :            :         /* install kstats for all impl */
+<span class="lineNum">     507 </span>                :            :         raidz_math_kstat = kstat_create(&quot;zfs&quot;, 0, &quot;vdev_raidz_bench&quot;, &quot;misc&quot;,
+<span class="lineNum">     508 </span>                :            :             KSTAT_TYPE_RAW, 0, KSTAT_FLAG_VIRTUAL);
+<span class="lineNum">     509 </span>                :            : 
+<span class="lineNum">     510 </span>                :            :         if (raidz_math_kstat != NULL) {
+<span class="lineNum">     511 </span>                :            :                 raidz_math_kstat-&gt;ks_data = NULL;
+<span class="lineNum">     512 </span>                :            :                 raidz_math_kstat-&gt;ks_ndata = UINT32_MAX;
+<span class="lineNum">     513 </span>                :            :                 kstat_set_raw_ops(raidz_math_kstat,
+<span class="lineNum">     514 </span>                :            :                     raidz_math_kstat_headers,
+<span class="lineNum">     515 </span>                :            :                     raidz_math_kstat_data,
+<span class="lineNum">     516 </span>                :            :                     raidz_math_kstat_addr);
+<span class="lineNum">     517 </span>                :            :                 kstat_install(raidz_math_kstat);
+<span class="lineNum">     518 </span>                :            :         }
+<span class="lineNum">     519 </span>                :            : 
+<span class="lineNum">     520 </span>                :            :         /* Finish initialization */
+<span class="lineNum">     521 </span>                :            :         atomic_swap_32(&amp;zfs_vdev_raidz_impl, user_sel_impl);
+<span class="lineNum">     522 </span>                :            :         raidz_math_initialized = B_TRUE;
+<span class="lineNum">     523 </span>                :            : }
+<a name="524"><span class="lineNum">     524 </span>                :            : </a>
+<span class="lineNum">     525 </span>                :            : void
+<span class="lineNum">     526 </span>                :<span class="lineCov">        785 : vdev_raidz_math_fini(void)</span>
+<span class="lineNum">     527 </span>                :            : {
+<span class="lineNum">     528 </span>                :            :         raidz_impl_ops_t const *curr_impl;
+<span class="lineNum">     529 </span>                :            :         int i;
+<span class="lineNum">     530 </span>                :            : 
+<span class="lineNum">     531 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 785 times"> + </span>]:<span class="lineCov">        785 :         if (raidz_math_kstat != NULL) {</span>
+<span class="lineNum">     532 </span>                :<span class="lineNoCov">          0 :                 kstat_delete(raidz_math_kstat);</span>
+<span class="lineNum">     533 </span>                :<span class="lineCov">        785 :                 raidz_math_kstat = NULL;</span>
+<span class="lineNum">     534 </span>                :            :         }
+<span class="lineNum">     535 </span>                :            : 
+<span class="lineNum">     536 </span>                :            :         /* fini impl */
+<span class="lineNum">     537 </span>        [<span class="branchCov" title="Branch 0 was taken 5495 times"> + </span><span class="branchCov" title="Branch 1 was taken 785 times"> + </span>]:<span class="lineCov">       6280 :         for (i = 0; i &lt; ARRAY_SIZE(raidz_all_maths); i++) {</span>
+<span class="lineNum">     538 </span>                :<span class="lineCov">       5495 :                 curr_impl = raidz_all_maths[i];</span>
+<span class="lineNum">     539 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5495 times"> + </span>]:<span class="lineCov">       5495 :                 if (curr_impl-&gt;fini)</span>
+<span class="lineNum">     540 </span>                :<span class="lineNoCov">          0 :                         curr_impl-&gt;fini();</span>
+<span class="lineNum">     541 </span>                :            :         }
+<span class="lineNum">     542 </span>                :<span class="lineCov">        785 : }</span>
+<span class="lineNum">     543 </span>                :            : 
+<span class="lineNum">     544 </span>                :            : static const struct {
+<span class="lineNum">     545 </span>                :            :         char *name;
+<span class="lineNum">     546 </span>                :            :         uint32_t sel;
+<span class="lineNum">     547 </span>                :            : } math_impl_opts[] = {
+<span class="lineNum">     548 </span>                :            : #if !defined(_KERNEL)
+<span class="lineNum">     549 </span>                :            :                 { &quot;cycle&quot;,    IMPL_CYCLE },
+<span class="lineNum">     550 </span>                :            : #endif
+<span class="lineNum">     551 </span>                :            :                 { &quot;fastest&quot;,  IMPL_FASTEST },
+<span class="lineNum">     552 </span>                :            :                 { &quot;original&quot;, IMPL_ORIGINAL },
+<span class="lineNum">     553 </span>                :            :                 { &quot;scalar&quot;,   IMPL_SCALAR }
+<span class="lineNum">     554 </span>                :            : };
+<span class="lineNum">     555 </span>                :            : 
+<span class="lineNum">     556 </span>                :            : /*
+<span class="lineNum">     557 </span>                :            :  * Function sets desired raidz implementation.
+<span class="lineNum">     558 </span>                :            :  *
+<span class="lineNum">     559 </span>                :            :  * If we are called before init(), user preference will be saved in
+<span class="lineNum">     560 </span>                :            :  * user_sel_impl, and applied in later init() call. This occurs when module
+<span class="lineNum">     561 </span>                :            :  * parameter is specified on module load. Otherwise, directly update
+<span class="lineNum">     562 </span>                :            :  * zfs_vdev_raidz_impl.
+<span class="lineNum">     563 </span>                :            :  *
+<span class="lineNum">     564 </span>                :            :  * @val         Name of raidz implementation to use
+<span class="lineNum">     565 </span>                :            :  * @param       Unused.
+<a name="566"><span class="lineNum">     566 </span>                :            :  */</a>
+<span class="lineNum">     567 </span>                :            : int
+<span class="lineNum">     568 </span>                :<span class="lineCov">       4222 : vdev_raidz_impl_set(const char *val)</span>
+<span class="lineNum">     569 </span>                :            : {
+<span class="lineNum">     570 </span>                :<span class="lineCov">       4222 :         int err = -EINVAL;</span>
+<span class="lineNum">     571 </span>                :            :         char req_name[RAIDZ_IMPL_NAME_MAX];
+<span class="lineNum">     572 </span>                :<span class="lineCov">       4222 :         uint32_t impl = RAIDZ_IMPL_READ(user_sel_impl);</span>
+<span class="lineNum">     573 </span>                :            :         size_t i;
+<span class="lineNum">     574 </span>                :            : 
+<span class="lineNum">     575 </span>                :            :         /* sanitize input */
+<span class="lineNum">     576 </span>                :<span class="lineCov">       4222 :         i = strnlen(val, RAIDZ_IMPL_NAME_MAX);</span>
+<span class="lineNum">     577 </span>        [<span class="branchCov" title="Branch 0 was taken 4222 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       4222 :         if (i == 0 || i == RAIDZ_IMPL_NAME_MAX)</span>
+<span class="lineNum">     578 </span>                :            :                 return (err);
+<span class="lineNum">     579 </span>                :            : 
+<span class="lineNum">     580 </span>                :<span class="lineCov">       4222 :         strlcpy(req_name, val, RAIDZ_IMPL_NAME_MAX);</span>
+<span class="lineNum">     581 </span>[<span class="branchCov" title="Branch 0 was taken 4222 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 4222 times"> + </span>]:<span class="lineCov">       4222 :         while (i &gt; 0 &amp;&amp; !!isspace(req_name[i-1]))</span>
+<span class="lineNum">     582 </span>                :            :                 i--;
+<span class="lineNum">     583 </span>                :<span class="lineCov">       4222 :         req_name[i] = '\0';</span>
+<span class="lineNum">     584 </span>                :            : 
+<span class="lineNum">     585 </span>                :            :         /* Check mandatory options */
+<span class="lineNum">     586 </span>        [<span class="branchCov" title="Branch 0 was taken 12854 times"> + </span><span class="branchCov" title="Branch 1 was taken 2324 times"> + </span>]:<span class="lineCov">      15178 :         for (i = 0; i &lt; ARRAY_SIZE(math_impl_opts); i++) {</span>
+<span class="lineNum">     587 </span>        [<span class="branchCov" title="Branch 0 was taken 1898 times"> + </span><span class="branchCov" title="Branch 1 was taken 10956 times"> + </span>]:<span class="lineCov">      12854 :                 if (strcmp(req_name, math_impl_opts[i].name) == 0) {</span>
+<span class="lineNum">     588 </span>                :<span class="lineCov">       1898 :                         impl = math_impl_opts[i].sel;</span>
+<span class="lineNum">     589 </span>                :<span class="lineCov">       1898 :                         err = 0;</span>
+<span class="lineNum">     590 </span>                :<span class="lineCov">       1898 :                         break;</span>
+<span class="lineNum">     591 </span>                :            :                 }
+<span class="lineNum">     592 </span>                :            :         }
+<span class="lineNum">     593 </span>                :            : 
+<span class="lineNum">     594 </span>                :            :         /* check all supported impl if init() was already called */
+<span class="lineNum">     595 </span>[<span class="branchCov" title="Branch 0 was taken 2324 times"> + </span><span class="branchCov" title="Branch 1 was taken 1898 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 2324 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">       4222 :         if (err != 0 &amp;&amp; raidz_math_initialized) {</span>
+<span class="lineNum">     596 </span>                :            :                 /* check all supported implementations */
+<span class="lineNum">     597 </span>        [<span class="branchCov" title="Branch 0 was taken 8964 times"> + </span><span class="branchCov" title="Branch 1 was taken 1660 times"> + </span>]:<span class="lineCov">      10624 :                 for (i = 0; i &lt; raidz_supp_impl_cnt; i++) {</span>
+<span class="lineNum">     598 </span>        [<span class="branchCov" title="Branch 0 was taken 664 times"> + </span><span class="branchCov" title="Branch 1 was taken 8300 times"> + </span>]:<span class="lineCov">       8964 :                         if (strcmp(req_name, raidz_supp_impl[i]-&gt;name) == 0) {</span>
+<span class="lineNum">     599 </span>                :<span class="lineCov">        664 :                                 impl = i;</span>
+<span class="lineNum">     600 </span>                :<span class="lineCov">        664 :                                 err = 0;</span>
+<span class="lineNum">     601 </span>                :<span class="lineCov">        664 :                                 break;</span>
+<span class="lineNum">     602 </span>                :            :                         }
+<span class="lineNum">     603 </span>                :            :                 }
+<span class="lineNum">     604 </span>                :            :         }
+<span class="lineNum">     605 </span>                :            : 
+<span class="lineNum">     606 </span>        [<span class="branchCov" title="Branch 0 was taken 2562 times"> + </span><span class="branchCov" title="Branch 1 was taken 1660 times"> + </span>]:<span class="lineCov">       4222 :         if (err == 0) {</span>
+<span class="lineNum">     607 </span>        [<span class="branchCov" title="Branch 0 was taken 2562 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       2562 :                 if (raidz_math_initialized)</span>
+<span class="lineNum">     608 </span>                :<span class="lineCov">       2562 :                         atomic_swap_32(&amp;zfs_vdev_raidz_impl, impl);</span>
+<span class="lineNum">     609 </span>                :            :                 else
+<span class="lineNum">     610 </span>                :<span class="lineNoCov">          0 :                         atomic_swap_32(&amp;user_sel_impl, impl);</span>
+<span class="lineNum">     611 </span>                :            :         }
+<span class="lineNum">     612 </span>                :            : 
+<span class="lineNum">     613 </span>                :            :         return (err);
+<span class="lineNum">     614 </span>                :            : }
+<span class="lineNum">     615 </span>                :            : 
+<span class="lineNum">     616 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     617 </span>                :            : #include &lt;linux/mod_compat.h&gt;
+<span class="lineNum">     618 </span>                :            : 
+<span class="lineNum">     619 </span>                :            : static int
+<span class="lineNum">     620 </span>                :            : zfs_vdev_raidz_impl_set(const char *val, zfs_kernel_param_t *kp)
+<span class="lineNum">     621 </span>                :            : {
+<span class="lineNum">     622 </span>                :            :         return (vdev_raidz_impl_set(val));
+<span class="lineNum">     623 </span>                :            : }
+<span class="lineNum">     624 </span>                :            : 
+<span class="lineNum">     625 </span>                :            : static int
+<span class="lineNum">     626 </span>                :            : zfs_vdev_raidz_impl_get(char *buffer, zfs_kernel_param_t *kp)
+<span class="lineNum">     627 </span>                :            : {
+<span class="lineNum">     628 </span>                :            :         int i, cnt = 0;
+<span class="lineNum">     629 </span>                :            :         char *fmt;
+<span class="lineNum">     630 </span>                :            :         const uint32_t impl = RAIDZ_IMPL_READ(zfs_vdev_raidz_impl);
+<span class="lineNum">     631 </span>                :            : 
+<span class="lineNum">     632 </span>                :            :         ASSERT(raidz_math_initialized);
+<span class="lineNum">     633 </span>                :            : 
+<span class="lineNum">     634 </span>                :            :         /* list mandatory options */
+<span class="lineNum">     635 </span>                :            :         for (i = 0; i &lt; ARRAY_SIZE(math_impl_opts) - 2; i++) {
+<span class="lineNum">     636 </span>                :            :                 fmt = (impl == math_impl_opts[i].sel) ? &quot;[%s] &quot; : &quot;%s &quot;;
+<span class="lineNum">     637 </span>                :            :                 cnt += sprintf(buffer + cnt, fmt, math_impl_opts[i].name);
+<span class="lineNum">     638 </span>                :            :         }
+<span class="lineNum">     639 </span>                :            : 
+<span class="lineNum">     640 </span>                :            :         /* list all supported implementations */
+<span class="lineNum">     641 </span>                :            :         for (i = 0; i &lt; raidz_supp_impl_cnt; i++) {
+<span class="lineNum">     642 </span>                :            :                 fmt = (i == impl) ? &quot;[%s] &quot; : &quot;%s &quot;;
+<span class="lineNum">     643 </span>                :            :                 cnt += sprintf(buffer + cnt, fmt, raidz_supp_impl[i]-&gt;name);
+<span class="lineNum">     644 </span>                :            :         }
+<span class="lineNum">     645 </span>                :            : 
+<span class="lineNum">     646 </span>                :            :         return (cnt);
+<span class="lineNum">     647 </span>                :            : }
+<span class="lineNum">     648 </span>                :            : 
+<span class="lineNum">     649 </span>                :            : module_param_call(zfs_vdev_raidz_impl, zfs_vdev_raidz_impl_set,
+<span class="lineNum">     650 </span>                :            :     zfs_vdev_raidz_impl_get, NULL, 0644);
+<span class="lineNum">     651 </span>                :            : MODULE_PARM_DESC(zfs_vdev_raidz_impl, &quot;Select raidz implementation.&quot;);
+<span class="lineNum">     652 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,530 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/vdev_cache.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - vdev_cache.c<span style="font-size: 80%;"> (source / <a href="vdev_cache.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">65</td>
+            <td class="headerCovTableEntry">157</td>
+            <td class="headerCovTableEntryLo">41.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">61.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntry">71</td>
+            <td class="headerCovTableEntryLo">25.4 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : /*
+<span class="lineNum">      26 </span>                :            :  * Copyright (c) 2013, 2016 by Delphix. All rights reserved.
+<span class="lineNum">      27 </span>                :            :  */
+<span class="lineNum">      28 </span>                :            : 
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/vdev_impl.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/zio.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/kstat.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/abd.h&gt;
+<span class="lineNum">      35 </span>                :            : 
+<span class="lineNum">      36 </span>                :            : /*
+<span class="lineNum">      37 </span>                :            :  * Virtual device read-ahead caching.
+<span class="lineNum">      38 </span>                :            :  *
+<span class="lineNum">      39 </span>                :            :  * This file implements a simple LRU read-ahead cache.  When the DMU reads
+<span class="lineNum">      40 </span>                :            :  * a given block, it will often want other, nearby blocks soon thereafter.
+<span class="lineNum">      41 </span>                :            :  * We take advantage of this by reading a larger disk region and caching
+<span class="lineNum">      42 </span>                :            :  * the result.  In the best case, this can turn 128 back-to-back 512-byte
+<span class="lineNum">      43 </span>                :            :  * reads into a single 64k read followed by 127 cache hits; this reduces
+<span class="lineNum">      44 </span>                :            :  * latency dramatically.  In the worst case, it can turn an isolated 512-byte
+<span class="lineNum">      45 </span>                :            :  * read into a 64k read, which doesn't affect latency all that much but is
+<span class="lineNum">      46 </span>                :            :  * terribly wasteful of bandwidth.  A more intelligent version of the cache
+<span class="lineNum">      47 </span>                :            :  * could keep track of access patterns and not do read-ahead unless it sees
+<span class="lineNum">      48 </span>                :            :  * at least two temporally close I/Os to the same region.  Currently, only
+<span class="lineNum">      49 </span>                :            :  * metadata I/O is inflated.  A futher enhancement could take advantage of
+<span class="lineNum">      50 </span>                :            :  * more semantic information about the I/O.  And it could use something
+<span class="lineNum">      51 </span>                :            :  * faster than an AVL tree; that was chosen solely for convenience.
+<span class="lineNum">      52 </span>                :            :  *
+<span class="lineNum">      53 </span>                :            :  * There are five cache operations: allocate, fill, read, write, evict.
+<span class="lineNum">      54 </span>                :            :  *
+<span class="lineNum">      55 </span>                :            :  * (1) Allocate.  This reserves a cache entry for the specified region.
+<span class="lineNum">      56 </span>                :            :  *     We separate the allocate and fill operations so that multiple threads
+<span class="lineNum">      57 </span>                :            :  *     don't generate I/O for the same cache miss.
+<span class="lineNum">      58 </span>                :            :  *
+<span class="lineNum">      59 </span>                :            :  * (2) Fill.  When the I/O for a cache miss completes, the fill routine
+<span class="lineNum">      60 </span>                :            :  *     places the data in the previously allocated cache entry.
+<span class="lineNum">      61 </span>                :            :  *
+<span class="lineNum">      62 </span>                :            :  * (3) Read.  Read data from the cache.
+<span class="lineNum">      63 </span>                :            :  *
+<span class="lineNum">      64 </span>                :            :  * (4) Write.  Update cache contents after write completion.
+<span class="lineNum">      65 </span>                :            :  *
+<span class="lineNum">      66 </span>                :            :  * (5) Evict.  When allocating a new entry, we evict the oldest (LRU) entry
+<span class="lineNum">      67 </span>                :            :  *     if the total cache size exceeds zfs_vdev_cache_size.
+<span class="lineNum">      68 </span>                :            :  */
+<span class="lineNum">      69 </span>                :            : 
+<span class="lineNum">      70 </span>                :            : /*
+<span class="lineNum">      71 </span>                :            :  * These tunables are for performance analysis.
+<span class="lineNum">      72 </span>                :            :  */
+<span class="lineNum">      73 </span>                :            : /*
+<span class="lineNum">      74 </span>                :            :  * All i/os smaller than zfs_vdev_cache_max will be turned into
+<span class="lineNum">      75 </span>                :            :  * 1&lt;&lt;zfs_vdev_cache_bshift byte reads by the vdev_cache (aka software
+<span class="lineNum">      76 </span>                :            :  * track buffer).  At most zfs_vdev_cache_size bytes will be kept in each
+<span class="lineNum">      77 </span>                :            :  * vdev's vdev_cache.
+<span class="lineNum">      78 </span>                :            :  *
+<span class="lineNum">      79 </span>                :            :  * TODO: Note that with the current ZFS code, it turns out that the
+<span class="lineNum">      80 </span>                :            :  * vdev cache is not helpful, and in some cases actually harmful.  It
+<span class="lineNum">      81 </span>                :            :  * is better if we disable this.  Once some time has passed, we should
+<span class="lineNum">      82 </span>                :            :  * actually remove this to simplify the code.  For now we just disable
+<span class="lineNum">      83 </span>                :            :  * it by setting the zfs_vdev_cache_size to zero.  Note that Solaris 11
+<span class="lineNum">      84 </span>                :            :  * has made these same changes.
+<span class="lineNum">      85 </span>                :            :  */
+<span class="lineNum">      86 </span>                :            : int zfs_vdev_cache_max = 1&lt;&lt;14;                   /* 16KB */
+<span class="lineNum">      87 </span>                :            : int zfs_vdev_cache_size = 0;
+<span class="lineNum">      88 </span>                :            : int zfs_vdev_cache_bshift = 16;
+<span class="lineNum">      89 </span>                :            : 
+<span class="lineNum">      90 </span>                :            : #define VCBS (1 &lt;&lt; zfs_vdev_cache_bshift) /* 64KB */
+<span class="lineNum">      91 </span>                :            : 
+<span class="lineNum">      92 </span>                :            : kstat_t *vdc_ksp = NULL;
+<span class="lineNum">      93 </span>                :            : 
+<span class="lineNum">      94 </span>                :            : typedef struct vdc_stats {
+<span class="lineNum">      95 </span>                :            :         kstat_named_t vdc_stat_delegations;
+<span class="lineNum">      96 </span>                :            :         kstat_named_t vdc_stat_hits;
+<span class="lineNum">      97 </span>                :            :         kstat_named_t vdc_stat_misses;
+<span class="lineNum">      98 </span>                :            : } vdc_stats_t;
+<span class="lineNum">      99 </span>                :            : 
+<span class="lineNum">     100 </span>                :            : static vdc_stats_t vdc_stats = {
+<span class="lineNum">     101 </span>                :            :         { &quot;delegations&quot;,      KSTAT_DATA_UINT64 },
+<span class="lineNum">     102 </span>                :            :         { &quot;hits&quot;,             KSTAT_DATA_UINT64 },
+<span class="lineNum">     103 </span>                :            :         { &quot;misses&quot;,           KSTAT_DATA_UINT64 }
+<span class="lineNum">     104 </span>                :            : };
+<span class="lineNum">     105 </span>                :            : 
+<span class="lineNum">     106 </span>                :            : #define VDCSTAT_BUMP(stat)      atomic_inc_64(&amp;vdc_stats.stat.value.ui64);
+<a name="107"><span class="lineNum">     107 </span>                :            : </a>
+<span class="lineNum">     108 </span>                :            : static inline int
+<span class="lineNum">     109 </span>                :<span class="lineNoCov">          0 : vdev_cache_offset_compare(const void *a1, const void *a2)</span>
+<span class="lineNum">     110 </span>                :            : {
+<span class="lineNum">     111 </span>                :<span class="lineNoCov">          0 :         const vdev_cache_entry_t *ve1 = (const vdev_cache_entry_t *)a1;</span>
+<span class="lineNum">     112 </span>                :<span class="lineNoCov">          0 :         const vdev_cache_entry_t *ve2 = (const vdev_cache_entry_t *)a2;</span>
+<span class="lineNum">     113 </span>                :            : 
+<span class="lineNum">     114 </span>                :<span class="lineNoCov">          0 :         return (AVL_CMP(ve1-&gt;ve_offset, ve2-&gt;ve_offset));</span>
+<span class="lineNum">     115 </span>                :            : }
+<a name="116"><span class="lineNum">     116 </span>                :            : </a>
+<span class="lineNum">     117 </span>                :            : static int
+<span class="lineNum">     118 </span>                :<span class="lineNoCov">          0 : vdev_cache_lastused_compare(const void *a1, const void *a2)</span>
+<span class="lineNum">     119 </span>                :            : {
+<span class="lineNum">     120 </span>                :<span class="lineNoCov">          0 :         const vdev_cache_entry_t *ve1 = (const vdev_cache_entry_t *)a1;</span>
+<span class="lineNum">     121 </span>                :<span class="lineNoCov">          0 :         const vdev_cache_entry_t *ve2 = (const vdev_cache_entry_t *)a2;</span>
+<span class="lineNum">     122 </span>                :            : 
+<span class="lineNum">     123 </span>                :<span class="lineNoCov">          0 :         int cmp = AVL_CMP(ve1-&gt;ve_lastused, ve2-&gt;ve_lastused);</span>
+<span class="lineNum">     124 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (likely(cmp))</span>
+<span class="lineNum">     125 </span>                :            :                 return (cmp);
+<span class="lineNum">     126 </span>                :            : 
+<span class="lineNum">     127 </span>                :            :         /*
+<span class="lineNum">     128 </span>                :            :          * Among equally old entries, sort by offset to ensure uniqueness.
+<span class="lineNum">     129 </span>                :            :          */
+<span class="lineNum">     130 </span>                :<span class="lineNoCov">          0 :         return (vdev_cache_offset_compare(a1, a2));</span>
+<span class="lineNum">     131 </span>                :            : }
+<span class="lineNum">     132 </span>                :            : 
+<span class="lineNum">     133 </span>                :            : /*
+<span class="lineNum">     134 </span>                :            :  * Evict the specified entry from the cache.
+<a name="135"><span class="lineNum">     135 </span>                :            :  */</a>
+<span class="lineNum">     136 </span>                :            : static void
+<span class="lineNum">     137 </span>                :<span class="lineNoCov">          0 : vdev_cache_evict(vdev_cache_t *vc, vdev_cache_entry_t *ve)</span>
+<span class="lineNum">     138 </span>                :            : {
+<span class="lineNum">     139 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(MUTEX_HELD(&amp;vc-&gt;vc_lock));</span>
+<span class="lineNum">     140 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3P(ve-&gt;ve_fill_io, ==, NULL);</span>
+<span class="lineNum">     141 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3P(ve-&gt;ve_abd, !=, NULL);</span>
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>                :<span class="lineNoCov">          0 :         avl_remove(&amp;vc-&gt;vc_lastused_tree, ve);</span>
+<span class="lineNum">     144 </span>                :<span class="lineNoCov">          0 :         avl_remove(&amp;vc-&gt;vc_offset_tree, ve);</span>
+<span class="lineNum">     145 </span>                :<span class="lineNoCov">          0 :         abd_free(ve-&gt;ve_abd);</span>
+<span class="lineNum">     146 </span>                :<span class="lineNoCov">          0 :         kmem_free(ve, sizeof (vdev_cache_entry_t));</span>
+<span class="lineNum">     147 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     148 </span>                :            : 
+<span class="lineNum">     149 </span>                :            : /*
+<span class="lineNum">     150 </span>                :            :  * Allocate an entry in the cache.  At the point we don't have the data,
+<span class="lineNum">     151 </span>                :            :  * we're just creating a placeholder so that multiple threads don't all
+<span class="lineNum">     152 </span>                :            :  * go off and read the same blocks.
+<a name="153"><span class="lineNum">     153 </span>                :            :  */</a>
+<span class="lineNum">     154 </span>                :            : static vdev_cache_entry_t *
+<span class="lineNum">     155 </span>                :<span class="lineCov">    3194769 : vdev_cache_allocate(zio_t *zio)</span>
+<span class="lineNum">     156 </span>                :            : {
+<span class="lineNum">     157 </span>                :<span class="lineCov">    3194769 :         vdev_cache_t *vc = &amp;zio-&gt;io_vd-&gt;vdev_cache;</span>
+<span class="lineNum">     158 </span>                :<span class="lineCov">    3194769 :         uint64_t offset = P2ALIGN(zio-&gt;io_offset, VCBS);</span>
+<span class="lineNum">     159 </span>                :            :         vdev_cache_entry_t *ve;
+<span class="lineNum">     160 </span>                :            : 
+<span class="lineNum">     161 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 3194769 times"> + </span>]:<span class="lineCov">    3194769 :         ASSERT(MUTEX_HELD(&amp;vc-&gt;vc_lock));</span>
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3194769 times"> + </span>]:<span class="lineCov">    3194769 :         if (zfs_vdev_cache_size == 0)</span>
+<span class="lineNum">     164 </span>                :            :                 return (NULL);
+<span class="lineNum">     165 </span>                :            : 
+<span class="lineNum">     166 </span>                :            :         /*
+<span class="lineNum">     167 </span>                :            :          * If adding a new entry would exceed the cache size,
+<span class="lineNum">     168 </span>                :            :          * evict the oldest entry (LRU).
+<span class="lineNum">     169 </span>                :            :          */
+<span class="lineNum">     170 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((avl_numnodes(&amp;vc-&gt;vc_lastused_tree) &lt;&lt; zfs_vdev_cache_bshift) &gt;</span>
+<span class="lineNum">     171 </span>                :            :             zfs_vdev_cache_size) {
+<span class="lineNum">     172 </span>                :<span class="lineNoCov">          0 :                 ve = avl_first(&amp;vc-&gt;vc_lastused_tree);</span>
+<span class="lineNum">     173 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ve-&gt;ve_fill_io != NULL)</span>
+<span class="lineNum">     174 </span>                :            :                         return (NULL);
+<span class="lineNum">     175 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT3U(ve-&gt;ve_hits, !=, 0);</span>
+<span class="lineNum">     176 </span>                :<span class="lineNoCov">          0 :                 vdev_cache_evict(vc, ve);</span>
+<span class="lineNum">     177 </span>                :            :         }
+<span class="lineNum">     178 </span>                :            : 
+<span class="lineNum">     179 </span>                :<span class="lineNoCov">          0 :         ve = kmem_zalloc(sizeof (vdev_cache_entry_t), KM_SLEEP);</span>
+<span class="lineNum">     180 </span>                :<span class="lineNoCov">          0 :         ve-&gt;ve_offset = offset;</span>
+<span class="lineNum">     181 </span>                :<span class="lineNoCov">          0 :         ve-&gt;ve_lastused = ddi_get_lbolt();</span>
+<span class="lineNum">     182 </span>                :<span class="lineNoCov">          0 :         ve-&gt;ve_abd = abd_alloc_for_io(VCBS, B_TRUE);</span>
+<span class="lineNum">     183 </span>                :            : 
+<span class="lineNum">     184 </span>                :<span class="lineNoCov">          0 :         avl_add(&amp;vc-&gt;vc_offset_tree, ve);</span>
+<span class="lineNum">     185 </span>                :<span class="lineNoCov">          0 :         avl_add(&amp;vc-&gt;vc_lastused_tree, ve);</span>
+<span class="lineNum">     186 </span>                :            : 
+<span class="lineNum">     187 </span>                :            :         return (ve);
+<span class="lineNum">     188 </span>                :            : }
+<a name="189"><span class="lineNum">     189 </span>                :            : </a>
+<span class="lineNum">     190 </span>                :            : static void
+<span class="lineNum">     191 </span>                :<span class="lineNoCov">          0 : vdev_cache_hit(vdev_cache_t *vc, vdev_cache_entry_t *ve, zio_t *zio)</span>
+<span class="lineNum">     192 </span>                :            : {
+<span class="lineNum">     193 </span>                :<span class="lineNoCov">          0 :         uint64_t cache_phase = P2PHASE(zio-&gt;io_offset, VCBS);</span>
+<span class="lineNum">     194 </span>                :            : 
+<span class="lineNum">     195 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(MUTEX_HELD(&amp;vc-&gt;vc_lock));</span>
+<span class="lineNum">     196 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3P(ve-&gt;ve_fill_io, ==, NULL);</span>
+<span class="lineNum">     197 </span>                :            : 
+<span class="lineNum">     198 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ve-&gt;ve_lastused != ddi_get_lbolt()) {</span>
+<span class="lineNum">     199 </span>                :<span class="lineNoCov">          0 :                 avl_remove(&amp;vc-&gt;vc_lastused_tree, ve);</span>
+<span class="lineNum">     200 </span>                :<span class="lineNoCov">          0 :                 ve-&gt;ve_lastused = ddi_get_lbolt();</span>
+<span class="lineNum">     201 </span>                :<span class="lineNoCov">          0 :                 avl_add(&amp;vc-&gt;vc_lastused_tree, ve);</span>
+<span class="lineNum">     202 </span>                :            :         }
+<span class="lineNum">     203 </span>                :            : 
+<span class="lineNum">     204 </span>                :<span class="lineNoCov">          0 :         ve-&gt;ve_hits++;</span>
+<span class="lineNum">     205 </span>                :<span class="lineNoCov">          0 :         abd_copy_off(zio-&gt;io_abd, ve-&gt;ve_abd, 0, cache_phase, zio-&gt;io_size);</span>
+<span class="lineNum">     206 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     207 </span>                :            : 
+<span class="lineNum">     208 </span>                :            : /*
+<span class="lineNum">     209 </span>                :            :  * Fill a previously allocated cache entry with data.
+<a name="210"><span class="lineNum">     210 </span>                :            :  */</a>
+<span class="lineNum">     211 </span>                :            : static void
+<span class="lineNum">     212 </span>                :<span class="lineNoCov">          0 : vdev_cache_fill(zio_t *fio)</span>
+<span class="lineNum">     213 </span>                :            : {
+<span class="lineNum">     214 </span>                :<span class="lineNoCov">          0 :         vdev_t *vd = fio-&gt;io_vd;</span>
+<span class="lineNum">     215 </span>                :<span class="lineNoCov">          0 :         vdev_cache_t *vc = &amp;vd-&gt;vdev_cache;</span>
+<span class="lineNum">     216 </span>                :<span class="lineNoCov">          0 :         vdev_cache_entry_t *ve = fio-&gt;io_private;</span>
+<span class="lineNum">     217 </span>                :            :         zio_t *pio;
+<span class="lineNum">     218 </span>                :            :         zio_link_t *zl;
+<span class="lineNum">     219 </span>                :            : 
+<span class="lineNum">     220 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3U(fio-&gt;io_size, ==, VCBS);</span>
+<span class="lineNum">     221 </span>                :            : 
+<span class="lineNum">     222 </span>                :            :         /*
+<span class="lineNum">     223 </span>                :            :          * Add data to the cache.
+<span class="lineNum">     224 </span>                :            :          */
+<span class="lineNum">     225 </span>                :<span class="lineNoCov">          0 :         mutex_enter(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     226 </span>                :            : 
+<span class="lineNum">     227 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3P(ve-&gt;ve_fill_io, ==, fio);</span>
+<span class="lineNum">     228 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3U(ve-&gt;ve_offset, ==, fio-&gt;io_offset);</span>
+<span class="lineNum">     229 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3P(ve-&gt;ve_abd, ==, fio-&gt;io_abd);</span>
+<span class="lineNum">     230 </span>                :            : 
+<span class="lineNum">     231 </span>                :<span class="lineNoCov">          0 :         ve-&gt;ve_fill_io = NULL;</span>
+<span class="lineNum">     232 </span>                :            : 
+<span class="lineNum">     233 </span>                :            :         /*
+<span class="lineNum">     234 </span>                :            :          * Even if this cache line was invalidated by a missed write update,
+<span class="lineNum">     235 </span>                :            :          * any reads that were queued up before the missed update are still
+<span class="lineNum">     236 </span>                :            :          * valid, so we can satisfy them from this line before we evict it.
+<span class="lineNum">     237 </span>                :            :          */
+<span class="lineNum">     238 </span>                :<span class="lineNoCov">          0 :         zl = NULL;</span>
+<span class="lineNum">     239 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         while ((pio = zio_walk_parents(fio, &amp;zl)) != NULL)</span>
+<span class="lineNum">     240 </span>                :<span class="lineNoCov">          0 :                 vdev_cache_hit(vc, ve, pio);</span>
+<span class="lineNum">     241 </span>                :            : 
+<span class="lineNum">     242 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (fio-&gt;io_error || ve-&gt;ve_missed_update)</span>
+<span class="lineNum">     243 </span>                :<span class="lineNoCov">          0 :                 vdev_cache_evict(vc, ve);</span>
+<span class="lineNum">     244 </span>                :            : 
+<span class="lineNum">     245 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     246 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     247 </span>                :            : 
+<span class="lineNum">     248 </span>                :            : /*
+<span class="lineNum">     249 </span>                :            :  * Read data from the cache.  Returns B_TRUE cache hit, B_FALSE on miss.
+<a name="250"><span class="lineNum">     250 </span>                :            :  */</a>
+<span class="lineNum">     251 </span>                :            : boolean_t
+<span class="lineNum">     252 </span>                :<span class="lineCov">    3902000 : vdev_cache_read(zio_t *zio)</span>
+<span class="lineNum">     253 </span>                :            : {
+<span class="lineNum">     254 </span>                :<span class="lineCov">    3902000 :         vdev_cache_t *vc = &amp;zio-&gt;io_vd-&gt;vdev_cache;</span>
+<span class="lineNum">     255 </span>                :            :         vdev_cache_entry_t *ve, *ve_search;
+<span class="lineNum">     256 </span>                :<span class="lineCov">    3902000 :         uint64_t cache_offset = P2ALIGN(zio-&gt;io_offset, VCBS);</span>
+<span class="lineNum">     257 </span>                :            :         zio_t *fio;
+<span class="lineNum">     258 </span>                :<span class="lineCov">    3902000 :         ASSERTV(uint64_t cache_phase = P2PHASE(zio-&gt;io_offset, VCBS));</span>
+<span class="lineNum">     259 </span>                :            : 
+<span class="lineNum">     260 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3902000 times"> + </span>]:<span class="lineCov">    3902000 :         ASSERT3U(zio-&gt;io_type, ==, ZIO_TYPE_READ);</span>
+<span class="lineNum">     261 </span>                :            : 
+<span class="lineNum">     262 </span>        [<span class="branchCov" title="Branch 0 was taken 3239787 times"> + </span><span class="branchCov" title="Branch 1 was taken 662213 times"> + </span>]:<span class="lineCov">    3902000 :         if (zio-&gt;io_flags &amp; ZIO_FLAG_DONT_CACHE)</span>
+<span class="lineNum">     263 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     264 </span>                :            : 
+<span class="lineNum">     265 </span>        [<span class="branchCov" title="Branch 0 was taken 3198739 times"> + </span><span class="branchCov" title="Branch 1 was taken 41048 times"> + </span>]:<span class="lineCov">    3239787 :         if (zio-&gt;io_size &gt; zfs_vdev_cache_max)</span>
+<span class="lineNum">     266 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     267 </span>                :            : 
+<span class="lineNum">     268 </span>                :            :         /*
+<span class="lineNum">     269 </span>                :            :          * If the I/O straddles two or more cache blocks, don't cache it.
+<span class="lineNum">     270 </span>                :            :          */
+<span class="lineNum">     271 </span>        [<span class="branchCov" title="Branch 0 was taken 3194759 times"> + </span><span class="branchCov" title="Branch 1 was taken 3980 times"> + </span>]:<span class="lineCov">    3198739 :         if (P2BOUNDARY(zio-&gt;io_offset, zio-&gt;io_size, VCBS))</span>
+<span class="lineNum">     272 </span>                :            :                 return (B_FALSE);
+<span class="lineNum">     273 </span>                :            : 
+<span class="lineNum">     274 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3194759 times"> + </span>]:<span class="lineCov">    3194759 :         ASSERT3U(cache_phase + zio-&gt;io_size, &lt;=, VCBS);</span>
+<span class="lineNum">     275 </span>                :            : 
+<span class="lineNum">     276 </span>                :<span class="lineCov">    3194759 :         mutex_enter(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>                :<span class="lineCov">    3194775 :         ve_search = kmem_alloc(sizeof (vdev_cache_entry_t), KM_SLEEP);</span>
+<span class="lineNum">     279 </span>                :<span class="lineCov">    3194774 :         ve_search-&gt;ve_offset = cache_offset;</span>
+<span class="lineNum">     280 </span>                :<span class="lineCov">    3194774 :         ve = avl_find(&amp;vc-&gt;vc_offset_tree, ve_search, NULL);</span>
+<span class="lineNum">     281 </span>                :<span class="lineCov">    3194778 :         kmem_free(ve_search, sizeof (vdev_cache_entry_t));</span>
+<span class="lineNum">     282 </span>                :            : 
+<span class="lineNum">     283 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3194776 times"> + </span>]:<span class="lineCov">    3194776 :         if (ve != NULL) {</span>
+<span class="lineNum">     284 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ve-&gt;ve_missed_update) {</span>
+<span class="lineNum">     285 </span>                :<span class="lineNoCov">          0 :                         mutex_exit(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     286 </span>                :<span class="lineNoCov">          0 :                         return (B_FALSE);</span>
+<span class="lineNum">     287 </span>                :            :                 }
+<span class="lineNum">     288 </span>                :            : 
+<span class="lineNum">     289 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((fio = ve-&gt;ve_fill_io) != NULL) {</span>
+<span class="lineNum">     290 </span>                :<span class="lineNoCov">          0 :                         zio_vdev_io_bypass(zio);</span>
+<span class="lineNum">     291 </span>                :<span class="lineNoCov">          0 :                         zio_add_child(zio, fio);</span>
+<span class="lineNum">     292 </span>                :<span class="lineNoCov">          0 :                         mutex_exit(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     293 </span>                :<span class="lineNoCov">          0 :                         VDCSTAT_BUMP(vdc_stat_delegations);</span>
+<span class="lineNum">     294 </span>                :<span class="lineNoCov">          0 :                         return (B_TRUE);</span>
+<span class="lineNum">     295 </span>                :            :                 }
+<span class="lineNum">     296 </span>                :            : 
+<span class="lineNum">     297 </span>                :<span class="lineNoCov">          0 :                 vdev_cache_hit(vc, ve, zio);</span>
+<span class="lineNum">     298 </span>                :<span class="lineNoCov">          0 :                 zio_vdev_io_bypass(zio);</span>
+<span class="lineNum">     299 </span>                :            : 
+<span class="lineNum">     300 </span>                :<span class="lineNoCov">          0 :                 mutex_exit(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     301 </span>                :<span class="lineNoCov">          0 :                 VDCSTAT_BUMP(vdc_stat_hits);</span>
+<span class="lineNum">     302 </span>                :<span class="lineNoCov">          0 :                 return (B_TRUE);</span>
+<span class="lineNum">     303 </span>                :            :         }
+<span class="lineNum">     304 </span>                :            : 
+<span class="lineNum">     305 </span>                :<span class="lineCov">    3194776 :         ve = vdev_cache_allocate(zio);</span>
+<span class="lineNum">     306 </span>                :            : 
+<span class="lineNum">     307 </span>        [<span class="branchCov" title="Branch 0 was taken 3194766 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">    3194766 :         if (ve == NULL) {</span>
+<span class="lineNum">     308 </span>                :<span class="lineCov">    3194766 :                 mutex_exit(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     309 </span>                :<span class="lineCov">    3194777 :                 return (B_FALSE);</span>
+<span class="lineNum">     310 </span>                :            :         }
+<span class="lineNum">     311 </span>                :            : 
+<span class="lineNum">     312 </span>                :<span class="lineNoCov">          0 :         fio = zio_vdev_delegated_io(zio-&gt;io_vd, cache_offset,</span>
+<span class="lineNum">     313 </span>                :<span class="lineNoCov">          0 :             ve-&gt;ve_abd, VCBS, ZIO_TYPE_READ, ZIO_PRIORITY_NOW,</span>
+<span class="lineNum">     314 </span>                :            :             ZIO_FLAG_DONT_CACHE, vdev_cache_fill, ve);
+<span class="lineNum">     315 </span>                :            : 
+<span class="lineNum">     316 </span>                :<span class="lineNoCov">          0 :         ve-&gt;ve_fill_io = fio;</span>
+<span class="lineNum">     317 </span>                :<span class="lineNoCov">          0 :         zio_vdev_io_bypass(zio);</span>
+<span class="lineNum">     318 </span>                :<span class="lineNoCov">          0 :         zio_add_child(zio, fio);</span>
+<span class="lineNum">     319 </span>                :            : 
+<span class="lineNum">     320 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     321 </span>                :<span class="lineNoCov">          0 :         zio_nowait(fio);</span>
+<span class="lineNum">     322 </span>                :<span class="lineNoCov">          0 :         VDCSTAT_BUMP(vdc_stat_misses);</span>
+<span class="lineNum">     323 </span>                :            : 
+<span class="lineNum">     324 </span>                :<span class="lineNoCov">          0 :         return (B_TRUE);</span>
+<span class="lineNum">     325 </span>                :            : }
+<span class="lineNum">     326 </span>                :            : 
+<span class="lineNum">     327 </span>                :            : /*
+<span class="lineNum">     328 </span>                :            :  * Update cache contents upon write completion.
+<a name="329"><span class="lineNum">     329 </span>                :            :  */</a>
+<span class="lineNum">     330 </span>                :            : void
+<span class="lineNum">     331 </span>                :<span class="lineCov">    2315160 : vdev_cache_write(zio_t *zio)</span>
+<span class="lineNum">     332 </span>                :            : {
+<span class="lineNum">     333 </span>                :<span class="lineCov">    2315160 :         vdev_cache_t *vc = &amp;zio-&gt;io_vd-&gt;vdev_cache;</span>
+<span class="lineNum">     334 </span>                :            :         vdev_cache_entry_t *ve, ve_search;
+<span class="lineNum">     335 </span>                :<span class="lineCov">    2315160 :         uint64_t io_start = zio-&gt;io_offset;</span>
+<span class="lineNum">     336 </span>                :<span class="lineCov">    2315160 :         uint64_t io_end = io_start + zio-&gt;io_size;</span>
+<span class="lineNum">     337 </span>                :<span class="lineCov">    2315160 :         uint64_t min_offset = P2ALIGN(io_start, VCBS);</span>
+<span class="lineNum">     338 </span>                :<span class="lineCov">    2315160 :         uint64_t max_offset = P2ROUNDUP(io_end, VCBS);</span>
+<span class="lineNum">     339 </span>                :            :         avl_index_t where;
+<span class="lineNum">     340 </span>                :            : 
+<span class="lineNum">     341 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2315160 times"> + </span>]:<span class="lineCov">    2315160 :         ASSERT3U(zio-&gt;io_type, ==, ZIO_TYPE_WRITE);</span>
+<span class="lineNum">     342 </span>                :            : 
+<span class="lineNum">     343 </span>                :<span class="lineCov">    2315160 :         mutex_enter(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     344 </span>                :            : 
+<span class="lineNum">     345 </span>                :<span class="lineCov">    2315251 :         ve_search.ve_offset = min_offset;</span>
+<span class="lineNum">     346 </span>                :<span class="lineCov">    2315251 :         ve = avl_find(&amp;vc-&gt;vc_offset_tree, &amp;ve_search, &amp;where);</span>
+<span class="lineNum">     347 </span>                :            : 
+<span class="lineNum">     348 </span>           [<span class="branchCov" title="Branch 0 was taken 2315056 times"> + </span>]:<span class="lineCov">    2315054 :         if (ve == NULL)</span>
+<span class="lineNum">     349 </span>                :<span class="lineCov">    2315054 :                 ve = avl_nearest(&amp;vc-&gt;vc_offset_tree, where, AVL_AFTER);</span>
+<span class="lineNum">     350 </span>                :            : 
+<span class="lineNum">     351 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2315062 times"> + </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineCov">    2315062 :         while (ve != NULL &amp;&amp; ve-&gt;ve_offset &lt; max_offset) {</span>
+<span class="lineNum">     352 </span>                :<span class="lineNoCov">          0 :                 uint64_t start = MAX(ve-&gt;ve_offset, io_start);</span>
+<span class="lineNum">     353 </span>                :<span class="lineNoCov">          0 :                 uint64_t end = MIN(ve-&gt;ve_offset + VCBS, io_end);</span>
+<span class="lineNum">     354 </span>                :            : 
+<span class="lineNum">     355 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ve-&gt;ve_fill_io != NULL) {</span>
+<span class="lineNum">     356 </span>                :<span class="lineNoCov">          0 :                         ve-&gt;ve_missed_update = 1;</span>
+<span class="lineNum">     357 </span>                :            :                 } else {
+<span class="lineNum">     358 </span>                :<span class="lineNoCov">          0 :                         abd_copy_off(ve-&gt;ve_abd, zio-&gt;io_abd,</span>
+<span class="lineNum">     359 </span>                :            :                             start - ve-&gt;ve_offset, start - io_start,
+<span class="lineNum">     360 </span>                :            :                             end - start);
+<span class="lineNum">     361 </span>                :            :                 }
+<span class="lineNum">     362 </span>                :<span class="lineNoCov">          0 :                 ve = AVL_NEXT(&amp;vc-&gt;vc_offset_tree, ve);</span>
+<span class="lineNum">     363 </span>                :            :         }
+<span class="lineNum">     364 </span>                :<span class="lineCov">    2315062 :         mutex_exit(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     365 </span>                :<span class="lineCov">    2315249 : }</span>
+<a name="366"><span class="lineNum">     366 </span>                :            : </a>
+<span class="lineNum">     367 </span>                :            : void
+<span class="lineNum">     368 </span>                :<span class="lineCov">      67467 : vdev_cache_purge(vdev_t *vd)</span>
+<span class="lineNum">     369 </span>                :            : {
+<span class="lineNum">     370 </span>                :<span class="lineCov">      67467 :         vdev_cache_t *vc = &amp;vd-&gt;vdev_cache;</span>
+<span class="lineNum">     371 </span>                :            :         vdev_cache_entry_t *ve;
+<span class="lineNum">     372 </span>                :            : 
+<span class="lineNum">     373 </span>                :<span class="lineCov">      67467 :         mutex_enter(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     374 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 67467 times"> + </span>]:<span class="lineCov">      67467 :         while ((ve = avl_first(&amp;vc-&gt;vc_offset_tree)) != NULL)</span>
+<span class="lineNum">     375 </span>                :<span class="lineNoCov">          0 :                 vdev_cache_evict(vc, ve);</span>
+<span class="lineNum">     376 </span>                :<span class="lineCov">      67467 :         mutex_exit(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     377 </span>                :<span class="lineCov">      67467 : }</span>
+<a name="378"><span class="lineNum">     378 </span>                :            : </a>
+<span class="lineNum">     379 </span>                :            : void
+<span class="lineNum">     380 </span>                :<span class="lineCov">      17823 : vdev_cache_init(vdev_t *vd)</span>
+<span class="lineNum">     381 </span>                :            : {
+<span class="lineNum">     382 </span>                :<span class="lineCov">      17823 :         vdev_cache_t *vc = &amp;vd-&gt;vdev_cache;</span>
+<span class="lineNum">     383 </span>                :            : 
+<span class="lineNum">     384 </span>                :<span class="lineCov">      17823 :         mutex_init(&amp;vc-&gt;vc_lock, NULL, MUTEX_DEFAULT, NULL);</span>
+<span class="lineNum">     385 </span>                :            : 
+<span class="lineNum">     386 </span>                :<span class="lineCov">      17823 :         avl_create(&amp;vc-&gt;vc_offset_tree, vdev_cache_offset_compare,</span>
+<span class="lineNum">     387 </span>                :            :             sizeof (vdev_cache_entry_t),
+<span class="lineNum">     388 </span>                :            :             offsetof(struct vdev_cache_entry, ve_offset_node));
+<span class="lineNum">     389 </span>                :            : 
+<span class="lineNum">     390 </span>                :<span class="lineCov">      17823 :         avl_create(&amp;vc-&gt;vc_lastused_tree, vdev_cache_lastused_compare,</span>
+<span class="lineNum">     391 </span>                :            :             sizeof (vdev_cache_entry_t),
+<span class="lineNum">     392 </span>                :            :             offsetof(struct vdev_cache_entry, ve_lastused_node));
+<span class="lineNum">     393 </span>                :<span class="lineCov">      17823 : }</span>
+<a name="394"><span class="lineNum">     394 </span>                :            : </a>
+<span class="lineNum">     395 </span>                :            : void
+<span class="lineNum">     396 </span>                :<span class="lineCov">      17819 : vdev_cache_fini(vdev_t *vd)</span>
+<span class="lineNum">     397 </span>                :            : {
+<span class="lineNum">     398 </span>                :<span class="lineCov">      17819 :         vdev_cache_t *vc = &amp;vd-&gt;vdev_cache;</span>
+<span class="lineNum">     399 </span>                :            : 
+<span class="lineNum">     400 </span>                :<span class="lineCov">      17819 :         vdev_cache_purge(vd);</span>
+<span class="lineNum">     401 </span>                :            : 
+<span class="lineNum">     402 </span>                :<span class="lineCov">      17819 :         avl_destroy(&amp;vc-&gt;vc_offset_tree);</span>
+<span class="lineNum">     403 </span>                :<span class="lineCov">      17819 :         avl_destroy(&amp;vc-&gt;vc_lastused_tree);</span>
+<span class="lineNum">     404 </span>                :            : 
+<span class="lineNum">     405 </span>                :<span class="lineCov">      17819 :         mutex_destroy(&amp;vc-&gt;vc_lock);</span>
+<span class="lineNum">     406 </span>                :<span class="lineCov">      17819 : }</span>
+<a name="407"><span class="lineNum">     407 </span>                :            : </a>
+<span class="lineNum">     408 </span>                :            : void
+<span class="lineNum">     409 </span>                :<span class="lineCov">       1234 : vdev_cache_stat_init(void)</span>
+<span class="lineNum">     410 </span>                :            : {
+<span class="lineNum">     411 </span>                :<span class="lineCov">       1234 :         vdc_ksp = kstat_create(&quot;zfs&quot;, 0, &quot;vdev_cache_stats&quot;, &quot;misc&quot;,</span>
+<span class="lineNum">     412 </span>                :            :             KSTAT_TYPE_NAMED, sizeof (vdc_stats) / sizeof (kstat_named_t),
+<span class="lineNum">     413 </span>                :            :             KSTAT_FLAG_VIRTUAL);
+<span class="lineNum">     414 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         if (vdc_ksp != NULL) {</span>
+<span class="lineNum">     415 </span>                :<span class="lineNoCov">          0 :                 vdc_ksp-&gt;ks_data = &amp;vdc_stats;</span>
+<span class="lineNum">     416 </span>                :<span class="lineNoCov">          0 :                 kstat_install(vdc_ksp);</span>
+<span class="lineNum">     417 </span>                :            :         }
+<span class="lineNum">     418 </span>                :<span class="lineCov">       1234 : }</span>
+<a name="419"><span class="lineNum">     419 </span>                :            : </a>
+<span class="lineNum">     420 </span>                :            : void
+<span class="lineNum">     421 </span>                :<span class="lineCov">        785 : vdev_cache_stat_fini(void)</span>
+<span class="lineNum">     422 </span>                :            : {
+<span class="lineNum">     423 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 785 times"> + </span>]:<span class="lineCov">        785 :         if (vdc_ksp != NULL) {</span>
+<span class="lineNum">     424 </span>                :<span class="lineNoCov">          0 :                 kstat_delete(vdc_ksp);</span>
+<span class="lineNum">     425 </span>                :<span class="lineNoCov">          0 :                 vdc_ksp = NULL;</span>
+<span class="lineNum">     426 </span>                :            :         }
+<span class="lineNum">     427 </span>                :<span class="lineCov">        785 : }</span>
+<span class="lineNum">     428 </span>                :            : 
+<span class="lineNum">     429 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     430 </span>                :            : module_param(zfs_vdev_cache_max, int, 0644);
+<span class="lineNum">     431 </span>                :            : MODULE_PARM_DESC(zfs_vdev_cache_max, &quot;Inflate reads small than max&quot;);
+<span class="lineNum">     432 </span>                :            : 
+<span class="lineNum">     433 </span>                :            : module_param(zfs_vdev_cache_size, int, 0444);
+<span class="lineNum">     434 </span>                :            : MODULE_PARM_DESC(zfs_vdev_cache_size, &quot;Total size of the per-disk cache&quot;);
+<span class="lineNum">     435 </span>                :            : 
+<span class="lineNum">     436 </span>                :            : module_param(zfs_vdev_cache_bshift, int, 0644);
+<span class="lineNum">     437 </span>                :            : MODULE_PARM_DESC(zfs_vdev_cache_bshift, &quot;Shift size to inflate reads too&quot;);
+<span class="lineNum">     438 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

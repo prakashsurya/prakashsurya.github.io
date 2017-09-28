@@ -1,0 +1,386 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/vdev_file.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - vdev_file.c<span style="font-size: 80%;"> (source / <a href="vdev_file.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">73</td>
+            <td class="headerCovTableEntry">88</td>
+            <td class="headerCovTableEntryMed">83.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryLo">70.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">36</td>
+            <td class="headerCovTableEntry">51</td>
+            <td class="headerCovTableEntryLo">70.6 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2011, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/spa_impl.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/vdev_file.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/vdev_impl.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/zio.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/fs/zfs.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/fm/fs/zfs.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/abd.h&gt;
+<span class="lineNum">      35 </span>                :            : 
+<span class="lineNum">      36 </span>                :            : /*
+<span class="lineNum">      37 </span>                :            :  * Virtual device vector for files.
+<span class="lineNum">      38 </span>                :            :  */
+<span class="lineNum">      39 </span>                :            : 
+<span class="lineNum">      40 </span>                :            : static taskq_t *vdev_file_taskq;
+<a name="41"><span class="lineNum">      41 </span>                :            : </a>
+<span class="lineNum">      42 </span>                :            : static void
+<span class="lineNum">      43 </span>                :<span class="lineNoCov">          0 : vdev_file_hold(vdev_t *vd)</span>
+<span class="lineNum">      44 </span>                :            : {
+<span class="lineNum">      45 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(vd-&gt;vdev_path != NULL);</span>
+<span class="lineNum">      46 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="47"><span class="lineNum">      47 </span>                :            : </a>
+<span class="lineNum">      48 </span>                :            : static void
+<span class="lineNum">      49 </span>                :<span class="lineNoCov">          0 : vdev_file_rele(vdev_t *vd)</span>
+<span class="lineNum">      50 </span>                :            : {
+<span class="lineNum">      51 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(vd-&gt;vdev_path != NULL);</span>
+<span class="lineNum">      52 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="53"><span class="lineNum">      53 </span>                :            : </a>
+<span class="lineNum">      54 </span>                :            : static int
+<span class="lineNum">      55 </span>                :<span class="lineCov">       8476 : vdev_file_open(vdev_t *vd, uint64_t *psize, uint64_t *max_psize,</span>
+<span class="lineNum">      56 </span>                :            :     uint64_t *ashift)
+<span class="lineNum">      57 </span>                :            : {
+<span class="lineNum">      58 </span>                :            :         vdev_file_t *vf;
+<span class="lineNum">      59 </span>                :            :         vnode_t *vp;
+<span class="lineNum">      60 </span>                :            :         vattr_t vattr;
+<span class="lineNum">      61 </span>                :            :         int error;
+<span class="lineNum">      62 </span>                :            : 
+<span class="lineNum">      63 </span>                :            :         /* Rotational optimizations only make sense on block devices */
+<span class="lineNum">      64 </span>                :<span class="lineCov">       8476 :         vd-&gt;vdev_nonrot = B_TRUE;</span>
+<span class="lineNum">      65 </span>                :            : 
+<span class="lineNum">      66 </span>                :            :         /*
+<span class="lineNum">      67 </span>                :            :          * We must have a pathname, and it must be absolute.
+<span class="lineNum">      68 </span>                :            :          */
+<span class="lineNum">      69 </span>   [<span class="branchCov" title="Branch 0 was taken 8478 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 3 times"> + </span><span class="branchCov" title="Branch 3 was taken 8475 times"> + </span>]:<span class="lineCov">       8476 :         if (vd-&gt;vdev_path == NULL || vd-&gt;vdev_path[0] != '/') {</span>
+<span class="lineNum">      70 </span>                :<span class="lineCov">          1 :                 vd-&gt;vdev_stat.vs_aux = VDEV_AUX_BAD_LABEL;</span>
+<span class="lineNum">      71 </span>                :<span class="lineCov">          1 :                 return (SET_ERROR(EINVAL));</span>
+<span class="lineNum">      72 </span>                :            :         }
+<span class="lineNum">      73 </span>                :            : 
+<span class="lineNum">      74 </span>                :            :         /*
+<span class="lineNum">      75 </span>                :            :          * Reopen the device if it's not currently open.  Otherwise,
+<span class="lineNum">      76 </span>                :            :          * just update the physical size of the device.
+<span class="lineNum">      77 </span>                :            :          */
+<span class="lineNum">      78 </span>        [<span class="branchCov" title="Branch 0 was taken 831 times"> + </span><span class="branchCov" title="Branch 1 was taken 7644 times"> + </span>]:<span class="lineCov">       8475 :         if (vd-&gt;vdev_tsd != NULL) {</span>
+<span class="lineNum">      79 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 831 times"> + </span>]:<span class="lineCov">        831 :                 ASSERT(vd-&gt;vdev_reopening);</span>
+<span class="lineNum">      80 </span>                :            :                 vf = vd-&gt;vdev_tsd;
+<span class="lineNum">      81 </span>                :            :                 goto skip_open;
+<span class="lineNum">      82 </span>                :            :         }
+<span class="lineNum">      83 </span>                :            : 
+<span class="lineNum">      84 </span>                :<span class="lineCov">       7644 :         vf = vd-&gt;vdev_tsd = kmem_zalloc(sizeof (vdev_file_t), KM_SLEEP);</span>
+<span class="lineNum">      85 </span>                :            : 
+<span class="lineNum">      86 </span>                :            :         /*
+<span class="lineNum">      87 </span>                :            :          * We always open the files from the root of the global zone, even if
+<span class="lineNum">      88 </span>                :            :          * we're in a local zone.  If the user has gotten to this point, the
+<span class="lineNum">      89 </span>                :            :          * administrator has already decided that the pool should be available
+<span class="lineNum">      90 </span>                :            :          * to local zone users, so the underlying devices should be as well.
+<span class="lineNum">      91 </span>                :            :          */
+<span class="lineNum">      92 </span>[<span class="branchCov" title="Branch 0 was taken 7651 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 7651 times"> + </span>]:<span class="lineCov">       7651 :         ASSERT(vd-&gt;vdev_path != NULL &amp;&amp; vd-&gt;vdev_path[0] == '/');</span>
+<span class="lineNum">      93 </span>                :<span class="lineCov">       7651 :         error = vn_openat(vd-&gt;vdev_path + 1, UIO_SYSSPACE,</span>
+<span class="lineNum">      94 </span>                :            :             spa_mode(vd-&gt;vdev_spa) | FOFFMAX, 0, &amp;vp, 0, 0, rootdir, -1);
+<span class="lineNum">      95 </span>                :            : 
+<span class="lineNum">      96 </span>        [<span class="branchCov" title="Branch 0 was taken 141 times"> + </span><span class="branchCov" title="Branch 1 was taken 7497 times"> + </span>]:<span class="lineCov">       7638 :         if (error) {</span>
+<span class="lineNum">      97 </span>                :<span class="lineCov">        141 :                 vd-&gt;vdev_stat.vs_aux = VDEV_AUX_OPEN_FAILED;</span>
+<span class="lineNum">      98 </span>                :<span class="lineCov">        141 :                 return (error);</span>
+<span class="lineNum">      99 </span>                :            :         }
+<span class="lineNum">     100 </span>                :            : 
+<span class="lineNum">     101 </span>                :<span class="lineCov">       7497 :         vf-&gt;vf_vnode = vp;</span>
+<span class="lineNum">     102 </span>                :            : 
+<span class="lineNum">     103 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">     104 </span>                :            :         /*
+<span class="lineNum">     105 </span>                :            :          * Make sure it's a regular file.
+<span class="lineNum">     106 </span>                :            :          */
+<span class="lineNum">     107 </span>                :            :         if (vp-&gt;v_type != VREG) {
+<span class="lineNum">     108 </span>                :            :                 vd-&gt;vdev_stat.vs_aux = VDEV_AUX_OPEN_FAILED;
+<span class="lineNum">     109 </span>                :            :                 return (SET_ERROR(ENODEV));
+<span class="lineNum">     110 </span>                :            :         }
+<span class="lineNum">     111 </span>                :            : #endif
+<span class="lineNum">     112 </span>                :            : 
+<span class="lineNum">     113 </span>                :            : skip_open:
+<span class="lineNum">     114 </span>                :            :         /*
+<span class="lineNum">     115 </span>                :            :          * Determine the physical size of the file.
+<span class="lineNum">     116 </span>                :            :          */
+<span class="lineNum">     117 </span>                :<span class="lineCov">       8328 :         vattr.va_mask = AT_SIZE;</span>
+<span class="lineNum">     118 </span>                :<span class="lineCov">       8328 :         error = VOP_GETATTR(vf-&gt;vf_vnode, &amp;vattr, 0, kcred, NULL);</span>
+<span class="lineNum">     119 </span>        [<span class="branchCov" title="Branch 0 was taken 5 times"> + </span><span class="branchCov" title="Branch 1 was taken 8318 times"> + </span>]:<span class="lineCov">       8323 :         if (error) {</span>
+<span class="lineNum">     120 </span>                :<span class="lineCov">          5 :                 vd-&gt;vdev_stat.vs_aux = VDEV_AUX_OPEN_FAILED;</span>
+<span class="lineNum">     121 </span>                :<span class="lineCov">          5 :                 return (error);</span>
+<span class="lineNum">     122 </span>                :            :         }
+<span class="lineNum">     123 </span>                :            : 
+<span class="lineNum">     124 </span>                :<span class="lineCov">       8318 :         *max_psize = *psize = vattr.va_size;</span>
+<span class="lineNum">     125 </span>                :<span class="lineCov">       8318 :         *ashift = SPA_MINBLOCKSHIFT;</span>
+<span class="lineNum">     126 </span>                :            : 
+<span class="lineNum">     127 </span>                :<span class="lineCov">       8318 :         return (0);</span>
+<span class="lineNum">     128 </span>                :            : }
+<a name="129"><span class="lineNum">     129 </span>                :            : </a>
+<span class="lineNum">     130 </span>                :            : static void
+<span class="lineNum">     131 </span>                :<span class="lineCov">      38307 : vdev_file_close(vdev_t *vd)</span>
+<span class="lineNum">     132 </span>                :            : {
+<span class="lineNum">     133 </span>                :<span class="lineCov">      38307 :         vdev_file_t *vf = vd-&gt;vdev_tsd;</span>
+<span class="lineNum">     134 </span>                :            : 
+<span class="lineNum">     135 </span>[<span class="branchCov" title="Branch 0 was taken 37471 times"> + </span><span class="branchCov" title="Branch 1 was taken 836 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 7648 times"> + </span><span class="branchCov" title="Branch 3 was taken 29823 times"> + </span>]:<span class="lineCov">      38307 :         if (vd-&gt;vdev_reopening || vf == NULL)</span>
+<span class="lineNum">     136 </span>                :            :                 return;
+<span class="lineNum">     137 </span>                :            : 
+<span class="lineNum">     138 </span>        [<span class="branchCov" title="Branch 0 was taken 7507 times"> + </span><span class="branchCov" title="Branch 1 was taken 141 times"> + </span>]:<span class="lineCov">       7648 :         if (vf-&gt;vf_vnode != NULL) {</span>
+<span class="lineNum">     139 </span>                :            :                 (void) VOP_PUTPAGE(vf-&gt;vf_vnode, 0, 0, B_INVAL, kcred, NULL);
+<span class="lineNum">     140 </span>                :<span class="lineCov">       7507 :                 (void) VOP_CLOSE(vf-&gt;vf_vnode, spa_mode(vd-&gt;vdev_spa), 1, 0,</span>
+<span class="lineNum">     141 </span>                :            :                     kcred, NULL);
+<span class="lineNum">     142 </span>                :            :         }
+<span class="lineNum">     143 </span>                :            : 
+<span class="lineNum">     144 </span>                :<span class="lineCov">       7648 :         vd-&gt;vdev_delayed_close = B_FALSE;</span>
+<span class="lineNum">     145 </span>                :<span class="lineCov">       7648 :         kmem_free(vf, sizeof (vdev_file_t));</span>
+<span class="lineNum">     146 </span>                :<span class="lineCov">       7648 :         vd-&gt;vdev_tsd = NULL;</span>
+<span class="lineNum">     147 </span>                :            : }
+<a name="148"><span class="lineNum">     148 </span>                :            : </a>
+<span class="lineNum">     149 </span>                :            : static void
+<span class="lineNum">     150 </span>                :<span class="lineCov">    4105132 : vdev_file_io_strategy(void *arg)</span>
+<span class="lineNum">     151 </span>                :            : {
+<span class="lineNum">     152 </span>                :<span class="lineCov">    4105132 :         zio_t *zio = (zio_t *)arg;</span>
+<span class="lineNum">     153 </span>                :<span class="lineCov">    4105132 :         vdev_t *vd = zio-&gt;io_vd;</span>
+<span class="lineNum">     154 </span>                :<span class="lineCov">    4105132 :         vdev_file_t *vf = vd-&gt;vdev_tsd;</span>
+<span class="lineNum">     155 </span>                :            :         ssize_t resid;
+<span class="lineNum">     156 </span>                :            :         void *buf;
+<span class="lineNum">     157 </span>                :            : 
+<span class="lineNum">     158 </span>        [<span class="branchCov" title="Branch 0 was taken 1825433 times"> + </span><span class="branchCov" title="Branch 1 was taken 2279699 times"> + </span>]:<span class="lineCov">    4105132 :         if (zio-&gt;io_type == ZIO_TYPE_READ)</span>
+<span class="lineNum">     159 </span>                :<span class="lineCov">    1825433 :                 buf = abd_borrow_buf(zio-&gt;io_abd, zio-&gt;io_size);</span>
+<span class="lineNum">     160 </span>                :            :         else
+<span class="lineNum">     161 </span>                :<span class="lineCov">    2279699 :                 buf = abd_borrow_buf_copy(zio-&gt;io_abd, zio-&gt;io_size);</span>
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>                :<span class="lineCov">    4105236 :         zio-&gt;io_error = vn_rdwr(zio-&gt;io_type == ZIO_TYPE_READ ?</span>
+<span class="lineNum">     164 </span>                :<span class="lineCov">    4105236 :             UIO_READ : UIO_WRITE, vf-&gt;vf_vnode, buf, zio-&gt;io_size,</span>
+<span class="lineNum">     165 </span>                :<span class="lineCov">    4105236 :             zio-&gt;io_offset, UIO_SYSSPACE, 0, RLIM64_INFINITY, kcred, &amp;resid);</span>
+<span class="lineNum">     166 </span>                :            : 
+<span class="lineNum">     167 </span>        [<span class="branchCov" title="Branch 0 was taken 1824357 times"> + </span><span class="branchCov" title="Branch 1 was taken 2279358 times"> + </span>]:<span class="lineCov">    4103715 :         if (zio-&gt;io_type == ZIO_TYPE_READ)</span>
+<span class="lineNum">     168 </span>                :<span class="lineCov">    1824357 :                 abd_return_buf_copy(zio-&gt;io_abd, buf, zio-&gt;io_size);</span>
+<span class="lineNum">     169 </span>                :            :         else
+<span class="lineNum">     170 </span>                :<span class="lineCov">    2279358 :                 abd_return_buf(zio-&gt;io_abd, buf, zio-&gt;io_size);</span>
+<span class="lineNum">     171 </span>                :            : 
+<span class="lineNum">     172 </span>[<span class="branchCov" title="Branch 0 was taken 37 times"> + </span><span class="branchCov" title="Branch 1 was taken 4104489 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 37 times"> + </span>]:<span class="lineCov">    4104526 :         if (resid != 0 &amp;&amp; zio-&gt;io_error == 0)</span>
+<span class="lineNum">     173 </span>                :<span class="lineNoCov">          0 :                 zio-&gt;io_error = SET_ERROR(ENOSPC);</span>
+<span class="lineNum">     174 </span>                :            : 
+<span class="lineNum">     175 </span>                :<span class="lineCov">    4104526 :         zio_delay_interrupt(zio);</span>
+<span class="lineNum">     176 </span>                :<span class="lineCov">    4104827 : }</span>
+<a name="177"><span class="lineNum">     177 </span>                :            : </a>
+<span class="lineNum">     178 </span>                :            : static void
+<span class="lineNum">     179 </span>                :<span class="lineNoCov">          0 : vdev_file_io_fsync(void *arg)</span>
+<span class="lineNum">     180 </span>                :            : {
+<span class="lineNum">     181 </span>                :<span class="lineNoCov">          0 :         zio_t *zio = (zio_t *)arg;</span>
+<span class="lineNum">     182 </span>                :<span class="lineNoCov">          0 :         vdev_file_t *vf = zio-&gt;io_vd-&gt;vdev_tsd;</span>
+<span class="lineNum">     183 </span>                :            : 
+<span class="lineNum">     184 </span>                :<span class="lineNoCov">          0 :         zio-&gt;io_error = VOP_FSYNC(vf-&gt;vf_vnode, FSYNC | FDSYNC, kcred, NULL);</span>
+<span class="lineNum">     185 </span>                :            : 
+<span class="lineNum">     186 </span>                :<span class="lineNoCov">          0 :         zio_interrupt(zio);</span>
+<span class="lineNum">     187 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="188"><span class="lineNum">     188 </span>                :            : </a>
+<span class="lineNum">     189 </span>                :            : static void
+<span class="lineNum">     190 </span>                :<span class="lineCov">    4173359 : vdev_file_io_start(zio_t *zio)</span>
+<span class="lineNum">     191 </span>                :            : {
+<span class="lineNum">     192 </span>                :<span class="lineCov">    4173359 :         vdev_t *vd = zio-&gt;io_vd;</span>
+<span class="lineNum">     193 </span>                :<span class="lineCov">    4173359 :         vdev_file_t *vf = vd-&gt;vdev_tsd;</span>
+<span class="lineNum">     194 </span>                :            : 
+<span class="lineNum">     195 </span>        [<span class="branchCov" title="Branch 0 was taken 68419 times"> + </span><span class="branchCov" title="Branch 1 was taken 4104940 times"> + </span>]:<span class="lineCov">    4173359 :         if (zio-&gt;io_type == ZIO_TYPE_IOCTL) {</span>
+<span class="lineNum">     196 </span>                :            :                 /* XXPOLICY */
+<span class="lineNum">     197 </span>        [<span class="branchCov" title="Branch 1 was taken 1238 times"> + </span><span class="branchCov" title="Branch 2 was taken 67177 times"> + </span>]:<span class="lineCov">      68419 :                 if (!vdev_readable(vd)) {</span>
+<span class="lineNum">     198 </span>                :<span class="lineCov">       1238 :                         zio-&gt;io_error = SET_ERROR(ENXIO);</span>
+<span class="lineNum">     199 </span>                :<span class="lineCov">       1238 :                         zio_interrupt(zio);</span>
+<span class="lineNum">     200 </span>                :<span class="lineCov">       1238 :                         return;</span>
+<span class="lineNum">     201 </span>                :            :                 }
+<span class="lineNum">     202 </span>                :            : 
+<span class="lineNum">     203 </span>        [<span class="branchCov" title="Branch 0 was taken 67177 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      67177 :                 switch (zio-&gt;io_cmd) {</span>
+<span class="lineNum">     204 </span>                :            :                 case DKIOCFLUSHWRITECACHE:
+<span class="lineNum">     205 </span>                :            : 
+<span class="lineNum">     206 </span>        [<span class="branchCov" title="Branch 0 was taken 67161 times"> + </span><span class="branchCov" title="Branch 1 was taken 16 times"> + </span>]:<span class="lineCov">      67177 :                         if (zfs_nocacheflush)</span>
+<span class="lineNum">     207 </span>                :            :                                 break;
+<span class="lineNum">     208 </span>                :            : 
+<span class="lineNum">     209 </span>                :            :                         /*
+<span class="lineNum">     210 </span>                :            :                          * We cannot safely call vfs_fsync() when PF_FSTRANS
+<span class="lineNum">     211 </span>                :            :                          * is set in the current context.  Filesystems like
+<span class="lineNum">     212 </span>                :            :                          * XFS include sanity checks to verify it is not
+<span class="lineNum">     213 </span>                :            :                          * already set, see xfs_vm_writepage().  Therefore
+<span class="lineNum">     214 </span>                :            :                          * the sync must be dispatched to a different context.
+<span class="lineNum">     215 </span>                :            :                          */
+<span class="lineNum">     216 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 67180 times"> + </span>]:<span class="lineCov">      67161 :                         if (__spl_pf_fstrans_check()) {</span>
+<span class="lineNum">     217 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 VERIFY3U(taskq_dispatch(vdev_file_taskq,</span>
+<span class="lineNum">     218 </span>                :            :                                     vdev_file_io_fsync, zio, TQ_SLEEP), !=,
+<span class="lineNum">     219 </span>                :            :                                     TASKQID_INVALID);
+<span class="lineNum">     220 </span>                :            :                                 return;
+<span class="lineNum">     221 </span>                :            :                         }
+<span class="lineNum">     222 </span>                :            : 
+<span class="lineNum">     223 </span>                :<span class="lineCov">      67180 :                         zio-&gt;io_error = VOP_FSYNC(vf-&gt;vf_vnode, FSYNC | FDSYNC,</span>
+<span class="lineNum">     224 </span>                :            :                             kcred, NULL);
+<span class="lineNum">     225 </span>                :<span class="lineCov">      67182 :                         break;</span>
+<span class="lineNum">     226 </span>                :            :                 default:
+<span class="lineNum">     227 </span>                :<span class="lineNoCov">          0 :                         zio-&gt;io_error = SET_ERROR(ENOTSUP);</span>
+<span class="lineNum">     228 </span>                :            :                 }
+<span class="lineNum">     229 </span>                :            : 
+<span class="lineNum">     230 </span>                :<span class="lineCov">      67198 :                 zio_execute(zio);</span>
+<span class="lineNum">     231 </span>                :<span class="lineCov">      67171 :                 return;</span>
+<span class="lineNum">     232 </span>                :            :         }
+<span class="lineNum">     233 </span>                :            : 
+<span class="lineNum">     234 </span>                :<span class="lineCov">    4104940 :         zio-&gt;io_target_timestamp = zio_handle_io_delay(zio);</span>
+<span class="lineNum">     235 </span>                :            : 
+<span class="lineNum">     236 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 4105540 times"> + </span>]:<span class="lineCov">    4105563 :         VERIFY3U(taskq_dispatch(vdev_file_taskq, vdev_file_io_strategy, zio,</span>
+<span class="lineNum">     237 </span>                :            :             TQ_SLEEP), !=, TASKQID_INVALID);
+<span class="lineNum">     238 </span>                :            : }
+<span class="lineNum">     239 </span>                :            : 
+<a name="240"><span class="lineNum">     240 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     241 </span>                :            : static void
+<span class="lineNum">     242 </span>                :<span class="lineCov">    4140274 : vdev_file_io_done(zio_t *zio)</span>
+<span class="lineNum">     243 </span>                :            : {
+<span class="lineNum">     244 </span>                :<span class="lineCov">    4140274 : }</span>
+<span class="lineNum">     245 </span>                :            : 
+<span class="lineNum">     246 </span>                :            : vdev_ops_t vdev_file_ops = {
+<span class="lineNum">     247 </span>                :            :         vdev_file_open,
+<span class="lineNum">     248 </span>                :            :         vdev_file_close,
+<span class="lineNum">     249 </span>                :            :         vdev_default_asize,
+<span class="lineNum">     250 </span>                :            :         vdev_file_io_start,
+<span class="lineNum">     251 </span>                :            :         vdev_file_io_done,
+<span class="lineNum">     252 </span>                :            :         NULL,
+<span class="lineNum">     253 </span>                :            :         NULL,
+<span class="lineNum">     254 </span>                :            :         vdev_file_hold,
+<span class="lineNum">     255 </span>                :            :         vdev_file_rele,
+<span class="lineNum">     256 </span>                :            :         VDEV_TYPE_FILE,         /* name of this vdev type */
+<span class="lineNum">     257 </span>                :            :         B_TRUE                  /* leaf vdev */
+<span class="lineNum">     258 </span>                :            : };
+<a name="259"><span class="lineNum">     259 </span>                :            : </a>
+<span class="lineNum">     260 </span>                :            : void
+<span class="lineNum">     261 </span>                :<span class="lineCov">       1234 : vdev_file_init(void)</span>
+<span class="lineNum">     262 </span>                :            : {
+<span class="lineNum">     263 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         vdev_file_taskq = taskq_create(&quot;z_vdev_file&quot;, MAX(boot_ncpus, 16),</span>
+<span class="lineNum">     264 </span>                :<span class="lineCov">       1234 :             minclsyspri, boot_ncpus, INT_MAX, TASKQ_DYNAMIC);</span>
+<span class="lineNum">     265 </span>                :            : 
+<span class="lineNum">     266 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         VERIFY(vdev_file_taskq);</span>
+<span class="lineNum">     267 </span>                :<span class="lineCov">       1234 : }</span>
+<a name="268"><span class="lineNum">     268 </span>                :            : </a>
+<span class="lineNum">     269 </span>                :            : void
+<span class="lineNum">     270 </span>                :<span class="lineCov">        785 : vdev_file_fini(void)</span>
+<span class="lineNum">     271 </span>                :            : {
+<span class="lineNum">     272 </span>                :<span class="lineCov">        785 :         taskq_destroy(vdev_file_taskq);</span>
+<span class="lineNum">     273 </span>                :<span class="lineCov">        785 : }</span>
+<span class="lineNum">     274 </span>                :            : 
+<span class="lineNum">     275 </span>                :            : /*
+<span class="lineNum">     276 </span>                :            :  * From userland we access disks just like files.
+<span class="lineNum">     277 </span>                :            :  */
+<span class="lineNum">     278 </span>                :            : #ifndef _KERNEL
+<span class="lineNum">     279 </span>                :            : 
+<span class="lineNum">     280 </span>                :            : vdev_ops_t vdev_disk_ops = {
+<span class="lineNum">     281 </span>                :            :         vdev_file_open,
+<span class="lineNum">     282 </span>                :            :         vdev_file_close,
+<span class="lineNum">     283 </span>                :            :         vdev_default_asize,
+<span class="lineNum">     284 </span>                :            :         vdev_file_io_start,
+<span class="lineNum">     285 </span>                :            :         vdev_file_io_done,
+<span class="lineNum">     286 </span>                :            :         NULL,
+<span class="lineNum">     287 </span>                :            :         NULL,
+<span class="lineNum">     288 </span>                :            :         vdev_file_hold,
+<span class="lineNum">     289 </span>                :            :         vdev_file_rele,
+<span class="lineNum">     290 </span>                :            :         VDEV_TYPE_DISK,         /* name of this vdev type */
+<span class="lineNum">     291 </span>                :            :         B_TRUE                  /* leaf vdev */
+<span class="lineNum">     292 </span>                :            : };
+<span class="lineNum">     293 </span>                :            : 
+<span class="lineNum">     294 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

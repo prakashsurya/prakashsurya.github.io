@@ -1,0 +1,837 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/icp/io/skein_mod.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/icp/io</a> - skein_mod.c<span style="font-size: 80%;"> (source / <a href="skein_mod.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">184</td>
+            <td class="headerCovTableEntryLo">4.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryLo">12.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">200</td>
+            <td class="headerCovTableEntryLo">1.5 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://opensource.org/licenses/CDDL-1.0.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : /*
+<span class="lineNum">      23 </span>                :            :  * Copyright 2013 Saso Kiselkov. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : #include &lt;sys/modctl.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/crypto/common.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/crypto/spi.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/sysmacros.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/systm.h&gt;
+<span class="lineNum">      31 </span>                :            : #define SKEIN_MODULE_IMPL
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/skein.h&gt;
+<span class="lineNum">      33 </span>                :            : 
+<span class="lineNum">      34 </span>                :            : /*
+<span class="lineNum">      35 </span>                :            :  * Like the sha2 module, we create the skein module with two modlinkages:
+<span class="lineNum">      36 </span>                :            :  * - modlmisc to allow direct calls to Skein_* API functions.
+<span class="lineNum">      37 </span>                :            :  * - modlcrypto to integrate well into the Kernel Crypto Framework (KCF).
+<span class="lineNum">      38 </span>                :            :  */
+<span class="lineNum">      39 </span>                :            : static struct modlmisc modlmisc = {
+<span class="lineNum">      40 </span>                :            :         &amp;mod_cryptoops,
+<span class="lineNum">      41 </span>                :            :         &quot;Skein Message-Digest Algorithm&quot;
+<span class="lineNum">      42 </span>                :            : };
+<span class="lineNum">      43 </span>                :            : 
+<span class="lineNum">      44 </span>                :            : static struct modlcrypto modlcrypto = {
+<span class="lineNum">      45 </span>                :            :         &amp;mod_cryptoops,
+<span class="lineNum">      46 </span>                :            :         &quot;Skein Kernel SW Provider&quot;
+<span class="lineNum">      47 </span>                :            : };
+<span class="lineNum">      48 </span>                :            : 
+<span class="lineNum">      49 </span>                :            : static struct modlinkage modlinkage = {
+<span class="lineNum">      50 </span>                :            :         MODREV_1, {&amp;modlmisc, &amp;modlcrypto, NULL}
+<span class="lineNum">      51 </span>                :            : };
+<span class="lineNum">      52 </span>                :            : 
+<span class="lineNum">      53 </span>                :            : static crypto_mech_info_t skein_mech_info_tab[] = {
+<span class="lineNum">      54 </span>                :            :         {CKM_SKEIN_256, SKEIN_256_MECH_INFO_TYPE,
+<span class="lineNum">      55 </span>                :            :             CRYPTO_FG_DIGEST | CRYPTO_FG_DIGEST_ATOMIC,
+<span class="lineNum">      56 </span>                :            :             0, 0, CRYPTO_KEYSIZE_UNIT_IN_BITS},
+<span class="lineNum">      57 </span>                :            :         {CKM_SKEIN_256_MAC, SKEIN_256_MAC_MECH_INFO_TYPE,
+<span class="lineNum">      58 </span>                :            :             CRYPTO_FG_MAC | CRYPTO_FG_MAC_ATOMIC, 1, INT_MAX,
+<span class="lineNum">      59 </span>                :            :             CRYPTO_KEYSIZE_UNIT_IN_BYTES},
+<span class="lineNum">      60 </span>                :            :         {CKM_SKEIN_512, SKEIN_512_MECH_INFO_TYPE,
+<span class="lineNum">      61 </span>                :            :             CRYPTO_FG_DIGEST | CRYPTO_FG_DIGEST_ATOMIC,
+<span class="lineNum">      62 </span>                :            :             0, 0, CRYPTO_KEYSIZE_UNIT_IN_BITS},
+<span class="lineNum">      63 </span>                :            :         {CKM_SKEIN_512_MAC, SKEIN_512_MAC_MECH_INFO_TYPE,
+<span class="lineNum">      64 </span>                :            :             CRYPTO_FG_MAC | CRYPTO_FG_MAC_ATOMIC, 1, INT_MAX,
+<span class="lineNum">      65 </span>                :            :             CRYPTO_KEYSIZE_UNIT_IN_BYTES},
+<span class="lineNum">      66 </span>                :            :         {CKM_SKEIN1024, SKEIN1024_MECH_INFO_TYPE,
+<span class="lineNum">      67 </span>                :            :             CRYPTO_FG_DIGEST | CRYPTO_FG_DIGEST_ATOMIC,
+<span class="lineNum">      68 </span>                :            :             0, 0, CRYPTO_KEYSIZE_UNIT_IN_BITS},
+<span class="lineNum">      69 </span>                :            :         {CKM_SKEIN1024_MAC, SKEIN1024_MAC_MECH_INFO_TYPE,
+<span class="lineNum">      70 </span>                :            :             CRYPTO_FG_MAC | CRYPTO_FG_MAC_ATOMIC, 1, INT_MAX,
+<span class="lineNum">      71 </span>                :            :             CRYPTO_KEYSIZE_UNIT_IN_BYTES}
+<span class="lineNum">      72 </span>                :            : };
+<span class="lineNum">      73 </span>                :            : 
+<span class="lineNum">      74 </span>                :            : static void skein_provider_status(crypto_provider_handle_t, uint_t *);
+<span class="lineNum">      75 </span>                :            : 
+<span class="lineNum">      76 </span>                :            : static crypto_control_ops_t skein_control_ops = {
+<span class="lineNum">      77 </span>                :            :         skein_provider_status
+<span class="lineNum">      78 </span>                :            : };
+<span class="lineNum">      79 </span>                :            : 
+<span class="lineNum">      80 </span>                :            : static int skein_digest_init(crypto_ctx_t *, crypto_mechanism_t *,
+<span class="lineNum">      81 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">      82 </span>                :            : static int skein_digest(crypto_ctx_t *, crypto_data_t *, crypto_data_t *,
+<span class="lineNum">      83 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">      84 </span>                :            : static int skein_update(crypto_ctx_t *, crypto_data_t *, crypto_req_handle_t);
+<span class="lineNum">      85 </span>                :            : static int skein_final(crypto_ctx_t *, crypto_data_t *, crypto_req_handle_t);
+<span class="lineNum">      86 </span>                :            : static int skein_digest_atomic(crypto_provider_handle_t, crypto_session_id_t,
+<span class="lineNum">      87 </span>                :            :     crypto_mechanism_t *, crypto_data_t *, crypto_data_t *,
+<span class="lineNum">      88 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">      89 </span>                :            : 
+<span class="lineNum">      90 </span>                :            : static crypto_digest_ops_t skein_digest_ops = {
+<span class="lineNum">      91 </span>                :            :         skein_digest_init,
+<span class="lineNum">      92 </span>                :            :         skein_digest,
+<span class="lineNum">      93 </span>                :            :         skein_update,
+<span class="lineNum">      94 </span>                :            :         NULL,
+<span class="lineNum">      95 </span>                :            :         skein_final,
+<span class="lineNum">      96 </span>                :            :         skein_digest_atomic
+<span class="lineNum">      97 </span>                :            : };
+<span class="lineNum">      98 </span>                :            : 
+<span class="lineNum">      99 </span>                :            : static int skein_mac_init(crypto_ctx_t *, crypto_mechanism_t *, crypto_key_t *,
+<span class="lineNum">     100 </span>                :            :     crypto_spi_ctx_template_t, crypto_req_handle_t);
+<span class="lineNum">     101 </span>                :            : static int skein_mac_atomic(crypto_provider_handle_t, crypto_session_id_t,
+<span class="lineNum">     102 </span>                :            :     crypto_mechanism_t *, crypto_key_t *, crypto_data_t *, crypto_data_t *,
+<span class="lineNum">     103 </span>                :            :     crypto_spi_ctx_template_t, crypto_req_handle_t);
+<span class="lineNum">     104 </span>                :            : 
+<span class="lineNum">     105 </span>                :            : static crypto_mac_ops_t skein_mac_ops = {
+<span class="lineNum">     106 </span>                :            :         skein_mac_init,
+<span class="lineNum">     107 </span>                :            :         NULL,
+<span class="lineNum">     108 </span>                :            :         skein_update,   /* using regular digest update is OK here */
+<span class="lineNum">     109 </span>                :            :         skein_final,    /* using regular digest final is OK here */
+<span class="lineNum">     110 </span>                :            :         skein_mac_atomic,
+<span class="lineNum">     111 </span>                :            :         NULL
+<span class="lineNum">     112 </span>                :            : };
+<span class="lineNum">     113 </span>                :            : 
+<span class="lineNum">     114 </span>                :            : static int skein_create_ctx_template(crypto_provider_handle_t,
+<span class="lineNum">     115 </span>                :            :     crypto_mechanism_t *, crypto_key_t *, crypto_spi_ctx_template_t *,
+<span class="lineNum">     116 </span>                :            :     size_t *, crypto_req_handle_t);
+<span class="lineNum">     117 </span>                :            : static int skein_free_context(crypto_ctx_t *);
+<span class="lineNum">     118 </span>                :            : 
+<span class="lineNum">     119 </span>                :            : static crypto_ctx_ops_t skein_ctx_ops = {
+<span class="lineNum">     120 </span>                :            :         skein_create_ctx_template,
+<span class="lineNum">     121 </span>                :            :         skein_free_context
+<span class="lineNum">     122 </span>                :            : };
+<span class="lineNum">     123 </span>                :            : 
+<span class="lineNum">     124 </span>                :            : static crypto_ops_t skein_crypto_ops = {{{{{
+<span class="lineNum">     125 </span>                :            :         &amp;skein_control_ops,
+<span class="lineNum">     126 </span>                :            :         &amp;skein_digest_ops,
+<span class="lineNum">     127 </span>                :            :         NULL,
+<span class="lineNum">     128 </span>                :            :         &amp;skein_mac_ops,
+<span class="lineNum">     129 </span>                :            :         NULL,
+<span class="lineNum">     130 </span>                :            :         NULL,
+<span class="lineNum">     131 </span>                :            :         NULL,
+<span class="lineNum">     132 </span>                :            :         NULL,
+<span class="lineNum">     133 </span>                :            :         NULL,
+<span class="lineNum">     134 </span>                :            :         NULL,
+<span class="lineNum">     135 </span>                :            :         NULL,
+<span class="lineNum">     136 </span>                :            :         NULL,
+<span class="lineNum">     137 </span>                :            :         NULL,
+<span class="lineNum">     138 </span>                :            :         &amp;skein_ctx_ops,
+<span class="lineNum">     139 </span>                :            : }}}}};
+<span class="lineNum">     140 </span>                :            : 
+<span class="lineNum">     141 </span>                :            : static crypto_provider_info_t skein_prov_info = {{{{
+<span class="lineNum">     142 </span>                :            :         CRYPTO_SPI_VERSION_1,
+<span class="lineNum">     143 </span>                :            :         &quot;Skein Software Provider&quot;,
+<span class="lineNum">     144 </span>                :            :         CRYPTO_SW_PROVIDER,
+<span class="lineNum">     145 </span>                :            :         NULL,
+<span class="lineNum">     146 </span>                :            :         &amp;skein_crypto_ops,
+<span class="lineNum">     147 </span>                :            :         sizeof (skein_mech_info_tab) / sizeof (crypto_mech_info_t),
+<span class="lineNum">     148 </span>                :            :         skein_mech_info_tab
+<span class="lineNum">     149 </span>                :            : }}}};
+<span class="lineNum">     150 </span>                :            : 
+<span class="lineNum">     151 </span>                :            : static crypto_kcf_provider_handle_t skein_prov_handle = 0;
+<span class="lineNum">     152 </span>                :            : 
+<span class="lineNum">     153 </span>                :            : typedef struct skein_ctx {
+<span class="lineNum">     154 </span>                :            :         skein_mech_type_t               sc_mech_type;
+<span class="lineNum">     155 </span>                :            :         size_t                          sc_digest_bitlen;
+<span class="lineNum">     156 </span>                :            :         /*LINTED(E_ANONYMOUS_UNION_DECL)*/
+<span class="lineNum">     157 </span>                :            :         union {
+<span class="lineNum">     158 </span>                :            :                 Skein_256_Ctxt_t        sc_256;
+<span class="lineNum">     159 </span>                :            :                 Skein_512_Ctxt_t        sc_512;
+<span class="lineNum">     160 </span>                :            :                 Skein1024_Ctxt_t        sc_1024;
+<span class="lineNum">     161 </span>                :            :         };
+<span class="lineNum">     162 </span>                :            : } skein_ctx_t;
+<span class="lineNum">     163 </span>                :            : #define SKEIN_CTX(_ctx_)        ((skein_ctx_t *)((_ctx_)-&gt;cc_provider_private))
+<span class="lineNum">     164 </span>                :            : #define SKEIN_CTX_LVALUE(_ctx_) (_ctx_)-&gt;cc_provider_private
+<span class="lineNum">     165 </span>                :            : #define SKEIN_OP(_skein_ctx, _op, ...)                                  \
+<span class="lineNum">     166 </span>                :            :         do {                                                            \
+<span class="lineNum">     167 </span>                :            :                 skein_ctx_t     *sc = (_skein_ctx);                     \
+<span class="lineNum">     168 </span>                :            :                 switch (sc-&gt;sc_mech_type) {                          \
+<span class="lineNum">     169 </span>                :            :                 case SKEIN_256_MECH_INFO_TYPE:                          \
+<span class="lineNum">     170 </span>                :            :                 case SKEIN_256_MAC_MECH_INFO_TYPE:                      \
+<span class="lineNum">     171 </span>                :            :                         (void) Skein_256_ ## _op(&amp;sc-&gt;sc_256, __VA_ARGS__);\
+<span class="lineNum">     172 </span>                :            :                         break;                                          \
+<span class="lineNum">     173 </span>                :            :                 case SKEIN_512_MECH_INFO_TYPE:                          \
+<span class="lineNum">     174 </span>                :            :                 case SKEIN_512_MAC_MECH_INFO_TYPE:                      \
+<span class="lineNum">     175 </span>                :            :                         (void) Skein_512_ ## _op(&amp;sc-&gt;sc_512, __VA_ARGS__);\
+<span class="lineNum">     176 </span>                :            :                         break;                                          \
+<span class="lineNum">     177 </span>                :            :                 case SKEIN1024_MECH_INFO_TYPE:                          \
+<span class="lineNum">     178 </span>                :            :                 case SKEIN1024_MAC_MECH_INFO_TYPE:                      \
+<span class="lineNum">     179 </span>                :            :                         (void) Skein1024_ ## _op(&amp;sc-&gt;sc_1024, __VA_ARGS__);\
+<span class="lineNum">     180 </span>                :            :                         break;                                          \
+<span class="lineNum">     181 </span>                :            :                 }                                                       \
+<span class="lineNum">     182 </span>                :            :                 _NOTE(CONSTCOND)                                        \
+<span class="lineNum">     183 </span>                :            :         } while (0)
+<a name="184"><span class="lineNum">     184 </span>                :            : </a>
+<span class="lineNum">     185 </span>                :            : static int
+<span class="lineNum">     186 </span>                :<span class="lineNoCov">          0 : skein_get_digest_bitlen(const crypto_mechanism_t *mechanism, size_t *result)</span>
+<span class="lineNum">     187 </span>                :            : {
+<span class="lineNum">     188 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mechanism-&gt;cm_param != NULL) {</span>
+<span class="lineNum">     189 </span>                :            :                 /*LINTED(E_BAD_PTR_CAST_ALIGN)*/
+<span class="lineNum">     190 </span>                :<span class="lineNoCov">          0 :                 skein_param_t   *param = (skein_param_t *)mechanism-&gt;cm_param;</span>
+<span class="lineNum">     191 </span>                :            : 
+<span class="lineNum">     192 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (mechanism-&gt;cm_param_len != sizeof (*param) ||</span>
+<span class="lineNum">     193 </span>                :<span class="lineNoCov">          0 :                     param-&gt;sp_digest_bitlen == 0) {</span>
+<span class="lineNum">     194 </span>                :            :                         return (CRYPTO_MECHANISM_PARAM_INVALID);
+<span class="lineNum">     195 </span>                :            :                 }
+<span class="lineNum">     196 </span>                :<span class="lineNoCov">          0 :                 *result = param-&gt;sp_digest_bitlen;</span>
+<span class="lineNum">     197 </span>                :            :         } else {
+<span class="lineNum">     198 </span>  [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 switch (mechanism-&gt;cm_type) {</span>
+<span class="lineNum">     199 </span>                :            :                 case SKEIN_256_MECH_INFO_TYPE:
+<span class="lineNum">     200 </span>                :<span class="lineNoCov">          0 :                         *result = 256;</span>
+<span class="lineNum">     201 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     202 </span>                :            :                 case SKEIN_512_MECH_INFO_TYPE:
+<span class="lineNum">     203 </span>                :<span class="lineNoCov">          0 :                         *result = 512;</span>
+<span class="lineNum">     204 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     205 </span>                :            :                 case SKEIN1024_MECH_INFO_TYPE:
+<span class="lineNum">     206 </span>                :<span class="lineNoCov">          0 :                         *result = 1024;</span>
+<span class="lineNum">     207 </span>                :<span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     208 </span>                :            :                 default:
+<span class="lineNum">     209 </span>                :            :                         return (CRYPTO_MECHANISM_INVALID);
+<span class="lineNum">     210 </span>                :            :                 }
+<span class="lineNum">     211 </span>                :            :         }
+<span class="lineNum">     212 </span>                :            :         return (CRYPTO_SUCCESS);
+<span class="lineNum">     213 </span>                :            : }
+<a name="214"><span class="lineNum">     214 </span>                :            : </a>
+<span class="lineNum">     215 </span>                :            : int
+<span class="lineNum">     216 </span>                :<span class="lineCov">       1336 : skein_mod_init(void)</span>
+<span class="lineNum">     217 </span>                :            : {
+<span class="lineNum">     218 </span>                :            :         int error;
+<span class="lineNum">     219 </span>                :            : 
+<span class="lineNum">     220 </span>        [<span class="branchCov" title="Branch 1 was taken 1336 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       1336 :         if ((error = mod_install(&amp;modlinkage)) != 0)</span>
+<span class="lineNum">     221 </span>                :            :                 return (error);
+<span class="lineNum">     222 </span>                :            : 
+<span class="lineNum">     223 </span>                :            :         /*
+<span class="lineNum">     224 </span>                :            :          * Try to register with KCF - failure shouldn't unload us, since we
+<span class="lineNum">     225 </span>                :            :          * still may want to continue providing misc/skein functionality.
+<span class="lineNum">     226 </span>                :            :          */
+<span class="lineNum">     227 </span>                :<span class="lineCov">       1336 :         (void) crypto_register_provider(&amp;skein_prov_info, &amp;skein_prov_handle);</span>
+<span class="lineNum">     228 </span>                :            : 
+<span class="lineNum">     229 </span>                :<span class="lineCov">       1336 :         return (0);</span>
+<span class="lineNum">     230 </span>                :            : }
+<a name="231"><span class="lineNum">     231 </span>                :            : </a>
+<span class="lineNum">     232 </span>                :            : int
+<span class="lineNum">     233 </span>                :<span class="lineCov">        887 : skein_mod_fini(void)</span>
+<span class="lineNum">     234 </span>                :            : {
+<span class="lineNum">     235 </span>                :            :         int ret;
+<span class="lineNum">     236 </span>                :            : 
+<span class="lineNum">     237 </span>        [<span class="branchCov" title="Branch 0 was taken 887 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        887 :         if (skein_prov_handle != 0) {</span>
+<span class="lineNum">     238 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 887 times"> + </span>]:<span class="lineCov">        887 :                 if ((ret = crypto_unregister_provider(skein_prov_handle)) !=</span>
+<span class="lineNum">     239 </span>                :            :                     CRYPTO_SUCCESS) {
+<span class="lineNum">     240 </span>                :<span class="lineNoCov">          0 :                         cmn_err(CE_WARN,</span>
+<span class="lineNum">     241 </span>                :            :                             &quot;skein _fini: crypto_unregister_provider() &quot;
+<span class="lineNum">     242 </span>                :            :                             &quot;failed (0x%x)&quot;, ret);
+<span class="lineNum">     243 </span>                :<span class="lineNoCov">          0 :                         return (EBUSY);</span>
+<span class="lineNum">     244 </span>                :            :                 }
+<span class="lineNum">     245 </span>                :<span class="lineCov">        887 :                 skein_prov_handle = 0;</span>
+<span class="lineNum">     246 </span>                :            :         }
+<span class="lineNum">     247 </span>                :            : 
+<span class="lineNum">     248 </span>                :<span class="lineCov">        887 :         return (mod_remove(&amp;modlinkage));</span>
+<span class="lineNum">     249 </span>                :            : }
+<span class="lineNum">     250 </span>                :            : 
+<span class="lineNum">     251 </span>                :            : /*
+<span class="lineNum">     252 </span>                :            :  * KCF software provider control entry points.
+<span class="lineNum">     253 </span>                :            :  */
+<a name="254"><span class="lineNum">     254 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     255 </span>                :            : static void
+<span class="lineNum">     256 </span>                :<span class="lineNoCov">          0 : skein_provider_status(crypto_provider_handle_t provider, uint_t *status)</span>
+<span class="lineNum">     257 </span>                :            : {
+<span class="lineNum">     258 </span>                :<span class="lineNoCov">          0 :         *status = CRYPTO_PROVIDER_READY;</span>
+<span class="lineNum">     259 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     260 </span>                :            : 
+<span class="lineNum">     261 </span>                :            : /*
+<span class="lineNum">     262 </span>                :            :  * General Skein hashing helper functions.
+<span class="lineNum">     263 </span>                :            :  */
+<span class="lineNum">     264 </span>                :            : 
+<span class="lineNum">     265 </span>                :            : /*
+<span class="lineNum">     266 </span>                :            :  * Performs an Update on a context with uio input data.
+<a name="267"><span class="lineNum">     267 </span>                :            :  */</a>
+<span class="lineNum">     268 </span>                :            : static int
+<span class="lineNum">     269 </span>                :<span class="lineNoCov">          0 : skein_digest_update_uio(skein_ctx_t *ctx, const crypto_data_t *data)</span>
+<span class="lineNum">     270 </span>                :            : {
+<span class="lineNum">     271 </span>                :<span class="lineNoCov">          0 :         off_t           offset = data-&gt;cd_offset;</span>
+<span class="lineNum">     272 </span>                :<span class="lineNoCov">          0 :         size_t          length = data-&gt;cd_length;</span>
+<span class="lineNum">     273 </span>                :            :         uint_t          vec_idx;
+<span class="lineNum">     274 </span>                :            :         size_t          cur_len;
+<span class="lineNum">     275 </span>                :<span class="lineNoCov">          0 :         const uio_t     *uio = data-&gt;cd_uio;</span>
+<span class="lineNum">     276 </span>                :            : 
+<span class="lineNum">     277 </span>                :            :         /* we support only kernel buffer */
+<span class="lineNum">     278 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (uio-&gt;uio_segflg != UIO_SYSSPACE)</span>
+<span class="lineNum">     279 </span>                :            :                 return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">     280 </span>                :            : 
+<span class="lineNum">     281 </span>                :            :         /*
+<span class="lineNum">     282 </span>                :            :          * Jump to the first iovec containing data to be
+<span class="lineNum">     283 </span>                :            :          * digested.
+<span class="lineNum">     284 </span>                :            :          */
+<span class="lineNum">     285 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (vec_idx = 0; vec_idx &lt; uio-&gt;uio_iovcnt &amp;&amp;</span>
+<span class="lineNum">     286 </span>                :<span class="lineNoCov">          0 :             offset &gt;= uio-&gt;uio_iov[vec_idx].iov_len;</span>
+<span class="lineNum">     287 </span>                :<span class="lineNoCov">          0 :             offset -= uio-&gt;uio_iov[vec_idx++].iov_len)</span>
+<span class="lineNum">     288 </span>                :            :                 ;
+<span class="lineNum">     289 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (vec_idx == uio-&gt;uio_iovcnt) {</span>
+<span class="lineNum">     290 </span>                :            :                 /*
+<span class="lineNum">     291 </span>                :            :                  * The caller specified an offset that is larger than the
+<span class="lineNum">     292 </span>                :            :                  * total size of the buffers it provided.
+<span class="lineNum">     293 </span>                :            :                  */
+<span class="lineNum">     294 </span>                :            :                 return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     295 </span>                :            :         }
+<span class="lineNum">     296 </span>                :            : 
+<span class="lineNum">     297 </span>                :            :         /*
+<span class="lineNum">     298 </span>                :            :          * Now do the digesting on the iovecs.
+<span class="lineNum">     299 </span>                :            :          */
+<span class="lineNum">     300 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         while (vec_idx &lt; uio-&gt;uio_iovcnt &amp;&amp; length &gt; 0) {</span>
+<span class="lineNum">     301 </span>                :<span class="lineNoCov">          0 :                 cur_len = MIN(uio-&gt;uio_iov[vec_idx].iov_len - offset, length);</span>
+<span class="lineNum">     302 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 SKEIN_OP(ctx, Update, (uint8_t *)uio-&gt;uio_iov[vec_idx].iov_base</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">     303 </span>                :            :                     + offset, cur_len);
+<span class="lineNum">     304 </span>                :<span class="lineNoCov">          0 :                 length -= cur_len;</span>
+<span class="lineNum">     305 </span>                :<span class="lineNoCov">          0 :                 vec_idx++;</span>
+<span class="lineNum">     306 </span>                :<span class="lineNoCov">          0 :                 offset = 0;</span>
+<span class="lineNum">     307 </span>                :            :         }
+<span class="lineNum">     308 </span>                :            : 
+<span class="lineNum">     309 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (vec_idx == uio-&gt;uio_iovcnt &amp;&amp; length &gt; 0) {</span>
+<span class="lineNum">     310 </span>                :            :                 /*
+<span class="lineNum">     311 </span>                :            :                  * The end of the specified iovec's was reached but
+<span class="lineNum">     312 </span>                :            :                  * the length requested could not be processed, i.e.
+<span class="lineNum">     313 </span>                :            :                  * The caller requested to digest more data than it provided.
+<span class="lineNum">     314 </span>                :            :                  */
+<span class="lineNum">     315 </span>                :            :                 return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     316 </span>                :            :         }
+<span class="lineNum">     317 </span>                :            : 
+<span class="lineNum">     318 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     319 </span>                :            : }
+<span class="lineNum">     320 </span>                :            : 
+<span class="lineNum">     321 </span>                :            : /*
+<span class="lineNum">     322 </span>                :            :  * Performs a Final on a context and writes to a uio digest output.
+<a name="323"><span class="lineNum">     323 </span>                :            :  */</a>
+<span class="lineNum">     324 </span>                :            : static int
+<span class="lineNum">     325 </span>                :<span class="lineNoCov">          0 : skein_digest_final_uio(skein_ctx_t *ctx, crypto_data_t *digest,</span>
+<span class="lineNum">     326 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     327 </span>                :            : {
+<span class="lineNum">     328 </span>                :<span class="lineNoCov">          0 :         off_t   offset = digest-&gt;cd_offset;</span>
+<span class="lineNum">     329 </span>                :            :         uint_t  vec_idx;
+<span class="lineNum">     330 </span>                :<span class="lineNoCov">          0 :         uio_t   *uio = digest-&gt;cd_uio;</span>
+<span class="lineNum">     331 </span>                :            : 
+<span class="lineNum">     332 </span>                :            :         /* we support only kernel buffer */
+<span class="lineNum">     333 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (uio-&gt;uio_segflg != UIO_SYSSPACE)</span>
+<span class="lineNum">     334 </span>                :            :                 return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">     335 </span>                :            : 
+<span class="lineNum">     336 </span>                :            :         /*
+<span class="lineNum">     337 </span>                :            :          * Jump to the first iovec containing ptr to the digest to be returned.
+<span class="lineNum">     338 </span>                :            :          */
+<span class="lineNum">     339 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (vec_idx = 0; offset &gt;= uio-&gt;uio_iov[vec_idx].iov_len &amp;&amp;</span>
+<span class="lineNum">     340 </span>                :<span class="lineNoCov">          0 :             vec_idx &lt; uio-&gt;uio_iovcnt;</span>
+<span class="lineNum">     341 </span>                :<span class="lineNoCov">          0 :             offset -= uio-&gt;uio_iov[vec_idx++].iov_len)</span>
+<span class="lineNum">     342 </span>                :            :                 ;
+<span class="lineNum">     343 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (vec_idx == uio-&gt;uio_iovcnt) {</span>
+<span class="lineNum">     344 </span>                :            :                 /*
+<span class="lineNum">     345 </span>                :            :                  * The caller specified an offset that is larger than the
+<span class="lineNum">     346 </span>                :            :                  * total size of the buffers it provided.
+<span class="lineNum">     347 </span>                :            :                  */
+<span class="lineNum">     348 </span>                :            :                 return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     349 </span>                :            :         }
+<span class="lineNum">     350 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (offset + CRYPTO_BITS2BYTES(ctx-&gt;sc_digest_bitlen) &lt;=</span>
+<span class="lineNum">     351 </span>                :            :             uio-&gt;uio_iov[vec_idx].iov_len) {
+<span class="lineNum">     352 </span>                :            :                 /* The computed digest will fit in the current iovec. */
+<span class="lineNum">     353 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 SKEIN_OP(ctx, Final,</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">     354 </span>                :            :                     (uchar_t *)uio-&gt;uio_iov[vec_idx].iov_base + offset);
+<span class="lineNum">     355 </span>                :            :         } else {
+<span class="lineNum">     356 </span>                :            :                 uint8_t *digest_tmp;
+<span class="lineNum">     357 </span>                :<span class="lineNoCov">          0 :                 off_t scratch_offset = 0;</span>
+<span class="lineNum">     358 </span>                :<span class="lineNoCov">          0 :                 size_t length = CRYPTO_BITS2BYTES(ctx-&gt;sc_digest_bitlen);</span>
+<span class="lineNum">     359 </span>                :            :                 size_t cur_len;
+<span class="lineNum">     360 </span>                :            : 
+<span class="lineNum">     361 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 digest_tmp = kmem_alloc(CRYPTO_BITS2BYTES(</span>
+<span class="lineNum">     362 </span>                :            :                     ctx-&gt;sc_digest_bitlen), crypto_kmflag(req));
+<span class="lineNum">     363 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (digest_tmp == NULL)</span>
+<span class="lineNum">     364 </span>                :            :                         return (CRYPTO_HOST_MEMORY);
+<span class="lineNum">     365 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 SKEIN_OP(ctx, Final, digest_tmp);</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">     366 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 while (vec_idx &lt; uio-&gt;uio_iovcnt &amp;&amp; length &gt; 0) {</span>
+<span class="lineNum">     367 </span>                :<span class="lineNoCov">          0 :                         cur_len = MIN(uio-&gt;uio_iov[vec_idx].iov_len - offset,</span>
+<span class="lineNum">     368 </span>                :            :                             length);
+<span class="lineNum">     369 </span>                :<span class="lineNoCov">          0 :                         bcopy(digest_tmp + scratch_offset,</span>
+<span class="lineNum">     370 </span>                :<span class="lineNoCov">          0 :                             uio-&gt;uio_iov[vec_idx].iov_base + offset, cur_len);</span>
+<span class="lineNum">     371 </span>                :            : 
+<span class="lineNum">     372 </span>                :<span class="lineNoCov">          0 :                         length -= cur_len;</span>
+<span class="lineNum">     373 </span>                :<span class="lineNoCov">          0 :                         vec_idx++;</span>
+<span class="lineNum">     374 </span>                :<span class="lineNoCov">          0 :                         scratch_offset += cur_len;</span>
+<span class="lineNum">     375 </span>                :<span class="lineNoCov">          0 :                         offset = 0;</span>
+<span class="lineNum">     376 </span>                :            :                 }
+<span class="lineNum">     377 </span>                :<span class="lineNoCov">          0 :                 kmem_free(digest_tmp, CRYPTO_BITS2BYTES(ctx-&gt;sc_digest_bitlen));</span>
+<span class="lineNum">     378 </span>                :            : 
+<span class="lineNum">     379 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (vec_idx == uio-&gt;uio_iovcnt &amp;&amp; length &gt; 0) {</span>
+<span class="lineNum">     380 </span>                :            :                         /*
+<span class="lineNum">     381 </span>                :            :                          * The end of the specified iovec's was reached but
+<span class="lineNum">     382 </span>                :            :                          * the length requested could not be processed, i.e.
+<span class="lineNum">     383 </span>                :            :                          * The caller requested to digest more data than it
+<span class="lineNum">     384 </span>                :            :                          * provided.
+<span class="lineNum">     385 </span>                :            :                          */
+<span class="lineNum">     386 </span>                :            :                         return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     387 </span>                :            :                 }
+<span class="lineNum">     388 </span>                :            :         }
+<span class="lineNum">     389 </span>                :            : 
+<span class="lineNum">     390 </span>                :            :         return (CRYPTO_SUCCESS);
+<span class="lineNum">     391 </span>                :            : }
+<span class="lineNum">     392 </span>                :            : 
+<span class="lineNum">     393 </span>                :            : /*
+<span class="lineNum">     394 </span>                :            :  * KCF software provider digest entry points.
+<span class="lineNum">     395 </span>                :            :  */
+<span class="lineNum">     396 </span>                :            : 
+<span class="lineNum">     397 </span>                :            : /*
+<span class="lineNum">     398 </span>                :            :  * Initializes a skein digest context to the configuration in `mechanism'.
+<span class="lineNum">     399 </span>                :            :  * The mechanism cm_type must be one of SKEIN_*_MECH_INFO_TYPE. The cm_param
+<span class="lineNum">     400 </span>                :            :  * field may contain a skein_param_t structure indicating the length of the
+<span class="lineNum">     401 </span>                :            :  * digest the algorithm should produce. Otherwise the default output lengths
+<span class="lineNum">     402 </span>                :            :  * are applied (32 bytes for Skein-256, 64 bytes for Skein-512 and 128 bytes
+<span class="lineNum">     403 </span>                :            :  * for Skein-1024).
+<a name="404"><span class="lineNum">     404 </span>                :            :  */</a>
+<span class="lineNum">     405 </span>                :            : static int
+<span class="lineNum">     406 </span>                :<span class="lineNoCov">          0 : skein_digest_init(crypto_ctx_t *ctx, crypto_mechanism_t *mechanism,</span>
+<span class="lineNum">     407 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     408 </span>                :            : {
+<span class="lineNum">     409 </span>                :<span class="lineNoCov">          0 :         int     error = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     410 </span>                :            : 
+<span class="lineNum">     411 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (!VALID_SKEIN_DIGEST_MECH(mechanism-&gt;cm_type))</span>
+<span class="lineNum">     412 </span>                :            :                 return (CRYPTO_MECHANISM_INVALID);
+<span class="lineNum">     413 </span>                :            : 
+<span class="lineNum">     414 </span>                :<span class="lineNoCov">          0 :         SKEIN_CTX_LVALUE(ctx) = kmem_alloc(sizeof (*SKEIN_CTX(ctx)),</span>
+<span class="lineNum">     415 </span>                :            :             crypto_kmflag(req));
+<span class="lineNum">     416 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (SKEIN_CTX(ctx) == NULL)</span>
+<span class="lineNum">     417 </span>                :            :                 return (CRYPTO_HOST_MEMORY);
+<span class="lineNum">     418 </span>                :            : 
+<span class="lineNum">     419 </span>                :<span class="lineNoCov">          0 :         SKEIN_CTX(ctx)-&gt;sc_mech_type = mechanism-&gt;cm_type;</span>
+<span class="lineNum">     420 </span>                :<span class="lineNoCov">          0 :         error = skein_get_digest_bitlen(mechanism,</span>
+<span class="lineNum">     421 </span>                :<span class="lineNoCov">          0 :             &amp;SKEIN_CTX(ctx)-&gt;sc_digest_bitlen);</span>
+<span class="lineNum">     422 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     423 </span>                :            :                 goto errout;
+<span class="lineNum">     424 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         SKEIN_OP(SKEIN_CTX(ctx), Init, SKEIN_CTX(ctx)-&gt;sc_digest_bitlen);</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">     425 </span>                :            : 
+<span class="lineNum">     426 </span>                :            :         return (CRYPTO_SUCCESS);
+<span class="lineNum">     427 </span>                :            : errout:
+<span class="lineNum">     428 </span>                :<span class="lineNoCov">          0 :         bzero(SKEIN_CTX(ctx), sizeof (*SKEIN_CTX(ctx)));</span>
+<span class="lineNum">     429 </span>                :<span class="lineNoCov">          0 :         kmem_free(SKEIN_CTX(ctx), sizeof (*SKEIN_CTX(ctx)));</span>
+<span class="lineNum">     430 </span>                :<span class="lineNoCov">          0 :         SKEIN_CTX_LVALUE(ctx) = NULL;</span>
+<span class="lineNum">     431 </span>                :<span class="lineNoCov">          0 :         return (error);</span>
+<span class="lineNum">     432 </span>                :            : }
+<span class="lineNum">     433 </span>                :            : 
+<span class="lineNum">     434 </span>                :            : /*
+<span class="lineNum">     435 </span>                :            :  * Executes a skein_update and skein_digest on a pre-initialized crypto
+<span class="lineNum">     436 </span>                :            :  * context in a single step. See the documentation to these functions to
+<span class="lineNum">     437 </span>                :            :  * see what to pass here.
+<a name="438"><span class="lineNum">     438 </span>                :            :  */</a>
+<span class="lineNum">     439 </span>                :            : static int
+<span class="lineNum">     440 </span>                :<span class="lineNoCov">          0 : skein_digest(crypto_ctx_t *ctx, crypto_data_t *data, crypto_data_t *digest,</span>
+<span class="lineNum">     441 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     442 </span>                :            : {
+<span class="lineNum">     443 </span>                :<span class="lineNoCov">          0 :         int error = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     444 </span>                :            : 
+<span class="lineNum">     445 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(SKEIN_CTX(ctx) != NULL);</span>
+<span class="lineNum">     446 </span>                :            : 
+<span class="lineNum">     447 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (digest-&gt;cd_length &lt;</span>
+<span class="lineNum">     448 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :             CRYPTO_BITS2BYTES(SKEIN_CTX(ctx)-&gt;sc_digest_bitlen)) {</span>
+<span class="lineNum">     449 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length =</span>
+<span class="lineNum">     450 </span>                :            :                     CRYPTO_BITS2BYTES(SKEIN_CTX(ctx)-&gt;sc_digest_bitlen);
+<span class="lineNum">     451 </span>                :<span class="lineNoCov">          0 :                 return (CRYPTO_BUFFER_TOO_SMALL);</span>
+<span class="lineNum">     452 </span>                :            :         }
+<span class="lineNum">     453 </span>                :            : 
+<span class="lineNum">     454 </span>                :<span class="lineNoCov">          0 :         error = skein_update(ctx, data, req);</span>
+<span class="lineNum">     455 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     456 </span>                :<span class="lineNoCov">          0 :                 bzero(SKEIN_CTX(ctx), sizeof (*SKEIN_CTX(ctx)));</span>
+<span class="lineNum">     457 </span>                :<span class="lineNoCov">          0 :                 kmem_free(SKEIN_CTX(ctx), sizeof (*SKEIN_CTX(ctx)));</span>
+<span class="lineNum">     458 </span>                :<span class="lineNoCov">          0 :                 SKEIN_CTX_LVALUE(ctx) = NULL;</span>
+<span class="lineNum">     459 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = 0;</span>
+<span class="lineNum">     460 </span>                :<span class="lineNoCov">          0 :                 return (error);</span>
+<span class="lineNum">     461 </span>                :            :         }
+<span class="lineNum">     462 </span>                :<span class="lineNoCov">          0 :         error = skein_final(ctx, digest, req);</span>
+<span class="lineNum">     463 </span>                :            : 
+<span class="lineNum">     464 </span>                :<span class="lineNoCov">          0 :         return (error);</span>
+<span class="lineNum">     465 </span>                :            : }
+<span class="lineNum">     466 </span>                :            : 
+<span class="lineNum">     467 </span>                :            : /*
+<span class="lineNum">     468 </span>                :            :  * Performs a skein Update with the input message in `data' (successive calls
+<span class="lineNum">     469 </span>                :            :  * can push more data). This is used both for digest and MAC operation.
+<span class="lineNum">     470 </span>                :            :  * Supported input data formats are raw, uio and mblk.
+<span class="lineNum">     471 </span>                :            :  */
+<a name="472"><span class="lineNum">     472 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     473 </span>                :            : static int
+<span class="lineNum">     474 </span>                :<span class="lineNoCov">          0 : skein_update(crypto_ctx_t *ctx, crypto_data_t *data, crypto_req_handle_t req)</span>
+<span class="lineNum">     475 </span>                :            : {
+<span class="lineNum">     476 </span>                :<span class="lineNoCov">          0 :         int error = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     477 </span>                :            : 
+<span class="lineNum">     478 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(SKEIN_CTX(ctx) != NULL);</span>
+<span class="lineNum">     479 </span>                :            : 
+<span class="lineNum">     480 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (data-&gt;cd_format) {</span>
+<span class="lineNum">     481 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     482 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 SKEIN_OP(SKEIN_CTX(ctx), Update,</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">     483 </span>                :            :                     (uint8_t *)data-&gt;cd_raw.iov_base + data-&gt;cd_offset,
+<span class="lineNum">     484 </span>                :            :                     data-&gt;cd_length);
+<span class="lineNum">     485 </span>                :            :                 break;
+<span class="lineNum">     486 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     487 </span>                :<span class="lineNoCov">          0 :                 error = skein_digest_update_uio(SKEIN_CTX(ctx), data);</span>
+<span class="lineNum">     488 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     489 </span>                :            :         default:
+<span class="lineNum">     490 </span>                :            :                 error = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     491 </span>                :            :         }
+<span class="lineNum">     492 </span>                :            : 
+<span class="lineNum">     493 </span>                :<span class="lineNoCov">          0 :         return (error);</span>
+<span class="lineNum">     494 </span>                :            : }
+<span class="lineNum">     495 </span>                :            : 
+<span class="lineNum">     496 </span>                :            : /*
+<span class="lineNum">     497 </span>                :            :  * Performs a skein Final, writing the output to `digest'. This is used both
+<span class="lineNum">     498 </span>                :            :  * for digest and MAC operation.
+<span class="lineNum">     499 </span>                :            :  * Supported output digest formats are raw, uio and mblk.
+<span class="lineNum">     500 </span>                :            :  */
+<a name="501"><span class="lineNum">     501 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     502 </span>                :            : static int
+<span class="lineNum">     503 </span>                :<span class="lineNoCov">          0 : skein_final(crypto_ctx_t *ctx, crypto_data_t *digest, crypto_req_handle_t req)</span>
+<span class="lineNum">     504 </span>                :            : {
+<span class="lineNum">     505 </span>                :<span class="lineNoCov">          0 :         int error = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     506 </span>                :            : 
+<span class="lineNum">     507 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(SKEIN_CTX(ctx) != NULL);</span>
+<span class="lineNum">     508 </span>                :            : 
+<span class="lineNum">     509 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (digest-&gt;cd_length &lt;</span>
+<span class="lineNum">     510 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :             CRYPTO_BITS2BYTES(SKEIN_CTX(ctx)-&gt;sc_digest_bitlen)) {</span>
+<span class="lineNum">     511 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length =</span>
+<span class="lineNum">     512 </span>                :            :                     CRYPTO_BITS2BYTES(SKEIN_CTX(ctx)-&gt;sc_digest_bitlen);
+<span class="lineNum">     513 </span>                :<span class="lineNoCov">          0 :                 return (CRYPTO_BUFFER_TOO_SMALL);</span>
+<span class="lineNum">     514 </span>                :            :         }
+<span class="lineNum">     515 </span>                :            : 
+<span class="lineNum">     516 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (digest-&gt;cd_format) {</span>
+<span class="lineNum">     517 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     518 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 SKEIN_OP(SKEIN_CTX(ctx), Final,</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">     519 </span>                :            :                     (uint8_t *)digest-&gt;cd_raw.iov_base + digest-&gt;cd_offset);
+<span class="lineNum">     520 </span>                :            :                 break;
+<span class="lineNum">     521 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     522 </span>                :<span class="lineNoCov">          0 :                 error = skein_digest_final_uio(SKEIN_CTX(ctx), digest, req);</span>
+<span class="lineNum">     523 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     524 </span>                :            :         default:
+<span class="lineNum">     525 </span>                :            :                 error = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     526 </span>                :            :         }
+<span class="lineNum">     527 </span>                :            : 
+<span class="lineNum">     528 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error == CRYPTO_SUCCESS)</span>
+<span class="lineNum">     529 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length =</span>
+<span class="lineNum">     530 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                     CRYPTO_BITS2BYTES(SKEIN_CTX(ctx)-&gt;sc_digest_bitlen);</span>
+<span class="lineNum">     531 </span>                :            :         else
+<span class="lineNum">     532 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = 0;</span>
+<span class="lineNum">     533 </span>                :            : 
+<span class="lineNum">     534 </span>                :<span class="lineNoCov">          0 :         bzero(SKEIN_CTX(ctx), sizeof (*SKEIN_CTX(ctx)));</span>
+<span class="lineNum">     535 </span>                :<span class="lineNoCov">          0 :         kmem_free(SKEIN_CTX(ctx), sizeof (*(SKEIN_CTX(ctx))));</span>
+<span class="lineNum">     536 </span>                :<span class="lineNoCov">          0 :         SKEIN_CTX_LVALUE(ctx) = NULL;</span>
+<span class="lineNum">     537 </span>                :            : 
+<span class="lineNum">     538 </span>                :<span class="lineNoCov">          0 :         return (error);</span>
+<span class="lineNum">     539 </span>                :            : }
+<span class="lineNum">     540 </span>                :            : 
+<span class="lineNum">     541 </span>                :            : /*
+<span class="lineNum">     542 </span>                :            :  * Performs a full skein digest computation in a single call, configuring the
+<span class="lineNum">     543 </span>                :            :  * algorithm according to `mechanism', reading the input to be digested from
+<span class="lineNum">     544 </span>                :            :  * `data' and writing the output to `digest'.
+<span class="lineNum">     545 </span>                :            :  * Supported input/output formats are raw, uio and mblk.
+<span class="lineNum">     546 </span>                :            :  */
+<a name="547"><span class="lineNum">     547 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     548 </span>                :            : static int
+<span class="lineNum">     549 </span>                :<span class="lineNoCov">          0 : skein_digest_atomic(crypto_provider_handle_t provider,</span>
+<span class="lineNum">     550 </span>                :            :     crypto_session_id_t session_id, crypto_mechanism_t *mechanism,
+<span class="lineNum">     551 </span>                :            :     crypto_data_t *data, crypto_data_t *digest, crypto_req_handle_t req)
+<span class="lineNum">     552 </span>                :            : {
+<span class="lineNum">     553 </span>                :            :         int             error;
+<span class="lineNum">     554 </span>                :            :         skein_ctx_t     skein_ctx;
+<span class="lineNum">     555 </span>                :            :         crypto_ctx_t    ctx;
+<span class="lineNum">     556 </span>                :<span class="lineNoCov">          0 :         SKEIN_CTX_LVALUE(&amp;ctx) = &amp;skein_ctx;</span>
+<span class="lineNum">     557 </span>                :            : 
+<span class="lineNum">     558 </span>                :            :         /* Init */
+<span class="lineNum">     559 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (!VALID_SKEIN_DIGEST_MECH(mechanism-&gt;cm_type))</span>
+<span class="lineNum">     560 </span>                :            :                 return (CRYPTO_MECHANISM_INVALID);
+<span class="lineNum">     561 </span>                :<span class="lineNoCov">          0 :         skein_ctx.sc_mech_type = mechanism-&gt;cm_type;</span>
+<span class="lineNum">     562 </span>                :<span class="lineNoCov">          0 :         error = skein_get_digest_bitlen(mechanism, &amp;skein_ctx.sc_digest_bitlen);</span>
+<span class="lineNum">     563 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     564 </span>                :            :                 goto out;
+<span class="lineNum">     565 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         SKEIN_OP(&amp;skein_ctx, Init, skein_ctx.sc_digest_bitlen);</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">     566 </span>                :            : 
+<span class="lineNum">     567 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((error = skein_update(&amp;ctx, data, digest)) != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     568 </span>                :            :                 goto out;
+<span class="lineNum">     569 </span>                :<span class="lineNoCov">          0 :         if ((error = skein_final(&amp;ctx, data, digest)) != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     570 </span>                :            :                 goto out;
+<span class="lineNum">     571 </span>                :            : 
+<span class="lineNum">     572 </span>                :            : out:
+<span class="lineNum">     573 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error == CRYPTO_SUCCESS)</span>
+<span class="lineNum">     574 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length =</span>
+<span class="lineNum">     575 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                     CRYPTO_BITS2BYTES(skein_ctx.sc_digest_bitlen);</span>
+<span class="lineNum">     576 </span>                :            :         else
+<span class="lineNum">     577 </span>                :<span class="lineNoCov">          0 :                 digest-&gt;cd_length = 0;</span>
+<span class="lineNum">     578 </span>                :<span class="lineNoCov">          0 :         bzero(&amp;skein_ctx, sizeof (skein_ctx));</span>
+<span class="lineNum">     579 </span>                :            : 
+<span class="lineNum">     580 </span>                :<span class="lineNoCov">          0 :         return (error);</span>
+<span class="lineNum">     581 </span>                :            : }
+<span class="lineNum">     582 </span>                :            : 
+<span class="lineNum">     583 </span>                :            : /*
+<span class="lineNum">     584 </span>                :            :  * Helper function that builds a Skein MAC context from the provided
+<span class="lineNum">     585 </span>                :            :  * mechanism and key.
+<a name="586"><span class="lineNum">     586 </span>                :            :  */</a>
+<span class="lineNum">     587 </span>                :            : static int
+<span class="lineNum">     588 </span>                :<span class="lineNoCov">          0 : skein_mac_ctx_build(skein_ctx_t *ctx, crypto_mechanism_t *mechanism,</span>
+<span class="lineNum">     589 </span>                :            :     crypto_key_t *key)
+<span class="lineNum">     590 </span>                :            : {
+<span class="lineNum">     591 </span>                :            :         int error;
+<span class="lineNum">     592 </span>                :            : 
+<span class="lineNum">     593 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (!VALID_SKEIN_MAC_MECH(mechanism-&gt;cm_type))</span>
+<span class="lineNum">     594 </span>                :            :                 return (CRYPTO_MECHANISM_INVALID);
+<span class="lineNum">     595 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (key-&gt;ck_format != CRYPTO_KEY_RAW)</span>
+<span class="lineNum">     596 </span>                :            :                 return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">     597 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;sc_mech_type = mechanism-&gt;cm_type;</span>
+<span class="lineNum">     598 </span>                :<span class="lineNoCov">          0 :         error = skein_get_digest_bitlen(mechanism, &amp;ctx-&gt;sc_digest_bitlen);</span>
+<span class="lineNum">     599 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     600 </span>                :            :                 return (error);
+<span class="lineNum">     601 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         SKEIN_OP(ctx, InitExt, ctx-&gt;sc_digest_bitlen, 0, key-&gt;ck_data,</span>
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>][<span class="branchNoExec" title="Branch 6 was not executed"> # </span><span class="branchNoExec" title="Branch 7 was not executed"> # </span>]
+<span class="lineNum">         </span>[<span class="branchNoExec" title="Branch 8 was not executed"> # </span><span class="branchNoExec" title="Branch 9 was not executed"> # </span>][<span class="branchNoExec" title="Branch 11 was not executed"> # </span><span class="branchNoExec" title="Branch 12 was not executed"> # </span>]
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 14 was not executed"> # </span><span class="branchNoExec" title="Branch 15 was not executed"> # </span>]
+<span class="lineNum">     602 </span>                :            :             CRYPTO_BITS2BYTES(key-&gt;ck_length));
+<span class="lineNum">     603 </span>                :            : 
+<span class="lineNum">     604 </span>                :            :         return (CRYPTO_SUCCESS);
+<span class="lineNum">     605 </span>                :            : }
+<span class="lineNum">     606 </span>                :            : 
+<span class="lineNum">     607 </span>                :            : /*
+<span class="lineNum">     608 </span>                :            :  * KCF software provide mac entry points.
+<span class="lineNum">     609 </span>                :            :  */
+<span class="lineNum">     610 </span>                :            : /*
+<span class="lineNum">     611 </span>                :            :  * Initializes a skein MAC context. You may pass a ctx_template, in which
+<span class="lineNum">     612 </span>                :            :  * case the template will be reused to make initialization more efficient.
+<span class="lineNum">     613 </span>                :            :  * Otherwise a new context will be constructed. The mechanism cm_type must
+<span class="lineNum">     614 </span>                :            :  * be one of SKEIN_*_MAC_MECH_INFO_TYPE. Same as in skein_digest_init, you
+<span class="lineNum">     615 </span>                :            :  * may pass a skein_param_t in cm_param to configure the length of the
+<span class="lineNum">     616 </span>                :            :  * digest. The key must be in raw format.
+<a name="617"><span class="lineNum">     617 </span>                :            :  */</a>
+<span class="lineNum">     618 </span>                :            : static int
+<span class="lineNum">     619 </span>                :<span class="lineNoCov">          0 : skein_mac_init(crypto_ctx_t *ctx, crypto_mechanism_t *mechanism,</span>
+<span class="lineNum">     620 </span>                :            :     crypto_key_t *key, crypto_spi_ctx_template_t ctx_template,
+<span class="lineNum">     621 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     622 </span>                :            : {
+<span class="lineNum">     623 </span>                :            :         int     error;
+<span class="lineNum">     624 </span>                :            : 
+<span class="lineNum">     625 </span>                :<span class="lineNoCov">          0 :         SKEIN_CTX_LVALUE(ctx) = kmem_alloc(sizeof (*SKEIN_CTX(ctx)),</span>
+<span class="lineNum">     626 </span>                :            :             crypto_kmflag(req));
+<span class="lineNum">     627 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (SKEIN_CTX(ctx) == NULL)</span>
+<span class="lineNum">     628 </span>                :            :                 return (CRYPTO_HOST_MEMORY);
+<span class="lineNum">     629 </span>                :            : 
+<span class="lineNum">     630 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ctx_template != NULL) {</span>
+<span class="lineNum">     631 </span>                :<span class="lineNoCov">          0 :                 bcopy(ctx_template, SKEIN_CTX(ctx),</span>
+<span class="lineNum">     632 </span>                :            :                     sizeof (*SKEIN_CTX(ctx)));
+<span class="lineNum">     633 </span>                :            :         } else {
+<span class="lineNum">     634 </span>                :<span class="lineNoCov">          0 :                 error = skein_mac_ctx_build(SKEIN_CTX(ctx), mechanism, key);</span>
+<span class="lineNum">     635 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (error != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     636 </span>                :            :                         goto errout;
+<span class="lineNum">     637 </span>                :            :         }
+<span class="lineNum">     638 </span>                :            : 
+<span class="lineNum">     639 </span>                :            :         return (CRYPTO_SUCCESS);
+<span class="lineNum">     640 </span>                :            : errout:
+<span class="lineNum">     641 </span>                :<span class="lineNoCov">          0 :         bzero(SKEIN_CTX(ctx), sizeof (*SKEIN_CTX(ctx)));</span>
+<span class="lineNum">     642 </span>                :<span class="lineNoCov">          0 :         kmem_free(SKEIN_CTX(ctx), sizeof (*SKEIN_CTX(ctx)));</span>
+<span class="lineNum">     643 </span>                :<span class="lineNoCov">          0 :         return (error);</span>
+<span class="lineNum">     644 </span>                :            : }
+<span class="lineNum">     645 </span>                :            : 
+<span class="lineNum">     646 </span>                :            : /*
+<span class="lineNum">     647 </span>                :            :  * The MAC update and final calls are reused from the regular digest code.
+<span class="lineNum">     648 </span>                :            :  */
+<span class="lineNum">     649 </span>                :            : 
+<span class="lineNum">     650 </span>                :            : /*ARGSUSED*/
+<span class="lineNum">     651 </span>                :            : /*
+<span class="lineNum">     652 </span>                :            :  * Same as skein_digest_atomic, performs an atomic Skein MAC operation in
+<span class="lineNum">     653 </span>                :            :  * one step. All the same properties apply to the arguments of this
+<span class="lineNum">     654 </span>                :            :  * function as to those of the partial operations above.
+<a name="655"><span class="lineNum">     655 </span>                :            :  */</a>
+<span class="lineNum">     656 </span>                :            : static int
+<span class="lineNum">     657 </span>                :<span class="lineNoCov">          0 : skein_mac_atomic(crypto_provider_handle_t provider,</span>
+<span class="lineNum">     658 </span>                :            :     crypto_session_id_t session_id, crypto_mechanism_t *mechanism,
+<span class="lineNum">     659 </span>                :            :     crypto_key_t *key, crypto_data_t *data, crypto_data_t *mac,
+<span class="lineNum">     660 </span>                :            :     crypto_spi_ctx_template_t ctx_template, crypto_req_handle_t req)
+<span class="lineNum">     661 </span>                :            : {
+<span class="lineNum">     662 </span>                :            :         /* faux crypto context just for skein_digest_{update,final} */
+<span class="lineNum">     663 </span>                :            :         int             error;
+<span class="lineNum">     664 </span>                :            :         crypto_ctx_t    ctx;
+<span class="lineNum">     665 </span>                :            :         skein_ctx_t     skein_ctx;
+<span class="lineNum">     666 </span>                :<span class="lineNoCov">          0 :         SKEIN_CTX_LVALUE(&amp;ctx) = &amp;skein_ctx;</span>
+<span class="lineNum">     667 </span>                :            : 
+<span class="lineNum">     668 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ctx_template != NULL) {</span>
+<span class="lineNum">     669 </span>                :            :                 bcopy(ctx_template, &amp;skein_ctx, sizeof (skein_ctx));
+<span class="lineNum">     670 </span>                :            :         } else {
+<span class="lineNum">     671 </span>                :<span class="lineNoCov">          0 :                 error = skein_mac_ctx_build(&amp;skein_ctx, mechanism, key);</span>
+<span class="lineNum">     672 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (error != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     673 </span>                :            :                         goto errout;
+<span class="lineNum">     674 </span>                :            :         }
+<span class="lineNum">     675 </span>                :            : 
+<span class="lineNum">     676 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((error = skein_update(&amp;ctx, data, req)) != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     677 </span>                :            :                 goto errout;
+<span class="lineNum">     678 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((error = skein_final(&amp;ctx, mac, req)) != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     679 </span>                :            :                 goto errout;
+<span class="lineNum">     680 </span>                :            : 
+<span class="lineNum">     681 </span>                :            :         return (CRYPTO_SUCCESS);
+<span class="lineNum">     682 </span>                :            : errout:
+<span class="lineNum">     683 </span>                :<span class="lineNoCov">          0 :         bzero(&amp;skein_ctx, sizeof (skein_ctx));</span>
+<span class="lineNum">     684 </span>                :<span class="lineNoCov">          0 :         return (error);</span>
+<span class="lineNum">     685 </span>                :            : }
+<span class="lineNum">     686 </span>                :            : 
+<span class="lineNum">     687 </span>                :            : /*
+<span class="lineNum">     688 </span>                :            :  * KCF software provider context management entry points.
+<span class="lineNum">     689 </span>                :            :  */
+<span class="lineNum">     690 </span>                :            : 
+<span class="lineNum">     691 </span>                :            : /*
+<span class="lineNum">     692 </span>                :            :  * Constructs a context template for the Skein MAC algorithm. The same
+<span class="lineNum">     693 </span>                :            :  * properties apply to the arguments of this function as to those of
+<span class="lineNum">     694 </span>                :            :  * skein_mac_init.
+<span class="lineNum">     695 </span>                :            :  */
+<a name="696"><span class="lineNum">     696 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     697 </span>                :            : static int
+<span class="lineNum">     698 </span>                :<span class="lineNoCov">          0 : skein_create_ctx_template(crypto_provider_handle_t provider,</span>
+<span class="lineNum">     699 </span>                :            :     crypto_mechanism_t *mechanism, crypto_key_t *key,
+<span class="lineNum">     700 </span>                :            :     crypto_spi_ctx_template_t *ctx_template, size_t *ctx_template_size,
+<span class="lineNum">     701 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     702 </span>                :            : {
+<span class="lineNum">     703 </span>                :            :         int             error;
+<span class="lineNum">     704 </span>                :            :         skein_ctx_t     *ctx_tmpl;
+<span class="lineNum">     705 </span>                :            : 
+<span class="lineNum">     706 </span>                :<span class="lineNoCov">          0 :         ctx_tmpl = kmem_alloc(sizeof (*ctx_tmpl), crypto_kmflag(req));</span>
+<span class="lineNum">     707 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ctx_tmpl == NULL)</span>
+<span class="lineNum">     708 </span>                :            :                 return (CRYPTO_HOST_MEMORY);
+<span class="lineNum">     709 </span>                :<span class="lineNoCov">          0 :         error = skein_mac_ctx_build(ctx_tmpl, mechanism, key);</span>
+<span class="lineNum">     710 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (error != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     711 </span>                :            :                 goto errout;
+<span class="lineNum">     712 </span>                :<span class="lineNoCov">          0 :         *ctx_template = ctx_tmpl;</span>
+<span class="lineNum">     713 </span>                :<span class="lineNoCov">          0 :         *ctx_template_size = sizeof (*ctx_tmpl);</span>
+<span class="lineNum">     714 </span>                :            : 
+<span class="lineNum">     715 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     716 </span>                :            : errout:
+<span class="lineNum">     717 </span>                :<span class="lineNoCov">          0 :         bzero(ctx_tmpl, sizeof (*ctx_tmpl));</span>
+<span class="lineNum">     718 </span>                :<span class="lineNoCov">          0 :         kmem_free(ctx_tmpl, sizeof (*ctx_tmpl));</span>
+<span class="lineNum">     719 </span>                :<span class="lineNoCov">          0 :         return (error);</span>
+<span class="lineNum">     720 </span>                :            : }
+<span class="lineNum">     721 </span>                :            : 
+<span class="lineNum">     722 </span>                :            : /*
+<span class="lineNum">     723 </span>                :            :  * Frees a skein context in a parent crypto context.
+<a name="724"><span class="lineNum">     724 </span>                :            :  */</a>
+<span class="lineNum">     725 </span>                :            : static int
+<span class="lineNum">     726 </span>                :<span class="lineNoCov">          0 : skein_free_context(crypto_ctx_t *ctx)</span>
+<span class="lineNum">     727 </span>                :            : {
+<span class="lineNum">     728 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (SKEIN_CTX(ctx) != NULL) {</span>
+<span class="lineNum">     729 </span>                :<span class="lineNoCov">          0 :                 bzero(SKEIN_CTX(ctx), sizeof (*SKEIN_CTX(ctx)));</span>
+<span class="lineNum">     730 </span>                :<span class="lineNoCov">          0 :                 kmem_free(SKEIN_CTX(ctx), sizeof (*SKEIN_CTX(ctx)));</span>
+<span class="lineNum">     731 </span>                :<span class="lineNoCov">          0 :                 SKEIN_CTX_LVALUE(ctx) = NULL;</span>
+<span class="lineNum">     732 </span>                :            :         }
+<span class="lineNum">     733 </span>                :            : 
+<span class="lineNum">     734 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     735 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

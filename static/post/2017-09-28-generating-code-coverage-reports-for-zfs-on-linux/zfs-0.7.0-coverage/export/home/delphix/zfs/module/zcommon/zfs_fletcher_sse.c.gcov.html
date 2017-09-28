@@ -1,0 +1,323 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zcommon/zfs_fletcher_sse.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zcommon</a> - zfs_fletcher_sse.c<span style="font-size: 80%;"> (source / <a href="zfs_fletcher_sse.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">73</td>
+            <td class="headerCovTableEntry">73</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryMed">80.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * Implement fast Fletcher4 with SSE2,SSSE3 instructions. (x86)
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * Use the 128-bit SSE2/SSSE3 SIMD instructions and registers to compute
+<span class="lineNum">       5 </span>                :            :  * Fletcher4 in two incremental 64-bit parallel accumulator streams,
+<span class="lineNum">       6 </span>                :            :  * and then combine the streams to form the final four checksum words.
+<span class="lineNum">       7 </span>                :            :  * This implementation is a derivative of the AVX SIMD implementation by
+<span class="lineNum">       8 </span>                :            :  * James Guilford and Jinshan Xiong from Intel (see zfs_fletcher_intel.c).
+<span class="lineNum">       9 </span>                :            :  *
+<span class="lineNum">      10 </span>                :            :  * Copyright (C) 2016 Tyler J. Stachecki.
+<span class="lineNum">      11 </span>                :            :  *
+<span class="lineNum">      12 </span>                :            :  * Authors:
+<span class="lineNum">      13 </span>                :            :  *      Tyler J. Stachecki &lt;stachecki.tyler@gmail.com&gt;
+<span class="lineNum">      14 </span>                :            :  *
+<span class="lineNum">      15 </span>                :            :  * This software is available to you under a choice of one of two
+<span class="lineNum">      16 </span>                :            :  * licenses.  You may choose to be licensed under the terms of the GNU
+<span class="lineNum">      17 </span>                :            :  * General Public License (GPL) Version 2, available from the file
+<span class="lineNum">      18 </span>                :            :  * COPYING in the main directory of this source tree, or the
+<span class="lineNum">      19 </span>                :            :  * OpenIB.org BSD license below:
+<span class="lineNum">      20 </span>                :            :  *
+<span class="lineNum">      21 </span>                :            :  *     Redistribution and use in source and binary forms, with or
+<span class="lineNum">      22 </span>                :            :  *     without modification, are permitted provided that the following
+<span class="lineNum">      23 </span>                :            :  *     conditions are met:
+<span class="lineNum">      24 </span>                :            :  *
+<span class="lineNum">      25 </span>                :            :  *      - Redistributions of source code must retain the above
+<span class="lineNum">      26 </span>                :            :  *        copyright notice, this list of conditions and the following
+<span class="lineNum">      27 </span>                :            :  *        disclaimer.
+<span class="lineNum">      28 </span>                :            :  *
+<span class="lineNum">      29 </span>                :            :  *      - Redistributions in binary form must reproduce the above
+<span class="lineNum">      30 </span>                :            :  *        copyright notice, this list of conditions and the following
+<span class="lineNum">      31 </span>                :            :  *        disclaimer in the documentation and/or other materials
+<span class="lineNum">      32 </span>                :            :  *        provided with the distribution.
+<span class="lineNum">      33 </span>                :            :  *
+<span class="lineNum">      34 </span>                :            :  * THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND,
+<span class="lineNum">      35 </span>                :            :  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+<span class="lineNum">      36 </span>                :            :  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+<span class="lineNum">      37 </span>                :            :  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+<span class="lineNum">      38 </span>                :            :  * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+<span class="lineNum">      39 </span>                :            :  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+<span class="lineNum">      40 </span>                :            :  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+<span class="lineNum">      41 </span>                :            :  * SOFTWARE.
+<span class="lineNum">      42 </span>                :            :  */
+<span class="lineNum">      43 </span>                :            : 
+<span class="lineNum">      44 </span>                :            : #if defined(HAVE_SSE2)
+<span class="lineNum">      45 </span>                :            : 
+<span class="lineNum">      46 </span>                :            : #include &lt;linux/simd_x86.h&gt;
+<span class="lineNum">      47 </span>                :            : #include &lt;sys/spa_checksum.h&gt;
+<span class="lineNum">      48 </span>                :            : #include &lt;sys/byteorder.h&gt;
+<span class="lineNum">      49 </span>                :            : #include &lt;zfs_fletcher.h&gt;
+<span class="lineNum">      50 </span>                :            : #include &lt;strings.h&gt;
+<a name="51"><span class="lineNum">      51 </span>                :            : </a>
+<span class="lineNum">      52 </span>                :            : static void
+<span class="lineNum">      53 </span>                :<span class="lineCov">     981684 : fletcher_4_sse2_init(fletcher_4_ctx_t *ctx)</span>
+<span class="lineNum">      54 </span>                :            : {
+<span class="lineNum">      55 </span>                :<span class="lineCov">    1963368 :         bzero(ctx-&gt;sse, 4 * sizeof (zfs_fletcher_sse_t));</span>
+<span class="lineNum">      56 </span>                :<span class="lineCov">     981684 : }</span>
+<a name="57"><span class="lineNum">      57 </span>                :            : </a>
+<span class="lineNum">      58 </span>                :            : static void
+<span class="lineNum">      59 </span>                :<span class="lineCov">     981777 : fletcher_4_sse2_fini(fletcher_4_ctx_t *ctx, zio_cksum_t *zcp)</span>
+<span class="lineNum">      60 </span>                :            : {
+<span class="lineNum">      61 </span>                :            :         uint64_t A, B, C, D;
+<span class="lineNum">      62 </span>                :            : 
+<span class="lineNum">      63 </span>                :            :         /*
+<span class="lineNum">      64 </span>                :            :          * The mixing matrix for checksum calculation is:
+<span class="lineNum">      65 </span>                :            :          * a = a0 + a1
+<span class="lineNum">      66 </span>                :            :          * b = 2b0 + 2b1 - a1
+<span class="lineNum">      67 </span>                :            :          * c = 4c0 - b0 + 4c1 -3b1
+<span class="lineNum">      68 </span>                :            :          * d = 8d0 - 4c0 + 8d1 - 8c1 + b1;
+<span class="lineNum">      69 </span>                :            :          *
+<span class="lineNum">      70 </span>                :            :          * c and d are multiplied by 4 and 8, respectively,
+<span class="lineNum">      71 </span>                :            :          * before spilling the vectors out to memory.
+<span class="lineNum">      72 </span>                :            :          */
+<span class="lineNum">      73 </span>                :<span class="lineCov">     981777 :         A = ctx-&gt;sse[0].v[0] + ctx-&gt;sse[0].v[1];</span>
+<span class="lineNum">      74 </span>                :<span class="lineCov">     981777 :         B = 2 * ctx-&gt;sse[1].v[0] + 2 * ctx-&gt;sse[1].v[1] - ctx-&gt;sse[0].v[1];</span>
+<span class="lineNum">      75 </span>                :<span class="lineCov">    1963554 :         C = 4 * ctx-&gt;sse[2].v[0] - ctx-&gt;sse[1].v[0] + 4 * ctx-&gt;sse[2].v[1] -</span>
+<span class="lineNum">      76 </span>                :<span class="lineCov">     981777 :             3 * ctx-&gt;sse[1].v[1];</span>
+<span class="lineNum">      77 </span>                :<span class="lineCov">     981777 :         D = 8 * ctx-&gt;sse[3].v[0] - 4 * ctx-&gt;sse[2].v[0] + 8 * ctx-&gt;sse[3].v[1] -</span>
+<span class="lineNum">      78 </span>                :            :             8 * ctx-&gt;sse[2].v[1] + ctx-&gt;sse[1].v[1];
+<span class="lineNum">      79 </span>                :            : 
+<span class="lineNum">      80 </span>                :<span class="lineCov">     981777 :         ZIO_SET_CHECKSUM(zcp, A, B, C, D);</span>
+<span class="lineNum">      81 </span>                :<span class="lineCov">     981777 : }</span>
+<span class="lineNum">      82 </span>                :            : 
+<span class="lineNum">      83 </span>                :            : #define FLETCHER_4_SSE_RESTORE_CTX(ctx)                                 \
+<span class="lineNum">      84 </span>                :            : {                                                                       \
+<span class="lineNum">      85 </span>                :            :         asm volatile(&quot;movdqu %0, %%xmm0&quot; :: &quot;m&quot; ((ctx)-&gt;sse[0]));        \
+<span class="lineNum">      86 </span>                :            :         asm volatile(&quot;movdqu %0, %%xmm1&quot; :: &quot;m&quot; ((ctx)-&gt;sse[1]));        \
+<span class="lineNum">      87 </span>                :            :         asm volatile(&quot;movdqu %0, %%xmm2&quot; :: &quot;m&quot; ((ctx)-&gt;sse[2]));        \
+<span class="lineNum">      88 </span>                :            :         asm volatile(&quot;movdqu %0, %%xmm3&quot; :: &quot;m&quot; ((ctx)-&gt;sse[3]));        \
+<span class="lineNum">      89 </span>                :            : }
+<span class="lineNum">      90 </span>                :            : 
+<span class="lineNum">      91 </span>                :            : #define FLETCHER_4_SSE_SAVE_CTX(ctx)                                    \
+<span class="lineNum">      92 </span>                :            : {                                                                       \
+<span class="lineNum">      93 </span>                :            :         asm volatile(&quot;movdqu %%xmm0, %0&quot; : &quot;=m&quot; ((ctx)-&gt;sse[0]));        \
+<span class="lineNum">      94 </span>                :            :         asm volatile(&quot;movdqu %%xmm1, %0&quot; : &quot;=m&quot; ((ctx)-&gt;sse[1]));        \
+<span class="lineNum">      95 </span>                :            :         asm volatile(&quot;movdqu %%xmm2, %0&quot; : &quot;=m&quot; ((ctx)-&gt;sse[2]));        \
+<span class="lineNum">      96 </span>                :            :         asm volatile(&quot;movdqu %%xmm3, %0&quot; : &quot;=m&quot; ((ctx)-&gt;sse[3]));        \
+<span class="lineNum">      97 </span>                :            : }
+<a name="98"><span class="lineNum">      98 </span>                :            : </a>
+<span class="lineNum">      99 </span>                :            : static void
+<span class="lineNum">     100 </span>                :<span class="lineCov">    1569464 : fletcher_4_sse2_native(fletcher_4_ctx_t *ctx, const void *buf, uint64_t size)</span>
+<span class="lineNum">     101 </span>                :            : {
+<span class="lineNum">     102 </span>                :<span class="lineCov">    1569464 :         const uint64_t *ip = buf;</span>
+<span class="lineNum">     103 </span>                :<span class="lineCov">    1569464 :         const uint64_t *ipend = (uint64_t *)((uint8_t *)ip + size);</span>
+<span class="lineNum">     104 </span>                :            : 
+<span class="lineNum">     105 </span>                :            :         kfpu_begin();
+<span class="lineNum">     106 </span>                :            : 
+<span class="lineNum">     107 </span>                :<span class="lineCov">    1569464 :         FLETCHER_4_SSE_RESTORE_CTX(ctx);</span>
+<span class="lineNum">     108 </span>                :            : 
+<span class="lineNum">     109 </span>                :<span class="lineCov">    1569677 :         asm volatile(&quot;pxor %xmm4, %xmm4&quot;);</span>
+<span class="lineNum">     110 </span>                :            : 
+<span class="lineNum">     111 </span>        [<span class="branchCov" title="Branch 0 was taken 981934454 times"> + </span><span class="branchCov" title="Branch 1 was taken 1570588 times"> + </span>]:<span class="lineCov">  983505042 :         for (; ip &lt; ipend; ip += 2) {</span>
+<span class="lineNum">     112 </span>                :<span class="lineCov">  981934454 :                 asm volatile(&quot;movdqu %0, %%xmm5&quot; :: &quot;m&quot;(*ip));</span>
+<span class="lineNum">     113 </span>                :<span class="lineCov">  981980577 :                 asm volatile(&quot;movdqa %xmm5, %xmm6&quot;);</span>
+<span class="lineNum">     114 </span>                :<span class="lineCov">  982017264 :                 asm volatile(&quot;punpckldq %xmm4, %xmm5&quot;);</span>
+<span class="lineNum">     115 </span>                :<span class="lineCov">  982018109 :                 asm volatile(&quot;punpckhdq %xmm4, %xmm6&quot;);</span>
+<span class="lineNum">     116 </span>                :<span class="lineCov">  982012196 :                 asm volatile(&quot;paddq %xmm5, %xmm0&quot;);</span>
+<span class="lineNum">     117 </span>                :<span class="lineCov">  982018115 :                 asm volatile(&quot;paddq %xmm0, %xmm1&quot;);</span>
+<span class="lineNum">     118 </span>                :<span class="lineCov">  981997221 :                 asm volatile(&quot;paddq %xmm1, %xmm2&quot;);</span>
+<span class="lineNum">     119 </span>                :<span class="lineCov">  981997218 :                 asm volatile(&quot;paddq %xmm2, %xmm3&quot;);</span>
+<span class="lineNum">     120 </span>                :<span class="lineCov">  981998869 :                 asm volatile(&quot;paddq %xmm6, %xmm0&quot;);</span>
+<span class="lineNum">     121 </span>                :<span class="lineCov">  981991818 :                 asm volatile(&quot;paddq %xmm0, %xmm1&quot;);</span>
+<span class="lineNum">     122 </span>                :<span class="lineCov">  981987428 :                 asm volatile(&quot;paddq %xmm1, %xmm2&quot;);</span>
+<span class="lineNum">     123 </span>                :<span class="lineCov">  981871619 :                 asm volatile(&quot;paddq %xmm2, %xmm3&quot;);</span>
+<span class="lineNum">     124 </span>                :            :         }
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>                :<span class="lineCov">    1570588 :         FLETCHER_4_SSE_SAVE_CTX(ctx);</span>
+<span class="lineNum">     127 </span>                :            : 
+<span class="lineNum">     128 </span>                :            :         kfpu_end();
+<span class="lineNum">     129 </span>                :<span class="lineCov">    1570802 : }</span>
+<a name="130"><span class="lineNum">     130 </span>                :            : </a>
+<span class="lineNum">     131 </span>                :            : static void
+<span class="lineNum">     132 </span>                :<span class="lineCov">      79451 : fletcher_4_sse2_byteswap(fletcher_4_ctx_t *ctx, const void *buf, uint64_t size)</span>
+<span class="lineNum">     133 </span>                :            : {
+<span class="lineNum">     134 </span>                :<span class="lineCov">      79451 :         const uint32_t *ip = buf;</span>
+<span class="lineNum">     135 </span>                :<span class="lineCov">      79451 :         const uint32_t *ipend = (uint32_t *)((uint8_t *)ip + size);</span>
+<span class="lineNum">     136 </span>                :            : 
+<span class="lineNum">     137 </span>                :            :         kfpu_begin();
+<span class="lineNum">     138 </span>                :            : 
+<span class="lineNum">     139 </span>                :<span class="lineCov">      79451 :         FLETCHER_4_SSE_RESTORE_CTX(ctx);</span>
+<span class="lineNum">     140 </span>                :            : 
+<span class="lineNum">     141 </span>        [<span class="branchCov" title="Branch 0 was taken 120157736 times"> + </span><span class="branchCov" title="Branch 1 was taken 79451 times"> + </span>]:<span class="lineCov">  120237187 :         for (; ip &lt; ipend; ip += 2) {</span>
+<span class="lineNum">     142 </span>                :<span class="lineCov">  120157736 :                 uint32_t scratch1 = BSWAP_32(ip[0]);</span>
+<span class="lineNum">     143 </span>                :<span class="lineCov">  120157736 :                 uint32_t scratch2 = BSWAP_32(ip[1]);</span>
+<span class="lineNum">     144 </span>                :<span class="lineCov">  120157736 :                 asm volatile(&quot;movd %0, %%xmm5&quot; :: &quot;r&quot;(scratch1));</span>
+<span class="lineNum">     145 </span>                :<span class="lineCov">  120157736 :                 asm volatile(&quot;movd %0, %%xmm6&quot; :: &quot;r&quot;(scratch2));</span>
+<span class="lineNum">     146 </span>                :<span class="lineCov">  120157736 :                 asm volatile(&quot;punpcklqdq %xmm6, %xmm5&quot;);</span>
+<span class="lineNum">     147 </span>                :<span class="lineCov">  120157736 :                 asm volatile(&quot;paddq %xmm5, %xmm0&quot;);</span>
+<span class="lineNum">     148 </span>                :<span class="lineCov">  120157736 :                 asm volatile(&quot;paddq %xmm0, %xmm1&quot;);</span>
+<span class="lineNum">     149 </span>                :<span class="lineCov">  120157736 :                 asm volatile(&quot;paddq %xmm1, %xmm2&quot;);</span>
+<span class="lineNum">     150 </span>                :<span class="lineCov">  120157736 :                 asm volatile(&quot;paddq %xmm2, %xmm3&quot;);</span>
+<span class="lineNum">     151 </span>                :            :         }
+<span class="lineNum">     152 </span>                :            : 
+<span class="lineNum">     153 </span>                :<span class="lineCov">      79451 :         FLETCHER_4_SSE_SAVE_CTX(ctx);</span>
+<span class="lineNum">     154 </span>                :            : 
+<span class="lineNum">     155 </span>                :            :         kfpu_end();
+<a name="156"><span class="lineNum">     156 </span>                :<span class="lineCov">      79451 : }</span></a>
+<span class="lineNum">     157 </span>                :            : 
+<span class="lineNum">     158 </span>                :<span class="lineCov">      59904 : static boolean_t fletcher_4_sse2_valid(void)</span>
+<span class="lineNum">     159 </span>                :            : {
+<span class="lineNum">     160 </span>                :<span class="lineCov">      59904 :         return (zfs_sse2_available());</span>
+<span class="lineNum">     161 </span>                :            : }
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>                :            : const fletcher_4_ops_t fletcher_4_sse2_ops = {
+<span class="lineNum">     164 </span>                :            :         .init_native = fletcher_4_sse2_init,
+<span class="lineNum">     165 </span>                :            :         .fini_native = fletcher_4_sse2_fini,
+<span class="lineNum">     166 </span>                :            :         .compute_native = fletcher_4_sse2_native,
+<span class="lineNum">     167 </span>                :            :         .init_byteswap = fletcher_4_sse2_init,
+<span class="lineNum">     168 </span>                :            :         .fini_byteswap = fletcher_4_sse2_fini,
+<span class="lineNum">     169 </span>                :            :         .compute_byteswap = fletcher_4_sse2_byteswap,
+<span class="lineNum">     170 </span>                :            :         .valid = fletcher_4_sse2_valid,
+<span class="lineNum">     171 </span>                :            :         .name = &quot;sse2&quot;
+<span class="lineNum">     172 </span>                :            : };
+<span class="lineNum">     173 </span>                :            : 
+<span class="lineNum">     174 </span>                :            : #endif /* defined(HAVE_SSE2) */
+<span class="lineNum">     175 </span>                :            : 
+<a name="176"><span class="lineNum">     176 </span>                :            : #if defined(HAVE_SSE2) &amp;&amp; defined(HAVE_SSSE3)</a>
+<span class="lineNum">     177 </span>                :            : static void
+<span class="lineNum">     178 </span>                :<span class="lineCov">      79775 : fletcher_4_ssse3_byteswap(fletcher_4_ctx_t *ctx, const void *buf, uint64_t size)</span>
+<span class="lineNum">     179 </span>                :            : {
+<span class="lineNum">     180 </span>                :            :         static const zfs_fletcher_sse_t mask = {
+<span class="lineNum">     181 </span>                :            :                 .v = { 0x0405060700010203, 0x0C0D0E0F08090A0B }
+<span class="lineNum">     182 </span>                :            :         };
+<span class="lineNum">     183 </span>                :            : 
+<span class="lineNum">     184 </span>                :<span class="lineCov">      79775 :         const uint64_t *ip = buf;</span>
+<span class="lineNum">     185 </span>                :<span class="lineCov">      79775 :         const uint64_t *ipend = (uint64_t *)((uint8_t *)ip + size);</span>
+<span class="lineNum">     186 </span>                :            : 
+<span class="lineNum">     187 </span>                :            :         kfpu_begin();
+<span class="lineNum">     188 </span>                :            : 
+<span class="lineNum">     189 </span>                :<span class="lineCov">      79775 :         FLETCHER_4_SSE_RESTORE_CTX(ctx);</span>
+<span class="lineNum">     190 </span>                :            : 
+<span class="lineNum">     191 </span>                :<span class="lineCov">      79775 :         asm volatile(&quot;movdqu %0, %%xmm7&quot;::&quot;m&quot; (mask));</span>
+<span class="lineNum">     192 </span>                :<span class="lineCov">      79775 :         asm volatile(&quot;pxor %xmm4, %xmm4&quot;);</span>
+<span class="lineNum">     193 </span>                :            : 
+<span class="lineNum">     194 </span>        [<span class="branchCov" title="Branch 0 was taken 59689736 times"> + </span><span class="branchCov" title="Branch 1 was taken 79775 times"> + </span>]:<span class="lineCov">   59769511 :         for (; ip &lt; ipend; ip += 2) {</span>
+<span class="lineNum">     195 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;movdqu %0, %%xmm5&quot;::&quot;m&quot; (*ip));</span>
+<span class="lineNum">     196 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;pshufb %xmm7, %xmm5&quot;);</span>
+<span class="lineNum">     197 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;movdqa %xmm5, %xmm6&quot;);</span>
+<span class="lineNum">     198 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;punpckldq %xmm4, %xmm5&quot;);</span>
+<span class="lineNum">     199 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;punpckhdq %xmm4, %xmm6&quot;);</span>
+<span class="lineNum">     200 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;paddq %xmm5, %xmm0&quot;);</span>
+<span class="lineNum">     201 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;paddq %xmm0, %xmm1&quot;);</span>
+<span class="lineNum">     202 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;paddq %xmm1, %xmm2&quot;);</span>
+<span class="lineNum">     203 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;paddq %xmm2, %xmm3&quot;);</span>
+<span class="lineNum">     204 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;paddq %xmm6, %xmm0&quot;);</span>
+<span class="lineNum">     205 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;paddq %xmm0, %xmm1&quot;);</span>
+<span class="lineNum">     206 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;paddq %xmm1, %xmm2&quot;);</span>
+<span class="lineNum">     207 </span>                :<span class="lineCov">   59689736 :                 asm volatile(&quot;paddq %xmm2, %xmm3&quot;);</span>
+<span class="lineNum">     208 </span>                :            :         }
+<span class="lineNum">     209 </span>                :            : 
+<span class="lineNum">     210 </span>                :<span class="lineCov">      79775 :         FLETCHER_4_SSE_SAVE_CTX(ctx);</span>
+<span class="lineNum">     211 </span>                :            : 
+<span class="lineNum">     212 </span>                :            :         kfpu_end();
+<a name="213"><span class="lineNum">     213 </span>                :<span class="lineCov">      79775 : }</span></a>
+<span class="lineNum">     214 </span>                :            : 
+<span class="lineNum">     215 </span>                :<span class="lineCov">      59904 : static boolean_t fletcher_4_ssse3_valid(void)</span>
+<span class="lineNum">     216 </span>                :            : {
+<span class="lineNum">     217 </span>[<span class="branchCov" title="Branch 1 was taken 59904 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 59904 times"> + </span>]:<span class="lineCov">      59904 :         return (zfs_sse2_available() &amp;&amp; zfs_ssse3_available());</span>
+<span class="lineNum">     218 </span>                :            : }
+<span class="lineNum">     219 </span>                :            : 
+<span class="lineNum">     220 </span>                :            : const fletcher_4_ops_t fletcher_4_ssse3_ops = {
+<span class="lineNum">     221 </span>                :            :         .init_native = fletcher_4_sse2_init,
+<span class="lineNum">     222 </span>                :            :         .fini_native = fletcher_4_sse2_fini,
+<span class="lineNum">     223 </span>                :            :         .compute_native = fletcher_4_sse2_native,
+<span class="lineNum">     224 </span>                :            :         .init_byteswap = fletcher_4_sse2_init,
+<span class="lineNum">     225 </span>                :            :         .fini_byteswap = fletcher_4_sse2_fini,
+<span class="lineNum">     226 </span>                :            :         .compute_byteswap = fletcher_4_ssse3_byteswap,
+<span class="lineNum">     227 </span>                :            :         .valid = fletcher_4_ssse3_valid,
+<span class="lineNum">     228 </span>                :            :         .name = &quot;ssse3&quot;
+<span class="lineNum">     229 </span>                :            : };
+<span class="lineNum">     230 </span>                :            : 
+<span class="lineNum">     231 </span>                :            : #endif /* defined(HAVE_SSE2) &amp;&amp; defined(HAVE_SSSE3) */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,728 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/spa_history.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - spa_history.c<span style="font-size: 80%;"> (source / <a href="spa_history.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">168</td>
+            <td class="headerCovTableEntry">226</td>
+            <td class="headerCovTableEntryLo">74.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryLo">73.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">64</td>
+            <td class="headerCovTableEntry">120</td>
+            <td class="headerCovTableEntryLo">53.3 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : /*
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2006, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright (c) 2011, 2015 by Delphix. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  * Copyright (c) 2014 Integros [integros.com]
+<span class="lineNum">      26 </span>                :            :  * Copyright 2017 Joyent, Inc.
+<span class="lineNum">      27 </span>                :            :  */
+<span class="lineNum">      28 </span>                :            : 
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/spa_impl.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/zap.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/dsl_synctask.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/dmu_tx.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/dmu_objset.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/dsl_dataset.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;sys/dsl_dir.h&gt;
+<span class="lineNum">      37 </span>                :            : #include &lt;sys/cmn_err.h&gt;
+<span class="lineNum">      38 </span>                :            : #include &lt;sys/sunddi.h&gt;
+<span class="lineNum">      39 </span>                :            : #include &lt;sys/cred.h&gt;
+<span class="lineNum">      40 </span>                :            : #include &quot;zfs_comutil.h&quot;
+<span class="lineNum">      41 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">      42 </span>                :            : #include &lt;sys/zone.h&gt;
+<span class="lineNum">      43 </span>                :            : #endif
+<span class="lineNum">      44 </span>                :            : 
+<span class="lineNum">      45 </span>                :            : /*
+<span class="lineNum">      46 </span>                :            :  * Routines to manage the on-disk history log.
+<span class="lineNum">      47 </span>                :            :  *
+<span class="lineNum">      48 </span>                :            :  * The history log is stored as a dmu object containing
+<span class="lineNum">      49 </span>                :            :  * &lt;packed record length, record nvlist&gt; tuples.
+<span class="lineNum">      50 </span>                :            :  *
+<span class="lineNum">      51 </span>                :            :  * Where &quot;record nvlist&quot; is an nvlist containing uint64_ts and strings, and
+<span class="lineNum">      52 </span>                :            :  * &quot;packed record length&quot; is the packed length of the &quot;record nvlist&quot; stored
+<span class="lineNum">      53 </span>                :            :  * as a little endian uint64_t.
+<span class="lineNum">      54 </span>                :            :  *
+<span class="lineNum">      55 </span>                :            :  * The log is implemented as a ring buffer, though the original creation
+<span class="lineNum">      56 </span>                :            :  * of the pool ('zpool create') is never overwritten.
+<span class="lineNum">      57 </span>                :            :  *
+<span class="lineNum">      58 </span>                :            :  * The history log is tracked as object 'spa_t::spa_history'.  The bonus buffer
+<span class="lineNum">      59 </span>                :            :  * of 'spa_history' stores the offsets for logging/retrieving history as
+<span class="lineNum">      60 </span>                :            :  * 'spa_history_phys_t'.  'sh_pool_create_len' is the ending offset in bytes of
+<span class="lineNum">      61 </span>                :            :  * where the 'zpool create' record is stored.  This allows us to never
+<span class="lineNum">      62 </span>                :            :  * overwrite the original creation of the pool.  'sh_phys_max_off' is the
+<span class="lineNum">      63 </span>                :            :  * physical ending offset in bytes of the log.  This tells you the length of
+<span class="lineNum">      64 </span>                :            :  * the buffer. 'sh_eof' is the logical EOF (in bytes).  Whenever a record
+<span class="lineNum">      65 </span>                :            :  * is added, 'sh_eof' is incremented by the the size of the record.
+<span class="lineNum">      66 </span>                :            :  * 'sh_eof' is never decremented.  'sh_bof' is the logical BOF (in bytes).
+<span class="lineNum">      67 </span>                :            :  * This is where the consumer should start reading from after reading in
+<span class="lineNum">      68 </span>                :            :  * the 'zpool create' portion of the log.
+<span class="lineNum">      69 </span>                :            :  *
+<span class="lineNum">      70 </span>                :            :  * 'sh_records_lost' keeps track of how many records have been overwritten
+<span class="lineNum">      71 </span>                :            :  * and permanently lost.
+<span class="lineNum">      72 </span>                :            :  */
+<span class="lineNum">      73 </span>                :            : 
+<a name="74"><span class="lineNum">      74 </span>                :            : /* convert a logical offset to physical */</a>
+<span class="lineNum">      75 </span>                :            : static uint64_t
+<span class="lineNum">      76 </span>                :<span class="lineCov">      33732 : spa_history_log_to_phys(uint64_t log_off, spa_history_phys_t *shpp)</span>
+<span class="lineNum">      77 </span>                :            : {
+<span class="lineNum">      78 </span>                :            :         uint64_t phys_len;
+<span class="lineNum">      79 </span>                :            : 
+<span class="lineNum">      80 </span>                :<span class="lineCov">      16866 :         phys_len = shpp-&gt;sh_phys_max_off - shpp-&gt;sh_pool_create_len;</span>
+<span class="lineNum">      81 </span>                :<span class="lineCov">      16866 :         return ((log_off - shpp-&gt;sh_pool_create_len) % phys_len</span>
+<span class="lineNum">      82 </span>                :<span class="lineCov">      16866 :             + shpp-&gt;sh_pool_create_len);</span>
+<span class="lineNum">      83 </span>                :            : }
+<a name="84"><span class="lineNum">      84 </span>                :            : </a>
+<span class="lineNum">      85 </span>                :            : void
+<span class="lineNum">      86 </span>                :<span class="lineCov">         53 : spa_history_create_obj(spa_t *spa, dmu_tx_t *tx)</span>
+<span class="lineNum">      87 </span>                :            : {
+<span class="lineNum">      88 </span>                :            :         dmu_buf_t *dbp;
+<span class="lineNum">      89 </span>                :            :         spa_history_phys_t *shpp;
+<span class="lineNum">      90 </span>                :<span class="lineCov">         53 :         objset_t *mos = spa-&gt;spa_meta_objset;</span>
+<span class="lineNum">      91 </span>                :            : 
+<span class="lineNum">      92 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 53 times"> + </span>]:<span class="lineCov">         53 :         ASSERT(spa-&gt;spa_history == 0);</span>
+<span class="lineNum">      93 </span>                :<span class="lineCov">         53 :         spa-&gt;spa_history = dmu_object_alloc(mos, DMU_OT_SPA_HISTORY,</span>
+<span class="lineNum">      94 </span>                :            :             SPA_OLD_MAXBLOCKSIZE, DMU_OT_SPA_HISTORY_OFFSETS,
+<span class="lineNum">      95 </span>                :            :             sizeof (spa_history_phys_t), tx);
+<span class="lineNum">      96 </span>                :            : 
+<span class="lineNum">      97 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 53 times"> + </span>]:<span class="lineCov">         53 :         VERIFY(zap_add(mos, DMU_POOL_DIRECTORY_OBJECT,</span>
+<span class="lineNum">      98 </span>                :            :             DMU_POOL_HISTORY, sizeof (uint64_t), 1,
+<span class="lineNum">      99 </span>                :            :             &amp;spa-&gt;spa_history, tx) == 0);
+<span class="lineNum">     100 </span>                :            : 
+<span class="lineNum">     101 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 53 times"> + </span>]:<span class="lineCov">         53 :         VERIFY(0 == dmu_bonus_hold(mos, spa-&gt;spa_history, FTAG, &amp;dbp));</span>
+<span class="lineNum">     102 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 53 times"> + </span>]:<span class="lineCov">         53 :         ASSERT(dbp-&gt;db_size &gt;= sizeof (spa_history_phys_t));</span>
+<span class="lineNum">     103 </span>                :            : 
+<span class="lineNum">     104 </span>                :<span class="lineCov">         53 :         shpp = dbp-&gt;db_data;</span>
+<span class="lineNum">     105 </span>                :<span class="lineCov">         53 :         dmu_buf_will_dirty(dbp, tx);</span>
+<span class="lineNum">     106 </span>                :            : 
+<span class="lineNum">     107 </span>                :            :         /*
+<span class="lineNum">     108 </span>                :            :          * Figure out maximum size of history log.  We set it at
+<span class="lineNum">     109 </span>                :            :          * 0.1% of pool size, with a max of 1G and min of 128KB.
+<span class="lineNum">     110 </span>                :            :          */
+<span class="lineNum">     111 </span>                :            :         shpp-&gt;sh_phys_max_off =
+<span class="lineNum">     112 </span>                :<span class="lineCov">         53 :             metaslab_class_get_dspace(spa_normal_class(spa)) / 1000;</span>
+<span class="lineNum">     113 </span>                :<span class="lineCov">         53 :         shpp-&gt;sh_phys_max_off = MIN(shpp-&gt;sh_phys_max_off, 1&lt;&lt;30);</span>
+<span class="lineNum">     114 </span>                :<span class="lineCov">         53 :         shpp-&gt;sh_phys_max_off = MAX(shpp-&gt;sh_phys_max_off, 128&lt;&lt;10);</span>
+<span class="lineNum">     115 </span>                :            : 
+<span class="lineNum">     116 </span>                :<span class="lineCov">         53 :         dmu_buf_rele(dbp, FTAG);</span>
+<span class="lineNum">     117 </span>                :<span class="lineCov">         53 : }</span>
+<span class="lineNum">     118 </span>                :            : 
+<span class="lineNum">     119 </span>                :            : /*
+<span class="lineNum">     120 </span>                :            :  * Change 'sh_bof' to the beginning of the next record.
+<a name="121"><span class="lineNum">     121 </span>                :            :  */</a>
+<span class="lineNum">     122 </span>                :            : static int
+<span class="lineNum">     123 </span>                :<span class="lineCov">        429 : spa_history_advance_bof(spa_t *spa, spa_history_phys_t *shpp)</span>
+<span class="lineNum">     124 </span>                :            : {
+<span class="lineNum">     125 </span>                :<span class="lineCov">        429 :         objset_t *mos = spa-&gt;spa_meta_objset;</span>
+<span class="lineNum">     126 </span>                :            :         uint64_t firstread, reclen, phys_bof;
+<span class="lineNum">     127 </span>                :            :         char buf[sizeof (reclen)];
+<span class="lineNum">     128 </span>                :            :         int err;
+<span class="lineNum">     129 </span>                :            : 
+<span class="lineNum">     130 </span>                :<span class="lineCov">        429 :         phys_bof = spa_history_log_to_phys(shpp-&gt;sh_bof, shpp);</span>
+<span class="lineNum">     131 </span>                :<span class="lineCov">        429 :         firstread = MIN(sizeof (reclen), shpp-&gt;sh_phys_max_off - phys_bof);</span>
+<span class="lineNum">     132 </span>                :            : 
+<span class="lineNum">     133 </span>        [<span class="branchCov" title="Branch 1 was taken 429 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        429 :         if ((err = dmu_read(mos, spa-&gt;spa_history, phys_bof, firstread,</span>
+<span class="lineNum">     134 </span>                :            :             buf, DMU_READ_PREFETCH)) != 0)
+<span class="lineNum">     135 </span>                :            :                 return (err);
+<span class="lineNum">     136 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 429 times"> + </span>]:<span class="lineCov">        429 :         if (firstread != sizeof (reclen)) {</span>
+<span class="lineNum">     137 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((err = dmu_read(mos, spa-&gt;spa_history,</span>
+<span class="lineNum">     138 </span>                :            :                     shpp-&gt;sh_pool_create_len, sizeof (reclen) - firstread,
+<span class="lineNum">     139 </span>                :            :                     buf + firstread, DMU_READ_PREFETCH)) != 0)
+<span class="lineNum">     140 </span>                :            :                         return (err);
+<span class="lineNum">     141 </span>                :            :         }
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>                :<span class="lineCov">        429 :         reclen = LE_64(*((uint64_t *)buf));</span>
+<span class="lineNum">     144 </span>                :<span class="lineCov">        429 :         shpp-&gt;sh_bof += reclen + sizeof (reclen);</span>
+<span class="lineNum">     145 </span>                :<span class="lineCov">        429 :         shpp-&gt;sh_records_lost++;</span>
+<span class="lineNum">     146 </span>                :            :         return (0);
+<span class="lineNum">     147 </span>                :            : }
+<a name="148"><span class="lineNum">     148 </span>                :            : </a>
+<span class="lineNum">     149 </span>                :            : static int
+<span class="lineNum">     150 </span>                :<span class="lineCov">      16432 : spa_history_write(spa_t *spa, void *buf, uint64_t len, spa_history_phys_t *shpp,</span>
+<span class="lineNum">     151 </span>                :            :     dmu_tx_t *tx)
+<span class="lineNum">     152 </span>                :            : {
+<span class="lineNum">     153 </span>                :            :         uint64_t firstwrite, phys_eof;
+<span class="lineNum">     154 </span>                :<span class="lineCov">      16432 :         objset_t *mos = spa-&gt;spa_meta_objset;</span>
+<span class="lineNum">     155 </span>                :            :         int err;
+<span class="lineNum">     156 </span>                :            : 
+<span class="lineNum">     157 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 16432 times"> + </span>]:<span class="lineCov">      16432 :         ASSERT(MUTEX_HELD(&amp;spa-&gt;spa_history_lock));</span>
+<span class="lineNum">     158 </span>                :            : 
+<span class="lineNum">     159 </span>                :            :         /* see if we need to reset logical BOF */
+<span class="lineNum">     160 </span>        [<span class="branchCov" title="Branch 0 was taken 429 times"> + </span><span class="branchCov" title="Branch 1 was taken 16432 times"> + </span>]:<span class="lineCov">      16861 :         while (shpp-&gt;sh_phys_max_off - shpp-&gt;sh_pool_create_len -</span>
+<span class="lineNum">     161 </span>                :<span class="lineCov">      16861 :             (shpp-&gt;sh_eof - shpp-&gt;sh_bof) &lt;= len) {</span>
+<span class="lineNum">     162 </span>        [<span class="branchCov" title="Branch 1 was taken 429 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">      16861 :                 if ((err = spa_history_advance_bof(spa, shpp)) != 0) {</span>
+<span class="lineNum">     163 </span>                :            :                         return (err);
+<span class="lineNum">     164 </span>                :            :                 }
+<span class="lineNum">     165 </span>                :            :         }
+<span class="lineNum">     166 </span>                :            : 
+<span class="lineNum">     167 </span>                :<span class="lineCov">      16432 :         phys_eof = spa_history_log_to_phys(shpp-&gt;sh_eof, shpp);</span>
+<span class="lineNum">     168 </span>                :<span class="lineCov">      16432 :         firstwrite = MIN(len, shpp-&gt;sh_phys_max_off - phys_eof);</span>
+<span class="lineNum">     169 </span>                :<span class="lineCov">      16432 :         shpp-&gt;sh_eof += len;</span>
+<span class="lineNum">     170 </span>                :<span class="lineCov">      16432 :         dmu_write(mos, spa-&gt;spa_history, phys_eof, firstwrite, buf, tx);</span>
+<span class="lineNum">     171 </span>                :            : 
+<span class="lineNum">     172 </span>                :<span class="lineCov">      16432 :         len -= firstwrite;</span>
+<span class="lineNum">     173 </span>        [<span class="branchCov" title="Branch 0 was taken 4 times"> + </span><span class="branchCov" title="Branch 1 was taken 16428 times"> + </span>]:<span class="lineCov">      16432 :         if (len &gt; 0) {</span>
+<span class="lineNum">     174 </span>                :            :                 /* write out the rest at the beginning of physical file */
+<span class="lineNum">     175 </span>                :<span class="lineCov">          4 :                 dmu_write(mos, spa-&gt;spa_history, shpp-&gt;sh_pool_create_len,</span>
+<span class="lineNum">     176 </span>                :            :                     len, (char *)buf + firstwrite, tx);
+<span class="lineNum">     177 </span>                :            :         }
+<span class="lineNum">     178 </span>                :            : 
+<span class="lineNum">     179 </span>                :            :         return (0);
+<span class="lineNum">     180 </span>                :            : }
+<a name="181"><span class="lineNum">     181 </span>                :            : </a>
+<span class="lineNum">     182 </span>                :            : static char *
+<span class="lineNum">     183 </span>                :<span class="lineNoCov">          0 : spa_history_zone(void)</span>
+<span class="lineNum">     184 </span>                :            : {
+<span class="lineNum">     185 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">     186 </span>                :            : #ifdef HAVE_SPL
+<span class="lineNum">     187 </span>                :            :         return (&quot;linux&quot;);
+<span class="lineNum">     188 </span>                :            : #else
+<span class="lineNum">     189 </span>                :            :         return (curproc-&gt;p_zone-&gt;zone_name);
+<span class="lineNum">     190 </span>                :            : #endif
+<span class="lineNum">     191 </span>                :            : #else
+<span class="lineNum">     192 </span>                :<span class="lineNoCov">          0 :         return (NULL);</span>
+<span class="lineNum">     193 </span>                :            : #endif
+<span class="lineNum">     194 </span>                :            : }
+<span class="lineNum">     195 </span>                :            : 
+<span class="lineNum">     196 </span>                :            : /*
+<span class="lineNum">     197 </span>                :            :  * Post a history sysevent.
+<span class="lineNum">     198 </span>                :            :  *
+<span class="lineNum">     199 </span>                :            :  * The nvlist_t* passed into this function will be transformed into a new
+<span class="lineNum">     200 </span>                :            :  * nvlist where:
+<span class="lineNum">     201 </span>                :            :  *
+<span class="lineNum">     202 </span>                :            :  * 1. Nested nvlists will be flattened to a single level
+<span class="lineNum">     203 </span>                :            :  * 2. Keys will have their names normalized (to remove any problematic
+<span class="lineNum">     204 </span>                :            :  * characters, such as whitespace)
+<span class="lineNum">     205 </span>                :            :  *
+<span class="lineNum">     206 </span>                :            :  * The nvlist_t passed into this function will duplicated and should be freed
+<span class="lineNum">     207 </span>                :            :  * by caller.
+<span class="lineNum">     208 </span>                :            :  *
+<a name="209"><span class="lineNum">     209 </span>                :            :  */</a>
+<span class="lineNum">     210 </span>                :            : static void
+<span class="lineNum">     211 </span>                :<span class="lineCov">       8216 : spa_history_log_notify(spa_t *spa, nvlist_t *nvl)</span>
+<span class="lineNum">     212 </span>                :            : {
+<span class="lineNum">     213 </span>                :<span class="lineCov">       8216 :         nvlist_t *hist_nvl = fnvlist_alloc();</span>
+<span class="lineNum">     214 </span>                :            :         uint64_t uint64;
+<span class="lineNum">     215 </span>                :            :         char *string;
+<span class="lineNum">     216 </span>                :            : 
+<span class="lineNum">     217 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 8216 times"> + </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_string(nvl, ZPOOL_HIST_CMD, &amp;string) == 0)</span>
+<span class="lineNum">     218 </span>                :<span class="lineNoCov">          0 :                 fnvlist_add_string(hist_nvl, ZFS_EV_HIST_CMD, string);</span>
+<span class="lineNum">     219 </span>                :            : 
+<span class="lineNum">     220 </span>        [<span class="branchCov" title="Branch 1 was taken 8216 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_string(nvl, ZPOOL_HIST_INT_NAME, &amp;string) == 0)</span>
+<span class="lineNum">     221 </span>                :<span class="lineCov">       8216 :                 fnvlist_add_string(hist_nvl, ZFS_EV_HIST_INT_NAME, string);</span>
+<span class="lineNum">     222 </span>                :            : 
+<span class="lineNum">     223 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 8216 times"> + </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_string(nvl, ZPOOL_HIST_ZONE, &amp;string) == 0)</span>
+<span class="lineNum">     224 </span>                :<span class="lineNoCov">          0 :                 fnvlist_add_string(hist_nvl, ZFS_EV_HIST_ZONE, string);</span>
+<span class="lineNum">     225 </span>                :            : 
+<span class="lineNum">     226 </span>        [<span class="branchCov" title="Branch 1 was taken 8216 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_string(nvl, ZPOOL_HIST_HOST, &amp;string) == 0)</span>
+<span class="lineNum">     227 </span>                :<span class="lineCov">       8216 :                 fnvlist_add_string(hist_nvl, ZFS_EV_HIST_HOST, string);</span>
+<span class="lineNum">     228 </span>                :            : 
+<span class="lineNum">     229 </span>        [<span class="branchCov" title="Branch 1 was taken 7651 times"> + </span><span class="branchCov" title="Branch 2 was taken 565 times"> + </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_string(nvl, ZPOOL_HIST_DSNAME, &amp;string) == 0)</span>
+<span class="lineNum">     230 </span>                :<span class="lineCov">       7651 :                 fnvlist_add_string(hist_nvl, ZFS_EV_HIST_DSNAME, string);</span>
+<span class="lineNum">     231 </span>                :            : 
+<span class="lineNum">     232 </span>        [<span class="branchCov" title="Branch 1 was taken 8216 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_string(nvl, ZPOOL_HIST_INT_STR, &amp;string) == 0)</span>
+<span class="lineNum">     233 </span>                :<span class="lineCov">       8216 :                 fnvlist_add_string(hist_nvl, ZFS_EV_HIST_INT_STR, string);</span>
+<span class="lineNum">     234 </span>                :            : 
+<span class="lineNum">     235 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 8216 times"> + </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_string(nvl, ZPOOL_HIST_IOCTL, &amp;string) == 0)</span>
+<span class="lineNum">     236 </span>                :<span class="lineNoCov">          0 :                 fnvlist_add_string(hist_nvl, ZFS_EV_HIST_IOCTL, string);</span>
+<span class="lineNum">     237 </span>                :            : 
+<span class="lineNum">     238 </span>        [<span class="branchCov" title="Branch 1 was taken 8216 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_string(nvl, ZPOOL_HIST_INT_NAME, &amp;string) == 0)</span>
+<span class="lineNum">     239 </span>                :<span class="lineCov">       8216 :                 fnvlist_add_string(hist_nvl, ZFS_EV_HIST_INT_NAME, string);</span>
+<span class="lineNum">     240 </span>                :            : 
+<span class="lineNum">     241 </span>        [<span class="branchCov" title="Branch 1 was taken 7651 times"> + </span><span class="branchCov" title="Branch 2 was taken 565 times"> + </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_uint64(nvl, ZPOOL_HIST_DSID, &amp;uint64) == 0)</span>
+<span class="lineNum">     242 </span>                :<span class="lineCov">       7651 :                 fnvlist_add_uint64(hist_nvl, ZFS_EV_HIST_DSID, uint64);</span>
+<span class="lineNum">     243 </span>                :            : 
+<span class="lineNum">     244 </span>        [<span class="branchCov" title="Branch 1 was taken 8216 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_uint64(nvl, ZPOOL_HIST_TXG, &amp;uint64) == 0)</span>
+<span class="lineNum">     245 </span>                :<span class="lineCov">       8216 :                 fnvlist_add_uint64(hist_nvl, ZFS_EV_HIST_TXG, uint64);</span>
+<span class="lineNum">     246 </span>                :            : 
+<span class="lineNum">     247 </span>        [<span class="branchCov" title="Branch 1 was taken 8216 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_uint64(nvl, ZPOOL_HIST_TIME, &amp;uint64) == 0)</span>
+<span class="lineNum">     248 </span>                :<span class="lineCov">       8216 :                 fnvlist_add_uint64(hist_nvl, ZFS_EV_HIST_TIME, uint64);</span>
+<span class="lineNum">     249 </span>                :            : 
+<span class="lineNum">     250 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 8216 times"> + </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_uint64(nvl, ZPOOL_HIST_WHO, &amp;uint64) == 0)</span>
+<span class="lineNum">     251 </span>                :<span class="lineNoCov">          0 :                 fnvlist_add_uint64(hist_nvl, ZFS_EV_HIST_WHO, uint64);</span>
+<span class="lineNum">     252 </span>                :            : 
+<span class="lineNum">     253 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 8216 times"> + </span>]:<span class="lineCov">       8216 :         if (nvlist_lookup_uint64(nvl, ZPOOL_HIST_INT_EVENT, &amp;uint64) == 0)</span>
+<span class="lineNum">     254 </span>                :<span class="lineNoCov">          0 :                 fnvlist_add_uint64(hist_nvl, ZFS_EV_HIST_INT_EVENT, uint64);</span>
+<span class="lineNum">     255 </span>                :            : 
+<span class="lineNum">     256 </span>                :<span class="lineCov">       8216 :         spa_event_notify(spa, NULL, hist_nvl, ESC_ZFS_HISTORY_EVENT);</span>
+<span class="lineNum">     257 </span>                :            : 
+<span class="lineNum">     258 </span>                :<span class="lineCov">       8216 :         nvlist_free(hist_nvl);</span>
+<span class="lineNum">     259 </span>                :<span class="lineCov">       8216 : }</span>
+<span class="lineNum">     260 </span>                :            : 
+<span class="lineNum">     261 </span>                :            : /*
+<span class="lineNum">     262 </span>                :            :  * Write out a history event.
+<span class="lineNum">     263 </span>                :            :  */
+<a name="264"><span class="lineNum">     264 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     265 </span>                :            : static void
+<span class="lineNum">     266 </span>                :<span class="lineCov">       8216 : spa_history_log_sync(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">     267 </span>                :            : {
+<span class="lineNum">     268 </span>                :<span class="lineCov">       8216 :         nvlist_t        *nvl = arg;</span>
+<span class="lineNum">     269 </span>                :<span class="lineCov">       8216 :         spa_t           *spa = dmu_tx_pool(tx)-&gt;dp_spa;</span>
+<span class="lineNum">     270 </span>                :<span class="lineCov">       8216 :         objset_t        *mos = spa-&gt;spa_meta_objset;</span>
+<span class="lineNum">     271 </span>                :            :         dmu_buf_t       *dbp;
+<span class="lineNum">     272 </span>                :            :         spa_history_phys_t *shpp;
+<span class="lineNum">     273 </span>                :            :         size_t          reclen;
+<span class="lineNum">     274 </span>                :            :         uint64_t        le_len;
+<span class="lineNum">     275 </span>                :<span class="lineCov">       8216 :         char            *record_packed = NULL;</span>
+<span class="lineNum">     276 </span>                :            :         int             ret;
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>                :            :         /*
+<span class="lineNum">     279 </span>                :            :          * If we have an older pool that doesn't have a command
+<span class="lineNum">     280 </span>                :            :          * history object, create it now.
+<span class="lineNum">     281 </span>                :            :          */
+<span class="lineNum">     282 </span>                :<span class="lineCov">       8216 :         mutex_enter(&amp;spa-&gt;spa_history_lock);</span>
+<span class="lineNum">     283 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 8214 times"> + </span>]:<span class="lineCov">       8216 :         if (!spa-&gt;spa_history)</span>
+<span class="lineNum">     284 </span>                :<span class="lineCov">          2 :                 spa_history_create_obj(spa, tx);</span>
+<span class="lineNum">     285 </span>                :<span class="lineCov">       8216 :         mutex_exit(&amp;spa-&gt;spa_history_lock);</span>
+<span class="lineNum">     286 </span>                :            : 
+<span class="lineNum">     287 </span>                :            :         /*
+<span class="lineNum">     288 </span>                :            :          * Get the offset of where we need to write via the bonus buffer.
+<span class="lineNum">     289 </span>                :            :          * Update the offset when the write completes.
+<span class="lineNum">     290 </span>                :            :          */
+<span class="lineNum">     291 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 8216 times"> + </span>]:<span class="lineCov">       8216 :         VERIFY0(dmu_bonus_hold(mos, spa-&gt;spa_history, FTAG, &amp;dbp));</span>
+<span class="lineNum">     292 </span>                :<span class="lineCov">       8216 :         shpp = dbp-&gt;db_data;</span>
+<span class="lineNum">     293 </span>                :            : 
+<span class="lineNum">     294 </span>                :<span class="lineCov">       8216 :         dmu_buf_will_dirty(dbp, tx);</span>
+<span class="lineNum">     295 </span>                :            : 
+<span class="lineNum">     296 </span>                :            : #ifdef ZFS_DEBUG
+<span class="lineNum">     297 </span>                :            :         {
+<span class="lineNum">     298 </span>                :            :                 dmu_object_info_t doi;
+<span class="lineNum">     299 </span>                :<span class="lineCov">       8216 :                 dmu_object_info_from_db(dbp, &amp;doi);</span>
+<span class="lineNum">     300 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8216 times"> + </span>]:<span class="lineCov">       8216 :                 ASSERT3U(doi.doi_bonus_type, ==, DMU_OT_SPA_HISTORY_OFFSETS);</span>
+<span class="lineNum">     301 </span>                :            :         }
+<span class="lineNum">     302 </span>                :            : #endif
+<span class="lineNum">     303 </span>                :            : 
+<span class="lineNum">     304 </span>                :<span class="lineCov">       8216 :         fnvlist_add_uint64(nvl, ZPOOL_HIST_TIME, gethrestime_sec());</span>
+<span class="lineNum">     305 </span>                :<span class="lineCov">       8216 :         fnvlist_add_string(nvl, ZPOOL_HIST_HOST, utsname()-&gt;nodename);</span>
+<span class="lineNum">     306 </span>                :            : 
+<span class="lineNum">     307 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 8216 times"> + </span>]:<span class="lineCov">       8216 :         if (nvlist_exists(nvl, ZPOOL_HIST_CMD)) {</span>
+<span class="lineNum">     308 </span>                :<span class="lineNoCov">          0 :                 zfs_dbgmsg(&quot;command: %s&quot;,</span>
+<span class="lineNum">     309 </span>                :            :                     fnvlist_lookup_string(nvl, ZPOOL_HIST_CMD));
+<span class="lineNum">     310 </span>        [<span class="branchCov" title="Branch 1 was taken 8216 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       8216 :         } else if (nvlist_exists(nvl, ZPOOL_HIST_INT_NAME)) {</span>
+<span class="lineNum">     311 </span>        [<span class="branchCov" title="Branch 1 was taken 7651 times"> + </span><span class="branchCov" title="Branch 2 was taken 565 times"> + </span>]:<span class="lineCov">       8216 :                 if (nvlist_exists(nvl, ZPOOL_HIST_DSNAME)) {</span>
+<span class="lineNum">     312 </span>                :<span class="lineCov">       7651 :                         zfs_dbgmsg(&quot;txg %lld %s %s (id %llu) %s&quot;,</span>
+<span class="lineNum">     313 </span>                :            :                             fnvlist_lookup_uint64(nvl, ZPOOL_HIST_TXG),
+<span class="lineNum">     314 </span>                :            :                             fnvlist_lookup_string(nvl, ZPOOL_HIST_INT_NAME),
+<span class="lineNum">     315 </span>                :            :                             fnvlist_lookup_string(nvl, ZPOOL_HIST_DSNAME),
+<span class="lineNum">     316 </span>                :            :                             fnvlist_lookup_uint64(nvl, ZPOOL_HIST_DSID),
+<span class="lineNum">     317 </span>                :            :                             fnvlist_lookup_string(nvl, ZPOOL_HIST_INT_STR));
+<span class="lineNum">     318 </span>                :            :                 } else {
+<span class="lineNum">     319 </span>                :<span class="lineCov">        565 :                         zfs_dbgmsg(&quot;txg %lld %s %s&quot;,</span>
+<span class="lineNum">     320 </span>                :            :                             fnvlist_lookup_uint64(nvl, ZPOOL_HIST_TXG),
+<span class="lineNum">     321 </span>                :            :                             fnvlist_lookup_string(nvl, ZPOOL_HIST_INT_NAME),
+<span class="lineNum">     322 </span>                :            :                             fnvlist_lookup_string(nvl, ZPOOL_HIST_INT_STR));
+<span class="lineNum">     323 </span>                :            :                 }
+<span class="lineNum">     324 </span>                :            :                 /*
+<span class="lineNum">     325 </span>                :            :                  * The history sysevent is posted only for internal history
+<span class="lineNum">     326 </span>                :            :                  * messages to show what has happened, not how it happened. For
+<span class="lineNum">     327 </span>                :            :                  * example, the following command:
+<span class="lineNum">     328 </span>                :            :                  *
+<span class="lineNum">     329 </span>                :            :                  * # zfs destroy -r tank/foo
+<span class="lineNum">     330 </span>                :            :                  *
+<span class="lineNum">     331 </span>                :            :                  * will result in one sysevent posted per dataset that is
+<span class="lineNum">     332 </span>                :            :                  * destroyed as a result of the command - which could be more
+<span class="lineNum">     333 </span>                :            :                  * than one event in total.  By contrast, if the sysevent was
+<span class="lineNum">     334 </span>                :            :                  * posted as a result of the ZPOOL_HIST_CMD key being present
+<span class="lineNum">     335 </span>                :            :                  * it would result in only one sysevent being posted with the
+<span class="lineNum">     336 </span>                :            :                  * full command line arguments, requiring the consumer to know
+<span class="lineNum">     337 </span>                :            :                  * how to parse and understand zfs(1M) command invocations.
+<span class="lineNum">     338 </span>                :            :                  */
+<span class="lineNum">     339 </span>                :<span class="lineCov">       8216 :                 spa_history_log_notify(spa, nvl);</span>
+<span class="lineNum">     340 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } else if (nvlist_exists(nvl, ZPOOL_HIST_IOCTL)) {</span>
+<span class="lineNum">     341 </span>                :<span class="lineNoCov">          0 :                 zfs_dbgmsg(&quot;ioctl %s&quot;,</span>
+<span class="lineNum">     342 </span>                :            :                     fnvlist_lookup_string(nvl, ZPOOL_HIST_IOCTL));
+<span class="lineNum">     343 </span>                :            :         }
+<span class="lineNum">     344 </span>                :            : 
+<span class="lineNum">     345 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 8216 times"> + </span>]:<span class="lineCov">       8216 :         VERIFY3U(nvlist_pack(nvl, &amp;record_packed, &amp;reclen, NV_ENCODE_NATIVE,</span>
+<span class="lineNum">     346 </span>                :            :             KM_SLEEP), ==, 0);
+<span class="lineNum">     347 </span>                :            : 
+<span class="lineNum">     348 </span>                :<span class="lineCov">       8216 :         mutex_enter(&amp;spa-&gt;spa_history_lock);</span>
+<span class="lineNum">     349 </span>                :            : 
+<span class="lineNum">     350 </span>                :            :         /* write out the packed length as little endian */
+<span class="lineNum">     351 </span>                :<span class="lineCov">       8216 :         le_len = LE_64((uint64_t)reclen);</span>
+<span class="lineNum">     352 </span>                :<span class="lineCov">       8216 :         ret = spa_history_write(spa, &amp;le_len, sizeof (le_len), shpp, tx);</span>
+<span class="lineNum">     353 </span>        [<span class="branchCov" title="Branch 0 was taken 8216 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       8216 :         if (!ret)</span>
+<span class="lineNum">     354 </span>                :<span class="lineCov">       8216 :                 ret = spa_history_write(spa, record_packed, reclen, shpp, tx);</span>
+<span class="lineNum">     355 </span>                :            : 
+<span class="lineNum">     356 </span>                :            :         /* The first command is the create, which we keep forever */
+<span class="lineNum">     357 </span>        [<span class="branchCov" title="Branch 0 was taken 8216 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      16385 :         if (ret == 0 &amp;&amp; shpp-&gt;sh_pool_create_len == 0 &amp;&amp;</span>
+<span class="lineNum">         </span>  [<span class="branchCov" title="Branch 2 was taken 8169 times"> + </span><span class="branchCov" title="Branch 3 was taken 47 times"> + </span><span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 8169 times"> + </span>]
+<span class="lineNum">     358 </span>                :<span class="lineCov">       8169 :             nvlist_exists(nvl, ZPOOL_HIST_CMD)) {</span>
+<span class="lineNum">     359 </span>                :<span class="lineNoCov">          0 :                 shpp-&gt;sh_pool_create_len = shpp-&gt;sh_bof = shpp-&gt;sh_eof;</span>
+<span class="lineNum">     360 </span>                :            :         }
+<span class="lineNum">     361 </span>                :            : 
+<span class="lineNum">     362 </span>                :<span class="lineCov">       8216 :         mutex_exit(&amp;spa-&gt;spa_history_lock);</span>
+<span class="lineNum">     363 </span>                :<span class="lineCov">       8216 :         fnvlist_pack_free(record_packed, reclen);</span>
+<span class="lineNum">     364 </span>                :<span class="lineCov">       8216 :         dmu_buf_rele(dbp, FTAG);</span>
+<span class="lineNum">     365 </span>                :<span class="lineCov">       8216 :         fnvlist_free(nvl);</span>
+<span class="lineNum">     366 </span>                :<span class="lineCov">       8216 : }</span>
+<span class="lineNum">     367 </span>                :            : 
+<span class="lineNum">     368 </span>                :            : /*
+<span class="lineNum">     369 </span>                :            :  * Write out a history event.
+<a name="370"><span class="lineNum">     370 </span>                :            :  */</a>
+<span class="lineNum">     371 </span>                :            : int
+<span class="lineNum">     372 </span>                :<span class="lineNoCov">          0 : spa_history_log(spa_t *spa, const char *msg)</span>
+<span class="lineNum">     373 </span>                :            : {
+<span class="lineNum">     374 </span>                :            :         int err;
+<span class="lineNum">     375 </span>                :<span class="lineNoCov">          0 :         nvlist_t *nvl = fnvlist_alloc();</span>
+<span class="lineNum">     376 </span>                :            : 
+<span class="lineNum">     377 </span>                :<span class="lineNoCov">          0 :         fnvlist_add_string(nvl, ZPOOL_HIST_CMD, msg);</span>
+<span class="lineNum">     378 </span>                :<span class="lineNoCov">          0 :         err = spa_history_log_nvl(spa, nvl);</span>
+<span class="lineNum">     379 </span>                :<span class="lineNoCov">          0 :         fnvlist_free(nvl);</span>
+<span class="lineNum">     380 </span>                :<span class="lineNoCov">          0 :         return (err);</span>
+<span class="lineNum">     381 </span>                :            : }
+<a name="382"><span class="lineNum">     382 </span>                :            : </a>
+<span class="lineNum">     383 </span>                :            : int
+<span class="lineNum">     384 </span>                :<span class="lineNoCov">          0 : spa_history_log_nvl(spa_t *spa, nvlist_t *nvl)</span>
+<span class="lineNum">     385 </span>                :            : {
+<span class="lineNum">     386 </span>                :<span class="lineNoCov">          0 :         int err = 0;</span>
+<span class="lineNum">     387 </span>                :            :         dmu_tx_t *tx;
+<span class="lineNum">     388 </span>                :<span class="lineNoCov">          0 :         nvlist_t *nvarg, *in_nvl = NULL;</span>
+<span class="lineNum">     389 </span>                :            : 
+<span class="lineNum">     390 </span>[<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>][<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (spa_version(spa) &lt; SPA_VERSION_ZPOOL_HISTORY || !spa_writeable(spa))</span>
+<span class="lineNum">     391 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EINVAL));</span>
+<span class="lineNum">     392 </span>                :            : 
+<span class="lineNum">     393 </span>                :<span class="lineNoCov">          0 :         err = nvlist_lookup_nvlist(nvl, ZPOOL_HIST_INPUT_NVL, &amp;in_nvl);</span>
+<span class="lineNum">     394 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (err == 0) {</span>
+<span class="lineNum">     395 </span>                :<span class="lineNoCov">          0 :                 (void) nvlist_remove_all(in_nvl, ZPOOL_HIDDEN_ARGS);</span>
+<span class="lineNum">     396 </span>                :            :         }
+<span class="lineNum">     397 </span>                :            : 
+<span class="lineNum">     398 </span>                :<span class="lineNoCov">          0 :         tx = dmu_tx_create_dd(spa_get_dsl(spa)-&gt;dp_mos_dir);</span>
+<span class="lineNum">     399 </span>                :<span class="lineNoCov">          0 :         err = dmu_tx_assign(tx, TXG_WAIT);</span>
+<span class="lineNum">     400 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (err) {</span>
+<span class="lineNum">     401 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_abort(tx);</span>
+<span class="lineNum">     402 </span>                :<span class="lineNoCov">          0 :                 return (err);</span>
+<span class="lineNum">     403 </span>                :            :         }
+<span class="lineNum">     404 </span>                :            : 
+<span class="lineNum">     405 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_dup(nvl, &amp;nvarg, KM_SLEEP));</span>
+<span class="lineNum">     406 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (spa_history_zone() != NULL) {</span>
+<span class="lineNum">     407 </span>                :<span class="lineNoCov">          0 :                 fnvlist_add_string(nvarg, ZPOOL_HIST_ZONE,</span>
+<span class="lineNum">     408 </span>                :            :                     spa_history_zone());
+<span class="lineNum">     409 </span>                :            :         }
+<span class="lineNum">     410 </span>                :<span class="lineNoCov">          0 :         fnvlist_add_uint64(nvarg, ZPOOL_HIST_WHO, crgetruid(CRED()));</span>
+<span class="lineNum">     411 </span>                :            : 
+<span class="lineNum">     412 </span>                :            :         /* Kick this off asynchronously; errors are ignored. */
+<span class="lineNum">     413 </span>                :<span class="lineNoCov">          0 :         dsl_sync_task_nowait(spa_get_dsl(spa), spa_history_log_sync,</span>
+<span class="lineNum">     414 </span>                :            :             nvarg, 0, ZFS_SPACE_CHECK_NONE, tx);
+<span class="lineNum">     415 </span>                :<span class="lineNoCov">          0 :         dmu_tx_commit(tx);</span>
+<span class="lineNum">     416 </span>                :            : 
+<span class="lineNum">     417 </span>                :            :         /* spa_history_log_sync will free nvl */
+<span class="lineNum">     418 </span>                :<span class="lineNoCov">          0 :         return (err);</span>
+<span class="lineNum">     419 </span>                :            : 
+<span class="lineNum">     420 </span>                :            : }
+<span class="lineNum">     421 </span>                :            : 
+<span class="lineNum">     422 </span>                :            : /*
+<span class="lineNum">     423 </span>                :            :  * Read out the command history.
+<a name="424"><span class="lineNum">     424 </span>                :            :  */</a>
+<span class="lineNum">     425 </span>                :            : int
+<span class="lineNum">     426 </span>                :<span class="lineCov">          3 : spa_history_get(spa_t *spa, uint64_t *offp, uint64_t *len, char *buf)</span>
+<span class="lineNum">     427 </span>                :            : {
+<span class="lineNum">     428 </span>                :<span class="lineCov">          3 :         objset_t *mos = spa-&gt;spa_meta_objset;</span>
+<span class="lineNum">     429 </span>                :            :         dmu_buf_t *dbp;
+<span class="lineNum">     430 </span>                :            :         uint64_t read_len, phys_read_off, phys_eof;
+<span class="lineNum">     431 </span>                :<span class="lineCov">          3 :         uint64_t leftover = 0;</span>
+<span class="lineNum">     432 </span>                :            :         spa_history_phys_t *shpp;
+<span class="lineNum">     433 </span>                :            :         int err;
+<span class="lineNum">     434 </span>                :            : 
+<span class="lineNum">     435 </span>                :            :         /*
+<span class="lineNum">     436 </span>                :            :          * If the command history doesn't exist (older pool),
+<span class="lineNum">     437 </span>                :            :          * that's ok, just return ENOENT.
+<span class="lineNum">     438 </span>                :            :          */
+<span class="lineNum">     439 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">          3 :         if (!spa-&gt;spa_history)</span>
+<span class="lineNum">     440 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(ENOENT));</span>
+<span class="lineNum">     441 </span>                :            : 
+<span class="lineNum">     442 </span>                :            :         /*
+<span class="lineNum">     443 </span>                :            :          * The history is logged asynchronously, so when they request
+<span class="lineNum">     444 </span>                :            :          * the first chunk of history, make sure everything has been
+<span class="lineNum">     445 </span>                :            :          * synced to disk so that we get it.
+<span class="lineNum">     446 </span>                :            :          */
+<span class="lineNum">     447 </span>[<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 2 times"> + </span>]:<span class="lineCov">          3 :         if (*offp == 0 &amp;&amp; spa_writeable(spa))</span>
+<span class="lineNum">     448 </span>                :<span class="lineNoCov">          0 :                 txg_wait_synced(spa_get_dsl(spa), 0);</span>
+<span class="lineNum">     449 </span>                :            : 
+<span class="lineNum">     450 </span>        [<span class="branchCov" title="Branch 1 was taken 3 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">          3 :         if ((err = dmu_bonus_hold(mos, spa-&gt;spa_history, FTAG, &amp;dbp)) != 0)</span>
+<span class="lineNum">     451 </span>                :            :                 return (err);
+<span class="lineNum">     452 </span>                :<span class="lineCov">          3 :         shpp = dbp-&gt;db_data;</span>
+<span class="lineNum">     453 </span>                :            : 
+<span class="lineNum">     454 </span>                :            : #ifdef ZFS_DEBUG
+<span class="lineNum">     455 </span>                :            :         {
+<span class="lineNum">     456 </span>                :            :                 dmu_object_info_t doi;
+<span class="lineNum">     457 </span>                :<span class="lineCov">          3 :                 dmu_object_info_from_db(dbp, &amp;doi);</span>
+<span class="lineNum">     458 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">          3 :                 ASSERT3U(doi.doi_bonus_type, ==, DMU_OT_SPA_HISTORY_OFFSETS);</span>
+<span class="lineNum">     459 </span>                :            :         }
+<span class="lineNum">     460 </span>                :            : #endif
+<span class="lineNum">     461 </span>                :            : 
+<span class="lineNum">     462 </span>                :<span class="lineCov">          3 :         mutex_enter(&amp;spa-&gt;spa_history_lock);</span>
+<span class="lineNum">     463 </span>                :<span class="lineCov">          3 :         phys_eof = spa_history_log_to_phys(shpp-&gt;sh_eof, shpp);</span>
+<span class="lineNum">     464 </span>                :            : 
+<span class="lineNum">     465 </span>        [<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchCov" title="Branch 1 was taken 2 times"> + </span>]:<span class="lineCov">          3 :         if (*offp &lt; shpp-&gt;sh_pool_create_len) {</span>
+<span class="lineNum">     466 </span>                :            :                 /* read in just the zpool create history */
+<span class="lineNum">     467 </span>                :<span class="lineCov">          1 :                 phys_read_off = *offp;</span>
+<span class="lineNum">     468 </span>                :<span class="lineCov">          1 :                 read_len = MIN(*len, shpp-&gt;sh_pool_create_len -</span>
+<span class="lineNum">     469 </span>                :            :                     phys_read_off);
+<span class="lineNum">     470 </span>                :            :         } else {
+<span class="lineNum">     471 </span>                :            :                 /*
+<span class="lineNum">     472 </span>                :            :                  * Need to reset passed in offset to BOF if the passed in
+<span class="lineNum">     473 </span>                :            :                  * offset has since been overwritten.
+<span class="lineNum">     474 </span>                :            :                  */
+<span class="lineNum">     475 </span>                :<span class="lineCov">          2 :                 *offp = MAX(*offp, shpp-&gt;sh_bof);</span>
+<span class="lineNum">     476 </span>                :<span class="lineCov">          2 :                 phys_read_off = spa_history_log_to_phys(*offp, shpp);</span>
+<span class="lineNum">     477 </span>                :            : 
+<span class="lineNum">     478 </span>                :            :                 /*
+<span class="lineNum">     479 </span>                :            :                  * Read up to the minimum of what the user passed down or
+<span class="lineNum">     480 </span>                :            :                  * the EOF (physical or logical).  If we hit physical EOF,
+<span class="lineNum">     481 </span>                :            :                  * use 'leftover' to read from the physical BOF.
+<span class="lineNum">     482 </span>                :            :                  */
+<span class="lineNum">     483 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          2 :                 if (phys_read_off &lt;= phys_eof) {</span>
+<span class="lineNum">     484 </span>                :<span class="lineCov">          2 :                         read_len = MIN(*len, phys_eof - phys_read_off);</span>
+<span class="lineNum">     485 </span>                :            :                 } else {
+<span class="lineNum">     486 </span>                :<span class="lineNoCov">          0 :                         read_len = MIN(*len,</span>
+<span class="lineNum">     487 </span>                :            :                             shpp-&gt;sh_phys_max_off - phys_read_off);
+<span class="lineNum">     488 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (phys_read_off + *len &gt; shpp-&gt;sh_phys_max_off) {</span>
+<span class="lineNum">     489 </span>                :<span class="lineNoCov">          0 :                                 leftover = MIN(*len - read_len,</span>
+<span class="lineNum">     490 </span>                :            :                                     phys_eof - shpp-&gt;sh_pool_create_len);
+<span class="lineNum">     491 </span>                :            :                         }
+<span class="lineNum">     492 </span>                :            :                 }
+<span class="lineNum">     493 </span>                :            :         }
+<span class="lineNum">     494 </span>                :            : 
+<span class="lineNum">     495 </span>                :            :         /* offset for consumer to use next */
+<span class="lineNum">     496 </span>                :<span class="lineCov">          3 :         *offp += read_len + leftover;</span>
+<span class="lineNum">     497 </span>                :            : 
+<span class="lineNum">     498 </span>                :            :         /* tell the consumer how much you actually read */
+<span class="lineNum">     499 </span>                :<span class="lineCov">          3 :         *len = read_len + leftover;</span>
+<span class="lineNum">     500 </span>                :            : 
+<span class="lineNum">     501 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">          3 :         if (read_len == 0) {</span>
+<span class="lineNum">     502 </span>                :<span class="lineCov">          2 :                 mutex_exit(&amp;spa-&gt;spa_history_lock);</span>
+<span class="lineNum">     503 </span>                :<span class="lineCov">          2 :                 dmu_buf_rele(dbp, FTAG);</span>
+<span class="lineNum">     504 </span>                :<span class="lineCov">          2 :                 return (0);</span>
+<span class="lineNum">     505 </span>                :            :         }
+<span class="lineNum">     506 </span>                :            : 
+<span class="lineNum">     507 </span>                :<span class="lineCov">          1 :         err = dmu_read(mos, spa-&gt;spa_history, phys_read_off, read_len, buf,</span>
+<span class="lineNum">     508 </span>                :            :             DMU_READ_PREFETCH);
+<span class="lineNum">     509 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">          1 :         if (leftover &amp;&amp; err == 0) {</span>
+<span class="lineNum">     510 </span>                :<span class="lineNoCov">          0 :                 err = dmu_read(mos, spa-&gt;spa_history, shpp-&gt;sh_pool_create_len,</span>
+<span class="lineNum">     511 </span>                :<span class="lineNoCov">          0 :                     leftover, buf + read_len, DMU_READ_PREFETCH);</span>
+<span class="lineNum">     512 </span>                :            :         }
+<span class="lineNum">     513 </span>                :<span class="lineCov">          1 :         mutex_exit(&amp;spa-&gt;spa_history_lock);</span>
+<span class="lineNum">     514 </span>                :            : 
+<span class="lineNum">     515 </span>                :<span class="lineCov">          1 :         dmu_buf_rele(dbp, FTAG);</span>
+<span class="lineNum">     516 </span>                :<span class="lineCov">          1 :         return (err);</span>
+<span class="lineNum">     517 </span>                :            : }
+<span class="lineNum">     518 </span>                :            : 
+<span class="lineNum">     519 </span>                :            : /*
+<span class="lineNum">     520 </span>                :            :  * The nvlist will be consumed by this call.
+<a name="521"><span class="lineNum">     521 </span>                :            :  */</a>
+<span class="lineNum">     522 </span>                :            : static void
+<span class="lineNum">     523 </span>                :<span class="lineCov">       9141 : log_internal(nvlist_t *nvl, const char *operation, spa_t *spa,</span>
+<span class="lineNum">     524 </span>                :            :     dmu_tx_t *tx, const char *fmt, va_list adx)
+<span class="lineNum">     525 </span>                :            : {
+<span class="lineNum">     526 </span>                :            :         char *msg;
+<span class="lineNum">     527 </span>                :            : 
+<span class="lineNum">     528 </span>                :            :         /*
+<span class="lineNum">     529 </span>                :            :          * If this is part of creating a pool, not everything is
+<span class="lineNum">     530 </span>                :            :          * initialized yet, so don't bother logging the internal events.
+<span class="lineNum">     531 </span>                :            :          * Likewise if the pool is not writeable.
+<span class="lineNum">     532 </span>                :            :          */
+<span class="lineNum">     533 </span>[<span class="branchCov" title="Branch 0 was taken 8216 times"> + </span><span class="branchCov" title="Branch 1 was taken 925 times"> + </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 8216 times"> + </span>]:<span class="lineCov">       9141 :         if (tx-&gt;tx_txg == TXG_INITIAL || !spa_writeable(spa)) {</span>
+<span class="lineNum">     534 </span>                :<span class="lineCov">        925 :                 fnvlist_free(nvl);</span>
+<span class="lineNum">     535 </span>                :<span class="lineCov">        925 :                 return;</span>
+<span class="lineNum">     536 </span>                :            :         }
+<span class="lineNum">     537 </span>                :            : 
+<span class="lineNum">     538 </span>                :<span class="lineCov">       8216 :         msg = kmem_vasprintf(fmt, adx);</span>
+<span class="lineNum">     539 </span>                :<span class="lineCov">       8216 :         fnvlist_add_string(nvl, ZPOOL_HIST_INT_STR, msg);</span>
+<span class="lineNum">     540 </span>                :<span class="lineCov">       8216 :         strfree(msg);</span>
+<span class="lineNum">     541 </span>                :            : 
+<span class="lineNum">     542 </span>                :<span class="lineCov">       8216 :         fnvlist_add_string(nvl, ZPOOL_HIST_INT_NAME, operation);</span>
+<span class="lineNum">     543 </span>                :<span class="lineCov">       8216 :         fnvlist_add_uint64(nvl, ZPOOL_HIST_TXG, tx-&gt;tx_txg);</span>
+<span class="lineNum">     544 </span>                :            : 
+<span class="lineNum">     545 </span>        [<span class="branchCov" title="Branch 1 was taken 7866 times"> + </span><span class="branchCov" title="Branch 2 was taken 350 times"> + </span>]:<span class="lineCov">       8216 :         if (dmu_tx_is_syncing(tx)) {</span>
+<span class="lineNum">     546 </span>                :<span class="lineCov">       7866 :                 spa_history_log_sync(nvl, tx);</span>
+<span class="lineNum">     547 </span>                :            :         } else {
+<span class="lineNum">     548 </span>                :<span class="lineCov">        350 :                 dsl_sync_task_nowait(spa_get_dsl(spa),</span>
+<span class="lineNum">     549 </span>                :            :                     spa_history_log_sync, nvl, 0, ZFS_SPACE_CHECK_NONE, tx);
+<span class="lineNum">     550 </span>                :            :         }
+<span class="lineNum">     551 </span>                :            :         /* spa_history_log_sync() will free nvl */
+<span class="lineNum">     552 </span>                :            : }
+<a name="553"><span class="lineNum">     553 </span>                :            : </a>
+<span class="lineNum">     554 </span>                :            : void
+<span class="lineNum">     555 </span>                :<span class="lineCov">       1439 : spa_history_log_internal(spa_t *spa, const char *operation,</span>
+<span class="lineNum">     556 </span>                :            :     dmu_tx_t *tx, const char *fmt, ...)
+<span class="lineNum">     557 </span>                :            : {
+<span class="lineNum">     558 </span>                :<span class="lineCov">       1439 :         dmu_tx_t *htx = tx;</span>
+<span class="lineNum">     559 </span>                :            :         va_list adx;
+<span class="lineNum">     560 </span>                :            : 
+<span class="lineNum">     561 </span>                :            :         /* create a tx if we didn't get one */
+<span class="lineNum">     562 </span>        [<span class="branchCov" title="Branch 0 was taken 350 times"> + </span><span class="branchCov" title="Branch 1 was taken 1089 times"> + </span>]:<span class="lineCov">       1439 :         if (tx == NULL) {</span>
+<span class="lineNum">     563 </span>                :<span class="lineCov">        350 :                 htx = dmu_tx_create_dd(spa_get_dsl(spa)-&gt;dp_mos_dir);</span>
+<span class="lineNum">     564 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 350 times"> + </span>]:<span class="lineCov">        350 :                 if (dmu_tx_assign(htx, TXG_WAIT) != 0) {</span>
+<span class="lineNum">     565 </span>                :<span class="lineNoCov">          0 :                         dmu_tx_abort(htx);</span>
+<span class="lineNum">     566 </span>                :<span class="lineNoCov">          0 :                         return;</span>
+<span class="lineNum">     567 </span>                :            :                 }
+<span class="lineNum">     568 </span>                :            :         }
+<span class="lineNum">     569 </span>                :            : 
+<span class="lineNum">     570 </span>                :<span class="lineCov">       1439 :         va_start(adx, fmt);</span>
+<span class="lineNum">     571 </span>                :<span class="lineCov">       1439 :         log_internal(fnvlist_alloc(), operation, spa, htx, fmt, adx);</span>
+<span class="lineNum">     572 </span>                :<span class="lineCov">       1439 :         va_end(adx);</span>
+<span class="lineNum">     573 </span>                :            : 
+<span class="lineNum">     574 </span>                :            :         /* if we didn't get a tx from the caller, commit the one we made */
+<span class="lineNum">     575 </span>        [<span class="branchCov" title="Branch 0 was taken 350 times"> + </span><span class="branchCov" title="Branch 1 was taken 1089 times"> + </span>]:<span class="lineCov">       1439 :         if (tx == NULL)</span>
+<span class="lineNum">     576 </span>                :<span class="lineCov">       1439 :                 dmu_tx_commit(htx);</span>
+<span class="lineNum">     577 </span>                :            : }
+<a name="578"><span class="lineNum">     578 </span>                :            : </a>
+<span class="lineNum">     579 </span>                :            : void
+<span class="lineNum">     580 </span>                :<span class="lineCov">       7702 : spa_history_log_internal_ds(dsl_dataset_t *ds, const char *operation,</span>
+<span class="lineNum">     581 </span>                :            :     dmu_tx_t *tx, const char *fmt, ...)
+<span class="lineNum">     582 </span>                :            : {
+<span class="lineNum">     583 </span>                :            :         va_list adx;
+<span class="lineNum">     584 </span>                :            :         char namebuf[ZFS_MAX_DATASET_NAME_LEN];
+<span class="lineNum">     585 </span>                :<span class="lineCov">       7702 :         nvlist_t *nvl = fnvlist_alloc();</span>
+<span class="lineNum">     586 </span>                :            : 
+<span class="lineNum">     587 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 7702 times"> + </span>]:<span class="lineCov">       7702 :         ASSERT(tx != NULL);</span>
+<span class="lineNum">     588 </span>                :            : 
+<span class="lineNum">     589 </span>                :<span class="lineCov">       7702 :         dsl_dataset_name(ds, namebuf);</span>
+<span class="lineNum">     590 </span>                :<span class="lineCov">       7702 :         fnvlist_add_string(nvl, ZPOOL_HIST_DSNAME, namebuf);</span>
+<span class="lineNum">     591 </span>                :<span class="lineCov">       7702 :         fnvlist_add_uint64(nvl, ZPOOL_HIST_DSID, ds-&gt;ds_object);</span>
+<span class="lineNum">     592 </span>                :            : 
+<span class="lineNum">     593 </span>                :<span class="lineCov">       7702 :         va_start(adx, fmt);</span>
+<span class="lineNum">     594 </span>                :<span class="lineCov">       7702 :         log_internal(nvl, operation, dsl_dataset_get_spa(ds), tx, fmt, adx);</span>
+<span class="lineNum">     595 </span>                :<span class="lineCov">       7702 :         va_end(adx);</span>
+<span class="lineNum">     596 </span>                :<span class="lineCov">       7702 : }</span>
+<a name="597"><span class="lineNum">     597 </span>                :            : </a>
+<span class="lineNum">     598 </span>                :            : void
+<span class="lineNum">     599 </span>                :<span class="lineNoCov">          0 : spa_history_log_internal_dd(dsl_dir_t *dd, const char *operation,</span>
+<span class="lineNum">     600 </span>                :            :     dmu_tx_t *tx, const char *fmt, ...)
+<span class="lineNum">     601 </span>                :            : {
+<span class="lineNum">     602 </span>                :            :         va_list adx;
+<span class="lineNum">     603 </span>                :            :         char namebuf[ZFS_MAX_DATASET_NAME_LEN];
+<span class="lineNum">     604 </span>                :<span class="lineNoCov">          0 :         nvlist_t *nvl = fnvlist_alloc();</span>
+<span class="lineNum">     605 </span>                :            : 
+<span class="lineNum">     606 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(tx != NULL);</span>
+<span class="lineNum">     607 </span>                :            : 
+<span class="lineNum">     608 </span>                :<span class="lineNoCov">          0 :         dsl_dir_name(dd, namebuf);</span>
+<span class="lineNum">     609 </span>                :<span class="lineNoCov">          0 :         fnvlist_add_string(nvl, ZPOOL_HIST_DSNAME, namebuf);</span>
+<span class="lineNum">     610 </span>                :<span class="lineNoCov">          0 :         fnvlist_add_uint64(nvl, ZPOOL_HIST_DSID,</span>
+<span class="lineNum">     611 </span>                :<span class="lineNoCov">          0 :             dsl_dir_phys(dd)-&gt;dd_head_dataset_obj);</span>
+<span class="lineNum">     612 </span>                :            : 
+<span class="lineNum">     613 </span>                :<span class="lineNoCov">          0 :         va_start(adx, fmt);</span>
+<span class="lineNum">     614 </span>                :<span class="lineNoCov">          0 :         log_internal(nvl, operation, dd-&gt;dd_pool-&gt;dp_spa, tx, fmt, adx);</span>
+<span class="lineNum">     615 </span>                :<span class="lineNoCov">          0 :         va_end(adx);</span>
+<span class="lineNum">     616 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="617"><span class="lineNum">     617 </span>                :            : </a>
+<span class="lineNum">     618 </span>                :            : void
+<span class="lineNum">     619 </span>                :<span class="lineCov">        333 : spa_history_log_version(spa_t *spa, const char *operation)</span>
+<span class="lineNum">     620 </span>                :            : {
+<span class="lineNum">     621 </span>                :<span class="lineCov">        333 :         utsname_t *u = utsname();</span>
+<span class="lineNum">     622 </span>                :            : 
+<span class="lineNum">     623 </span>                :<span class="lineCov">        333 :         spa_history_log_internal(spa, operation, NULL,</span>
+<span class="lineNum">     624 </span>                :            :             &quot;pool version %llu; software version %llu/%llu; uts %s %s %s %s&quot;,
+<span class="lineNum">     625 </span>                :<span class="lineCov">        333 :             (u_longlong_t)spa_version(spa), SPA_VERSION, ZPL_VERSION,</span>
+<span class="lineNum">     626 </span>                :<span class="lineCov">        333 :             u-&gt;nodename, u-&gt;release, u-&gt;version, u-&gt;machine);</span>
+<span class="lineNum">     627 </span>                :<span class="lineCov">        333 : }</span>
+<span class="lineNum">     628 </span>                :            : 
+<span class="lineNum">     629 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     630 </span>                :            : EXPORT_SYMBOL(spa_history_create_obj);
+<span class="lineNum">     631 </span>                :            : EXPORT_SYMBOL(spa_history_get);
+<span class="lineNum">     632 </span>                :            : EXPORT_SYMBOL(spa_history_log);
+<span class="lineNum">     633 </span>                :            : EXPORT_SYMBOL(spa_history_log_internal);
+<span class="lineNum">     634 </span>                :            : EXPORT_SYMBOL(spa_history_log_version);
+<span class="lineNum">     635 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

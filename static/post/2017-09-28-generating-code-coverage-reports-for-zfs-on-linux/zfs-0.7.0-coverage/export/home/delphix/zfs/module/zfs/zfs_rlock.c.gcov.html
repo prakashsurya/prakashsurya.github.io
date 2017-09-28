@@ -1,0 +1,723 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/zfs_rlock.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - zfs_rlock.c<span style="font-size: 80%;"> (source / <a href="zfs_rlock.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">187</td>
+            <td class="headerCovTableEntry">249</td>
+            <td class="headerCovTableEntryMed">75.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntryMed">83.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">107</td>
+            <td class="headerCovTableEntry">182</td>
+            <td class="headerCovTableEntryLo">58.8 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : /*
+<span class="lineNum">      26 </span>                :            :  * Copyright (c) 2012 by Delphix. All rights reserved.
+<span class="lineNum">      27 </span>                :            :  */
+<span class="lineNum">      28 </span>                :            : 
+<span class="lineNum">      29 </span>                :            : /*
+<span class="lineNum">      30 </span>                :            :  * This file contains the code to implement file range locking in
+<span class="lineNum">      31 </span>                :            :  * ZFS, although there isn't much specific to ZFS (all that comes to mind is
+<span class="lineNum">      32 </span>                :            :  * support for growing the blocksize).
+<span class="lineNum">      33 </span>                :            :  *
+<span class="lineNum">      34 </span>                :            :  * Interface
+<span class="lineNum">      35 </span>                :            :  * ---------
+<span class="lineNum">      36 </span>                :            :  * Defined in zfs_rlock.h but essentially:
+<span class="lineNum">      37 </span>                :            :  *      rl = zfs_range_lock(zp, off, len, lock_type);
+<span class="lineNum">      38 </span>                :            :  *      zfs_range_unlock(rl);
+<span class="lineNum">      39 </span>                :            :  *      zfs_range_reduce(rl, off, len);
+<span class="lineNum">      40 </span>                :            :  *
+<span class="lineNum">      41 </span>                :            :  * AVL tree
+<span class="lineNum">      42 </span>                :            :  * --------
+<span class="lineNum">      43 </span>                :            :  * An AVL tree is used to maintain the state of the existing ranges
+<span class="lineNum">      44 </span>                :            :  * that are locked for exclusive (writer) or shared (reader) use.
+<span class="lineNum">      45 </span>                :            :  * The starting range offset is used for searching and sorting the tree.
+<span class="lineNum">      46 </span>                :            :  *
+<span class="lineNum">      47 </span>                :            :  * Common case
+<span class="lineNum">      48 </span>                :            :  * -----------
+<span class="lineNum">      49 </span>                :            :  * The (hopefully) usual case is of no overlaps or contention for
+<span class="lineNum">      50 </span>                :            :  * locks. On entry to zfs_lock_range() a rl_t is allocated; the tree
+<span class="lineNum">      51 </span>                :            :  * searched that finds no overlap, and *this* rl_t is placed in the tree.
+<span class="lineNum">      52 </span>                :            :  *
+<span class="lineNum">      53 </span>                :            :  * Overlaps/Reference counting/Proxy locks
+<span class="lineNum">      54 </span>                :            :  * ---------------------------------------
+<span class="lineNum">      55 </span>                :            :  * The avl code only allows one node at a particular offset. Also it's very
+<span class="lineNum">      56 </span>                :            :  * inefficient to search through all previous entries looking for overlaps
+<span class="lineNum">      57 </span>                :            :  * (because the very 1st in the ordered list might be at offset 0 but
+<span class="lineNum">      58 </span>                :            :  * cover the whole file).
+<span class="lineNum">      59 </span>                :            :  * So this implementation uses reference counts and proxy range locks.
+<span class="lineNum">      60 </span>                :            :  * Firstly, only reader locks use reference counts and proxy locks,
+<span class="lineNum">      61 </span>                :            :  * because writer locks are exclusive.
+<span class="lineNum">      62 </span>                :            :  * When a reader lock overlaps with another then a proxy lock is created
+<span class="lineNum">      63 </span>                :            :  * for that range and replaces the original lock. If the overlap
+<span class="lineNum">      64 </span>                :            :  * is exact then the reference count of the proxy is simply incremented.
+<span class="lineNum">      65 </span>                :            :  * Otherwise, the proxy lock is split into smaller lock ranges and
+<span class="lineNum">      66 </span>                :            :  * new proxy locks created for non overlapping ranges.
+<span class="lineNum">      67 </span>                :            :  * The reference counts are adjusted accordingly.
+<span class="lineNum">      68 </span>                :            :  * Meanwhile, the original lock is kept around (this is the callers handle)
+<span class="lineNum">      69 </span>                :            :  * and its offset and length are used when releasing the lock.
+<span class="lineNum">      70 </span>                :            :  *
+<span class="lineNum">      71 </span>                :            :  * Thread coordination
+<span class="lineNum">      72 </span>                :            :  * -------------------
+<span class="lineNum">      73 </span>                :            :  * In order to make wakeups efficient and to ensure multiple continuous
+<span class="lineNum">      74 </span>                :            :  * readers on a range don't starve a writer for the same range lock,
+<span class="lineNum">      75 </span>                :            :  * two condition variables are allocated in each rl_t.
+<span class="lineNum">      76 </span>                :            :  * If a writer (or reader) can't get a range it initialises the writer
+<span class="lineNum">      77 </span>                :            :  * (or reader) cv; sets a flag saying there's a writer (or reader) waiting;
+<span class="lineNum">      78 </span>                :            :  * and waits on that cv. When a thread unlocks that range it wakes up all
+<span class="lineNum">      79 </span>                :            :  * writers then all readers before destroying the lock.
+<span class="lineNum">      80 </span>                :            :  *
+<span class="lineNum">      81 </span>                :            :  * Append mode writes
+<span class="lineNum">      82 </span>                :            :  * ------------------
+<span class="lineNum">      83 </span>                :            :  * Append mode writes need to lock a range at the end of a file.
+<span class="lineNum">      84 </span>                :            :  * The offset of the end of the file is determined under the
+<span class="lineNum">      85 </span>                :            :  * range locking mutex, and the lock type converted from RL_APPEND to
+<span class="lineNum">      86 </span>                :            :  * RL_WRITER and the range locked.
+<span class="lineNum">      87 </span>                :            :  *
+<span class="lineNum">      88 </span>                :            :  * Grow block handling
+<span class="lineNum">      89 </span>                :            :  * -------------------
+<span class="lineNum">      90 </span>                :            :  * ZFS supports multiple block sizes currently up to 128K. The smallest
+<span class="lineNum">      91 </span>                :            :  * block size is used for the file which is grown as needed. During this
+<span class="lineNum">      92 </span>                :            :  * growth all other writers and readers must be excluded.
+<span class="lineNum">      93 </span>                :            :  * So if the block size needs to be grown then the whole file is
+<span class="lineNum">      94 </span>                :            :  * exclusively locked, then later the caller will reduce the lock
+<span class="lineNum">      95 </span>                :            :  * range to just the range to be written using zfs_reduce_range.
+<span class="lineNum">      96 </span>                :            :  */
+<span class="lineNum">      97 </span>                :            : 
+<span class="lineNum">      98 </span>                :            : #include &lt;sys/zfs_rlock.h&gt;
+<span class="lineNum">      99 </span>                :            : 
+<span class="lineNum">     100 </span>                :            : /*
+<span class="lineNum">     101 </span>                :            :  * Check if a write lock can be grabbed, or wait and recheck until available.
+<a name="102"><span class="lineNum">     102 </span>                :            :  */</a>
+<span class="lineNum">     103 </span>                :            : static void
+<span class="lineNum">     104 </span>                :<span class="lineCov">      28438 : zfs_range_lock_writer(zfs_rlock_t *zrl, rl_t *new)</span>
+<span class="lineNum">     105 </span>                :            : {
+<span class="lineNum">     106 </span>                :<span class="lineCov">      28438 :         avl_tree_t *tree = &amp;zrl-&gt;zr_avl;</span>
+<span class="lineNum">     107 </span>                :            :         rl_t *rl;
+<span class="lineNum">     108 </span>                :            :         avl_index_t where;
+<span class="lineNum">     109 </span>                :            :         uint64_t end_size;
+<span class="lineNum">     110 </span>                :<span class="lineCov">      28438 :         uint64_t off = new-&gt;r_off;</span>
+<span class="lineNum">     111 </span>                :<span class="lineCov">      28438 :         uint64_t len = new-&gt;r_len;</span>
+<span class="lineNum">     112 </span>                :            : 
+<span class="lineNum">     113 </span>                :            :         for (;;) {
+<span class="lineNum">     114 </span>                :            :                 /*
+<span class="lineNum">     115 </span>                :            :                  * Range locking is also used by zvol. However, for zvol, we
+<span class="lineNum">     116 </span>                :            :                  * don't need to append or grow blocksize, so skip that
+<span class="lineNum">     117 </span>                :            :                  * processing.
+<span class="lineNum">     118 </span>                :            :                  *
+<span class="lineNum">     119 </span>                :            :                  * Yes, this is ugly, and would be solved by not handling
+<span class="lineNum">     120 </span>                :            :                  * grow or append in range lock code. If that was done then
+<span class="lineNum">     121 </span>                :            :                  * we could make the range locking code generically available
+<span class="lineNum">     122 </span>                :            :                  * to other non-zfs consumers.
+<span class="lineNum">     123 </span>                :            :                  */
+<span class="lineNum">     124 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 28438 times"> + </span>]:<span class="lineCov">      28438 :                 if (zrl-&gt;zr_size) { /* caller is ZPL */</span>
+<span class="lineNum">     125 </span>                :            :                         /*
+<span class="lineNum">     126 </span>                :            :                          * If in append mode pick up the current end of file.
+<span class="lineNum">     127 </span>                :            :                          * This is done under z_range_lock to avoid races.
+<span class="lineNum">     128 </span>                :            :                          */
+<span class="lineNum">     129 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (new-&gt;r_type == RL_APPEND)</span>
+<span class="lineNum">     130 </span>                :<span class="lineNoCov">          0 :                                 new-&gt;r_off = *zrl-&gt;zr_size;</span>
+<span class="lineNum">     131 </span>                :            : 
+<span class="lineNum">     132 </span>                :            :                         /*
+<span class="lineNum">     133 </span>                :            :                          * If we need to grow the block size then grab the whole
+<span class="lineNum">     134 </span>                :            :                          * file range. This is also done under z_range_lock to
+<span class="lineNum">     135 </span>                :            :                          * avoid races.
+<span class="lineNum">     136 </span>                :            :                          */
+<span class="lineNum">     137 </span>                :<span class="lineNoCov">          0 :                         end_size = MAX(*zrl-&gt;zr_size, new-&gt;r_off + len);</span>
+<span class="lineNum">     138 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (end_size &gt; *zrl-&gt;zr_blksz &amp;&amp;</span>
+<span class="lineNum">     139 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                             (!ISP2(*zrl-&gt;zr_blksz) ||</span>
+<span class="lineNum">     140 </span>                :<span class="lineNoCov">          0 :                             *zrl-&gt;zr_blksz &lt; *zrl-&gt;zr_max_blksz)) {</span>
+<span class="lineNum">     141 </span>                :<span class="lineNoCov">          0 :                                 new-&gt;r_off = 0;</span>
+<span class="lineNum">     142 </span>                :<span class="lineNoCov">          0 :                                 new-&gt;r_len = UINT64_MAX;</span>
+<span class="lineNum">     143 </span>                :            :                         }
+<span class="lineNum">     144 </span>                :            :                 }
+<span class="lineNum">     145 </span>                :            : 
+<span class="lineNum">     146 </span>                :            :                 /*
+<span class="lineNum">     147 </span>                :            :                  * First check for the usual case of no locks
+<span class="lineNum">     148 </span>                :            :                  */
+<span class="lineNum">     149 </span>        [<span class="branchCov" title="Branch 1 was taken 25856 times"> + </span><span class="branchCov" title="Branch 2 was taken 2573 times"> + </span>]:<span class="lineCov">      28438 :                 if (avl_numnodes(tree) == 0) {</span>
+<span class="lineNum">     150 </span>                :<span class="lineCov">      25856 :                         new-&gt;r_type = RL_WRITER; /* convert to writer */</span>
+<span class="lineNum">     151 </span>                :<span class="lineCov">      25856 :                         avl_add(tree, new);</span>
+<span class="lineNum">     152 </span>                :<span class="lineCov">      25857 :                         return;</span>
+<span class="lineNum">     153 </span>                :            :                 }
+<span class="lineNum">     154 </span>                :            : 
+<span class="lineNum">     155 </span>                :            :                 /*
+<span class="lineNum">     156 </span>                :            :                  * Look for any locks in the range.
+<span class="lineNum">     157 </span>                :            :                  */
+<span class="lineNum">     158 </span>                :<span class="lineCov">       2573 :                 rl = avl_find(tree, new, &amp;where);</span>
+<span class="lineNum">     159 </span>        [<span class="branchCov" title="Branch 0 was taken 2573 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       2573 :                 if (rl)</span>
+<span class="lineNum">     160 </span>                :            :                         goto wait; /* already locked at same offset */
+<span class="lineNum">     161 </span>                :            : 
+<span class="lineNum">     162 </span>                :<span class="lineCov">       2573 :                 rl = (rl_t *)avl_nearest(tree, where, AVL_AFTER);</span>
+<span class="lineNum">     163 </span>[<span class="branchCov" title="Branch 0 was taken 1308 times"> + </span><span class="branchCov" title="Branch 1 was taken 1265 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 1308 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">       2573 :                 if (rl &amp;&amp; (rl-&gt;r_off &lt; new-&gt;r_off + new-&gt;r_len))</span>
+<span class="lineNum">     164 </span>                :            :                         goto wait;
+<span class="lineNum">     165 </span>                :            : 
+<span class="lineNum">     166 </span>                :<span class="lineCov">       2573 :                 rl = (rl_t *)avl_nearest(tree, where, AVL_BEFORE);</span>
+<span class="lineNum">     167 </span>[<span class="branchCov" title="Branch 0 was taken 1343 times"> + </span><span class="branchCov" title="Branch 1 was taken 1230 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 1343 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">       2573 :                 if (rl &amp;&amp; rl-&gt;r_off + rl-&gt;r_len &gt; new-&gt;r_off)</span>
+<span class="lineNum">     168 </span>                :            :                         goto wait;
+<span class="lineNum">     169 </span>                :            : 
+<span class="lineNum">     170 </span>                :<span class="lineCov">       2573 :                 new-&gt;r_type = RL_WRITER; /* convert possible RL_APPEND */</span>
+<span class="lineNum">     171 </span>                :<span class="lineCov">       2573 :                 avl_insert(tree, new, where);</span>
+<span class="lineNum">     172 </span>                :<span class="lineCov">       2573 :                 return;</span>
+<span class="lineNum">     173 </span>                :            : wait:
+<span class="lineNum">     174 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (!rl-&gt;r_write_wanted) {</span>
+<span class="lineNum">     175 </span>                :<span class="lineNoCov">          0 :                         cv_init(&amp;rl-&gt;r_wr_cv, NULL, CV_DEFAULT, NULL);</span>
+<span class="lineNum">     176 </span>                :<span class="lineNoCov">          0 :                         rl-&gt;r_write_wanted = B_TRUE;</span>
+<span class="lineNum">     177 </span>                :            :                 }
+<span class="lineNum">     178 </span>                :<span class="lineNoCov">          0 :                 cv_wait(&amp;rl-&gt;r_wr_cv, &amp;zrl-&gt;zr_mutex);</span>
+<span class="lineNum">     179 </span>                :            : 
+<span class="lineNum">     180 </span>                :            :                 /* reset to original */
+<span class="lineNum">     181 </span>                :<span class="lineNoCov">          0 :                 new-&gt;r_off = off;</span>
+<span class="lineNum">     182 </span>                :<span class="lineNoCov">          0 :                 new-&gt;r_len = len;</span>
+<span class="lineNum">     183 </span>                :            :         }
+<span class="lineNum">     184 </span>                :            : }
+<span class="lineNum">     185 </span>                :            : 
+<span class="lineNum">     186 </span>                :            : /*
+<span class="lineNum">     187 </span>                :            :  * If this is an original (non-proxy) lock then replace it by
+<span class="lineNum">     188 </span>                :            :  * a proxy and return the proxy.
+<a name="189"><span class="lineNum">     189 </span>                :            :  */</a>
+<span class="lineNum">     190 </span>                :            : static rl_t *
+<span class="lineNum">     191 </span>                :<span class="lineCov">         51 : zfs_range_proxify(avl_tree_t *tree, rl_t *rl)</span>
+<span class="lineNum">     192 </span>                :            : {
+<span class="lineNum">     193 </span>                :            :         rl_t *proxy;
+<span class="lineNum">     194 </span>                :            : 
+<span class="lineNum">     195 </span>        [<span class="branchCov" title="Branch 0 was taken 15 times"> + </span><span class="branchCov" title="Branch 1 was taken 36 times"> + </span>]:<span class="lineCov">         51 :         if (rl-&gt;r_proxy)</span>
+<span class="lineNum">     196 </span>                :            :                 return (rl); /* already a proxy */
+<span class="lineNum">     197 </span>                :            : 
+<span class="lineNum">     198 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         ASSERT3U(rl-&gt;r_cnt, ==, 1);</span>
+<span class="lineNum">     199 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         ASSERT(rl-&gt;r_write_wanted == B_FALSE);</span>
+<span class="lineNum">     200 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 15 times"> + </span>]:<span class="lineCov">         15 :         ASSERT(rl-&gt;r_read_wanted == B_FALSE);</span>
+<span class="lineNum">     201 </span>                :<span class="lineCov">         15 :         avl_remove(tree, rl);</span>
+<span class="lineNum">     202 </span>                :<span class="lineCov">         15 :         rl-&gt;r_cnt = 0;</span>
+<span class="lineNum">     203 </span>                :            : 
+<span class="lineNum">     204 </span>                :            :         /* create a proxy range lock */
+<span class="lineNum">     205 </span>                :<span class="lineCov">         15 :         proxy = kmem_alloc(sizeof (rl_t), KM_SLEEP);</span>
+<span class="lineNum">     206 </span>                :<span class="lineCov">         15 :         proxy-&gt;r_off = rl-&gt;r_off;</span>
+<span class="lineNum">     207 </span>                :<span class="lineCov">         15 :         proxy-&gt;r_len = rl-&gt;r_len;</span>
+<span class="lineNum">     208 </span>                :<span class="lineCov">         15 :         proxy-&gt;r_cnt = 1;</span>
+<span class="lineNum">     209 </span>                :<span class="lineCov">         15 :         proxy-&gt;r_type = RL_READER;</span>
+<span class="lineNum">     210 </span>                :<span class="lineCov">         15 :         proxy-&gt;r_proxy = B_TRUE;</span>
+<span class="lineNum">     211 </span>                :<span class="lineCov">         15 :         proxy-&gt;r_write_wanted = B_FALSE;</span>
+<span class="lineNum">     212 </span>                :<span class="lineCov">         15 :         proxy-&gt;r_read_wanted = B_FALSE;</span>
+<span class="lineNum">     213 </span>                :<span class="lineCov">         15 :         avl_add(tree, proxy);</span>
+<span class="lineNum">     214 </span>                :            : 
+<span class="lineNum">     215 </span>                :<span class="lineCov">         15 :         return (proxy);</span>
+<span class="lineNum">     216 </span>                :            : }
+<span class="lineNum">     217 </span>                :            : 
+<span class="lineNum">     218 </span>                :            : /*
+<span class="lineNum">     219 </span>                :            :  * Split the range lock at the supplied offset
+<span class="lineNum">     220 </span>                :            :  * returning the *front* proxy.
+<a name="221"><span class="lineNum">     221 </span>                :            :  */</a>
+<span class="lineNum">     222 </span>                :            : static rl_t *
+<span class="lineNum">     223 </span>                :<span class="lineCov">          9 : zfs_range_split(avl_tree_t *tree, rl_t *rl, uint64_t off)</span>
+<span class="lineNum">     224 </span>                :            : {
+<span class="lineNum">     225 </span>                :            :         rl_t *front, *rear;
+<span class="lineNum">     226 </span>                :            : 
+<span class="lineNum">     227 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9 times"> + </span>]:<span class="lineCov">          9 :         ASSERT3U(rl-&gt;r_len, &gt;, 1);</span>
+<span class="lineNum">     228 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9 times"> + </span>]:<span class="lineCov">          9 :         ASSERT3U(off, &gt;, rl-&gt;r_off);</span>
+<span class="lineNum">     229 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9 times"> + </span>]:<span class="lineCov">          9 :         ASSERT3U(off, &lt;, rl-&gt;r_off + rl-&gt;r_len);</span>
+<span class="lineNum">     230 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9 times"> + </span>]:<span class="lineCov">          9 :         ASSERT(rl-&gt;r_write_wanted == B_FALSE);</span>
+<span class="lineNum">     231 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9 times"> + </span>]:<span class="lineCov">          9 :         ASSERT(rl-&gt;r_read_wanted == B_FALSE);</span>
+<span class="lineNum">     232 </span>                :            : 
+<span class="lineNum">     233 </span>                :            :         /* create the rear proxy range lock */
+<span class="lineNum">     234 </span>                :<span class="lineCov">          9 :         rear = kmem_alloc(sizeof (rl_t), KM_SLEEP);</span>
+<span class="lineNum">     235 </span>                :<span class="lineCov">          9 :         rear-&gt;r_off = off;</span>
+<span class="lineNum">     236 </span>                :<span class="lineCov">          9 :         rear-&gt;r_len = rl-&gt;r_off + rl-&gt;r_len - off;</span>
+<span class="lineNum">     237 </span>                :<span class="lineCov">          9 :         rear-&gt;r_cnt = rl-&gt;r_cnt;</span>
+<span class="lineNum">     238 </span>                :<span class="lineCov">          9 :         rear-&gt;r_type = RL_READER;</span>
+<span class="lineNum">     239 </span>                :<span class="lineCov">          9 :         rear-&gt;r_proxy = B_TRUE;</span>
+<span class="lineNum">     240 </span>                :<span class="lineCov">          9 :         rear-&gt;r_write_wanted = B_FALSE;</span>
+<span class="lineNum">     241 </span>                :<span class="lineCov">          9 :         rear-&gt;r_read_wanted = B_FALSE;</span>
+<span class="lineNum">     242 </span>                :            : 
+<span class="lineNum">     243 </span>                :<span class="lineCov">          9 :         front = zfs_range_proxify(tree, rl);</span>
+<span class="lineNum">     244 </span>                :<span class="lineCov">          9 :         front-&gt;r_len = off - rl-&gt;r_off;</span>
+<span class="lineNum">     245 </span>                :            : 
+<span class="lineNum">     246 </span>                :<span class="lineCov">          9 :         avl_insert_here(tree, rear, front, AVL_AFTER);</span>
+<span class="lineNum">     247 </span>                :<span class="lineCov">          9 :         return (front);</span>
+<span class="lineNum">     248 </span>                :            : }
+<span class="lineNum">     249 </span>                :            : 
+<span class="lineNum">     250 </span>                :            : /*
+<span class="lineNum">     251 </span>                :            :  * Create and add a new proxy range lock for the supplied range.
+<a name="252"><span class="lineNum">     252 </span>                :            :  */</a>
+<span class="lineNum">     253 </span>                :            : static void
+<span class="lineNum">     254 </span>                :<span class="lineNoCov">          0 : zfs_range_new_proxy(avl_tree_t *tree, uint64_t off, uint64_t len)</span>
+<span class="lineNum">     255 </span>                :            : {
+<span class="lineNum">     256 </span>                :            :         rl_t *rl;
+<span class="lineNum">     257 </span>                :            : 
+<span class="lineNum">     258 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(len);</span>
+<span class="lineNum">     259 </span>                :<span class="lineNoCov">          0 :         rl = kmem_alloc(sizeof (rl_t), KM_SLEEP);</span>
+<span class="lineNum">     260 </span>                :<span class="lineNoCov">          0 :         rl-&gt;r_off = off;</span>
+<span class="lineNum">     261 </span>                :<span class="lineNoCov">          0 :         rl-&gt;r_len = len;</span>
+<span class="lineNum">     262 </span>                :<span class="lineNoCov">          0 :         rl-&gt;r_cnt = 1;</span>
+<span class="lineNum">     263 </span>                :<span class="lineNoCov">          0 :         rl-&gt;r_type = RL_READER;</span>
+<span class="lineNum">     264 </span>                :<span class="lineNoCov">          0 :         rl-&gt;r_proxy = B_TRUE;</span>
+<span class="lineNum">     265 </span>                :<span class="lineNoCov">          0 :         rl-&gt;r_write_wanted = B_FALSE;</span>
+<span class="lineNum">     266 </span>                :<span class="lineNoCov">          0 :         rl-&gt;r_read_wanted = B_FALSE;</span>
+<span class="lineNum">     267 </span>                :<span class="lineNoCov">          0 :         avl_add(tree, rl);</span>
+<span class="lineNum">     268 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="269"><span class="lineNum">     269 </span>                :            : </a>
+<span class="lineNum">     270 </span>                :            : static void
+<span class="lineNum">     271 </span>                :<span class="lineCov">        157 : zfs_range_add_reader(avl_tree_t *tree, rl_t *new, rl_t *prev, avl_index_t where)</span>
+<span class="lineNum">     272 </span>                :            : {
+<span class="lineNum">     273 </span>                :            :         rl_t *next;
+<span class="lineNum">     274 </span>                :<span class="lineCov">        157 :         uint64_t off = new-&gt;r_off;</span>
+<span class="lineNum">     275 </span>                :<span class="lineCov">        157 :         uint64_t len = new-&gt;r_len;</span>
+<span class="lineNum">     276 </span>                :            : 
+<span class="lineNum">     277 </span>                :            :         /*
+<span class="lineNum">     278 </span>                :            :          * prev arrives either:
+<span class="lineNum">     279 </span>                :            :          * - pointing to an entry at the same offset
+<span class="lineNum">     280 </span>                :            :          * - pointing to the entry with the closest previous offset whose
+<span class="lineNum">     281 </span>                :            :          *   range may overlap with the new range
+<span class="lineNum">     282 </span>                :            :          * - null, if there were no ranges starting before the new one
+<span class="lineNum">     283 </span>                :            :          */
+<span class="lineNum">     284 </span>        [<span class="branchCov" title="Branch 0 was taken 120 times"> + </span><span class="branchCov" title="Branch 1 was taken 37 times"> + </span>]:<span class="lineCov">        157 :         if (prev) {</span>
+<span class="lineNum">     285 </span>        [<span class="branchCov" title="Branch 0 was taken 42 times"> + </span><span class="branchCov" title="Branch 1 was taken 78 times"> + </span>]:<span class="lineCov">        120 :                 if (prev-&gt;r_off + prev-&gt;r_len &lt;= off) {</span>
+<span class="lineNum">     286 </span>                :            :                         prev = NULL;
+<span class="lineNum">     287 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 42 times"> + </span>]:<span class="lineCov">         42 :                 } else if (prev-&gt;r_off != off) {</span>
+<span class="lineNum">     288 </span>                :            :                         /*
+<span class="lineNum">     289 </span>                :            :                          * convert to proxy if needed then
+<span class="lineNum">     290 </span>                :            :                          * split this entry and bump ref count
+<span class="lineNum">     291 </span>                :            :                          */
+<span class="lineNum">     292 </span>                :<span class="lineNoCov">          0 :                         prev = zfs_range_split(tree, prev, off);</span>
+<span class="lineNum">     293 </span>                :<span class="lineNoCov">          0 :                         prev = AVL_NEXT(tree, prev); /* move to rear range */</span>
+<span class="lineNum">     294 </span>                :            :                 }
+<span class="lineNum">     295 </span>                :            :         }
+<span class="lineNum">     296 </span>[<span class="branchCov" title="Branch 0 was taken 42 times"> + </span><span class="branchCov" title="Branch 1 was taken 115 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 42 times"> + </span>]:<span class="lineCov">        157 :         ASSERT((prev == NULL) || (prev-&gt;r_off == off));</span>
+<span class="lineNum">     297 </span>                :            : 
+<span class="lineNum">     298 </span>        [<span class="branchCov" title="Branch 0 was taken 115 times"> + </span><span class="branchCov" title="Branch 1 was taken 42 times"> + </span>]:<span class="lineCov">        157 :         if (prev)</span>
+<span class="lineNum">     299 </span>                :            :                 next = prev;
+<span class="lineNum">     300 </span>                :            :         else
+<span class="lineNum">     301 </span>                :<span class="lineCov">        115 :                 next = (rl_t *)avl_nearest(tree, where, AVL_AFTER);</span>
+<span class="lineNum">     302 </span>                :            : 
+<span class="lineNum">     303 </span>[<span class="branchCov" title="Branch 0 was taken 102 times"> + </span><span class="branchCov" title="Branch 1 was taken 55 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 60 times"> + </span><span class="branchCov" title="Branch 3 was taken 42 times"> + </span>]:<span class="lineCov">        157 :         if (next == NULL || off + len &lt;= next-&gt;r_off) {</span>
+<span class="lineNum">     304 </span>                :            :                 /* no overlaps, use the original new rl_t in the tree */
+<span class="lineNum">     305 </span>                :<span class="lineCov">        115 :                 avl_insert(tree, new, where);</span>
+<span class="lineNum">     306 </span>                :<span class="lineCov">        115 :                 return;</span>
+<span class="lineNum">     307 </span>                :            :         }
+<span class="lineNum">     308 </span>                :            : 
+<span class="lineNum">     309 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 42 times"> + </span>]:<span class="lineCov">         42 :         if (off &lt; next-&gt;r_off) {</span>
+<span class="lineNum">     310 </span>                :            :                 /* Add a proxy for initial range before the overlap */
+<span class="lineNum">     311 </span>                :<span class="lineNoCov">          0 :                 zfs_range_new_proxy(tree, off, next-&gt;r_off - off);</span>
+<span class="lineNum">     312 </span>                :            :         }
+<span class="lineNum">     313 </span>                :            : 
+<span class="lineNum">     314 </span>                :<span class="lineCov">         42 :         new-&gt;r_cnt = 0; /* will use proxies in tree */</span>
+<span class="lineNum">     315 </span>                :            :         /*
+<span class="lineNum">     316 </span>                :            :          * We now search forward through the ranges, until we go past the end
+<span class="lineNum">     317 </span>                :            :          * of the new range. For each entry we make it a proxy if it
+<span class="lineNum">     318 </span>                :            :          * isn't already, then bump its reference count. If there's any
+<span class="lineNum">     319 </span>                :            :          * gaps between the ranges then we create a new proxy range.
+<span class="lineNum">     320 </span>                :            :          */
+<span class="lineNum">     321 </span>        [<span class="branchCov" title="Branch 1 was taken 51 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">         51 :         for (prev = NULL; next; prev = next, next = AVL_NEXT(tree, next)) {</span>
+<span class="lineNum">     322 </span>        [<span class="branchCov" title="Branch 0 was taken 51 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         51 :                 if (off + len &lt;= next-&gt;r_off)</span>
+<span class="lineNum">     323 </span>                :            :                         break;
+<span class="lineNum">     324 </span>[<span class="branchCov" title="Branch 0 was taken 9 times"> + </span><span class="branchCov" title="Branch 1 was taken 42 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 9 times"> + </span>]:<span class="lineCov">         51 :                 if (prev &amp;&amp; prev-&gt;r_off + prev-&gt;r_len &lt; next-&gt;r_off) {</span>
+<span class="lineNum">     325 </span>                :            :                         /* there's a gap */
+<span class="lineNum">     326 </span>                :<span class="lineNoCov">          0 :                         ASSERT3U(next-&gt;r_off, &gt;, prev-&gt;r_off + prev-&gt;r_len);</span>
+<span class="lineNum">     327 </span>                :<span class="lineNoCov">          0 :                         zfs_range_new_proxy(tree, prev-&gt;r_off + prev-&gt;r_len,</span>
+<span class="lineNum">     328 </span>                :            :                             next-&gt;r_off - (prev-&gt;r_off + prev-&gt;r_len));
+<span class="lineNum">     329 </span>                :            :                 }
+<span class="lineNum">     330 </span>        [<span class="branchCov" title="Branch 0 was taken 33 times"> + </span><span class="branchCov" title="Branch 1 was taken 18 times"> + </span>]:<span class="lineCov">         51 :                 if (off + len == next-&gt;r_off + next-&gt;r_len) {</span>
+<span class="lineNum">     331 </span>                :            :                         /* exact overlap with end */
+<span class="lineNum">     332 </span>                :<span class="lineCov">         33 :                         next = zfs_range_proxify(tree, next);</span>
+<span class="lineNum">     333 </span>                :<span class="lineCov">         33 :                         next-&gt;r_cnt++;</span>
+<span class="lineNum">     334 </span>                :<span class="lineCov">         33 :                         return;</span>
+<span class="lineNum">     335 </span>                :            :                 }
+<span class="lineNum">     336 </span>        [<span class="branchCov" title="Branch 0 was taken 9 times"> + </span><span class="branchCov" title="Branch 1 was taken 9 times"> + </span>]:<span class="lineCov">         18 :                 if (off + len &lt; next-&gt;r_off + next-&gt;r_len) {</span>
+<span class="lineNum">     337 </span>                :            :                         /* new range ends in the middle of this block */
+<span class="lineNum">     338 </span>                :<span class="lineCov">          9 :                         next = zfs_range_split(tree, next, off + len);</span>
+<span class="lineNum">     339 </span>                :<span class="lineCov">          9 :                         next-&gt;r_cnt++;</span>
+<span class="lineNum">     340 </span>                :<span class="lineCov">          9 :                         return;</span>
+<span class="lineNum">     341 </span>                :            :                 }
+<span class="lineNum">     342 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9 times"> + </span>]:<span class="lineCov">          9 :                 ASSERT3U(off + len, &gt;, next-&gt;r_off + next-&gt;r_len);</span>
+<span class="lineNum">     343 </span>                :<span class="lineCov">          9 :                 next = zfs_range_proxify(tree, next);</span>
+<span class="lineNum">     344 </span>                :<span class="lineCov">          9 :                 next-&gt;r_cnt++;</span>
+<span class="lineNum">     345 </span>                :            :         }
+<span class="lineNum">     346 </span>                :            : 
+<span class="lineNum">     347 </span>                :            :         /* Add the remaining end range. */
+<span class="lineNum">     348 </span>                :<span class="lineNoCov">          0 :         zfs_range_new_proxy(tree, prev-&gt;r_off + prev-&gt;r_len,</span>
+<span class="lineNum">     349 </span>                :<span class="lineNoCov">          0 :             (off + len) - (prev-&gt;r_off + prev-&gt;r_len));</span>
+<span class="lineNum">     350 </span>                :            : }
+<span class="lineNum">     351 </span>                :            : 
+<span class="lineNum">     352 </span>                :            : /*
+<span class="lineNum">     353 </span>                :            :  * Check if a reader lock can be grabbed, or wait and recheck until available.
+<a name="354"><span class="lineNum">     354 </span>                :            :  */</a>
+<span class="lineNum">     355 </span>                :            : static void
+<span class="lineNum">     356 </span>                :<span class="lineCov">        157 : zfs_range_lock_reader(zfs_rlock_t *zrl, rl_t *new)</span>
+<span class="lineNum">     357 </span>                :            : {
+<span class="lineNum">     358 </span>                :<span class="lineCov">        157 :         avl_tree_t *tree = &amp;zrl-&gt;zr_avl;</span>
+<span class="lineNum">     359 </span>                :            :         rl_t *prev, *next;
+<span class="lineNum">     360 </span>                :            :         avl_index_t where;
+<span class="lineNum">     361 </span>                :<span class="lineCov">        157 :         uint64_t off = new-&gt;r_off;</span>
+<span class="lineNum">     362 </span>                :<span class="lineCov">        157 :         uint64_t len = new-&gt;r_len;</span>
+<span class="lineNum">     363 </span>                :            : 
+<span class="lineNum">     364 </span>                :            :         /*
+<span class="lineNum">     365 </span>                :            :          * Look for any writer locks in the range.
+<span class="lineNum">     366 </span>                :            :          */
+<span class="lineNum">     367 </span>                :            : retry:
+<span class="lineNum">     368 </span>                :<span class="lineCov">        158 :         prev = avl_find(tree, new, &amp;where);</span>
+<span class="lineNum">     369 </span>        [<span class="branchCov" title="Branch 0 was taken 115 times"> + </span><span class="branchCov" title="Branch 1 was taken 43 times"> + </span>]:<span class="lineCov">        158 :         if (prev == NULL)</span>
+<span class="lineNum">     370 </span>                :<span class="lineCov">        115 :                 prev = (rl_t *)avl_nearest(tree, where, AVL_BEFORE);</span>
+<span class="lineNum">     371 </span>                :            : 
+<span class="lineNum">     372 </span>                :            :         /*
+<span class="lineNum">     373 </span>                :            :          * Check the previous range for a writer lock overlap.
+<span class="lineNum">     374 </span>                :            :          */
+<span class="lineNum">     375 </span>[<span class="branchCov" title="Branch 0 was taken 121 times"> + </span><span class="branchCov" title="Branch 1 was taken 37 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 43 times"> + </span><span class="branchCov" title="Branch 3 was taken 78 times"> + </span>]:<span class="lineCov">        158 :         if (prev &amp;&amp; (off &lt; prev-&gt;r_off + prev-&gt;r_len)) {</span>
+<span class="lineNum">     376 </span>[<span class="branchCov" title="Branch 0 was taken 42 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 42 times"> + </span>]:<span class="lineCov">         43 :                 if ((prev-&gt;r_type == RL_WRITER) || (prev-&gt;r_write_wanted)) {</span>
+<span class="lineNum">     377 </span>        [<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">          1 :                         if (!prev-&gt;r_read_wanted) {</span>
+<span class="lineNum">     378 </span>                :<span class="lineCov">          1 :                                 cv_init(&amp;prev-&gt;r_rd_cv, NULL, CV_DEFAULT, NULL);</span>
+<span class="lineNum">     379 </span>                :<span class="lineCov">          1 :                                 prev-&gt;r_read_wanted = B_TRUE;</span>
+<span class="lineNum">     380 </span>                :            :                         }
+<span class="lineNum">     381 </span>                :<span class="lineCov">          1 :                         cv_wait(&amp;prev-&gt;r_rd_cv, &amp;zrl-&gt;zr_mutex);</span>
+<span class="lineNum">     382 </span>                :<span class="lineCov">          1 :                         goto retry;</span>
+<span class="lineNum">     383 </span>                :            :                 }
+<span class="lineNum">     384 </span>        [<span class="branchCov" title="Branch 0 was taken 33 times"> + </span><span class="branchCov" title="Branch 1 was taken 9 times"> + </span>]:<span class="lineCov">         42 :                 if (off + len &lt; prev-&gt;r_off + prev-&gt;r_len)</span>
+<span class="lineNum">     385 </span>                :            :                         goto got_lock;
+<span class="lineNum">     386 </span>                :            :         }
+<span class="lineNum">     387 </span>                :            : 
+<span class="lineNum">     388 </span>                :            :         /*
+<span class="lineNum">     389 </span>                :            :          * Search through the following ranges to see if there's
+<span class="lineNum">     390 </span>                :            :          * write lock any overlap.
+<span class="lineNum">     391 </span>                :            :          */
+<span class="lineNum">     392 </span>        [<span class="branchCov" title="Branch 0 was taken 111 times"> + </span><span class="branchCov" title="Branch 1 was taken 37 times"> + </span>]:<span class="lineCov">        148 :         if (prev)</span>
+<span class="lineNum">     393 </span>                :<span class="lineCov">        148 :                 next = AVL_NEXT(tree, prev);</span>
+<span class="lineNum">     394 </span>                :            :         else
+<span class="lineNum">     395 </span>                :<span class="lineCov">         37 :                 next = (rl_t *)avl_nearest(tree, where, AVL_AFTER);</span>
+<span class="lineNum">     396 </span>        [<span class="branchCov" title="Branch 1 was taken 77 times"> + </span><span class="branchCov" title="Branch 2 was taken 71 times"> + </span>]:<span class="lineCov">        148 :         for (; next; next = AVL_NEXT(tree, next)) {</span>
+<span class="lineNum">     397 </span>        [<span class="branchCov" title="Branch 0 was taken 9 times"> + </span><span class="branchCov" title="Branch 1 was taken 68 times"> + </span>]:<span class="lineCov">         77 :                 if (off + len &lt;= next-&gt;r_off)</span>
+<span class="lineNum">     398 </span>                :            :                         goto got_lock;
+<span class="lineNum">     399 </span>[<span class="branchCov" title="Branch 0 was taken 9 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 9 times"> + </span>]:<span class="lineCov">          9 :                 if ((next-&gt;r_type == RL_WRITER) || (next-&gt;r_write_wanted)) {</span>
+<span class="lineNum">     400 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (!next-&gt;r_read_wanted) {</span>
+<span class="lineNum">     401 </span>                :<span class="lineNoCov">          0 :                                 cv_init(&amp;next-&gt;r_rd_cv, NULL, CV_DEFAULT, NULL);</span>
+<span class="lineNum">     402 </span>                :<span class="lineNoCov">          0 :                                 next-&gt;r_read_wanted = B_TRUE;</span>
+<span class="lineNum">     403 </span>                :            :                         }
+<span class="lineNum">     404 </span>                :<span class="lineNoCov">          0 :                         cv_wait(&amp;next-&gt;r_rd_cv, &amp;zrl-&gt;zr_mutex);</span>
+<span class="lineNum">     405 </span>                :<span class="lineNoCov">          0 :                         goto retry;</span>
+<span class="lineNum">     406 </span>                :            :                 }
+<span class="lineNum">     407 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9 times"> + </span>]:<span class="lineCov">          9 :                 if (off + len &lt;= next-&gt;r_off + next-&gt;r_len)</span>
+<span class="lineNum">     408 </span>                :            :                         goto got_lock;
+<span class="lineNum">     409 </span>                :            :         }
+<span class="lineNum">     410 </span>                :            : 
+<span class="lineNum">     411 </span>                :            : got_lock:
+<span class="lineNum">     412 </span>                :            :         /*
+<span class="lineNum">     413 </span>                :            :          * Add the read lock, which may involve splitting existing
+<span class="lineNum">     414 </span>                :            :          * locks and bumping ref counts (r_cnt).
+<span class="lineNum">     415 </span>                :            :          */
+<span class="lineNum">     416 </span>                :<span class="lineCov">        157 :         zfs_range_add_reader(tree, new, prev, where);</span>
+<span class="lineNum">     417 </span>                :<span class="lineCov">        157 : }</span>
+<span class="lineNum">     418 </span>                :            : 
+<span class="lineNum">     419 </span>                :            : /*
+<span class="lineNum">     420 </span>                :            :  * Lock a range (offset, length) as either shared (RL_READER)
+<span class="lineNum">     421 </span>                :            :  * or exclusive (RL_WRITER). Returns the range lock structure
+<span class="lineNum">     422 </span>                :            :  * for later unlocking or reduce range (if entire file
+<span class="lineNum">     423 </span>                :            :  * previously locked as RL_WRITER).
+<a name="424"><span class="lineNum">     424 </span>                :            :  */</a>
+<span class="lineNum">     425 </span>                :            : rl_t *
+<span class="lineNum">     426 </span>                :<span class="lineCov">      28710 : zfs_range_lock(zfs_rlock_t *zrl, uint64_t off, uint64_t len, rl_type_t type)</span>
+<span class="lineNum">     427 </span>                :            : {
+<span class="lineNum">     428 </span>                :            :         rl_t *new;
+<span class="lineNum">     429 </span>                :            : 
+<span class="lineNum">     430 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 28710 times"> + </span>]:<span class="lineCov">      28710 :         ASSERT(type == RL_READER || type == RL_WRITER || type == RL_APPEND);</span>
+<span class="lineNum">     431 </span>                :            : 
+<span class="lineNum">     432 </span>                :<span class="lineCov">      28710 :         new = kmem_alloc(sizeof (rl_t), KM_SLEEP);</span>
+<span class="lineNum">     433 </span>                :<span class="lineCov">      28715 :         new-&gt;r_zrl = zrl;</span>
+<span class="lineNum">     434 </span>                :<span class="lineCov">      28715 :         new-&gt;r_off = off;</span>
+<span class="lineNum">     435 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 28715 times"> + </span>]:<span class="lineCov">      28715 :         if (len + off &lt; off) /* overflow */</span>
+<span class="lineNum">     436 </span>                :<span class="lineNoCov">          0 :                 len = UINT64_MAX - off;</span>
+<span class="lineNum">     437 </span>                :<span class="lineCov">      28715 :         new-&gt;r_len = len;</span>
+<span class="lineNum">     438 </span>                :<span class="lineCov">      28715 :         new-&gt;r_cnt = 1; /* assume it's going to be in the tree */</span>
+<span class="lineNum">     439 </span>                :<span class="lineCov">      28715 :         new-&gt;r_type = type;</span>
+<span class="lineNum">     440 </span>                :<span class="lineCov">      28715 :         new-&gt;r_proxy = B_FALSE;</span>
+<span class="lineNum">     441 </span>                :<span class="lineCov">      28715 :         new-&gt;r_write_wanted = B_FALSE;</span>
+<span class="lineNum">     442 </span>                :<span class="lineCov">      28715 :         new-&gt;r_read_wanted = B_FALSE;</span>
+<span class="lineNum">     443 </span>                :            : 
+<span class="lineNum">     444 </span>                :<span class="lineCov">      28715 :         mutex_enter(&amp;zrl-&gt;zr_mutex);</span>
+<span class="lineNum">     445 </span>        [<span class="branchCov" title="Branch 0 was taken 276 times"> + </span><span class="branchCov" title="Branch 1 was taken 28439 times"> + </span>]:<span class="lineCov">      28715 :         if (type == RL_READER) {</span>
+<span class="lineNum">     446 </span>                :            :                 /*
+<span class="lineNum">     447 </span>                :            :                  * First check for the usual case of no locks
+<span class="lineNum">     448 </span>                :            :                  */
+<span class="lineNum">     449 </span>        [<span class="branchCov" title="Branch 1 was taken 119 times"> + </span><span class="branchCov" title="Branch 2 was taken 157 times"> + </span>]:<span class="lineCov">        276 :                 if (avl_numnodes(&amp;zrl-&gt;zr_avl) == 0)</span>
+<span class="lineNum">     450 </span>                :<span class="lineCov">        119 :                         avl_add(&amp;zrl-&gt;zr_avl, new);</span>
+<span class="lineNum">     451 </span>                :            :                 else
+<span class="lineNum">     452 </span>                :<span class="lineCov">        157 :                         zfs_range_lock_reader(zrl, new);</span>
+<span class="lineNum">     453 </span>                :            :         } else /* RL_WRITER or RL_APPEND */
+<span class="lineNum">     454 </span>                :<span class="lineCov">      28439 :                 zfs_range_lock_writer(zrl, new);</span>
+<span class="lineNum">     455 </span>                :<span class="lineCov">      28711 :         mutex_exit(&amp;zrl-&gt;zr_mutex);</span>
+<span class="lineNum">     456 </span>                :<span class="lineCov">      28714 :         return (new);</span>
+<span class="lineNum">     457 </span>                :            : }
+<a name="458"><span class="lineNum">     458 </span>                :            : </a>
+<span class="lineNum">     459 </span>                :            : static void
+<span class="lineNum">     460 </span>                :<span class="lineCov">      28680 : zfs_range_free(void *arg)</span>
+<span class="lineNum">     461 </span>                :            : {
+<span class="lineNum">     462 </span>                :<span class="lineCov">      28680 :         rl_t *rl = arg;</span>
+<span class="lineNum">     463 </span>                :            : 
+<span class="lineNum">     464 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 28680 times"> + </span>]:<span class="lineCov">      28680 :         if (rl-&gt;r_write_wanted)</span>
+<span class="lineNum">     465 </span>                :<span class="lineNoCov">          0 :                 cv_destroy(&amp;rl-&gt;r_wr_cv);</span>
+<span class="lineNum">     466 </span>                :            : 
+<span class="lineNum">     467 </span>        [<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchCov" title="Branch 1 was taken 28681 times"> + </span>]:<span class="lineCov">      28682 :         if (rl-&gt;r_read_wanted)</span>
+<span class="lineNum">     468 </span>                :<span class="lineCov">          1 :                 cv_destroy(&amp;rl-&gt;r_rd_cv);</span>
+<span class="lineNum">     469 </span>                :            : 
+<span class="lineNum">     470 </span>                :<span class="lineCov">      28682 :         kmem_free(rl, sizeof (rl_t));</span>
+<span class="lineNum">     471 </span>                :<span class="lineCov">      28683 : }</span>
+<span class="lineNum">     472 </span>                :            : 
+<span class="lineNum">     473 </span>                :            : /*
+<span class="lineNum">     474 </span>                :            :  * Unlock a reader lock
+<a name="475"><span class="lineNum">     475 </span>                :            :  */</a>
+<span class="lineNum">     476 </span>                :            : static void
+<span class="lineNum">     477 </span>                :<span class="lineCov">        276 : zfs_range_unlock_reader(zfs_rlock_t *zrl, rl_t *remove, list_t *free_list)</span>
+<span class="lineNum">     478 </span>                :            : {
+<span class="lineNum">     479 </span>                :<span class="lineCov">        276 :         avl_tree_t *tree = &amp;zrl-&gt;zr_avl;</span>
+<span class="lineNum">     480 </span>                :<span class="lineCov">        276 :         rl_t *rl, *next = NULL;</span>
+<span class="lineNum">     481 </span>                :            :         uint64_t len;
+<span class="lineNum">     482 </span>                :            : 
+<span class="lineNum">     483 </span>                :            :         /*
+<span class="lineNum">     484 </span>                :            :          * The common case is when the remove entry is in the tree
+<span class="lineNum">     485 </span>                :            :          * (cnt == 1) meaning there's been no other reader locks overlapping
+<span class="lineNum">     486 </span>                :            :          * with this one. Otherwise the remove entry will have been
+<span class="lineNum">     487 </span>                :            :          * removed from the tree and replaced by proxies (one or
+<span class="lineNum">     488 </span>                :            :          * more ranges mapping to the entire range).
+<span class="lineNum">     489 </span>                :            :          */
+<span class="lineNum">     490 </span>        [<span class="branchCov" title="Branch 0 was taken 219 times"> + </span><span class="branchCov" title="Branch 1 was taken 57 times"> + </span>]:<span class="lineCov">        276 :         if (remove-&gt;r_cnt == 1) {</span>
+<span class="lineNum">     491 </span>                :<span class="lineCov">        219 :                 avl_remove(tree, remove);</span>
+<span class="lineNum">     492 </span>                :            : 
+<span class="lineNum">     493 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 219 times"> + </span>]:<span class="lineCov">        219 :                 if (remove-&gt;r_write_wanted)</span>
+<span class="lineNum">     494 </span>                :<span class="lineNoCov">          0 :                         cv_broadcast(&amp;remove-&gt;r_wr_cv);</span>
+<span class="lineNum">     495 </span>                :            : 
+<span class="lineNum">     496 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 219 times"> + </span>]:<span class="lineCov">        219 :                 if (remove-&gt;r_read_wanted)</span>
+<span class="lineNum">     497 </span>                :<span class="lineNoCov">          0 :                         cv_broadcast(&amp;remove-&gt;r_rd_cv);</span>
+<span class="lineNum">     498 </span>                :            : 
+<span class="lineNum">     499 </span>                :<span class="lineCov">        219 :                 list_insert_tail(free_list, remove);</span>
+<span class="lineNum">     500 </span>                :            :         } else {
+<span class="lineNum">     501 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 57 times"> + </span>]:<span class="lineCov">         57 :                 ASSERT0(remove-&gt;r_cnt);</span>
+<span class="lineNum">     502 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 57 times"> + </span>]:<span class="lineCov">         57 :                 ASSERT0(remove-&gt;r_write_wanted);</span>
+<span class="lineNum">     503 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 57 times"> + </span>]:<span class="lineCov">         57 :                 ASSERT0(remove-&gt;r_read_wanted);</span>
+<span class="lineNum">     504 </span>                :            :                 /*
+<span class="lineNum">     505 </span>                :            :                  * Find start proxy representing this reader lock,
+<span class="lineNum">     506 </span>                :            :                  * then decrement ref count on all proxies
+<span class="lineNum">     507 </span>                :            :                  * that make up this range, freeing them as needed.
+<span class="lineNum">     508 </span>                :            :                  */
+<span class="lineNum">     509 </span>                :<span class="lineCov">         57 :                 rl = avl_find(tree, remove, NULL);</span>
+<span class="lineNum">     510 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 57 times"> + </span>]:<span class="lineCov">         57 :                 ASSERT(rl);</span>
+<span class="lineNum">     511 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 57 times"> + </span>]:<span class="lineCov">         57 :                 ASSERT(rl-&gt;r_cnt);</span>
+<span class="lineNum">     512 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 57 times"> + </span>]:<span class="lineCov">         57 :                 ASSERT(rl-&gt;r_type == RL_READER);</span>
+<span class="lineNum">     513 </span>        [<span class="branchCov" title="Branch 0 was taken 77 times"> + </span><span class="branchCov" title="Branch 1 was taken 57 times"> + </span>]:<span class="lineCov">        134 :                 for (len = remove-&gt;r_len; len != 0; rl = next) {</span>
+<span class="lineNum">     514 </span>                :<span class="lineCov">         77 :                         len -= rl-&gt;r_len;</span>
+<span class="lineNum">     515 </span>        [<span class="branchCov" title="Branch 0 was taken 20 times"> + </span><span class="branchCov" title="Branch 1 was taken 57 times"> + </span>]:<span class="lineCov">         77 :                         if (len) {</span>
+<span class="lineNum">     516 </span>                :<span class="lineCov">         20 :                                 next = AVL_NEXT(tree, rl);</span>
+<span class="lineNum">     517 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 20 times"> + </span>]:<span class="lineCov">         20 :                                 ASSERT(next);</span>
+<span class="lineNum">     518 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 20 times"> + </span>]:<span class="lineCov">         20 :                                 ASSERT(rl-&gt;r_off + rl-&gt;r_len == next-&gt;r_off);</span>
+<span class="lineNum">     519 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 20 times"> + </span>]:<span class="lineCov">         20 :                                 ASSERT(next-&gt;r_cnt);</span>
+<span class="lineNum">     520 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 20 times"> + </span>]:<span class="lineCov">         20 :                                 ASSERT(next-&gt;r_type == RL_READER);</span>
+<span class="lineNum">     521 </span>                :            :                         }
+<span class="lineNum">     522 </span>                :<span class="lineCov">         77 :                         rl-&gt;r_cnt--;</span>
+<span class="lineNum">     523 </span>        [<span class="branchCov" title="Branch 0 was taken 24 times"> + </span><span class="branchCov" title="Branch 1 was taken 53 times"> + </span>]:<span class="lineCov">         77 :                         if (rl-&gt;r_cnt == 0) {</span>
+<span class="lineNum">     524 </span>                :<span class="lineCov">         24 :                                 avl_remove(tree, rl);</span>
+<span class="lineNum">     525 </span>                :            : 
+<span class="lineNum">     526 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 24 times"> + </span>]:<span class="lineCov">         24 :                                 if (rl-&gt;r_write_wanted)</span>
+<span class="lineNum">     527 </span>                :<span class="lineNoCov">          0 :                                         cv_broadcast(&amp;rl-&gt;r_wr_cv);</span>
+<span class="lineNum">     528 </span>                :            : 
+<span class="lineNum">     529 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 24 times"> + </span>]:<span class="lineCov">         24 :                                 if (rl-&gt;r_read_wanted)</span>
+<span class="lineNum">     530 </span>                :<span class="lineNoCov">          0 :                                         cv_broadcast(&amp;rl-&gt;r_rd_cv);</span>
+<span class="lineNum">     531 </span>                :            : 
+<span class="lineNum">     532 </span>                :<span class="lineCov">         77 :                                 list_insert_tail(free_list, rl);</span>
+<span class="lineNum">     533 </span>                :            :                         }
+<span class="lineNum">     534 </span>                :            :                 }
+<span class="lineNum">     535 </span>                :            : 
+<span class="lineNum">     536 </span>                :<span class="lineCov">         57 :                 kmem_free(remove, sizeof (rl_t));</span>
+<span class="lineNum">     537 </span>                :            :         }
+<span class="lineNum">     538 </span>                :<span class="lineCov">        276 : }</span>
+<span class="lineNum">     539 </span>                :            : 
+<span class="lineNum">     540 </span>                :            : /*
+<span class="lineNum">     541 </span>                :            :  * Unlock range and destroy range lock structure.
+<a name="542"><span class="lineNum">     542 </span>                :            :  */</a>
+<span class="lineNum">     543 </span>                :            : void
+<span class="lineNum">     544 </span>                :<span class="lineCov">      28715 : zfs_range_unlock(rl_t *rl)</span>
+<span class="lineNum">     545 </span>                :            : {
+<span class="lineNum">     546 </span>                :<span class="lineCov">      28715 :         zfs_rlock_t *zrl = rl-&gt;r_zrl;</span>
+<span class="lineNum">     547 </span>                :            :         list_t free_list;
+<span class="lineNum">     548 </span>                :            :         rl_t *free_rl;
+<span class="lineNum">     549 </span>                :            : 
+<span class="lineNum">     550 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 28715 times"> + </span>]:<span class="lineCov">      28715 :         ASSERT(rl-&gt;r_type == RL_WRITER || rl-&gt;r_type == RL_READER);</span>
+<span class="lineNum">     551 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 28715 times"> + </span>]:<span class="lineCov">      28715 :         ASSERT(rl-&gt;r_cnt == 1 || rl-&gt;r_cnt == 0);</span>
+<span class="lineNum">     552 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 28715 times"> + </span>]:<span class="lineCov">      28715 :         ASSERT(!rl-&gt;r_proxy);</span>
+<span class="lineNum">     553 </span>                :<span class="lineCov">      28715 :         list_create(&amp;free_list, sizeof (rl_t), offsetof(rl_t, rl_node));</span>
+<span class="lineNum">     554 </span>                :            : 
+<span class="lineNum">     555 </span>                :<span class="lineCov">      28715 :         mutex_enter(&amp;zrl-&gt;zr_mutex);</span>
+<span class="lineNum">     556 </span>        [<span class="branchCov" title="Branch 0 was taken 28439 times"> + </span><span class="branchCov" title="Branch 1 was taken 276 times"> + </span>]:<span class="lineCov">      28715 :         if (rl-&gt;r_type == RL_WRITER) {</span>
+<span class="lineNum">     557 </span>                :            :                 /* writer locks can't be shared or split */
+<span class="lineNum">     558 </span>                :<span class="lineCov">      28439 :                 avl_remove(&amp;zrl-&gt;zr_avl, rl);</span>
+<span class="lineNum">     559 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 28439 times"> + </span>]:<span class="lineCov">      28439 :                 if (rl-&gt;r_write_wanted)</span>
+<span class="lineNum">     560 </span>                :<span class="lineNoCov">          0 :                         cv_broadcast(&amp;rl-&gt;r_wr_cv);</span>
+<span class="lineNum">     561 </span>                :            : 
+<span class="lineNum">     562 </span>        [<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchCov" title="Branch 1 was taken 28438 times"> + </span>]:<span class="lineCov">      28439 :                 if (rl-&gt;r_read_wanted)</span>
+<span class="lineNum">     563 </span>                :<span class="lineCov">          1 :                         cv_broadcast(&amp;rl-&gt;r_rd_cv);</span>
+<span class="lineNum">     564 </span>                :            : 
+<span class="lineNum">     565 </span>                :<span class="lineCov">      28439 :                 list_insert_tail(&amp;free_list, rl);</span>
+<span class="lineNum">     566 </span>                :            :         } else {
+<span class="lineNum">     567 </span>                :            :                 /*
+<span class="lineNum">     568 </span>                :            :                  * lock may be shared, let zfs_range_unlock_reader()
+<span class="lineNum">     569 </span>                :            :                  * release the zp-&gt;z_range_lock lock and free the rl_t
+<span class="lineNum">     570 </span>                :            :                  */
+<span class="lineNum">     571 </span>                :<span class="lineCov">        276 :                 zfs_range_unlock_reader(zrl, rl, &amp;free_list);</span>
+<span class="lineNum">     572 </span>                :            :         }
+<span class="lineNum">     573 </span>                :<span class="lineCov">      28714 :         mutex_exit(&amp;zrl-&gt;zr_mutex);</span>
+<span class="lineNum">     574 </span>                :            : 
+<span class="lineNum">     575 </span>        [<span class="branchCov" title="Branch 1 was taken 28681 times"> + </span><span class="branchCov" title="Branch 2 was taken 28716 times"> + </span>]:<span class="lineCov">      57398 :         while ((free_rl = list_head(&amp;free_list)) != NULL) {</span>
+<span class="lineNum">     576 </span>                :<span class="lineCov">      28681 :                 list_remove(&amp;free_list, free_rl);</span>
+<span class="lineNum">     577 </span>                :<span class="lineCov">      28680 :                 zfs_range_free(free_rl);</span>
+<span class="lineNum">     578 </span>                :            :         }
+<span class="lineNum">     579 </span>                :            : 
+<span class="lineNum">     580 </span>                :<span class="lineCov">      28716 :         list_destroy(&amp;free_list);</span>
+<span class="lineNum">     581 </span>                :<span class="lineCov">      28716 : }</span>
+<span class="lineNum">     582 </span>                :            : 
+<span class="lineNum">     583 </span>                :            : /*
+<span class="lineNum">     584 </span>                :            :  * Reduce range locked as RL_WRITER from whole file to specified range.
+<span class="lineNum">     585 </span>                :            :  * Asserts the whole file is exclusivly locked and so there's only one
+<span class="lineNum">     586 </span>                :            :  * entry in the tree.
+<a name="587"><span class="lineNum">     587 </span>                :            :  */</a>
+<span class="lineNum">     588 </span>                :            : void
+<span class="lineNum">     589 </span>                :<span class="lineNoCov">          0 : zfs_range_reduce(rl_t *rl, uint64_t off, uint64_t len)</span>
+<span class="lineNum">     590 </span>                :            : {
+<span class="lineNum">     591 </span>                :<span class="lineNoCov">          0 :         zfs_rlock_t *zrl = rl-&gt;r_zrl;</span>
+<span class="lineNum">     592 </span>                :            : 
+<span class="lineNum">     593 </span>                :            :         /* Ensure there are no other locks */
+<span class="lineNum">     594 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(avl_numnodes(&amp;zrl-&gt;zr_avl) == 1);</span>
+<span class="lineNum">     595 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(rl-&gt;r_off == 0);</span>
+<span class="lineNum">     596 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(rl-&gt;r_type == RL_WRITER);</span>
+<span class="lineNum">     597 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(!rl-&gt;r_proxy);</span>
+<span class="lineNum">     598 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3U(rl-&gt;r_len, ==, UINT64_MAX);</span>
+<span class="lineNum">     599 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3U(rl-&gt;r_cnt, ==, 1);</span>
+<span class="lineNum">     600 </span>                :            : 
+<span class="lineNum">     601 </span>                :<span class="lineNoCov">          0 :         mutex_enter(&amp;zrl-&gt;zr_mutex);</span>
+<span class="lineNum">     602 </span>                :<span class="lineNoCov">          0 :         rl-&gt;r_off = off;</span>
+<span class="lineNum">     603 </span>                :<span class="lineNoCov">          0 :         rl-&gt;r_len = len;</span>
+<span class="lineNum">     604 </span>                :            : 
+<span class="lineNum">     605 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rl-&gt;r_write_wanted)</span>
+<span class="lineNum">     606 </span>                :<span class="lineNoCov">          0 :                 cv_broadcast(&amp;rl-&gt;r_wr_cv);</span>
+<span class="lineNum">     607 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rl-&gt;r_read_wanted)</span>
+<span class="lineNum">     608 </span>                :<span class="lineNoCov">          0 :                 cv_broadcast(&amp;rl-&gt;r_rd_cv);</span>
+<span class="lineNum">     609 </span>                :            : 
+<span class="lineNum">     610 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;zrl-&gt;zr_mutex);</span>
+<span class="lineNum">     611 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     612 </span>                :            : 
+<span class="lineNum">     613 </span>                :            : /*
+<span class="lineNum">     614 </span>                :            :  * AVL comparison function used to order range locks
+<span class="lineNum">     615 </span>                :            :  * Locks are ordered on the start offset of the range.
+<a name="616"><span class="lineNum">     616 </span>                :            :  */</a>
+<span class="lineNum">     617 </span>                :            : int
+<span class="lineNum">     618 </span>                :<span class="lineCov">       2953 : zfs_range_compare(const void *arg1, const void *arg2)</span>
+<span class="lineNum">     619 </span>                :            : {
+<span class="lineNum">     620 </span>                :<span class="lineCov">       2953 :         const rl_t *rl1 = (const rl_t *)arg1;</span>
+<span class="lineNum">     621 </span>                :<span class="lineCov">       2953 :         const rl_t *rl2 = (const rl_t *)arg2;</span>
+<span class="lineNum">     622 </span>                :            : 
+<span class="lineNum">     623 </span>                :<span class="lineCov">       2953 :         return (AVL_CMP(rl1-&gt;r_off, rl2-&gt;r_off));</span>
+<span class="lineNum">     624 </span>                :            : }
+<span class="lineNum">     625 </span>                :            : 
+<span class="lineNum">     626 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">     627 </span>                :            : EXPORT_SYMBOL(zfs_range_lock);
+<span class="lineNum">     628 </span>                :            : EXPORT_SYMBOL(zfs_range_unlock);
+<span class="lineNum">     629 </span>                :            : EXPORT_SYMBOL(zfs_range_reduce);
+<span class="lineNum">     630 </span>                :            : EXPORT_SYMBOL(zfs_range_compare);
+<span class="lineNum">     631 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

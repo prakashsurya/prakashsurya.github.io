@@ -1,0 +1,644 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/space_map.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - space_map.c<span style="font-size: 80%;"> (source / <a href="space_map.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">206</td>
+            <td class="headerCovTableEntry">220</td>
+            <td class="headerCovTableEntryHi">93.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">100</td>
+            <td class="headerCovTableEntry">153</td>
+            <td class="headerCovTableEntryLo">65.4 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : /*
+<span class="lineNum">      26 </span>                :            :  * Copyright (c) 2012, 2016 by Delphix. All rights reserved.
+<span class="lineNum">      27 </span>                :            :  */
+<span class="lineNum">      28 </span>                :            : 
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/dmu.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/dmu_tx.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/dnode.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/dsl_pool.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/zio.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;sys/space_map.h&gt;
+<span class="lineNum">      37 </span>                :            : #include &lt;sys/refcount.h&gt;
+<span class="lineNum">      38 </span>                :            : #include &lt;sys/zfeature.h&gt;
+<span class="lineNum">      39 </span>                :            : 
+<span class="lineNum">      40 </span>                :            : /*
+<span class="lineNum">      41 </span>                :            :  * The data for a given space map can be kept on blocks of any size.
+<span class="lineNum">      42 </span>                :            :  * Larger blocks entail fewer i/o operations, but they also cause the
+<span class="lineNum">      43 </span>                :            :  * DMU to keep more data in-core, and also to waste more i/o bandwidth
+<span class="lineNum">      44 </span>                :            :  * when only a few blocks have changed since the last transaction group.
+<span class="lineNum">      45 </span>                :            :  */
+<span class="lineNum">      46 </span>                :            : int space_map_blksz = (1 &lt;&lt; 12);
+<span class="lineNum">      47 </span>                :            : 
+<span class="lineNum">      48 </span>                :            : /*
+<span class="lineNum">      49 </span>                :            :  * Load the space map disk into the specified range tree. Segments of maptype
+<span class="lineNum">      50 </span>                :            :  * are added to the range tree, other segment types are removed.
+<span class="lineNum">      51 </span>                :            :  *
+<span class="lineNum">      52 </span>                :            :  * Note: space_map_load() will drop sm_lock across dmu_read() calls.
+<span class="lineNum">      53 </span>                :            :  * The caller must be OK with this.
+<a name="54"><span class="lineNum">      54 </span>                :            :  */</a>
+<span class="lineNum">      55 </span>                :            : int
+<span class="lineNum">      56 </span>                :<span class="lineCov">       5129 : space_map_load(space_map_t *sm, range_tree_t *rt, maptype_t maptype)</span>
+<span class="lineNum">      57 </span>                :            : {
+<span class="lineNum">      58 </span>                :            :         uint64_t *entry, *entry_map, *entry_map_end;
+<span class="lineNum">      59 </span>                :            :         uint64_t bufsize, size, offset, end, space;
+<span class="lineNum">      60 </span>                :<span class="lineCov">       5129 :         int error = 0;</span>
+<span class="lineNum">      61 </span>                :            : 
+<span class="lineNum">      62 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 5129 times"> + </span>]:<span class="lineCov">       5129 :         ASSERT(MUTEX_HELD(sm-&gt;sm_lock));</span>
+<span class="lineNum">      63 </span>                :            : 
+<span class="lineNum">      64 </span>                :<span class="lineCov">       5129 :         end = space_map_length(sm);</span>
+<span class="lineNum">      65 </span>                :<span class="lineCov">       5128 :         space = space_map_allocated(sm);</span>
+<span class="lineNum">      66 </span>                :            : 
+<span class="lineNum">      67 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 5128 times"> + </span>]:<span class="lineCov">       5129 :         VERIFY0(range_tree_space(rt));</span>
+<span class="lineNum">      68 </span>                :            : 
+<span class="lineNum">      69 </span>        [<span class="branchCov" title="Branch 0 was taken 852 times"> + </span><span class="branchCov" title="Branch 1 was taken 4276 times"> + </span>]:<span class="lineCov">       5128 :         if (maptype == SM_FREE) {</span>
+<span class="lineNum">      70 </span>                :<span class="lineCov">        852 :                 range_tree_add(rt, sm-&gt;sm_start, sm-&gt;sm_size);</span>
+<span class="lineNum">      71 </span>                :<span class="lineCov">        854 :                 space = sm-&gt;sm_size - space;</span>
+<span class="lineNum">      72 </span>                :            :         }
+<span class="lineNum">      73 </span>                :            : 
+<span class="lineNum">      74 </span>        [<span class="branchCov" title="Branch 0 was taken 5129 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">       5130 :         bufsize = MAX(sm-&gt;sm_blksz, SPA_MINBLOCKSIZE);</span>
+<span class="lineNum">      75 </span>                :<span class="lineCov">       5130 :         entry_map = vmem_alloc(bufsize, KM_SLEEP);</span>
+<span class="lineNum">      76 </span>                :            : 
+<span class="lineNum">      77 </span>                :<span class="lineCov">       5129 :         mutex_exit(sm-&gt;sm_lock);</span>
+<span class="lineNum">      78 </span>        [<span class="branchCov" title="Branch 0 was taken 1321 times"> + </span><span class="branchCov" title="Branch 1 was taken 3808 times"> + </span>]:<span class="lineCov">       5129 :         if (end &gt; bufsize) {</span>
+<span class="lineNum">      79 </span>                :<span class="lineCov">       1321 :                 dmu_prefetch(sm-&gt;sm_os, space_map_object(sm), 0, bufsize,</span>
+<span class="lineNum">      80 </span>                :            :                     end - bufsize, ZIO_PRIORITY_SYNC_READ);
+<span class="lineNum">      81 </span>                :            :         }
+<span class="lineNum">      82 </span>                :<span class="lineCov">       5129 :         mutex_enter(sm-&gt;sm_lock);</span>
+<span class="lineNum">      83 </span>                :            : 
+<span class="lineNum">      84 </span>        [<span class="branchCov" title="Branch 1 was taken 5707 times"> + </span><span class="branchCov" title="Branch 2 was taken 5301 times"> + </span>]:<span class="lineCov">      10836 :         for (offset = 0; offset &lt; end; offset += bufsize) {</span>
+<span class="lineNum">      85 </span>                :<span class="lineCov">       5707 :                 size = MIN(end - offset, bufsize);</span>
+<span class="lineNum">      86 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5707 times"> + </span>]:<span class="lineCov">       5707 :                 VERIFY(P2PHASE(size, sizeof (uint64_t)) == 0);</span>
+<span class="lineNum">      87 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5707 times"> + </span>]:<span class="lineCov">       5707 :                 VERIFY(size != 0);</span>
+<span class="lineNum">      88 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 5707 times"> + </span>]:<span class="lineCov">       5707 :                 ASSERT3U(sm-&gt;sm_blksz, !=, 0);</span>
+<span class="lineNum">      89 </span>                :            : 
+<span class="lineNum">      90 </span>                :<span class="lineCov">       5707 :                 dprintf(&quot;object=%llu  offset=%llx  size=%llx\n&quot;,</span>
+<span class="lineNum">      91 </span>                :            :                     space_map_object(sm), offset, size);
+<span class="lineNum">      92 </span>                :            : 
+<span class="lineNum">      93 </span>                :<span class="lineCov">       5706 :                 mutex_exit(sm-&gt;sm_lock);</span>
+<span class="lineNum">      94 </span>                :<span class="lineCov">       5707 :                 error = dmu_read(sm-&gt;sm_os, space_map_object(sm), offset, size,</span>
+<span class="lineNum">      95 </span>                :            :                     entry_map, DMU_READ_PREFETCH);
+<span class="lineNum">      96 </span>                :<span class="lineCov">       5707 :                 mutex_enter(sm-&gt;sm_lock);</span>
+<span class="lineNum">      97 </span>           [<span class="branchCov" title="Branch 0 was taken 5879 times"> + </span>]:<span class="lineCov">       5707 :                 if (error != 0)</span>
+<span class="lineNum">      98 </span>                :            :                         break;
+<span class="lineNum">      99 </span>                :            : 
+<span class="lineNum">     100 </span>                :<span class="lineCov">       5879 :                 entry_map_end = entry_map + (size / sizeof (uint64_t));</span>
+<span class="lineNum">     101 </span>        [<span class="branchCov" title="Branch 0 was taken 1691654 times"> + </span><span class="branchCov" title="Branch 1 was taken 5707 times"> + </span>]:<span class="lineCov">    1697361 :                 for (entry = entry_map; entry &lt; entry_map_end; entry++) {</span>
+<span class="lineNum">     102 </span>                :<span class="lineCov">    1691654 :                         uint64_t e = *entry;</span>
+<span class="lineNum">     103 </span>                :            :                         uint64_t offset, size;
+<span class="lineNum">     104 </span>                :            : 
+<span class="lineNum">     105 </span>        [<span class="branchCov" title="Branch 0 was taken 355984 times"> + </span><span class="branchCov" title="Branch 1 was taken 1335670 times"> + </span>]:<span class="lineCov">    1691654 :                         if (SM_DEBUG_DECODE(e))         /* Skip debug entries */</span>
+<span class="lineNum">     106 </span>                :<span class="lineCov">     355984 :                                 continue;</span>
+<span class="lineNum">     107 </span>                :            : 
+<span class="lineNum">     108 </span>                :<span class="lineCov">    2671340 :                         offset = (SM_OFFSET_DECODE(e) &lt;&lt; sm-&gt;sm_shift) +</span>
+<span class="lineNum">     109 </span>                :<span class="lineCov">    1335670 :                             sm-&gt;sm_start;</span>
+<span class="lineNum">     110 </span>                :<span class="lineCov">    1335670 :                         size = SM_RUN_DECODE(e) &lt;&lt; sm-&gt;sm_shift;</span>
+<span class="lineNum">     111 </span>                :            : 
+<span class="lineNum">     112 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1335670 times"> + </span>]:<span class="lineCov">    1335670 :                         VERIFY0(P2PHASE(offset, 1ULL &lt;&lt; sm-&gt;sm_shift));</span>
+<span class="lineNum">     113 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1335670 times"> + </span>]:<span class="lineCov">    1335670 :                         VERIFY0(P2PHASE(size, 1ULL &lt;&lt; sm-&gt;sm_shift));</span>
+<span class="lineNum">     114 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1335670 times"> + </span>]:<span class="lineCov">    1335670 :                         VERIFY3U(offset, &gt;=, sm-&gt;sm_start);</span>
+<span class="lineNum">     115 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1335670 times"> + </span>]:<span class="lineCov">    1335670 :                         VERIFY3U(offset + size, &lt;=, sm-&gt;sm_start + sm-&gt;sm_size);</span>
+<span class="lineNum">     116 </span>        [<span class="branchCov" title="Branch 0 was taken 519690 times"> + </span><span class="branchCov" title="Branch 1 was taken 815980 times"> + </span>]:<span class="lineCov">    1335670 :                         if (SM_TYPE_DECODE(e) == maptype) {</span>
+<span class="lineNum">     117 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 519685 times"> + </span>]:<span class="lineCov">     519690 :                                 VERIFY3U(range_tree_space(rt) + size, &lt;=,</span>
+<span class="lineNum">     118 </span>                :            :                                     sm-&gt;sm_size);
+<span class="lineNum">     119 </span>                :<span class="lineCov">     519685 :                                 range_tree_add(rt, offset, size);</span>
+<span class="lineNum">     120 </span>                :            :                         } else {
+<span class="lineNum">     121 </span>                :<span class="lineCov">     815980 :                                 range_tree_remove(rt, offset, size);</span>
+<span class="lineNum">     122 </span>                :            :                         }
+<span class="lineNum">     123 </span>                :            :                 }
+<span class="lineNum">     124 </span>                :            :         }
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>        [<span class="branchCov" title="Branch 0 was taken 5129 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       5129 :         if (error == 0)</span>
+<span class="lineNum">     127 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 5129 times"> + </span>]:<span class="lineCov">       5129 :                 VERIFY3U(range_tree_space(rt), ==, space);</span>
+<span class="lineNum">     128 </span>                :            :         else
+<span class="lineNum">     129 </span>                :<span class="lineNoCov">          0 :                 range_tree_vacate(rt, NULL, NULL);</span>
+<span class="lineNum">     130 </span>                :            : 
+<span class="lineNum">     131 </span>                :<span class="lineCov">       5129 :         vmem_free(entry_map, bufsize);</span>
+<span class="lineNum">     132 </span>                :<span class="lineCov">       5129 :         return (error);</span>
+<span class="lineNum">     133 </span>                :            : }
+<a name="134"><span class="lineNum">     134 </span>                :            : </a>
+<span class="lineNum">     135 </span>                :            : void
+<span class="lineNum">     136 </span>                :<span class="lineCov">      63567 : space_map_histogram_clear(space_map_t *sm)</span>
+<span class="lineNum">     137 </span>                :            : {
+<span class="lineNum">     138 </span>        [<span class="branchCov" title="Branch 0 was taken 63514 times"> + </span><span class="branchCov" title="Branch 1 was taken 53 times"> + </span>]:<span class="lineCov">      63567 :         if (sm-&gt;sm_dbuf-&gt;db_size != sizeof (space_map_phys_t))</span>
+<span class="lineNum">     139 </span>                :            :                 return;
+<span class="lineNum">     140 </span>                :            : 
+<span class="lineNum">     141 </span>                :<span class="lineCov">      63514 :         bzero(sm-&gt;sm_phys-&gt;smp_histogram, sizeof (sm-&gt;sm_phys-&gt;smp_histogram));</span>
+<span class="lineNum">     142 </span>                :            : }
+<a name="143"><span class="lineNum">     143 </span>                :            : </a>
+<span class="lineNum">     144 </span>                :            : boolean_t
+<span class="lineNum">     145 </span>                :<span class="lineCov">     321866 : space_map_histogram_verify(space_map_t *sm, range_tree_t *rt)</span>
+<span class="lineNum">     146 </span>                :            : {
+<span class="lineNum">     147 </span>                :            :         int i;
+<span class="lineNum">     148 </span>                :            : 
+<span class="lineNum">     149 </span>                :            :         /*
+<span class="lineNum">     150 </span>                :            :          * Verify that the in-core range tree does not have any
+<span class="lineNum">     151 </span>                :            :          * ranges smaller than our sm_shift size.
+<span class="lineNum">     152 </span>                :            :          */
+<span class="lineNum">     153 </span>        [<span class="branchCov" title="Branch 0 was taken 3496083 times"> + </span><span class="branchCov" title="Branch 1 was taken 321866 times"> + </span>]:<span class="lineCov">    3817949 :         for (i = 0; i &lt; sm-&gt;sm_shift; i++) {</span>
+<span class="lineNum">     154 </span>        [<span class="branchCov" title="Branch 0 was taken 3496083 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">    3496083 :                 if (rt-&gt;rt_histogram[i] != 0)</span>
+<span class="lineNum">     155 </span>                :            :                         return (B_FALSE);
+<span class="lineNum">     156 </span>                :            :         }
+<span class="lineNum">     157 </span>                :            :         return (B_TRUE);
+<span class="lineNum">     158 </span>                :            : }
+<a name="159"><span class="lineNum">     159 </span>                :            : </a>
+<span class="lineNum">     160 </span>                :            : void
+<span class="lineNum">     161 </span>                :<span class="lineCov">     322131 : space_map_histogram_add(space_map_t *sm, range_tree_t *rt, dmu_tx_t *tx)</span>
+<span class="lineNum">     162 </span>                :            : {
+<span class="lineNum">     163 </span>                :<span class="lineCov">     322131 :         int idx = 0;</span>
+<span class="lineNum">     164 </span>                :            :         int i;
+<span class="lineNum">     165 </span>                :            : 
+<span class="lineNum">     166 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 322131 times"> + </span>]:<span class="lineCov">     322131 :         ASSERT(MUTEX_HELD(rt-&gt;rt_lock));</span>
+<span class="lineNum">     167 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 322131 times"> + </span>]:<span class="lineCov">     322131 :         ASSERT(dmu_tx_is_syncing(tx));</span>
+<span class="lineNum">     168 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 322131 times"> + </span>]:<span class="lineCov">     322131 :         VERIFY3U(space_map_object(sm), !=, 0);</span>
+<span class="lineNum">     169 </span>                :            : 
+<span class="lineNum">     170 </span>        [<span class="branchCov" title="Branch 0 was taken 321866 times"> + </span><span class="branchCov" title="Branch 1 was taken 265 times"> + </span>]:<span class="lineCov">     322131 :         if (sm-&gt;sm_dbuf-&gt;db_size != sizeof (space_map_phys_t))</span>
+<span class="lineNum">     171 </span>                :            :                 return;
+<span class="lineNum">     172 </span>                :            : 
+<span class="lineNum">     173 </span>                :<span class="lineCov">     321866 :         dmu_buf_will_dirty(sm-&gt;sm_dbuf, tx);</span>
+<span class="lineNum">     174 </span>                :            : 
+<span class="lineNum">     175 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 321866 times"> + </span>]:<span class="lineCov">     321866 :         ASSERT(space_map_histogram_verify(sm, rt));</span>
+<span class="lineNum">     176 </span>                :            :         /*
+<span class="lineNum">     177 </span>                :            :          * Transfer the content of the range tree histogram to the space
+<span class="lineNum">     178 </span>                :            :          * map histogram. The space map histogram contains 32 buckets ranging
+<span class="lineNum">     179 </span>                :            :          * between 2^sm_shift to 2^(32+sm_shift-1). The range tree,
+<span class="lineNum">     180 </span>                :            :          * however, can represent ranges from 2^0 to 2^63. Since the space
+<span class="lineNum">     181 </span>                :            :          * map only cares about allocatable blocks (minimum of sm_shift) we
+<span class="lineNum">     182 </span>                :            :          * can safely ignore all ranges in the range tree smaller than sm_shift.
+<span class="lineNum">     183 </span>                :            :          */
+<span class="lineNum">     184 </span>        [<span class="branchCov" title="Branch 0 was taken 17103341 times"> + </span><span class="branchCov" title="Branch 1 was taken 321866 times"> + </span>]:<span class="lineCov">   17425207 :         for (i = sm-&gt;sm_shift; i &lt; RANGE_TREE_HISTOGRAM_SIZE; i++) {</span>
+<span class="lineNum">     185 </span>                :            : 
+<span class="lineNum">     186 </span>                :            :                 /*
+<span class="lineNum">     187 </span>                :            :                  * Since the largest histogram bucket in the space map is
+<span class="lineNum">     188 </span>                :            :                  * 2^(32+sm_shift-1), we need to normalize the values in
+<span class="lineNum">     189 </span>                :            :                  * the range tree for any bucket larger than that size. For
+<span class="lineNum">     190 </span>                :            :                  * example given an sm_shift of 9, ranges larger than 2^40
+<span class="lineNum">     191 </span>                :            :                  * would get normalized as if they were 1TB ranges. Assume
+<span class="lineNum">     192 </span>                :            :                  * the range tree had a count of 5 in the 2^44 (16TB) bucket,
+<span class="lineNum">     193 </span>                :            :                  * the calculation below would normalize this to 5 * 2^4 (16).
+<span class="lineNum">     194 </span>                :            :                  */
+<span class="lineNum">     195 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 17103341 times"> + </span>]:<span class="lineCov">   17103341 :                 ASSERT3U(i, &gt;=, idx + sm-&gt;sm_shift);</span>
+<span class="lineNum">     196 </span>                :<span class="lineCov">   34206682 :                 sm-&gt;sm_phys-&gt;smp_histogram[idx] +=</span>
+<span class="lineNum">     197 </span>                :<span class="lineCov">   17103341 :                     rt-&gt;rt_histogram[i] &lt;&lt; (i - idx - sm-&gt;sm_shift);</span>
+<span class="lineNum">     198 </span>                :            : 
+<span class="lineNum">     199 </span>                :            :                 /*
+<span class="lineNum">     200 </span>                :            :                  * Increment the space map's index as long as we haven't
+<span class="lineNum">     201 </span>                :            :                  * reached the maximum bucket size. Accumulate all ranges
+<span class="lineNum">     202 </span>                :            :                  * larger than the max bucket size into the last bucket.
+<span class="lineNum">     203 </span>                :            :                  */
+<span class="lineNum">     204 </span>        [<span class="branchCov" title="Branch 0 was taken 9977846 times"> + </span><span class="branchCov" title="Branch 1 was taken 7125495 times"> + </span>]:<span class="lineCov">   17103341 :                 if (idx &lt; SPACE_MAP_HISTOGRAM_SIZE - 1) {</span>
+<span class="lineNum">     205 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9977846 times"> + </span>]:<span class="lineCov">    9977846 :                         ASSERT3U(idx + sm-&gt;sm_shift, ==, i);</span>
+<span class="lineNum">     206 </span>                :<span class="lineCov">    9977846 :                         idx++;</span>
+<span class="lineNum">     207 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9977846 times"> + </span>]:<span class="lineCov">    9977846 :                         ASSERT3U(idx, &lt;, SPACE_MAP_HISTOGRAM_SIZE);</span>
+<span class="lineNum">     208 </span>                :            :                 }
+<span class="lineNum">     209 </span>                :            :         }
+<span class="lineNum">     210 </span>                :            : }
+<a name="211"><span class="lineNum">     211 </span>                :            : </a>
+<span class="lineNum">     212 </span>                :            : uint64_t
+<span class="lineNum">     213 </span>                :<span class="lineCov">      98709 : space_map_entries(space_map_t *sm, range_tree_t *rt)</span>
+<span class="lineNum">     214 </span>                :            : {
+<span class="lineNum">     215 </span>                :<span class="lineCov">      98709 :         avl_tree_t *t = &amp;rt-&gt;rt_root;</span>
+<span class="lineNum">     216 </span>                :            :         range_seg_t *rs;
+<span class="lineNum">     217 </span>                :            :         uint64_t size, entries;
+<span class="lineNum">     218 </span>                :            : 
+<span class="lineNum">     219 </span>                :            :         /*
+<span class="lineNum">     220 </span>                :            :          * All space_maps always have a debug entry so account for it here.
+<span class="lineNum">     221 </span>                :            :          */
+<span class="lineNum">     222 </span>                :<span class="lineCov">      98709 :         entries = 1;</span>
+<span class="lineNum">     223 </span>                :            : 
+<span class="lineNum">     224 </span>                :            :         /*
+<span class="lineNum">     225 </span>                :            :          * Traverse the range tree and calculate the number of space map
+<span class="lineNum">     226 </span>                :            :          * entries that would be required to write out the range tree.
+<span class="lineNum">     227 </span>                :            :          */
+<span class="lineNum">     228 </span>        [<span class="branchCov" title="Branch 2 was taken 471533 times"> + </span><span class="branchCov" title="Branch 3 was taken 98709 times"> + </span>]:<span class="lineCov">     570242 :         for (rs = avl_first(t); rs != NULL; rs = AVL_NEXT(t, rs)) {</span>
+<span class="lineNum">     229 </span>                :<span class="lineCov">     471533 :                 size = (rs-&gt;rs_end - rs-&gt;rs_start) &gt;&gt; sm-&gt;sm_shift;</span>
+<span class="lineNum">     230 </span>                :<span class="lineCov">     471533 :                 entries += howmany(size, SM_RUN_MAX);</span>
+<span class="lineNum">     231 </span>                :            :         }
+<span class="lineNum">     232 </span>                :<span class="lineCov">      98709 :         return (entries);</span>
+<span class="lineNum">     233 </span>                :            : }
+<span class="lineNum">     234 </span>                :            : 
+<span class="lineNum">     235 </span>                :            : /*
+<span class="lineNum">     236 </span>                :            :  * Note: space_map_write() will drop sm_lock across dmu_write() calls.
+<a name="237"><span class="lineNum">     237 </span>                :            :  */</a>
+<span class="lineNum">     238 </span>                :            : void
+<span class="lineNum">     239 </span>                :<span class="lineCov">     136446 : space_map_write(space_map_t *sm, range_tree_t *rt, maptype_t maptype,</span>
+<span class="lineNum">     240 </span>                :            :     dmu_tx_t *tx)
+<span class="lineNum">     241 </span>                :            : {
+<span class="lineNum">     242 </span>                :<span class="lineCov">     136446 :         objset_t *os = sm-&gt;sm_os;</span>
+<span class="lineNum">     243 </span>                :<span class="lineCov">     136446 :         spa_t *spa = dmu_objset_spa(os);</span>
+<span class="lineNum">     244 </span>                :<span class="lineCov">     136446 :         avl_tree_t *t = &amp;rt-&gt;rt_root;</span>
+<span class="lineNum">     245 </span>                :            :         range_seg_t *rs;
+<span class="lineNum">     246 </span>                :            :         uint64_t size, total, rt_space, nodes;
+<span class="lineNum">     247 </span>                :            :         uint64_t *entry, *entry_map, *entry_map_end;
+<span class="lineNum">     248 </span>                :<span class="lineCov">     136446 :         uint64_t expected_entries, actual_entries = 1;</span>
+<span class="lineNum">     249 </span>                :            : 
+<span class="lineNum">     250 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 136446 times"> + </span>]:<span class="lineCov">     136446 :         ASSERT(MUTEX_HELD(rt-&gt;rt_lock));</span>
+<span class="lineNum">     251 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 136446 times"> + </span>]:<span class="lineCov">     136446 :         ASSERT(dsl_pool_sync_context(dmu_objset_pool(os)));</span>
+<span class="lineNum">     252 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 136446 times"> + </span>]:<span class="lineCov">     136446 :         VERIFY3U(space_map_object(sm), !=, 0);</span>
+<span class="lineNum">     253 </span>                :<span class="lineCov">     136446 :         dmu_buf_will_dirty(sm-&gt;sm_dbuf, tx);</span>
+<span class="lineNum">     254 </span>                :            : 
+<span class="lineNum">     255 </span>                :            :         /*
+<span class="lineNum">     256 </span>                :            :          * This field is no longer necessary since the in-core space map
+<span class="lineNum">     257 </span>                :            :          * now contains the object number but is maintained for backwards
+<span class="lineNum">     258 </span>                :            :          * compatibility.
+<span class="lineNum">     259 </span>                :            :          */
+<span class="lineNum">     260 </span>                :<span class="lineCov">     136446 :         sm-&gt;sm_phys-&gt;smp_object = sm-&gt;sm_object;</span>
+<span class="lineNum">     261 </span>                :            : 
+<span class="lineNum">     262 </span>        [<span class="branchCov" title="Branch 1 was taken 37737 times"> + </span><span class="branchCov" title="Branch 2 was taken 98709 times"> + </span>]:<span class="lineCov">     136446 :         if (range_tree_space(rt) == 0) {</span>
+<span class="lineNum">     263 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 37737 times"> + </span>]:<span class="lineCov">      37737 :                 VERIFY3U(sm-&gt;sm_object, ==, sm-&gt;sm_phys-&gt;smp_object);</span>
+<span class="lineNum">     264 </span>                :            :                 return;
+<span class="lineNum">     265 </span>                :            :         }
+<span class="lineNum">     266 </span>                :            : 
+<span class="lineNum">     267 </span>        [<span class="branchCov" title="Branch 0 was taken 56306 times"> + </span><span class="branchCov" title="Branch 1 was taken 42403 times"> + </span>]:<span class="lineCov">      98709 :         if (maptype == SM_ALLOC)</span>
+<span class="lineNum">     268 </span>                :<span class="lineCov">      56306 :                 sm-&gt;sm_phys-&gt;smp_alloc += range_tree_space(rt);</span>
+<span class="lineNum">     269 </span>                :            :         else
+<span class="lineNum">     270 </span>                :<span class="lineCov">      42403 :                 sm-&gt;sm_phys-&gt;smp_alloc -= range_tree_space(rt);</span>
+<span class="lineNum">     271 </span>                :            : 
+<span class="lineNum">     272 </span>                :<span class="lineCov">      98709 :         expected_entries = space_map_entries(sm, rt);</span>
+<span class="lineNum">     273 </span>                :            : 
+<span class="lineNum">     274 </span>                :<span class="lineCov">      98709 :         entry_map = vmem_alloc(sm-&gt;sm_blksz, KM_SLEEP);</span>
+<span class="lineNum">     275 </span>                :<span class="lineCov">      98709 :         entry_map_end = entry_map + (sm-&gt;sm_blksz / sizeof (uint64_t));</span>
+<span class="lineNum">     276 </span>                :<span class="lineCov">      98709 :         entry = entry_map;</span>
+<span class="lineNum">     277 </span>                :            : 
+<span class="lineNum">     278 </span>                :<span class="lineCov">     197418 :         *entry++ = SM_DEBUG_ENCODE(1) |</span>
+<span class="lineNum">     279 </span>                :<span class="lineCov">     197418 :             SM_DEBUG_ACTION_ENCODE(maptype) |</span>
+<span class="lineNum">     280 </span>                :<span class="lineCov">      98709 :             SM_DEBUG_SYNCPASS_ENCODE(spa_sync_pass(spa)) |</span>
+<span class="lineNum">     281 </span>                :<span class="lineCov">      98709 :             SM_DEBUG_TXG_ENCODE(dmu_tx_get_txg(tx));</span>
+<span class="lineNum">     282 </span>                :            : 
+<span class="lineNum">     283 </span>                :<span class="lineCov">      98709 :         total = 0;</span>
+<span class="lineNum">     284 </span>                :<span class="lineCov">      98709 :         nodes = avl_numnodes(&amp;rt-&gt;rt_root);</span>
+<span class="lineNum">     285 </span>                :<span class="lineCov">      98709 :         rt_space = range_tree_space(rt);</span>
+<span class="lineNum">     286 </span>        [<span class="branchCov" title="Branch 2 was taken 471533 times"> + </span><span class="branchCov" title="Branch 3 was taken 98709 times"> + </span>]:<span class="lineCov">     570242 :         for (rs = avl_first(t); rs != NULL; rs = AVL_NEXT(t, rs)) {</span>
+<span class="lineNum">     287 </span>                :            :                 uint64_t start;
+<span class="lineNum">     288 </span>                :            : 
+<span class="lineNum">     289 </span>                :<span class="lineCov">     471533 :                 size = (rs-&gt;rs_end - rs-&gt;rs_start) &gt;&gt; sm-&gt;sm_shift;</span>
+<span class="lineNum">     290 </span>                :<span class="lineCov">     471533 :                 start = (rs-&gt;rs_start - sm-&gt;sm_start) &gt;&gt; sm-&gt;sm_shift;</span>
+<span class="lineNum">     291 </span>                :            : 
+<span class="lineNum">     292 </span>                :<span class="lineCov">     471533 :                 total += size &lt;&lt; sm-&gt;sm_shift;</span>
+<span class="lineNum">     293 </span>                :            : 
+<span class="lineNum">     294 </span>        [<span class="branchCov" title="Branch 0 was taken 471533 times"> + </span><span class="branchCov" title="Branch 1 was taken 471533 times"> + </span>]:<span class="lineCov">     943066 :                 while (size != 0) {</span>
+<span class="lineNum">     295 </span>                :            :                         uint64_t run_len;
+<span class="lineNum">     296 </span>                :            : 
+<span class="lineNum">     297 </span>                :<span class="lineCov">     471533 :                         run_len = MIN(size, SM_RUN_MAX);</span>
+<span class="lineNum">     298 </span>                :            : 
+<span class="lineNum">     299 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 471533 times"> + </span>]:<span class="lineCov">     471533 :                         if (entry == entry_map_end) {</span>
+<span class="lineNum">     300 </span>                :<span class="lineNoCov">          0 :                                 mutex_exit(rt-&gt;rt_lock);</span>
+<span class="lineNum">     301 </span>                :<span class="lineNoCov">          0 :                                 dmu_write(os, space_map_object(sm),</span>
+<span class="lineNum">     302 </span>                :<span class="lineNoCov">          0 :                                     sm-&gt;sm_phys-&gt;smp_objsize, sm-&gt;sm_blksz,</span>
+<span class="lineNum">     303 </span>                :            :                                     entry_map, tx);
+<span class="lineNum">     304 </span>                :<span class="lineNoCov">          0 :                                 mutex_enter(rt-&gt;rt_lock);</span>
+<span class="lineNum">     305 </span>                :<span class="lineNoCov">          0 :                                 sm-&gt;sm_phys-&gt;smp_objsize += sm-&gt;sm_blksz;</span>
+<span class="lineNum">     306 </span>                :<span class="lineNoCov">          0 :                                 entry = entry_map;</span>
+<span class="lineNum">     307 </span>                :            :                         }
+<span class="lineNum">     308 </span>                :            : 
+<span class="lineNum">     309 </span>                :<span class="lineCov">    1414599 :                         *entry++ = SM_OFFSET_ENCODE(start) |</span>
+<span class="lineNum">     310 </span>                :<span class="lineCov">     943066 :                             SM_TYPE_ENCODE(maptype) |</span>
+<span class="lineNum">     311 </span>                :<span class="lineCov">     471533 :                             SM_RUN_ENCODE(run_len);</span>
+<span class="lineNum">     312 </span>                :            : 
+<span class="lineNum">     313 </span>                :<span class="lineCov">     471533 :                         start += run_len;</span>
+<span class="lineNum">     314 </span>                :<span class="lineCov">     471533 :                         size -= run_len;</span>
+<span class="lineNum">     315 </span>                :<span class="lineCov">     471533 :                         actual_entries++;</span>
+<span class="lineNum">     316 </span>                :            :                 }
+<span class="lineNum">     317 </span>                :            :         }
+<span class="lineNum">     318 </span>                :            : 
+<span class="lineNum">     319 </span>        [<span class="branchCov" title="Branch 0 was taken 98709 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      98709 :         if (entry != entry_map) {</span>
+<span class="lineNum">     320 </span>                :<span class="lineCov">      98709 :                 size = (entry - entry_map) * sizeof (uint64_t);</span>
+<span class="lineNum">     321 </span>                :<span class="lineCov">      98709 :                 mutex_exit(rt-&gt;rt_lock);</span>
+<span class="lineNum">     322 </span>                :<span class="lineCov">      98709 :                 dmu_write(os, space_map_object(sm), sm-&gt;sm_phys-&gt;smp_objsize,</span>
+<span class="lineNum">     323 </span>                :            :                     size, entry_map, tx);
+<span class="lineNum">     324 </span>                :<span class="lineCov">      98709 :                 mutex_enter(rt-&gt;rt_lock);</span>
+<span class="lineNum">     325 </span>                :<span class="lineCov">      98709 :                 sm-&gt;sm_phys-&gt;smp_objsize += size;</span>
+<span class="lineNum">     326 </span>                :            :         }
+<span class="lineNum">     327 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 98709 times"> + </span>]:<span class="lineCov">      98709 :         ASSERT3U(expected_entries, ==, actual_entries);</span>
+<span class="lineNum">     328 </span>                :            : 
+<span class="lineNum">     329 </span>                :            :         /*
+<span class="lineNum">     330 </span>                :            :          * Ensure that the space_map's accounting wasn't changed
+<span class="lineNum">     331 </span>                :            :          * while we were in the middle of writing it out.
+<span class="lineNum">     332 </span>                :            :          */
+<span class="lineNum">     333 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 98709 times"> + </span>]:<span class="lineCov">      98709 :         VERIFY3U(nodes, ==, avl_numnodes(&amp;rt-&gt;rt_root));</span>
+<span class="lineNum">     334 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 98709 times"> + </span>]:<span class="lineCov">      98709 :         VERIFY3U(range_tree_space(rt), ==, rt_space);</span>
+<span class="lineNum">     335 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 98709 times"> + </span>]:<span class="lineCov">      98709 :         VERIFY3U(range_tree_space(rt), ==, total);</span>
+<span class="lineNum">     336 </span>                :            : 
+<span class="lineNum">     337 </span>                :<span class="lineCov">      98709 :         vmem_free(entry_map, sm-&gt;sm_blksz);</span>
+<span class="lineNum">     338 </span>                :            : }
+<a name="339"><span class="lineNum">     339 </span>                :            : </a>
+<span class="lineNum">     340 </span>                :            : static int
+<span class="lineNum">     341 </span>                :<span class="lineCov">      12785 : space_map_open_impl(space_map_t *sm)</span>
+<span class="lineNum">     342 </span>                :            : {
+<span class="lineNum">     343 </span>                :            :         int error;
+<span class="lineNum">     344 </span>                :            :         u_longlong_t blocks;
+<span class="lineNum">     345 </span>                :            : 
+<span class="lineNum">     346 </span>                :<span class="lineCov">      12785 :         error = dmu_bonus_hold(sm-&gt;sm_os, sm-&gt;sm_object, sm, &amp;sm-&gt;sm_dbuf);</span>
+<span class="lineNum">     347 </span>        [<span class="branchCov" title="Branch 0 was taken 12785 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      12785 :         if (error)</span>
+<span class="lineNum">     348 </span>                :            :                 return (error);
+<span class="lineNum">     349 </span>                :            : 
+<span class="lineNum">     350 </span>                :<span class="lineCov">      12785 :         dmu_object_size_from_db(sm-&gt;sm_dbuf, &amp;sm-&gt;sm_blksz, &amp;blocks);</span>
+<span class="lineNum">     351 </span>                :<span class="lineCov">      12785 :         sm-&gt;sm_phys = sm-&gt;sm_dbuf-&gt;db_data;</span>
+<span class="lineNum">     352 </span>                :<span class="lineCov">      12785 :         return (0);</span>
+<span class="lineNum">     353 </span>                :            : }
+<a name="354"><span class="lineNum">     354 </span>                :            : </a>
+<span class="lineNum">     355 </span>                :            : int
+<span class="lineNum">     356 </span>                :<span class="lineCov">      12785 : space_map_open(space_map_t **smp, objset_t *os, uint64_t object,</span>
+<span class="lineNum">     357 </span>                :            :     uint64_t start, uint64_t size, uint8_t shift, kmutex_t *lp)
+<span class="lineNum">     358 </span>                :            : {
+<span class="lineNum">     359 </span>                :            :         space_map_t *sm;
+<span class="lineNum">     360 </span>                :            :         int error;
+<span class="lineNum">     361 </span>                :            : 
+<span class="lineNum">     362 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 12785 times"> + </span>]:<span class="lineCov">      12785 :         ASSERT(*smp == NULL);</span>
+<span class="lineNum">     363 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 12785 times"> + </span>]:<span class="lineCov">      12785 :         ASSERT(os != NULL);</span>
+<span class="lineNum">     364 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 12785 times"> + </span>]:<span class="lineCov">      12785 :         ASSERT(object != 0);</span>
+<span class="lineNum">     365 </span>                :            : 
+<span class="lineNum">     366 </span>                :<span class="lineCov">      12785 :         sm = kmem_alloc(sizeof (space_map_t), KM_SLEEP);</span>
+<span class="lineNum">     367 </span>                :            : 
+<span class="lineNum">     368 </span>                :<span class="lineCov">      12785 :         sm-&gt;sm_start = start;</span>
+<span class="lineNum">     369 </span>                :<span class="lineCov">      12785 :         sm-&gt;sm_size = size;</span>
+<span class="lineNum">     370 </span>                :<span class="lineCov">      12785 :         sm-&gt;sm_shift = shift;</span>
+<span class="lineNum">     371 </span>                :<span class="lineCov">      12785 :         sm-&gt;sm_lock = lp;</span>
+<span class="lineNum">     372 </span>                :<span class="lineCov">      12785 :         sm-&gt;sm_os = os;</span>
+<span class="lineNum">     373 </span>                :<span class="lineCov">      12785 :         sm-&gt;sm_object = object;</span>
+<span class="lineNum">     374 </span>                :<span class="lineCov">      12785 :         sm-&gt;sm_length = 0;</span>
+<span class="lineNum">     375 </span>                :<span class="lineCov">      12785 :         sm-&gt;sm_alloc = 0;</span>
+<span class="lineNum">     376 </span>                :<span class="lineCov">      12785 :         sm-&gt;sm_blksz = 0;</span>
+<span class="lineNum">     377 </span>                :<span class="lineCov">      12785 :         sm-&gt;sm_dbuf = NULL;</span>
+<span class="lineNum">     378 </span>                :<span class="lineCov">      12785 :         sm-&gt;sm_phys = NULL;</span>
+<span class="lineNum">     379 </span>                :            : 
+<span class="lineNum">     380 </span>                :<span class="lineCov">      12785 :         error = space_map_open_impl(sm);</span>
+<span class="lineNum">     381 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 12785 times"> + </span>]:<span class="lineCov">      12785 :         if (error != 0) {</span>
+<span class="lineNum">     382 </span>                :<span class="lineNoCov">          0 :                 space_map_close(sm);</span>
+<span class="lineNum">     383 </span>                :<span class="lineNoCov">          0 :                 return (error);</span>
+<span class="lineNum">     384 </span>                :            :         }
+<span class="lineNum">     385 </span>                :            : 
+<span class="lineNum">     386 </span>                :<span class="lineCov">      12785 :         *smp = sm;</span>
+<span class="lineNum">     387 </span>                :            : 
+<span class="lineNum">     388 </span>                :<span class="lineCov">      12785 :         return (0);</span>
+<span class="lineNum">     389 </span>                :            : }
+<a name="390"><span class="lineNum">     390 </span>                :            : </a>
+<span class="lineNum">     391 </span>                :            : void
+<span class="lineNum">     392 </span>                :<span class="lineCov">      57753 : space_map_close(space_map_t *sm)</span>
+<span class="lineNum">     393 </span>                :            : {
+<span class="lineNum">     394 </span>        [<span class="branchCov" title="Branch 0 was taken 12776 times"> + </span><span class="branchCov" title="Branch 1 was taken 44977 times"> + </span>]:<span class="lineCov">      57753 :         if (sm == NULL)</span>
+<span class="lineNum">     395 </span>                :            :                 return;
+<span class="lineNum">     396 </span>                :            : 
+<span class="lineNum">     397 </span>        [<span class="branchCov" title="Branch 0 was taken 12776 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      12776 :         if (sm-&gt;sm_dbuf != NULL)</span>
+<span class="lineNum">     398 </span>                :<span class="lineCov">      12776 :                 dmu_buf_rele(sm-&gt;sm_dbuf, sm);</span>
+<span class="lineNum">     399 </span>                :<span class="lineCov">      12776 :         sm-&gt;sm_dbuf = NULL;</span>
+<span class="lineNum">     400 </span>                :<span class="lineCov">      12776 :         sm-&gt;sm_phys = NULL;</span>
+<span class="lineNum">     401 </span>                :            : 
+<span class="lineNum">     402 </span>                :<span class="lineCov">      12776 :         kmem_free(sm, sizeof (*sm));</span>
+<span class="lineNum">     403 </span>                :            : }
+<a name="404"><span class="lineNum">     404 </span>                :            : </a>
+<span class="lineNum">     405 </span>                :            : void
+<span class="lineNum">     406 </span>                :<span class="lineCov">        839 : space_map_truncate(space_map_t *sm, dmu_tx_t *tx)</span>
+<span class="lineNum">     407 </span>                :            : {
+<span class="lineNum">     408 </span>                :<span class="lineCov">        839 :         objset_t *os = sm-&gt;sm_os;</span>
+<span class="lineNum">     409 </span>                :<span class="lineCov">        839 :         spa_t *spa = dmu_objset_spa(os);</span>
+<span class="lineNum">     410 </span>                :            :         dmu_object_info_t doi;
+<span class="lineNum">     411 </span>                :            : 
+<span class="lineNum">     412 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 839 times"> + </span>]:<span class="lineCov">        839 :         ASSERT(dsl_pool_sync_context(dmu_objset_pool(os)));</span>
+<span class="lineNum">     413 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 839 times"> + </span>]:<span class="lineCov">        839 :         ASSERT(dmu_tx_is_syncing(tx));</span>
+<span class="lineNum">     414 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 839 times"> + </span>]:<span class="lineCov">        839 :         VERIFY3U(dmu_tx_get_txg(tx), &lt;=, spa_final_dirty_txg(spa));</span>
+<span class="lineNum">     415 </span>                :            : 
+<span class="lineNum">     416 </span>                :<span class="lineCov">        839 :         dmu_object_info_from_db(sm-&gt;sm_dbuf, &amp;doi);</span>
+<span class="lineNum">     417 </span>                :            : 
+<span class="lineNum">     418 </span>                :            :         /*
+<span class="lineNum">     419 </span>                :            :          * If the space map has the wrong bonus size (because
+<span class="lineNum">     420 </span>                :            :          * SPA_FEATURE_SPACEMAP_HISTOGRAM has recently been enabled), or
+<span class="lineNum">     421 </span>                :            :          * the wrong block size (because space_map_blksz has changed),
+<span class="lineNum">     422 </span>                :            :          * free and re-allocate its object with the updated sizes.
+<span class="lineNum">     423 </span>                :            :          *
+<span class="lineNum">     424 </span>                :            :          * Otherwise, just truncate the current object.
+<span class="lineNum">     425 </span>                :            :          */
+<span class="lineNum">     426 </span>[<span class="branchCov" title="Branch 1 was taken 839 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchCov" title="Branch 3 was taken 839 times"> + </span><span class="branchNoCov" title="Branch 4 was not taken"> - </span>]:<span class="lineCov">        839 :         if ((spa_feature_is_enabled(spa, SPA_FEATURE_SPACEMAP_HISTOGRAM) &amp;&amp;</span>
+<span class="lineNum">     427 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 839 times"> + </span>]:<span class="lineCov">        839 :             doi.doi_bonus_size != sizeof (space_map_phys_t)) ||</span>
+<span class="lineNum">     428 </span>                :<span class="lineCov">        839 :             doi.doi_data_block_size != space_map_blksz) {</span>
+<span class="lineNum">     429 </span>                :<span class="lineNoCov">          0 :                 zfs_dbgmsg(&quot;txg %llu, spa %s, sm %p, reallocating &quot;</span>
+<span class="lineNum">     430 </span>                :            :                     &quot;object[%llu]: old bonus %u, old blocksz %u&quot;,
+<span class="lineNum">     431 </span>                :            :                     dmu_tx_get_txg(tx), spa_name(spa), sm, sm-&gt;sm_object,
+<span class="lineNum">     432 </span>                :            :                     doi.doi_bonus_size, doi.doi_data_block_size);
+<span class="lineNum">     433 </span>                :            : 
+<span class="lineNum">     434 </span>                :<span class="lineNoCov">          0 :                 space_map_free(sm, tx);</span>
+<span class="lineNum">     435 </span>                :<span class="lineNoCov">          0 :                 dmu_buf_rele(sm-&gt;sm_dbuf, sm);</span>
+<span class="lineNum">     436 </span>                :            : 
+<span class="lineNum">     437 </span>                :<span class="lineNoCov">          0 :                 sm-&gt;sm_object = space_map_alloc(sm-&gt;sm_os, tx);</span>
+<span class="lineNum">     438 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 VERIFY0(space_map_open_impl(sm));</span>
+<span class="lineNum">     439 </span>                :            :         } else {
+<span class="lineNum">     440 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 839 times"> + </span>]:<span class="lineCov">        839 :                 VERIFY0(dmu_free_range(os, space_map_object(sm), 0, -1ULL, tx));</span>
+<span class="lineNum">     441 </span>                :            : 
+<span class="lineNum">     442 </span>                :            :                 /*
+<span class="lineNum">     443 </span>                :            :                  * If the spacemap is reallocated, its histogram
+<span class="lineNum">     444 </span>                :            :                  * will be reset.  Do the same in the common case so that
+<span class="lineNum">     445 </span>                :            :                  * bugs related to the uncommon case do not go unnoticed.
+<span class="lineNum">     446 </span>                :            :                  */
+<span class="lineNum">     447 </span>                :<span class="lineCov">        839 :                 bzero(sm-&gt;sm_phys-&gt;smp_histogram,</span>
+<span class="lineNum">     448 </span>                :            :                     sizeof (sm-&gt;sm_phys-&gt;smp_histogram));
+<span class="lineNum">     449 </span>                :            :         }
+<span class="lineNum">     450 </span>                :            : 
+<span class="lineNum">     451 </span>                :<span class="lineCov">        839 :         dmu_buf_will_dirty(sm-&gt;sm_dbuf, tx);</span>
+<span class="lineNum">     452 </span>                :<span class="lineCov">        839 :         sm-&gt;sm_phys-&gt;smp_objsize = 0;</span>
+<span class="lineNum">     453 </span>                :<span class="lineCov">        839 :         sm-&gt;sm_phys-&gt;smp_alloc = 0;</span>
+<span class="lineNum">     454 </span>                :<span class="lineCov">        839 : }</span>
+<span class="lineNum">     455 </span>                :            : 
+<span class="lineNum">     456 </span>                :            : /*
+<span class="lineNum">     457 </span>                :            :  * Update the in-core space_map allocation and length values.
+<a name="458"><span class="lineNum">     458 </span>                :            :  */</a>
+<span class="lineNum">     459 </span>                :            : void
+<span class="lineNum">     460 </span>                :<span class="lineCov">     101269 : space_map_update(space_map_t *sm)</span>
+<span class="lineNum">     461 </span>                :            : {
+<span class="lineNum">     462 </span>        [<span class="branchCov" title="Branch 0 was taken 70912 times"> + </span><span class="branchCov" title="Branch 1 was taken 30357 times"> + </span>]:<span class="lineCov">     101269 :         if (sm == NULL)</span>
+<span class="lineNum">     463 </span>                :            :                 return;
+<span class="lineNum">     464 </span>                :            : 
+<span class="lineNum">     465 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 70912 times"> + </span>]:<span class="lineCov">      70912 :         ASSERT(MUTEX_HELD(sm-&gt;sm_lock));</span>
+<span class="lineNum">     466 </span>                :            : 
+<span class="lineNum">     467 </span>                :<span class="lineCov">      70912 :         sm-&gt;sm_alloc = sm-&gt;sm_phys-&gt;smp_alloc;</span>
+<span class="lineNum">     468 </span>                :<span class="lineCov">      70912 :         sm-&gt;sm_length = sm-&gt;sm_phys-&gt;smp_objsize;</span>
+<span class="lineNum">     469 </span>                :            : }
+<a name="470"><span class="lineNum">     470 </span>                :            : </a>
+<span class="lineNum">     471 </span>                :            : uint64_t
+<span class="lineNum">     472 </span>                :<span class="lineCov">        814 : space_map_alloc(objset_t *os, dmu_tx_t *tx)</span>
+<span class="lineNum">     473 </span>                :            : {
+<span class="lineNum">     474 </span>                :<span class="lineCov">        814 :         spa_t *spa = dmu_objset_spa(os);</span>
+<span class="lineNum">     475 </span>                :            :         uint64_t object;
+<span class="lineNum">     476 </span>                :            :         int bonuslen;
+<span class="lineNum">     477 </span>                :            : 
+<span class="lineNum">     478 </span>        [<span class="branchCov" title="Branch 1 was taken 801 times"> + </span><span class="branchCov" title="Branch 2 was taken 13 times"> + </span>]:<span class="lineCov">        814 :         if (spa_feature_is_enabled(spa, SPA_FEATURE_SPACEMAP_HISTOGRAM)) {</span>
+<span class="lineNum">     479 </span>                :<span class="lineCov">        801 :                 spa_feature_incr(spa, SPA_FEATURE_SPACEMAP_HISTOGRAM, tx);</span>
+<span class="lineNum">     480 </span>                :<span class="lineCov">        801 :                 bonuslen = sizeof (space_map_phys_t);</span>
+<span class="lineNum">     481 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 801 times"> + </span>]:<span class="lineCov">        801 :                 ASSERT3U(bonuslen, &lt;=, dmu_bonus_max());</span>
+<span class="lineNum">     482 </span>                :            :         } else {
+<span class="lineNum">     483 </span>                :            :                 bonuslen = SPACE_MAP_SIZE_V0;
+<span class="lineNum">     484 </span>                :            :         }
+<span class="lineNum">     485 </span>                :            : 
+<span class="lineNum">     486 </span>                :<span class="lineCov">        814 :         object = dmu_object_alloc(os,</span>
+<span class="lineNum">     487 </span>                :            :             DMU_OT_SPACE_MAP, space_map_blksz,
+<span class="lineNum">     488 </span>                :            :             DMU_OT_SPACE_MAP_HEADER, bonuslen, tx);
+<span class="lineNum">     489 </span>                :            : 
+<span class="lineNum">     490 </span>                :<span class="lineCov">        814 :         return (object);</span>
+<span class="lineNum">     491 </span>                :            : }
+<a name="492"><span class="lineNum">     492 </span>                :            : </a>
+<span class="lineNum">     493 </span>                :            : void
+<span class="lineNum">     494 </span>                :<span class="lineCov">         14 : space_map_free(space_map_t *sm, dmu_tx_t *tx)</span>
+<span class="lineNum">     495 </span>                :            : {
+<span class="lineNum">     496 </span>                :            :         spa_t *spa;
+<span class="lineNum">     497 </span>                :            : 
+<span class="lineNum">     498 </span>        [<span class="branchCov" title="Branch 0 was taken 13 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">         14 :         if (sm == NULL)</span>
+<span class="lineNum">     499 </span>                :            :                 return;
+<span class="lineNum">     500 </span>                :            : 
+<span class="lineNum">     501 </span>                :<span class="lineCov">         13 :         spa = dmu_objset_spa(sm-&gt;sm_os);</span>
+<span class="lineNum">     502 </span>        [<span class="branchCov" title="Branch 1 was taken 13 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">         13 :         if (spa_feature_is_enabled(spa, SPA_FEATURE_SPACEMAP_HISTOGRAM)) {</span>
+<span class="lineNum">     503 </span>                :            :                 dmu_object_info_t doi;
+<span class="lineNum">     504 </span>                :            : 
+<span class="lineNum">     505 </span>                :<span class="lineCov">         13 :                 dmu_object_info_from_db(sm-&gt;sm_dbuf, &amp;doi);</span>
+<span class="lineNum">     506 </span>        [<span class="branchCov" title="Branch 0 was taken 13 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">         13 :                 if (doi.doi_bonus_size != SPACE_MAP_SIZE_V0) {</span>
+<span class="lineNum">     507 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 13 times"> + </span>]:<span class="lineCov">         13 :                         VERIFY(spa_feature_is_active(spa,</span>
+<span class="lineNum">     508 </span>                :            :                             SPA_FEATURE_SPACEMAP_HISTOGRAM));
+<span class="lineNum">     509 </span>                :<span class="lineCov">         13 :                         spa_feature_decr(spa,</span>
+<span class="lineNum">     510 </span>                :            :                             SPA_FEATURE_SPACEMAP_HISTOGRAM, tx);
+<span class="lineNum">     511 </span>                :            :                 }
+<span class="lineNum">     512 </span>                :            :         }
+<span class="lineNum">     513 </span>                :            : 
+<span class="lineNum">     514 </span>        [<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 13 times"> + </span>]:<span class="lineCov">         13 :         VERIFY3U(dmu_object_free(sm-&gt;sm_os, space_map_object(sm), tx), ==, 0);</span>
+<span class="lineNum">     515 </span>                :<span class="lineCov">         13 :         sm-&gt;sm_object = 0;</span>
+<span class="lineNum">     516 </span>                :            : }
+<a name="517"><span class="lineNum">     517 </span>                :            : </a>
+<span class="lineNum">     518 </span>                :            : uint64_t
+<span class="lineNum">     519 </span>                :<span class="lineCov">     771774 : space_map_object(space_map_t *sm)</span>
+<span class="lineNum">     520 </span>                :            : {
+<span class="lineNum">     521 </span>        [<span class="branchCov" title="Branch 0 was taken 769315 times"> + </span><span class="branchCov" title="Branch 1 was taken 2459 times"> + </span>]:<span class="lineCov">     771774 :         return (sm != NULL ? sm-&gt;sm_object : 0);</span>
+<span class="lineNum">     522 </span>                :            : }
+<span class="lineNum">     523 </span>                :            : 
+<span class="lineNum">     524 </span>                :            : /*
+<span class="lineNum">     525 </span>                :            :  * Returns the already synced, on-disk allocated space.
+<a name="526"><span class="lineNum">     526 </span>                :            :  */</a>
+<span class="lineNum">     527 </span>                :            : uint64_t
+<span class="lineNum">     528 </span>                :<span class="lineCov">    3148717 : space_map_allocated(space_map_t *sm)</span>
+<span class="lineNum">     529 </span>                :            : {
+<span class="lineNum">     530 </span>        [<span class="branchCov" title="Branch 0 was taken 3077010 times"> + </span><span class="branchCov" title="Branch 1 was taken 71707 times"> + </span>]:<span class="lineCov">    3148717 :         return (sm != NULL ? sm-&gt;sm_alloc : 0);</span>
+<span class="lineNum">     531 </span>                :            : }
+<span class="lineNum">     532 </span>                :            : 
+<span class="lineNum">     533 </span>                :            : /*
+<span class="lineNum">     534 </span>                :            :  * Returns the already synced, on-disk length;
+<a name="535"><span class="lineNum">     535 </span>                :            :  */</a>
+<span class="lineNum">     536 </span>                :            : uint64_t
+<span class="lineNum">     537 </span>                :<span class="lineCov">      25128 : space_map_length(space_map_t *sm)</span>
+<span class="lineNum">     538 </span>                :            : {
+<span class="lineNum">     539 </span>        [<span class="branchCov" title="Branch 0 was taken 25128 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      25128 :         return (sm != NULL ? sm-&gt;sm_length : 0);</span>
+<span class="lineNum">     540 </span>                :            : }
+<span class="lineNum">     541 </span>                :            : 
+<span class="lineNum">     542 </span>                :            : /*
+<span class="lineNum">     543 </span>                :            :  * Returns the allocated space that is currently syncing.
+<a name="544"><span class="lineNum">     544 </span>                :            :  */</a>
+<span class="lineNum">     545 </span>                :            : int64_t
+<span class="lineNum">     546 </span>                :<span class="lineCov">    1180719 : space_map_alloc_delta(space_map_t *sm)</span>
+<span class="lineNum">     547 </span>                :            : {
+<span class="lineNum">     548 </span>        [<span class="branchCov" title="Branch 0 was taken 1150361 times"> + </span><span class="branchCov" title="Branch 1 was taken 30358 times"> + </span>]:<span class="lineCov">    1180719 :         if (sm == NULL)</span>
+<span class="lineNum">     549 </span>                :            :                 return (0);
+<span class="lineNum">     550 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1150361 times"> + </span>]:<span class="lineCov">    1150361 :         ASSERT(sm-&gt;sm_dbuf != NULL);</span>
+<span class="lineNum">     551 </span>                :<span class="lineCov">    1150361 :         return (sm-&gt;sm_phys-&gt;smp_alloc - space_map_allocated(sm));</span>
+<span class="lineNum">     552 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

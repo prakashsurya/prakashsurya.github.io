@@ -1,0 +1,673 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/nvpair/fnvpair.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/nvpair</a> - fnvpair.c<span style="font-size: 80%;"> (source / <a href="fnvpair.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">85</td>
+            <td class="headerCovTableEntry">192</td>
+            <td class="headerCovTableEntryLo">44.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">27</td>
+            <td class="headerCovTableEntry">63</td>
+            <td class="headerCovTableEntryLo">42.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">26</td>
+            <td class="headerCovTableEntry">120</td>
+            <td class="headerCovTableEntryLo">21.7 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : 
+<span class="lineNum">      22 </span>                :            : /*
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2012 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : #include &lt;sys/nvpair.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/kmem.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/debug.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/param.h&gt;
+<span class="lineNum">      30 </span>                :            : #ifndef _KERNEL
+<span class="lineNum">      31 </span>                :            : #include &lt;stdlib.h&gt;
+<span class="lineNum">      32 </span>                :            : #endif
+<span class="lineNum">      33 </span>                :            : 
+<span class="lineNum">      34 </span>                :            : /*
+<span class="lineNum">      35 </span>                :            :  * &quot;Force&quot; nvlist wrapper.
+<span class="lineNum">      36 </span>                :            :  *
+<span class="lineNum">      37 </span>                :            :  * These functions wrap the nvlist_* functions with assertions that assume
+<span class="lineNum">      38 </span>                :            :  * the operation is successful.  This allows the caller's code to be much
+<span class="lineNum">      39 </span>                :            :  * more readable, especially for the fnvlist_lookup_* and fnvpair_value_*
+<span class="lineNum">      40 </span>                :            :  * functions, which can return the requested value (rather than filling in
+<span class="lineNum">      41 </span>                :            :  * a pointer).
+<span class="lineNum">      42 </span>                :            :  *
+<span class="lineNum">      43 </span>                :            :  * These functions use NV_UNIQUE_NAME, encoding NV_ENCODE_NATIVE, and allocate
+<span class="lineNum">      44 </span>                :            :  * with KM_SLEEP.
+<span class="lineNum">      45 </span>                :            :  *
+<span class="lineNum">      46 </span>                :            :  * More wrappers should be added as needed -- for example
+<span class="lineNum">      47 </span>                :            :  * nvlist_lookup_*_array and nvpair_value_*_array.
+<span class="lineNum">      48 </span>                :            :  */
+<a name="49"><span class="lineNum">      49 </span>                :            : </a>
+<span class="lineNum">      50 </span>                :            : nvlist_t *
+<span class="lineNum">      51 </span>                :<span class="lineCov">     165537 : fnvlist_alloc(void)</span>
+<span class="lineNum">      52 </span>                :            : {
+<span class="lineNum">      53 </span>                :            :         nvlist_t *nvl;
+<span class="lineNum">      54 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 165530 times"> + </span>]:<span class="lineCov">     165537 :         VERIFY0(nvlist_alloc(&amp;nvl, NV_UNIQUE_NAME, KM_SLEEP));</span>
+<span class="lineNum">      55 </span>                :<span class="lineCov">     165530 :         return (nvl);</span>
+<span class="lineNum">      56 </span>                :            : }
+<a name="57"><span class="lineNum">      57 </span>                :            : </a>
+<span class="lineNum">      58 </span>                :            : void
+<span class="lineNum">      59 </span>                :<span class="lineCov">      33431 : fnvlist_free(nvlist_t *nvl)</span>
+<span class="lineNum">      60 </span>                :            : {
+<span class="lineNum">      61 </span>                :<span class="lineCov">      33431 :         nvlist_free(nvl);</span>
+<span class="lineNum">      62 </span>                :<span class="lineCov">      33431 : }</span>
+<a name="63"><span class="lineNum">      63 </span>                :            : </a>
+<span class="lineNum">      64 </span>                :            : size_t
+<span class="lineNum">      65 </span>                :<span class="lineNoCov">          0 : fnvlist_size(nvlist_t *nvl)</span>
+<span class="lineNum">      66 </span>                :            : {
+<span class="lineNum">      67 </span>                :            :         size_t size;
+<span class="lineNum">      68 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_size(nvl, &amp;size, NV_ENCODE_NATIVE));</span>
+<span class="lineNum">      69 </span>                :<span class="lineNoCov">          0 :         return (size);</span>
+<span class="lineNum">      70 </span>                :            : }
+<span class="lineNum">      71 </span>                :            : 
+<span class="lineNum">      72 </span>                :            : /*
+<span class="lineNum">      73 </span>                :            :  * Returns allocated buffer of size *sizep.  Caller must free the buffer with
+<span class="lineNum">      74 </span>                :            :  * fnvlist_pack_free().
+<a name="75"><span class="lineNum">      75 </span>                :            :  */</a>
+<span class="lineNum">      76 </span>                :            : char *
+<span class="lineNum">      77 </span>                :<span class="lineCov">       9242 : fnvlist_pack(nvlist_t *nvl, size_t *sizep)</span>
+<span class="lineNum">      78 </span>                :            : {
+<span class="lineNum">      79 </span>                :<span class="lineCov">       9242 :         char *packed = 0;</span>
+<span class="lineNum">      80 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 9242 times"> + </span>]:<span class="lineCov">       9242 :         VERIFY3U(nvlist_pack(nvl, &amp;packed, sizep, NV_ENCODE_NATIVE,</span>
+<span class="lineNum">      81 </span>                :            :             KM_SLEEP), ==, 0);
+<span class="lineNum">      82 </span>                :<span class="lineCov">       9242 :         return (packed);</span>
+<span class="lineNum">      83 </span>                :            : }
+<span class="lineNum">      84 </span>                :            : 
+<a name="85"><span class="lineNum">      85 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">      86 </span>                :            : void
+<span class="lineNum">      87 </span>                :<span class="lineCov">      17447 : fnvlist_pack_free(char *pack, size_t size)</span>
+<span class="lineNum">      88 </span>                :            : {
+<span class="lineNum">      89 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">      90 </span>                :            :         kmem_free(pack, size);
+<span class="lineNum">      91 </span>                :            : #else
+<span class="lineNum">      92 </span>                :<span class="lineCov">      17447 :         free(pack);</span>
+<span class="lineNum">      93 </span>                :            : #endif
+<span class="lineNum">      94 </span>                :<span class="lineCov">      17447 : }</span>
+<a name="95"><span class="lineNum">      95 </span>                :            : </a>
+<span class="lineNum">      96 </span>                :            : nvlist_t *
+<span class="lineNum">      97 </span>                :<span class="lineCov">       4863 : fnvlist_unpack(char *buf, size_t buflen)</span>
+<span class="lineNum">      98 </span>                :            : {
+<span class="lineNum">      99 </span>                :            :         nvlist_t *rv;
+<span class="lineNum">     100 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 4863 times"> + </span>]:<span class="lineCov">       4863 :         VERIFY0(nvlist_unpack(buf, buflen, &amp;rv, KM_SLEEP));</span>
+<span class="lineNum">     101 </span>                :<span class="lineCov">       4863 :         return (rv);</span>
+<span class="lineNum">     102 </span>                :            : }
+<a name="103"><span class="lineNum">     103 </span>                :            : </a>
+<span class="lineNum">     104 </span>                :            : nvlist_t *
+<span class="lineNum">     105 </span>                :<span class="lineCov">       9208 : fnvlist_dup(nvlist_t *nvl)</span>
+<span class="lineNum">     106 </span>                :            : {
+<span class="lineNum">     107 </span>                :            :         nvlist_t *rv;
+<span class="lineNum">     108 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 9208 times"> + </span>]:<span class="lineCov">       9208 :         VERIFY0(nvlist_dup(nvl, &amp;rv, KM_SLEEP));</span>
+<span class="lineNum">     109 </span>                :<span class="lineCov">       9208 :         return (rv);</span>
+<span class="lineNum">     110 </span>                :            : }
+<a name="111"><span class="lineNum">     111 </span>                :            : </a>
+<span class="lineNum">     112 </span>                :            : void
+<span class="lineNum">     113 </span>                :<span class="lineCov">       1302 : fnvlist_merge(nvlist_t *dst, nvlist_t *src)</span>
+<span class="lineNum">     114 </span>                :            : {
+<span class="lineNum">     115 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1302 times"> + </span>]:<span class="lineCov">       1302 :         VERIFY0(nvlist_merge(dst, src, KM_SLEEP));</span>
+<span class="lineNum">     116 </span>                :<span class="lineCov">       1302 : }</span>
+<a name="117"><span class="lineNum">     117 </span>                :            : </a>
+<span class="lineNum">     118 </span>                :            : size_t
+<span class="lineNum">     119 </span>                :<span class="lineCov">      10447 : fnvlist_num_pairs(nvlist_t *nvl)</span>
+<span class="lineNum">     120 </span>                :            : {
+<span class="lineNum">     121 </span>                :<span class="lineCov">      10447 :         size_t count = 0;</span>
+<span class="lineNum">     122 </span>                :            :         nvpair_t *pair;
+<span class="lineNum">     123 </span>                :            : 
+<span class="lineNum">     124 </span>        [<span class="branchCov" title="Branch 1 was taken 39471 times"> + </span><span class="branchCov" title="Branch 2 was taken 10435 times"> + </span>]:<span class="lineCov">      49916 :         for (pair = nvlist_next_nvpair(nvl, 0); pair != NULL;</span>
+<span class="lineNum">     125 </span>                :<span class="lineCov">      39471 :             pair = nvlist_next_nvpair(nvl, pair))</span>
+<span class="lineNum">     126 </span>                :<span class="lineCov">      39471 :                 count++;</span>
+<span class="lineNum">     127 </span>                :<span class="lineCov">      10435 :         return (count);</span>
+<span class="lineNum">     128 </span>                :            : }
+<a name="129"><span class="lineNum">     129 </span>                :            : </a>
+<span class="lineNum">     130 </span>                :            : void
+<span class="lineNum">     131 </span>                :<span class="lineCov">      18490 : fnvlist_add_boolean(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     132 </span>                :            : {
+<span class="lineNum">     133 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 18490 times"> + </span>]:<span class="lineCov">      18490 :         VERIFY0(nvlist_add_boolean(nvl, name));</span>
+<span class="lineNum">     134 </span>                :<span class="lineCov">      18490 : }</span>
+<a name="135"><span class="lineNum">     135 </span>                :            : </a>
+<span class="lineNum">     136 </span>                :            : void
+<span class="lineNum">     137 </span>                :<span class="lineCov">       1099 : fnvlist_add_boolean_value(nvlist_t *nvl, const char *name, boolean_t val)</span>
+<span class="lineNum">     138 </span>                :            : {
+<span class="lineNum">     139 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1099 times"> + </span>]:<span class="lineCov">       1099 :         VERIFY0(nvlist_add_boolean_value(nvl, name, val));</span>
+<span class="lineNum">     140 </span>                :<span class="lineCov">       1099 : }</span>
+<a name="141"><span class="lineNum">     141 </span>                :            : </a>
+<span class="lineNum">     142 </span>                :            : void
+<span class="lineNum">     143 </span>                :<span class="lineNoCov">          0 : fnvlist_add_byte(nvlist_t *nvl, const char *name, uchar_t val)</span>
+<span class="lineNum">     144 </span>                :            : {
+<span class="lineNum">     145 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_byte(nvl, name, val));</span>
+<span class="lineNum">     146 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="147"><span class="lineNum">     147 </span>                :            : </a>
+<span class="lineNum">     148 </span>                :            : void
+<span class="lineNum">     149 </span>                :<span class="lineNoCov">          0 : fnvlist_add_int8(nvlist_t *nvl, const char *name, int8_t val)</span>
+<span class="lineNum">     150 </span>                :            : {
+<span class="lineNum">     151 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_int8(nvl, name, val));</span>
+<span class="lineNum">     152 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="153"><span class="lineNum">     153 </span>                :            : </a>
+<span class="lineNum">     154 </span>                :            : void
+<span class="lineNum">     155 </span>                :<span class="lineNoCov">          0 : fnvlist_add_uint8(nvlist_t *nvl, const char *name, uint8_t val)</span>
+<span class="lineNum">     156 </span>                :            : {
+<span class="lineNum">     157 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_uint8(nvl, name, val));</span>
+<span class="lineNum">     158 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="159"><span class="lineNum">     159 </span>                :            : </a>
+<span class="lineNum">     160 </span>                :            : void
+<span class="lineNum">     161 </span>                :<span class="lineNoCov">          0 : fnvlist_add_int16(nvlist_t *nvl, const char *name, int16_t val)</span>
+<span class="lineNum">     162 </span>                :            : {
+<span class="lineNum">     163 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_int16(nvl, name, val));</span>
+<span class="lineNum">     164 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="165"><span class="lineNum">     165 </span>                :            : </a>
+<span class="lineNum">     166 </span>                :            : void
+<span class="lineNum">     167 </span>                :<span class="lineNoCov">          0 : fnvlist_add_uint16(nvlist_t *nvl, const char *name, uint16_t val)</span>
+<span class="lineNum">     168 </span>                :            : {
+<span class="lineNum">     169 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_uint16(nvl, name, val));</span>
+<span class="lineNum">     170 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="171"><span class="lineNum">     171 </span>                :            : </a>
+<span class="lineNum">     172 </span>                :            : void
+<span class="lineNum">     173 </span>                :<span class="lineCov">       1747 : fnvlist_add_int32(nvlist_t *nvl, const char *name, int32_t val)</span>
+<span class="lineNum">     174 </span>                :            : {
+<span class="lineNum">     175 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1747 times"> + </span>]:<span class="lineCov">       1747 :         VERIFY0(nvlist_add_int32(nvl, name, val));</span>
+<span class="lineNum">     176 </span>                :<span class="lineCov">       1747 : }</span>
+<a name="177"><span class="lineNum">     177 </span>                :            : </a>
+<span class="lineNum">     178 </span>                :            : void
+<span class="lineNum">     179 </span>                :<span class="lineNoCov">          0 : fnvlist_add_uint32(nvlist_t *nvl, const char *name, uint32_t val)</span>
+<span class="lineNum">     180 </span>                :            : {
+<span class="lineNum">     181 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_uint32(nvl, name, val));</span>
+<span class="lineNum">     182 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="183"><span class="lineNum">     183 </span>                :            : </a>
+<span class="lineNum">     184 </span>                :            : void
+<span class="lineNum">     185 </span>                :<span class="lineNoCov">          0 : fnvlist_add_int64(nvlist_t *nvl, const char *name, int64_t val)</span>
+<span class="lineNum">     186 </span>                :            : {
+<span class="lineNum">     187 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_int64(nvl, name, val));</span>
+<span class="lineNum">     188 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="189"><span class="lineNum">     189 </span>                :            : </a>
+<span class="lineNum">     190 </span>                :            : void
+<span class="lineNum">     191 </span>                :<span class="lineCov">     492478 : fnvlist_add_uint64(nvlist_t *nvl, const char *name, uint64_t val)</span>
+<span class="lineNum">     192 </span>                :            : {
+<span class="lineNum">     193 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 492471 times"> + </span>]:<span class="lineCov">     492478 :         VERIFY0(nvlist_add_uint64(nvl, name, val));</span>
+<span class="lineNum">     194 </span>                :<span class="lineCov">     492471 : }</span>
+<a name="195"><span class="lineNum">     195 </span>                :            : </a>
+<span class="lineNum">     196 </span>                :            : void
+<span class="lineNum">     197 </span>                :<span class="lineCov">     259862 : fnvlist_add_string(nvlist_t *nvl, const char *name, const char *val)</span>
+<span class="lineNum">     198 </span>                :            : {
+<span class="lineNum">     199 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 259862 times"> + </span>]:<span class="lineCov">     259862 :         VERIFY0(nvlist_add_string(nvl, name, val));</span>
+<span class="lineNum">     200 </span>                :<span class="lineCov">     259862 : }</span>
+<a name="201"><span class="lineNum">     201 </span>                :            : </a>
+<span class="lineNum">     202 </span>                :            : void
+<span class="lineNum">     203 </span>                :<span class="lineCov">      27101 : fnvlist_add_nvlist(nvlist_t *nvl, const char *name, nvlist_t *val)</span>
+<span class="lineNum">     204 </span>                :            : {
+<span class="lineNum">     205 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 27101 times"> + </span>]:<span class="lineCov">      27101 :         VERIFY0(nvlist_add_nvlist(nvl, name, val));</span>
+<span class="lineNum">     206 </span>                :<span class="lineCov">      27101 : }</span>
+<a name="207"><span class="lineNum">     207 </span>                :            : </a>
+<span class="lineNum">     208 </span>                :            : void
+<span class="lineNum">     209 </span>                :<span class="lineCov">         24 : fnvlist_add_nvpair(nvlist_t *nvl, nvpair_t *pair)</span>
+<span class="lineNum">     210 </span>                :            : {
+<span class="lineNum">     211 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 24 times"> + </span>]:<span class="lineCov">         24 :         VERIFY0(nvlist_add_nvpair(nvl, pair));</span>
+<span class="lineNum">     212 </span>                :<span class="lineCov">         24 : }</span>
+<a name="213"><span class="lineNum">     213 </span>                :            : </a>
+<span class="lineNum">     214 </span>                :            : void
+<span class="lineNum">     215 </span>                :<span class="lineNoCov">          0 : fnvlist_add_boolean_array(nvlist_t *nvl, const char *name,</span>
+<span class="lineNum">     216 </span>                :            :     boolean_t *val, uint_t n)
+<span class="lineNum">     217 </span>                :            : {
+<span class="lineNum">     218 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_boolean_array(nvl, name, val, n));</span>
+<span class="lineNum">     219 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="220"><span class="lineNum">     220 </span>                :            : </a>
+<span class="lineNum">     221 </span>                :            : void
+<span class="lineNum">     222 </span>                :<span class="lineCov">         33 : fnvlist_add_byte_array(nvlist_t *nvl, const char *name, uchar_t *val, uint_t n)</span>
+<span class="lineNum">     223 </span>                :            : {
+<span class="lineNum">     224 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 33 times"> + </span>]:<span class="lineCov">         33 :         VERIFY0(nvlist_add_byte_array(nvl, name, val, n));</span>
+<span class="lineNum">     225 </span>                :<span class="lineCov">         33 : }</span>
+<a name="226"><span class="lineNum">     226 </span>                :            : </a>
+<span class="lineNum">     227 </span>                :            : void
+<span class="lineNum">     228 </span>                :<span class="lineNoCov">          0 : fnvlist_add_int8_array(nvlist_t *nvl, const char *name, int8_t *val, uint_t n)</span>
+<span class="lineNum">     229 </span>                :            : {
+<span class="lineNum">     230 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_int8_array(nvl, name, val, n));</span>
+<span class="lineNum">     231 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="232"><span class="lineNum">     232 </span>                :            : </a>
+<span class="lineNum">     233 </span>                :            : void
+<span class="lineNum">     234 </span>                :<span class="lineCov">        106 : fnvlist_add_uint8_array(nvlist_t *nvl, const char *name, uint8_t *val, uint_t n)</span>
+<span class="lineNum">     235 </span>                :            : {
+<span class="lineNum">     236 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 106 times"> + </span>]:<span class="lineCov">        106 :         VERIFY0(nvlist_add_uint8_array(nvl, name, val, n));</span>
+<span class="lineNum">     237 </span>                :<span class="lineCov">        106 : }</span>
+<a name="238"><span class="lineNum">     238 </span>                :            : </a>
+<span class="lineNum">     239 </span>                :            : void
+<span class="lineNum">     240 </span>                :<span class="lineNoCov">          0 : fnvlist_add_int16_array(nvlist_t *nvl, const char *name, int16_t *val, uint_t n)</span>
+<span class="lineNum">     241 </span>                :            : {
+<span class="lineNum">     242 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_int16_array(nvl, name, val, n));</span>
+<span class="lineNum">     243 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="244"><span class="lineNum">     244 </span>                :            : </a>
+<span class="lineNum">     245 </span>                :            : void
+<span class="lineNum">     246 </span>                :<span class="lineNoCov">          0 : fnvlist_add_uint16_array(nvlist_t *nvl, const char *name,</span>
+<span class="lineNum">     247 </span>                :            :     uint16_t *val, uint_t n)
+<span class="lineNum">     248 </span>                :            : {
+<span class="lineNum">     249 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_uint16_array(nvl, name, val, n));</span>
+<span class="lineNum">     250 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="251"><span class="lineNum">     251 </span>                :            : </a>
+<span class="lineNum">     252 </span>                :            : void
+<span class="lineNum">     253 </span>                :<span class="lineNoCov">          0 : fnvlist_add_int32_array(nvlist_t *nvl, const char *name, int32_t *val, uint_t n)</span>
+<span class="lineNum">     254 </span>                :            : {
+<span class="lineNum">     255 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_int32_array(nvl, name, val, n));</span>
+<span class="lineNum">     256 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="257"><span class="lineNum">     257 </span>                :            : </a>
+<span class="lineNum">     258 </span>                :            : void
+<span class="lineNum">     259 </span>                :<span class="lineNoCov">          0 : fnvlist_add_uint32_array(nvlist_t *nvl, const char *name,</span>
+<span class="lineNum">     260 </span>                :            :     uint32_t *val, uint_t n)
+<span class="lineNum">     261 </span>                :            : {
+<span class="lineNum">     262 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_uint32_array(nvl, name, val, n));</span>
+<span class="lineNum">     263 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="264"><span class="lineNum">     264 </span>                :            : </a>
+<span class="lineNum">     265 </span>                :            : void
+<span class="lineNum">     266 </span>                :<span class="lineNoCov">          0 : fnvlist_add_int64_array(nvlist_t *nvl, const char *name, int64_t *val, uint_t n)</span>
+<span class="lineNum">     267 </span>                :            : {
+<span class="lineNum">     268 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_int64_array(nvl, name, val, n));</span>
+<span class="lineNum">     269 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="270"><span class="lineNum">     270 </span>                :            : </a>
+<span class="lineNum">     271 </span>                :            : void
+<span class="lineNum">     272 </span>                :<span class="lineCov">      58498 : fnvlist_add_uint64_array(nvlist_t *nvl, const char *name,</span>
+<span class="lineNum">     273 </span>                :            :     uint64_t *val, uint_t n)
+<span class="lineNum">     274 </span>                :            : {
+<span class="lineNum">     275 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 58498 times"> + </span>]:<span class="lineCov">      58498 :         VERIFY0(nvlist_add_uint64_array(nvl, name, val, n));</span>
+<span class="lineNum">     276 </span>                :<span class="lineCov">      58498 : }</span>
+<a name="277"><span class="lineNum">     277 </span>                :            : </a>
+<span class="lineNum">     278 </span>                :            : void
+<span class="lineNum">     279 </span>                :<span class="lineNoCov">          0 : fnvlist_add_string_array(nvlist_t *nvl, const char *name,</span>
+<span class="lineNum">     280 </span>                :            :     char * const *val, uint_t n)
+<span class="lineNum">     281 </span>                :            : {
+<span class="lineNum">     282 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_add_string_array(nvl, name, val, n));</span>
+<span class="lineNum">     283 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="284"><span class="lineNum">     284 </span>                :            : </a>
+<span class="lineNum">     285 </span>                :            : void
+<span class="lineNum">     286 </span>                :<span class="lineCov">      17090 : fnvlist_add_nvlist_array(nvlist_t *nvl, const char *name,</span>
+<span class="lineNum">     287 </span>                :            :     nvlist_t **val, uint_t n)
+<span class="lineNum">     288 </span>                :            : {
+<span class="lineNum">     289 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 17090 times"> + </span>]:<span class="lineCov">      17090 :         VERIFY0(nvlist_add_nvlist_array(nvl, name, val, n));</span>
+<span class="lineNum">     290 </span>                :<span class="lineCov">      17090 : }</span>
+<a name="291"><span class="lineNum">     291 </span>                :            : </a>
+<span class="lineNum">     292 </span>                :            : void
+<span class="lineNum">     293 </span>                :<span class="lineCov">          1 : fnvlist_remove(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     294 </span>                :            : {
+<span class="lineNum">     295 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1 time"> + </span>]:<span class="lineCov">          1 :         VERIFY0(nvlist_remove_all(nvl, name));</span>
+<span class="lineNum">     296 </span>                :<span class="lineCov">          1 : }</span>
+<a name="297"><span class="lineNum">     297 </span>                :            : </a>
+<span class="lineNum">     298 </span>                :            : void
+<span class="lineNum">     299 </span>                :<span class="lineNoCov">          0 : fnvlist_remove_nvpair(nvlist_t *nvl, nvpair_t *pair)</span>
+<span class="lineNum">     300 </span>                :            : {
+<span class="lineNum">     301 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_remove_nvpair(nvl, pair));</span>
+<span class="lineNum">     302 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="303"><span class="lineNum">     303 </span>                :            : </a>
+<span class="lineNum">     304 </span>                :            : nvpair_t *
+<span class="lineNum">     305 </span>                :<span class="lineNoCov">          0 : fnvlist_lookup_nvpair(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     306 </span>                :            : {
+<span class="lineNum">     307 </span>                :            :         nvpair_t *rv;
+<span class="lineNum">     308 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_lookup_nvpair(nvl, name, &amp;rv));</span>
+<span class="lineNum">     309 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     310 </span>                :            : }
+<span class="lineNum">     311 </span>                :            : 
+<a name="312"><span class="lineNum">     312 </span>                :            : /* returns B_TRUE if the entry exists */</a>
+<span class="lineNum">     313 </span>                :            : boolean_t
+<span class="lineNum">     314 </span>                :<span class="lineNoCov">          0 : fnvlist_lookup_boolean(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     315 </span>                :            : {
+<span class="lineNum">     316 </span>                :<span class="lineNoCov">          0 :         return (nvlist_lookup_boolean(nvl, name) == 0);</span>
+<span class="lineNum">     317 </span>                :            : }
+<a name="318"><span class="lineNum">     318 </span>                :            : </a>
+<span class="lineNum">     319 </span>                :            : boolean_t
+<span class="lineNum">     320 </span>                :<span class="lineNoCov">          0 : fnvlist_lookup_boolean_value(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     321 </span>                :            : {
+<span class="lineNum">     322 </span>                :            :         boolean_t rv;
+<span class="lineNum">     323 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_lookup_boolean_value(nvl, name, &amp;rv));</span>
+<span class="lineNum">     324 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     325 </span>                :            : }
+<a name="326"><span class="lineNum">     326 </span>                :            : </a>
+<span class="lineNum">     327 </span>                :            : uchar_t
+<span class="lineNum">     328 </span>                :<span class="lineNoCov">          0 : fnvlist_lookup_byte(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     329 </span>                :            : {
+<span class="lineNum">     330 </span>                :            :         uchar_t rv;
+<span class="lineNum">     331 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_lookup_byte(nvl, name, &amp;rv));</span>
+<span class="lineNum">     332 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     333 </span>                :            : }
+<a name="334"><span class="lineNum">     334 </span>                :            : </a>
+<span class="lineNum">     335 </span>                :            : int8_t
+<span class="lineNum">     336 </span>                :<span class="lineNoCov">          0 : fnvlist_lookup_int8(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     337 </span>                :            : {
+<span class="lineNum">     338 </span>                :            :         int8_t rv;
+<span class="lineNum">     339 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_lookup_int8(nvl, name, &amp;rv));</span>
+<span class="lineNum">     340 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     341 </span>                :            : }
+<a name="342"><span class="lineNum">     342 </span>                :            : </a>
+<span class="lineNum">     343 </span>                :            : int16_t
+<span class="lineNum">     344 </span>                :<span class="lineNoCov">          0 : fnvlist_lookup_int16(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     345 </span>                :            : {
+<span class="lineNum">     346 </span>                :            :         int16_t rv;
+<span class="lineNum">     347 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_lookup_int16(nvl, name, &amp;rv));</span>
+<span class="lineNum">     348 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     349 </span>                :            : }
+<a name="350"><span class="lineNum">     350 </span>                :            : </a>
+<span class="lineNum">     351 </span>                :            : int32_t
+<span class="lineNum">     352 </span>                :<span class="lineNoCov">          0 : fnvlist_lookup_int32(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     353 </span>                :            : {
+<span class="lineNum">     354 </span>                :            :         int32_t rv;
+<span class="lineNum">     355 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_lookup_int32(nvl, name, &amp;rv));</span>
+<span class="lineNum">     356 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     357 </span>                :            : }
+<a name="358"><span class="lineNum">     358 </span>                :            : </a>
+<span class="lineNum">     359 </span>                :            : int64_t
+<span class="lineNum">     360 </span>                :<span class="lineNoCov">          0 : fnvlist_lookup_int64(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     361 </span>                :            : {
+<span class="lineNum">     362 </span>                :            :         int64_t rv;
+<span class="lineNum">     363 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_lookup_int64(nvl, name, &amp;rv));</span>
+<span class="lineNum">     364 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     365 </span>                :            : }
+<a name="366"><span class="lineNum">     366 </span>                :            : </a>
+<span class="lineNum">     367 </span>                :            : uint8_t
+<span class="lineNum">     368 </span>                :<span class="lineNoCov">          0 : fnvlist_lookup_uint8(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     369 </span>                :            : {
+<span class="lineNum">     370 </span>                :            :         uint8_t rv;
+<span class="lineNum">     371 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_lookup_uint8(nvl, name, &amp;rv));</span>
+<span class="lineNum">     372 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     373 </span>                :            : }
+<a name="374"><span class="lineNum">     374 </span>                :            : </a>
+<span class="lineNum">     375 </span>                :            : uint16_t
+<span class="lineNum">     376 </span>                :<span class="lineNoCov">          0 : fnvlist_lookup_uint16(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     377 </span>                :            : {
+<span class="lineNum">     378 </span>                :            :         uint16_t rv;
+<span class="lineNum">     379 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_lookup_uint16(nvl, name, &amp;rv));</span>
+<span class="lineNum">     380 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     381 </span>                :            : }
+<a name="382"><span class="lineNum">     382 </span>                :            : </a>
+<span class="lineNum">     383 </span>                :            : uint32_t
+<span class="lineNum">     384 </span>                :<span class="lineNoCov">          0 : fnvlist_lookup_uint32(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     385 </span>                :            : {
+<span class="lineNum">     386 </span>                :            :         uint32_t rv;
+<span class="lineNum">     387 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvlist_lookup_uint32(nvl, name, &amp;rv));</span>
+<span class="lineNum">     388 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     389 </span>                :            : }
+<a name="390"><span class="lineNum">     390 </span>                :            : </a>
+<span class="lineNum">     391 </span>                :            : uint64_t
+<span class="lineNum">     392 </span>                :<span class="lineCov">     222242 : fnvlist_lookup_uint64(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     393 </span>                :            : {
+<span class="lineNum">     394 </span>                :            :         uint64_t rv;
+<span class="lineNum">     395 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 222242 times"> + </span>]:<span class="lineCov">     222242 :         VERIFY0(nvlist_lookup_uint64(nvl, name, &amp;rv));</span>
+<span class="lineNum">     396 </span>                :<span class="lineCov">     222242 :         return (rv);</span>
+<span class="lineNum">     397 </span>                :            : }
+<a name="398"><span class="lineNum">     398 </span>                :            : </a>
+<span class="lineNum">     399 </span>                :            : char *
+<span class="lineNum">     400 </span>                :<span class="lineCov">     227781 : fnvlist_lookup_string(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     401 </span>                :            : {
+<span class="lineNum">     402 </span>                :            :         char *rv;
+<span class="lineNum">     403 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 227781 times"> + </span>]:<span class="lineCov">     227781 :         VERIFY0(nvlist_lookup_string(nvl, name, &amp;rv));</span>
+<span class="lineNum">     404 </span>                :<span class="lineCov">     227781 :         return (rv);</span>
+<span class="lineNum">     405 </span>                :            : }
+<a name="406"><span class="lineNum">     406 </span>                :            : </a>
+<span class="lineNum">     407 </span>                :            : nvlist_t *
+<span class="lineNum">     408 </span>                :<span class="lineCov">      16148 : fnvlist_lookup_nvlist(nvlist_t *nvl, const char *name)</span>
+<span class="lineNum">     409 </span>                :            : {
+<span class="lineNum">     410 </span>                :            :         nvlist_t *rv;
+<span class="lineNum">     411 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 16148 times"> + </span>]:<span class="lineCov">      16148 :         VERIFY0(nvlist_lookup_nvlist(nvl, name, &amp;rv));</span>
+<span class="lineNum">     412 </span>                :<span class="lineCov">      16148 :         return (rv);</span>
+<span class="lineNum">     413 </span>                :            : }
+<a name="414"><span class="lineNum">     414 </span>                :            : </a>
+<span class="lineNum">     415 </span>                :            : boolean_t
+<span class="lineNum">     416 </span>                :<span class="lineNoCov">          0 : fnvpair_value_boolean_value(nvpair_t *nvp)</span>
+<span class="lineNum">     417 </span>                :            : {
+<span class="lineNum">     418 </span>                :            :         boolean_t rv;
+<span class="lineNum">     419 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvpair_value_boolean_value(nvp, &amp;rv));</span>
+<span class="lineNum">     420 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     421 </span>                :            : }
+<a name="422"><span class="lineNum">     422 </span>                :            : </a>
+<span class="lineNum">     423 </span>                :            : uchar_t
+<span class="lineNum">     424 </span>                :<span class="lineNoCov">          0 : fnvpair_value_byte(nvpair_t *nvp)</span>
+<span class="lineNum">     425 </span>                :            : {
+<span class="lineNum">     426 </span>                :            :         uchar_t rv;
+<span class="lineNum">     427 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvpair_value_byte(nvp, &amp;rv));</span>
+<span class="lineNum">     428 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     429 </span>                :            : }
+<a name="430"><span class="lineNum">     430 </span>                :            : </a>
+<span class="lineNum">     431 </span>                :            : int8_t
+<span class="lineNum">     432 </span>                :<span class="lineNoCov">          0 : fnvpair_value_int8(nvpair_t *nvp)</span>
+<span class="lineNum">     433 </span>                :            : {
+<span class="lineNum">     434 </span>                :            :         int8_t rv;
+<span class="lineNum">     435 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvpair_value_int8(nvp, &amp;rv));</span>
+<span class="lineNum">     436 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     437 </span>                :            : }
+<a name="438"><span class="lineNum">     438 </span>                :            : </a>
+<span class="lineNum">     439 </span>                :            : int16_t
+<span class="lineNum">     440 </span>                :<span class="lineNoCov">          0 : fnvpair_value_int16(nvpair_t *nvp)</span>
+<span class="lineNum">     441 </span>                :            : {
+<span class="lineNum">     442 </span>                :            :         int16_t rv;
+<span class="lineNum">     443 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvpair_value_int16(nvp, &amp;rv));</span>
+<span class="lineNum">     444 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     445 </span>                :            : }
+<a name="446"><span class="lineNum">     446 </span>                :            : </a>
+<span class="lineNum">     447 </span>                :            : int32_t
+<span class="lineNum">     448 </span>                :<span class="lineCov">         86 : fnvpair_value_int32(nvpair_t *nvp)</span>
+<span class="lineNum">     449 </span>                :            : {
+<span class="lineNum">     450 </span>                :            :         int32_t rv;
+<span class="lineNum">     451 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 86 times"> + </span>]:<span class="lineCov">         86 :         VERIFY0(nvpair_value_int32(nvp, &amp;rv));</span>
+<span class="lineNum">     452 </span>                :<span class="lineCov">         86 :         return (rv);</span>
+<span class="lineNum">     453 </span>                :            : }
+<a name="454"><span class="lineNum">     454 </span>                :            : </a>
+<span class="lineNum">     455 </span>                :            : int64_t
+<span class="lineNum">     456 </span>                :<span class="lineNoCov">          0 : fnvpair_value_int64(nvpair_t *nvp)</span>
+<span class="lineNum">     457 </span>                :            : {
+<span class="lineNum">     458 </span>                :            :         int64_t rv;
+<span class="lineNum">     459 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvpair_value_int64(nvp, &amp;rv));</span>
+<span class="lineNum">     460 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     461 </span>                :            : }
+<a name="462"><span class="lineNum">     462 </span>                :            : </a>
+<span class="lineNum">     463 </span>                :            : uint8_t
+<span class="lineNum">     464 </span>                :<span class="lineNoCov">          0 : fnvpair_value_uint8(nvpair_t *nvp)</span>
+<span class="lineNum">     465 </span>                :            : {
+<span class="lineNum">     466 </span>                :            :         uint8_t rv;
+<span class="lineNum">     467 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvpair_value_uint8(nvp, &amp;rv));</span>
+<span class="lineNum">     468 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     469 </span>                :            : }
+<a name="470"><span class="lineNum">     470 </span>                :            : </a>
+<span class="lineNum">     471 </span>                :            : uint16_t
+<span class="lineNum">     472 </span>                :<span class="lineNoCov">          0 : fnvpair_value_uint16(nvpair_t *nvp)</span>
+<span class="lineNum">     473 </span>                :            : {
+<span class="lineNum">     474 </span>                :            :         uint16_t rv;
+<span class="lineNum">     475 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvpair_value_uint16(nvp, &amp;rv));</span>
+<span class="lineNum">     476 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     477 </span>                :            : }
+<a name="478"><span class="lineNum">     478 </span>                :            : </a>
+<span class="lineNum">     479 </span>                :            : uint32_t
+<span class="lineNum">     480 </span>                :<span class="lineNoCov">          0 : fnvpair_value_uint32(nvpair_t *nvp)</span>
+<span class="lineNum">     481 </span>                :            : {
+<span class="lineNum">     482 </span>                :            :         uint32_t rv;
+<span class="lineNum">     483 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         VERIFY0(nvpair_value_uint32(nvp, &amp;rv));</span>
+<span class="lineNum">     484 </span>                :<span class="lineNoCov">          0 :         return (rv);</span>
+<span class="lineNum">     485 </span>                :            : }
+<a name="486"><span class="lineNum">     486 </span>                :            : </a>
+<span class="lineNum">     487 </span>                :            : uint64_t
+<span class="lineNum">     488 </span>                :<span class="lineCov">      31557 : fnvpair_value_uint64(nvpair_t *nvp)</span>
+<span class="lineNum">     489 </span>                :            : {
+<span class="lineNum">     490 </span>                :            :         uint64_t rv;
+<span class="lineNum">     491 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 31557 times"> + </span>]:<span class="lineCov">      31557 :         VERIFY0(nvpair_value_uint64(nvp, &amp;rv));</span>
+<span class="lineNum">     492 </span>                :<span class="lineCov">      31557 :         return (rv);</span>
+<span class="lineNum">     493 </span>                :            : }
+<a name="494"><span class="lineNum">     494 </span>                :            : </a>
+<span class="lineNum">     495 </span>                :            : char *
+<span class="lineNum">     496 </span>                :<span class="lineCov">       6166 : fnvpair_value_string(nvpair_t *nvp)</span>
+<span class="lineNum">     497 </span>                :            : {
+<span class="lineNum">     498 </span>                :            :         char *rv;
+<span class="lineNum">     499 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 6166 times"> + </span>]:<span class="lineCov">       6166 :         VERIFY0(nvpair_value_string(nvp, &amp;rv));</span>
+<span class="lineNum">     500 </span>                :<span class="lineCov">       6166 :         return (rv);</span>
+<span class="lineNum">     501 </span>                :            : }
+<a name="502"><span class="lineNum">     502 </span>                :            : </a>
+<span class="lineNum">     503 </span>                :            : nvlist_t *
+<span class="lineNum">     504 </span>                :<span class="lineCov">       2442 : fnvpair_value_nvlist(nvpair_t *nvp)</span>
+<span class="lineNum">     505 </span>                :            : {
+<span class="lineNum">     506 </span>                :            :         nvlist_t *rv;
+<span class="lineNum">     507 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 2442 times"> + </span>]:<span class="lineCov">       2442 :         VERIFY0(nvpair_value_nvlist(nvp, &amp;rv));</span>
+<span class="lineNum">     508 </span>                :<span class="lineCov">       2442 :         return (rv);</span>
+<span class="lineNum">     509 </span>                :            : }
+<span class="lineNum">     510 </span>                :            : 
+<span class="lineNum">     511 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     512 </span>                :            : 
+<span class="lineNum">     513 </span>                :            : EXPORT_SYMBOL(fnvlist_alloc);
+<span class="lineNum">     514 </span>                :            : EXPORT_SYMBOL(fnvlist_free);
+<span class="lineNum">     515 </span>                :            : EXPORT_SYMBOL(fnvlist_size);
+<span class="lineNum">     516 </span>                :            : EXPORT_SYMBOL(fnvlist_pack);
+<span class="lineNum">     517 </span>                :            : EXPORT_SYMBOL(fnvlist_pack_free);
+<span class="lineNum">     518 </span>                :            : EXPORT_SYMBOL(fnvlist_unpack);
+<span class="lineNum">     519 </span>                :            : EXPORT_SYMBOL(fnvlist_dup);
+<span class="lineNum">     520 </span>                :            : EXPORT_SYMBOL(fnvlist_merge);
+<span class="lineNum">     521 </span>                :            : 
+<span class="lineNum">     522 </span>                :            : EXPORT_SYMBOL(fnvlist_add_nvpair);
+<span class="lineNum">     523 </span>                :            : EXPORT_SYMBOL(fnvlist_add_boolean);
+<span class="lineNum">     524 </span>                :            : EXPORT_SYMBOL(fnvlist_add_boolean_value);
+<span class="lineNum">     525 </span>                :            : EXPORT_SYMBOL(fnvlist_add_byte);
+<span class="lineNum">     526 </span>                :            : EXPORT_SYMBOL(fnvlist_add_int8);
+<span class="lineNum">     527 </span>                :            : EXPORT_SYMBOL(fnvlist_add_uint8);
+<span class="lineNum">     528 </span>                :            : EXPORT_SYMBOL(fnvlist_add_int16);
+<span class="lineNum">     529 </span>                :            : EXPORT_SYMBOL(fnvlist_add_uint16);
+<span class="lineNum">     530 </span>                :            : EXPORT_SYMBOL(fnvlist_add_int32);
+<span class="lineNum">     531 </span>                :            : EXPORT_SYMBOL(fnvlist_add_uint32);
+<span class="lineNum">     532 </span>                :            : EXPORT_SYMBOL(fnvlist_add_int64);
+<span class="lineNum">     533 </span>                :            : EXPORT_SYMBOL(fnvlist_add_uint64);
+<span class="lineNum">     534 </span>                :            : EXPORT_SYMBOL(fnvlist_add_string);
+<span class="lineNum">     535 </span>                :            : EXPORT_SYMBOL(fnvlist_add_nvlist);
+<span class="lineNum">     536 </span>                :            : EXPORT_SYMBOL(fnvlist_add_boolean_array);
+<span class="lineNum">     537 </span>                :            : EXPORT_SYMBOL(fnvlist_add_byte_array);
+<span class="lineNum">     538 </span>                :            : EXPORT_SYMBOL(fnvlist_add_int8_array);
+<span class="lineNum">     539 </span>                :            : EXPORT_SYMBOL(fnvlist_add_uint8_array);
+<span class="lineNum">     540 </span>                :            : EXPORT_SYMBOL(fnvlist_add_int16_array);
+<span class="lineNum">     541 </span>                :            : EXPORT_SYMBOL(fnvlist_add_uint16_array);
+<span class="lineNum">     542 </span>                :            : EXPORT_SYMBOL(fnvlist_add_int32_array);
+<span class="lineNum">     543 </span>                :            : EXPORT_SYMBOL(fnvlist_add_uint32_array);
+<span class="lineNum">     544 </span>                :            : EXPORT_SYMBOL(fnvlist_add_int64_array);
+<span class="lineNum">     545 </span>                :            : EXPORT_SYMBOL(fnvlist_add_uint64_array);
+<span class="lineNum">     546 </span>                :            : EXPORT_SYMBOL(fnvlist_add_string_array);
+<span class="lineNum">     547 </span>                :            : EXPORT_SYMBOL(fnvlist_add_nvlist_array);
+<span class="lineNum">     548 </span>                :            : 
+<span class="lineNum">     549 </span>                :            : EXPORT_SYMBOL(fnvlist_remove);
+<span class="lineNum">     550 </span>                :            : EXPORT_SYMBOL(fnvlist_remove_nvpair);
+<span class="lineNum">     551 </span>                :            : 
+<span class="lineNum">     552 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_nvpair);
+<span class="lineNum">     553 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_boolean);
+<span class="lineNum">     554 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_boolean_value);
+<span class="lineNum">     555 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_byte);
+<span class="lineNum">     556 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_int8);
+<span class="lineNum">     557 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_uint8);
+<span class="lineNum">     558 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_int16);
+<span class="lineNum">     559 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_uint16);
+<span class="lineNum">     560 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_int32);
+<span class="lineNum">     561 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_uint32);
+<span class="lineNum">     562 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_int64);
+<span class="lineNum">     563 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_uint64);
+<span class="lineNum">     564 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_string);
+<span class="lineNum">     565 </span>                :            : EXPORT_SYMBOL(fnvlist_lookup_nvlist);
+<span class="lineNum">     566 </span>                :            : 
+<span class="lineNum">     567 </span>                :            : EXPORT_SYMBOL(fnvpair_value_boolean_value);
+<span class="lineNum">     568 </span>                :            : EXPORT_SYMBOL(fnvpair_value_byte);
+<span class="lineNum">     569 </span>                :            : EXPORT_SYMBOL(fnvpair_value_int8);
+<span class="lineNum">     570 </span>                :            : EXPORT_SYMBOL(fnvpair_value_uint8);
+<span class="lineNum">     571 </span>                :            : EXPORT_SYMBOL(fnvpair_value_int16);
+<span class="lineNum">     572 </span>                :            : EXPORT_SYMBOL(fnvpair_value_uint16);
+<span class="lineNum">     573 </span>                :            : EXPORT_SYMBOL(fnvpair_value_int32);
+<span class="lineNum">     574 </span>                :            : EXPORT_SYMBOL(fnvpair_value_uint32);
+<span class="lineNum">     575 </span>                :            : EXPORT_SYMBOL(fnvpair_value_int64);
+<span class="lineNum">     576 </span>                :            : EXPORT_SYMBOL(fnvpair_value_uint64);
+<span class="lineNum">     577 </span>                :            : EXPORT_SYMBOL(fnvpair_value_string);
+<span class="lineNum">     578 </span>                :            : EXPORT_SYMBOL(fnvpair_value_nvlist);
+<span class="lineNum">     579 </span>                :            : EXPORT_SYMBOL(fnvlist_num_pairs);
+<span class="lineNum">     580 </span>                :            : 
+<span class="lineNum">     581 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

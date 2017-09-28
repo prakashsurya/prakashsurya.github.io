@@ -1,0 +1,1534 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/icp/io/aes.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/icp/io</a> - aes.c<span style="font-size: 80%;"> (source / <a href="aes.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">482</td>
+            <td class="headerCovTableEntryLo">1.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">23</td>
+            <td class="headerCovTableEntryLo">8.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">376</td>
+            <td class="headerCovTableEntryLo">1.1 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2003, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  */
+<span class="lineNum">      24 </span>                :            : 
+<span class="lineNum">      25 </span>                :            : /*
+<span class="lineNum">      26 </span>                :            :  * AES provider for the Kernel Cryptographic Framework (KCF)
+<span class="lineNum">      27 </span>                :            :  */
+<span class="lineNum">      28 </span>                :            : 
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/crypto/common.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/crypto/impl.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/crypto/spi.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/crypto/icp.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;modes/modes.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/modctl.h&gt;
+<span class="lineNum">      36 </span>                :            : #define _AES_IMPL
+<span class="lineNum">      37 </span>                :            : #include &lt;aes/aes_impl.h&gt;
+<span class="lineNum">      38 </span>                :            : 
+<span class="lineNum">      39 </span>                :            : #define CRYPTO_PROVIDER_NAME &quot;aes&quot;
+<span class="lineNum">      40 </span>                :            : 
+<span class="lineNum">      41 </span>                :            : extern struct mod_ops mod_cryptoops;
+<span class="lineNum">      42 </span>                :            : 
+<span class="lineNum">      43 </span>                :            : /*
+<span class="lineNum">      44 </span>                :            :  * Module linkage information for the kernel.
+<span class="lineNum">      45 </span>                :            :  */
+<span class="lineNum">      46 </span>                :            : static struct modlcrypto modlcrypto = {
+<span class="lineNum">      47 </span>                :            :         &amp;mod_cryptoops,
+<span class="lineNum">      48 </span>                :            :         &quot;AES Kernel SW Provider&quot;
+<span class="lineNum">      49 </span>                :            : };
+<span class="lineNum">      50 </span>                :            : 
+<span class="lineNum">      51 </span>                :            : static struct modlinkage modlinkage = {
+<span class="lineNum">      52 </span>                :            :         MODREV_1, { (void *)&amp;modlcrypto, NULL }
+<span class="lineNum">      53 </span>                :            : };
+<span class="lineNum">      54 </span>                :            : 
+<span class="lineNum">      55 </span>                :            : /*
+<span class="lineNum">      56 </span>                :            :  * Mechanism info structure passed to KCF during registration.
+<span class="lineNum">      57 </span>                :            :  */
+<span class="lineNum">      58 </span>                :            : static crypto_mech_info_t aes_mech_info_tab[] = {
+<span class="lineNum">      59 </span>                :            :         /* AES_ECB */
+<span class="lineNum">      60 </span>                :            :         {SUN_CKM_AES_ECB, AES_ECB_MECH_INFO_TYPE,
+<span class="lineNum">      61 </span>                :            :             CRYPTO_FG_ENCRYPT | CRYPTO_FG_ENCRYPT_ATOMIC |
+<span class="lineNum">      62 </span>                :            :             CRYPTO_FG_DECRYPT | CRYPTO_FG_DECRYPT_ATOMIC,
+<span class="lineNum">      63 </span>                :            :             AES_MIN_KEY_BYTES, AES_MAX_KEY_BYTES, CRYPTO_KEYSIZE_UNIT_IN_BYTES},
+<span class="lineNum">      64 </span>                :            :         /* AES_CBC */
+<span class="lineNum">      65 </span>                :            :         {SUN_CKM_AES_CBC, AES_CBC_MECH_INFO_TYPE,
+<span class="lineNum">      66 </span>                :            :             CRYPTO_FG_ENCRYPT | CRYPTO_FG_ENCRYPT_ATOMIC |
+<span class="lineNum">      67 </span>                :            :             CRYPTO_FG_DECRYPT | CRYPTO_FG_DECRYPT_ATOMIC,
+<span class="lineNum">      68 </span>                :            :             AES_MIN_KEY_BYTES, AES_MAX_KEY_BYTES, CRYPTO_KEYSIZE_UNIT_IN_BYTES},
+<span class="lineNum">      69 </span>                :            :         /* AES_CTR */
+<span class="lineNum">      70 </span>                :            :         {SUN_CKM_AES_CTR, AES_CTR_MECH_INFO_TYPE,
+<span class="lineNum">      71 </span>                :            :             CRYPTO_FG_ENCRYPT | CRYPTO_FG_ENCRYPT_ATOMIC |
+<span class="lineNum">      72 </span>                :            :             CRYPTO_FG_DECRYPT | CRYPTO_FG_DECRYPT_ATOMIC,
+<span class="lineNum">      73 </span>                :            :             AES_MIN_KEY_BYTES, AES_MAX_KEY_BYTES, CRYPTO_KEYSIZE_UNIT_IN_BYTES},
+<span class="lineNum">      74 </span>                :            :         /* AES_CCM */
+<span class="lineNum">      75 </span>                :            :         {SUN_CKM_AES_CCM, AES_CCM_MECH_INFO_TYPE,
+<span class="lineNum">      76 </span>                :            :             CRYPTO_FG_ENCRYPT | CRYPTO_FG_ENCRYPT_ATOMIC |
+<span class="lineNum">      77 </span>                :            :             CRYPTO_FG_DECRYPT | CRYPTO_FG_DECRYPT_ATOMIC,
+<span class="lineNum">      78 </span>                :            :             AES_MIN_KEY_BYTES, AES_MAX_KEY_BYTES, CRYPTO_KEYSIZE_UNIT_IN_BYTES},
+<span class="lineNum">      79 </span>                :            :         /* AES_GCM */
+<span class="lineNum">      80 </span>                :            :         {SUN_CKM_AES_GCM, AES_GCM_MECH_INFO_TYPE,
+<span class="lineNum">      81 </span>                :            :             CRYPTO_FG_ENCRYPT | CRYPTO_FG_ENCRYPT_ATOMIC |
+<span class="lineNum">      82 </span>                :            :             CRYPTO_FG_DECRYPT | CRYPTO_FG_DECRYPT_ATOMIC,
+<span class="lineNum">      83 </span>                :            :             AES_MIN_KEY_BYTES, AES_MAX_KEY_BYTES, CRYPTO_KEYSIZE_UNIT_IN_BYTES},
+<span class="lineNum">      84 </span>                :            :         /* AES_GMAC */
+<span class="lineNum">      85 </span>                :            :         {SUN_CKM_AES_GMAC, AES_GMAC_MECH_INFO_TYPE,
+<span class="lineNum">      86 </span>                :            :             CRYPTO_FG_ENCRYPT | CRYPTO_FG_ENCRYPT_ATOMIC |
+<span class="lineNum">      87 </span>                :            :             CRYPTO_FG_DECRYPT | CRYPTO_FG_DECRYPT_ATOMIC |
+<span class="lineNum">      88 </span>                :            :             CRYPTO_FG_MAC | CRYPTO_FG_MAC_ATOMIC |
+<span class="lineNum">      89 </span>                :            :             CRYPTO_FG_SIGN | CRYPTO_FG_SIGN_ATOMIC |
+<span class="lineNum">      90 </span>                :            :             CRYPTO_FG_VERIFY | CRYPTO_FG_VERIFY_ATOMIC,
+<span class="lineNum">      91 </span>                :            :             AES_MIN_KEY_BYTES, AES_MAX_KEY_BYTES, CRYPTO_KEYSIZE_UNIT_IN_BYTES}
+<span class="lineNum">      92 </span>                :            : };
+<span class="lineNum">      93 </span>                :            : 
+<span class="lineNum">      94 </span>                :            : /* operations are in-place if the output buffer is NULL */
+<span class="lineNum">      95 </span>                :            : #define AES_ARG_INPLACE(input, output)                          \
+<span class="lineNum">      96 </span>                :            :         if ((output) == NULL)                                   \
+<span class="lineNum">      97 </span>                :            :                 (output) = (input);
+<span class="lineNum">      98 </span>                :            : 
+<span class="lineNum">      99 </span>                :            : static void aes_provider_status(crypto_provider_handle_t, uint_t *);
+<span class="lineNum">     100 </span>                :            : 
+<span class="lineNum">     101 </span>                :            : static crypto_control_ops_t aes_control_ops = {
+<span class="lineNum">     102 </span>                :            :         aes_provider_status
+<span class="lineNum">     103 </span>                :            : };
+<span class="lineNum">     104 </span>                :            : 
+<span class="lineNum">     105 </span>                :            : static int aes_encrypt_init(crypto_ctx_t *, crypto_mechanism_t *,
+<span class="lineNum">     106 </span>                :            :     crypto_key_t *, crypto_spi_ctx_template_t, crypto_req_handle_t);
+<span class="lineNum">     107 </span>                :            : static int aes_decrypt_init(crypto_ctx_t *, crypto_mechanism_t *,
+<span class="lineNum">     108 </span>                :            :     crypto_key_t *, crypto_spi_ctx_template_t, crypto_req_handle_t);
+<span class="lineNum">     109 </span>                :            : static int aes_common_init(crypto_ctx_t *, crypto_mechanism_t *,
+<span class="lineNum">     110 </span>                :            :     crypto_key_t *, crypto_spi_ctx_template_t, crypto_req_handle_t, boolean_t);
+<span class="lineNum">     111 </span>                :            : static int aes_common_init_ctx(aes_ctx_t *, crypto_spi_ctx_template_t *,
+<span class="lineNum">     112 </span>                :            :     crypto_mechanism_t *, crypto_key_t *, int, boolean_t);
+<span class="lineNum">     113 </span>                :            : static int aes_encrypt_final(crypto_ctx_t *, crypto_data_t *,
+<span class="lineNum">     114 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">     115 </span>                :            : static int aes_decrypt_final(crypto_ctx_t *, crypto_data_t *,
+<span class="lineNum">     116 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">     117 </span>                :            : 
+<span class="lineNum">     118 </span>                :            : static int aes_encrypt(crypto_ctx_t *, crypto_data_t *, crypto_data_t *,
+<span class="lineNum">     119 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">     120 </span>                :            : static int aes_encrypt_update(crypto_ctx_t *, crypto_data_t *,
+<span class="lineNum">     121 </span>                :            :     crypto_data_t *, crypto_req_handle_t);
+<span class="lineNum">     122 </span>                :            : static int aes_encrypt_atomic(crypto_provider_handle_t, crypto_session_id_t,
+<span class="lineNum">     123 </span>                :            :     crypto_mechanism_t *, crypto_key_t *, crypto_data_t *,
+<span class="lineNum">     124 </span>                :            :     crypto_data_t *, crypto_spi_ctx_template_t, crypto_req_handle_t);
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>                :            : static int aes_decrypt(crypto_ctx_t *, crypto_data_t *, crypto_data_t *,
+<span class="lineNum">     127 </span>                :            :     crypto_req_handle_t);
+<span class="lineNum">     128 </span>                :            : static int aes_decrypt_update(crypto_ctx_t *, crypto_data_t *,
+<span class="lineNum">     129 </span>                :            :     crypto_data_t *, crypto_req_handle_t);
+<span class="lineNum">     130 </span>                :            : static int aes_decrypt_atomic(crypto_provider_handle_t, crypto_session_id_t,
+<span class="lineNum">     131 </span>                :            :     crypto_mechanism_t *, crypto_key_t *, crypto_data_t *,
+<span class="lineNum">     132 </span>                :            :     crypto_data_t *, crypto_spi_ctx_template_t, crypto_req_handle_t);
+<span class="lineNum">     133 </span>                :            : 
+<span class="lineNum">     134 </span>                :            : static crypto_cipher_ops_t aes_cipher_ops = {
+<span class="lineNum">     135 </span>                :            :         aes_encrypt_init,
+<span class="lineNum">     136 </span>                :            :         aes_encrypt,
+<span class="lineNum">     137 </span>                :            :         aes_encrypt_update,
+<span class="lineNum">     138 </span>                :            :         aes_encrypt_final,
+<span class="lineNum">     139 </span>                :            :         aes_encrypt_atomic,
+<span class="lineNum">     140 </span>                :            :         aes_decrypt_init,
+<span class="lineNum">     141 </span>                :            :         aes_decrypt,
+<span class="lineNum">     142 </span>                :            :         aes_decrypt_update,
+<span class="lineNum">     143 </span>                :            :         aes_decrypt_final,
+<span class="lineNum">     144 </span>                :            :         aes_decrypt_atomic
+<span class="lineNum">     145 </span>                :            : };
+<span class="lineNum">     146 </span>                :            : 
+<span class="lineNum">     147 </span>                :            : static int aes_mac_atomic(crypto_provider_handle_t, crypto_session_id_t,
+<span class="lineNum">     148 </span>                :            :     crypto_mechanism_t *, crypto_key_t *, crypto_data_t *, crypto_data_t *,
+<span class="lineNum">     149 </span>                :            :     crypto_spi_ctx_template_t, crypto_req_handle_t);
+<span class="lineNum">     150 </span>                :            : static int aes_mac_verify_atomic(crypto_provider_handle_t, crypto_session_id_t,
+<span class="lineNum">     151 </span>                :            :     crypto_mechanism_t *, crypto_key_t *, crypto_data_t *, crypto_data_t *,
+<span class="lineNum">     152 </span>                :            :     crypto_spi_ctx_template_t, crypto_req_handle_t);
+<span class="lineNum">     153 </span>                :            : 
+<span class="lineNum">     154 </span>                :            : static crypto_mac_ops_t aes_mac_ops = {
+<span class="lineNum">     155 </span>                :            :         NULL,
+<span class="lineNum">     156 </span>                :            :         NULL,
+<span class="lineNum">     157 </span>                :            :         NULL,
+<span class="lineNum">     158 </span>                :            :         NULL,
+<span class="lineNum">     159 </span>                :            :         aes_mac_atomic,
+<span class="lineNum">     160 </span>                :            :         aes_mac_verify_atomic
+<span class="lineNum">     161 </span>                :            : };
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>                :            : static int aes_create_ctx_template(crypto_provider_handle_t,
+<span class="lineNum">     164 </span>                :            :     crypto_mechanism_t *, crypto_key_t *, crypto_spi_ctx_template_t *,
+<span class="lineNum">     165 </span>                :            :     size_t *, crypto_req_handle_t);
+<span class="lineNum">     166 </span>                :            : static int aes_free_context(crypto_ctx_t *);
+<span class="lineNum">     167 </span>                :            : 
+<span class="lineNum">     168 </span>                :            : static crypto_ctx_ops_t aes_ctx_ops = {
+<span class="lineNum">     169 </span>                :            :         aes_create_ctx_template,
+<span class="lineNum">     170 </span>                :            :         aes_free_context
+<span class="lineNum">     171 </span>                :            : };
+<span class="lineNum">     172 </span>                :            : 
+<span class="lineNum">     173 </span>                :            : static crypto_ops_t aes_crypto_ops = {{{{{
+<span class="lineNum">     174 </span>                :            :         &amp;aes_control_ops,
+<span class="lineNum">     175 </span>                :            :         NULL,
+<span class="lineNum">     176 </span>                :            :         &amp;aes_cipher_ops,
+<span class="lineNum">     177 </span>                :            :         &amp;aes_mac_ops,
+<span class="lineNum">     178 </span>                :            :         NULL,
+<span class="lineNum">     179 </span>                :            :         NULL,
+<span class="lineNum">     180 </span>                :            :         NULL,
+<span class="lineNum">     181 </span>                :            :         NULL,
+<span class="lineNum">     182 </span>                :            :         NULL,
+<span class="lineNum">     183 </span>                :            :         NULL,
+<span class="lineNum">     184 </span>                :            :         NULL,
+<span class="lineNum">     185 </span>                :            :         NULL,
+<span class="lineNum">     186 </span>                :            :         NULL,
+<span class="lineNum">     187 </span>                :            :         &amp;aes_ctx_ops
+<span class="lineNum">     188 </span>                :            : }}}}};
+<span class="lineNum">     189 </span>                :            : 
+<span class="lineNum">     190 </span>                :            : static crypto_provider_info_t aes_prov_info = {{{{
+<span class="lineNum">     191 </span>                :            :         CRYPTO_SPI_VERSION_1,
+<span class="lineNum">     192 </span>                :            :         &quot;AES Software Provider&quot;,
+<span class="lineNum">     193 </span>                :            :         CRYPTO_SW_PROVIDER,
+<span class="lineNum">     194 </span>                :            :         NULL,
+<span class="lineNum">     195 </span>                :            :         &amp;aes_crypto_ops,
+<span class="lineNum">     196 </span>                :            :         sizeof (aes_mech_info_tab)/sizeof (crypto_mech_info_t),
+<span class="lineNum">     197 </span>                :            :         aes_mech_info_tab
+<span class="lineNum">     198 </span>                :            : }}}};
+<span class="lineNum">     199 </span>                :            : 
+<span class="lineNum">     200 </span>                :            : static crypto_kcf_provider_handle_t aes_prov_handle = 0;
+<span class="lineNum">     201 </span>                :            : static crypto_data_t null_crypto_data = { CRYPTO_DATA_RAW };
+<a name="202"><span class="lineNum">     202 </span>                :            : </a>
+<span class="lineNum">     203 </span>                :            : int
+<span class="lineNum">     204 </span>                :<span class="lineCov">       1336 : aes_mod_init(void)</span>
+<span class="lineNum">     205 </span>                :            : {
+<span class="lineNum">     206 </span>                :            :         int ret;
+<span class="lineNum">     207 </span>                :            : 
+<span class="lineNum">     208 </span>        [<span class="branchCov" title="Branch 1 was taken 1336 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">       1336 :         if ((ret = mod_install(&amp;modlinkage)) != 0)</span>
+<span class="lineNum">     209 </span>                :            :                 return (ret);
+<span class="lineNum">     210 </span>                :            : 
+<span class="lineNum">     211 </span>                :            :         /* Register with KCF.  If the registration fails, remove the module. */
+<span class="lineNum">     212 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1336 times"> + </span>]:<span class="lineCov">       1336 :         if (crypto_register_provider(&amp;aes_prov_info, &amp;aes_prov_handle)) {</span>
+<span class="lineNum">     213 </span>                :<span class="lineNoCov">          0 :                 (void) mod_remove(&amp;modlinkage);</span>
+<span class="lineNum">     214 </span>                :<span class="lineNoCov">          0 :                 return (EACCES);</span>
+<span class="lineNum">     215 </span>                :            :         }
+<span class="lineNum">     216 </span>                :            : 
+<span class="lineNum">     217 </span>                :            :         return (0);
+<span class="lineNum">     218 </span>                :            : }
+<a name="219"><span class="lineNum">     219 </span>                :            : </a>
+<span class="lineNum">     220 </span>                :            : int
+<span class="lineNum">     221 </span>                :<span class="lineCov">        887 : aes_mod_fini(void)</span>
+<span class="lineNum">     222 </span>                :            : {
+<span class="lineNum">     223 </span>                :            :         /* Unregister from KCF if module is registered */
+<span class="lineNum">     224 </span>        [<span class="branchCov" title="Branch 0 was taken 887 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        887 :         if (aes_prov_handle != 0) {</span>
+<span class="lineNum">     225 </span>        [<span class="branchCov" title="Branch 1 was taken 887 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">        887 :                 if (crypto_unregister_provider(aes_prov_handle))</span>
+<span class="lineNum">     226 </span>                :            :                         return (EBUSY);
+<span class="lineNum">     227 </span>                :            : 
+<span class="lineNum">     228 </span>                :<span class="lineCov">        887 :                 aes_prov_handle = 0;</span>
+<span class="lineNum">     229 </span>                :            :         }
+<span class="lineNum">     230 </span>                :            : 
+<span class="lineNum">     231 </span>                :<span class="lineCov">        887 :         return (mod_remove(&amp;modlinkage));</span>
+<span class="lineNum">     232 </span>                :            : }
+<a name="233"><span class="lineNum">     233 </span>                :            : </a>
+<span class="lineNum">     234 </span>                :            : static int
+<span class="lineNum">     235 </span>                :<span class="lineNoCov">          0 : aes_check_mech_param(crypto_mechanism_t *mechanism, aes_ctx_t **ctx, int kmflag)</span>
+<span class="lineNum">     236 </span>                :            : {
+<span class="lineNum">     237 </span>                :<span class="lineNoCov">          0 :         void *p = NULL;</span>
+<span class="lineNum">     238 </span>                :<span class="lineNoCov">          0 :         boolean_t param_required = B_TRUE;</span>
+<span class="lineNum">     239 </span>                :            :         size_t param_len;
+<span class="lineNum">     240 </span>                :            :         void *(*alloc_fun)(int);
+<span class="lineNum">     241 </span>                :<span class="lineNoCov">          0 :         int rv = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     242 </span>                :            : 
+<span class="lineNum">     243 </span>  [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span> :<span class="lineNoCov">          0 :         switch (mechanism-&gt;cm_type) {</span>
+<span class="lineNum">         </span>      <span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span><span class="branchNoExec" title="Branch 6 was not executed"> # </span>]
+<span class="lineNum">     244 </span>                :            :         case AES_ECB_MECH_INFO_TYPE:
+<span class="lineNum">     245 </span>                :            :                 param_required = B_FALSE;
+<span class="lineNum">     246 </span>                :            :                 alloc_fun = ecb_alloc_ctx;
+<span class="lineNum">     247 </span>                :            :                 break;
+<span class="lineNum">     248 </span>                :            :         case AES_CBC_MECH_INFO_TYPE:
+<span class="lineNum">     249 </span>                :<span class="lineNoCov">          0 :                 param_len = AES_BLOCK_LEN;</span>
+<span class="lineNum">     250 </span>                :<span class="lineNoCov">          0 :                 alloc_fun = cbc_alloc_ctx;</span>
+<span class="lineNum">     251 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     252 </span>                :            :         case AES_CTR_MECH_INFO_TYPE:
+<span class="lineNum">     253 </span>                :<span class="lineNoCov">          0 :                 param_len = sizeof (CK_AES_CTR_PARAMS);</span>
+<span class="lineNum">     254 </span>                :<span class="lineNoCov">          0 :                 alloc_fun = ctr_alloc_ctx;</span>
+<span class="lineNum">     255 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     256 </span>                :            :         case AES_CCM_MECH_INFO_TYPE:
+<span class="lineNum">     257 </span>                :<span class="lineNoCov">          0 :                 param_len = sizeof (CK_AES_CCM_PARAMS);</span>
+<span class="lineNum">     258 </span>                :<span class="lineNoCov">          0 :                 alloc_fun = ccm_alloc_ctx;</span>
+<span class="lineNum">     259 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     260 </span>                :            :         case AES_GCM_MECH_INFO_TYPE:
+<span class="lineNum">     261 </span>                :<span class="lineNoCov">          0 :                 param_len = sizeof (CK_AES_GCM_PARAMS);</span>
+<span class="lineNum">     262 </span>                :<span class="lineNoCov">          0 :                 alloc_fun = gcm_alloc_ctx;</span>
+<span class="lineNum">     263 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     264 </span>                :            :         case AES_GMAC_MECH_INFO_TYPE:
+<span class="lineNum">     265 </span>                :<span class="lineNoCov">          0 :                 param_len = sizeof (CK_AES_GMAC_PARAMS);</span>
+<span class="lineNum">     266 </span>                :<span class="lineNoCov">          0 :                 alloc_fun = gmac_alloc_ctx;</span>
+<span class="lineNum">     267 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     268 </span>                :            :         default:
+<span class="lineNum">     269 </span>                :            :                 rv = CRYPTO_MECHANISM_INVALID;
+<span class="lineNum">     270 </span>                :            :                 return (rv);
+<span class="lineNum">     271 </span>                :            :         }
+<span class="lineNum">     272 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (param_required &amp;&amp; mechanism-&gt;cm_param != NULL &amp;&amp;</span>
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">     273 </span>                :<span class="lineNoCov">          0 :             mechanism-&gt;cm_param_len != param_len) {</span>
+<span class="lineNum">     274 </span>                :<span class="lineNoCov">          0 :                 rv = CRYPTO_MECHANISM_PARAM_INVALID;</span>
+<span class="lineNum">     275 </span>                :            :         }
+<span class="lineNum">     276 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ctx != NULL) {</span>
+<span class="lineNum">     277 </span>                :<span class="lineNoCov">          0 :                 p = (alloc_fun)(kmflag);</span>
+<span class="lineNum">     278 </span>                :<span class="lineNoCov">          0 :                 *ctx = p;</span>
+<span class="lineNum">     279 </span>                :            :         }
+<span class="lineNum">     280 </span>                :            :         return (rv);
+<span class="lineNum">     281 </span>                :            : }
+<span class="lineNum">     282 </span>                :            : 
+<span class="lineNum">     283 </span>                :            : /*
+<span class="lineNum">     284 </span>                :            :  * Initialize key schedules for AES
+<a name="285"><span class="lineNum">     285 </span>                :            :  */</a>
+<span class="lineNum">     286 </span>                :            : static int
+<span class="lineNum">     287 </span>                :<span class="lineNoCov">          0 : init_keysched(crypto_key_t *key, void *newbie)</span>
+<span class="lineNum">     288 </span>                :            : {
+<span class="lineNum">     289 </span>                :            :         /*
+<span class="lineNum">     290 </span>                :            :          * Only keys by value are supported by this module.
+<span class="lineNum">     291 </span>                :            :          */
+<span class="lineNum">     292 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (key-&gt;ck_format) {</span>
+<span class="lineNum">     293 </span>                :            :         case CRYPTO_KEY_RAW:
+<span class="lineNum">     294 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (key-&gt;ck_length &lt; AES_MINBITS ||</span>
+<span class="lineNum">     295 </span>                :            :                     key-&gt;ck_length &gt; AES_MAXBITS) {
+<span class="lineNum">     296 </span>                :            :                         return (CRYPTO_KEY_SIZE_RANGE);
+<span class="lineNum">     297 </span>                :            :                 }
+<span class="lineNum">     298 </span>                :            : 
+<span class="lineNum">     299 </span>                :            :                 /* key length must be either 128, 192, or 256 */
+<span class="lineNum">     300 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((key-&gt;ck_length &amp; 63) != 0)</span>
+<span class="lineNum">     301 </span>                :            :                         return (CRYPTO_KEY_SIZE_RANGE);
+<span class="lineNum">     302 </span>                :            :                 break;
+<span class="lineNum">     303 </span>                :            :         default:
+<span class="lineNum">     304 </span>                :            :                 return (CRYPTO_KEY_TYPE_INCONSISTENT);
+<span class="lineNum">     305 </span>                :            :         }
+<span class="lineNum">     306 </span>                :            : 
+<span class="lineNum">     307 </span>                :<span class="lineNoCov">          0 :         aes_init_keysched(key-&gt;ck_data, key-&gt;ck_length, newbie);</span>
+<span class="lineNum">     308 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     309 </span>                :            : }
+<span class="lineNum">     310 </span>                :            : 
+<span class="lineNum">     311 </span>                :            : /*
+<span class="lineNum">     312 </span>                :            :  * KCF software provider control entry points.
+<span class="lineNum">     313 </span>                :            :  */
+<a name="314"><span class="lineNum">     314 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     315 </span>                :            : static void
+<span class="lineNum">     316 </span>                :<span class="lineNoCov">          0 : aes_provider_status(crypto_provider_handle_t provider, uint_t *status)</span>
+<span class="lineNum">     317 </span>                :            : {
+<span class="lineNum">     318 </span>                :<span class="lineNoCov">          0 :         *status = CRYPTO_PROVIDER_READY;</span>
+<span class="lineNum">     319 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="320"><span class="lineNum">     320 </span>                :            : </a>
+<span class="lineNum">     321 </span>                :            : static int
+<span class="lineNum">     322 </span>                :<span class="lineNoCov">          0 : aes_encrypt_init(crypto_ctx_t *ctx, crypto_mechanism_t *mechanism,</span>
+<span class="lineNum">     323 </span>                :            :     crypto_key_t *key, crypto_spi_ctx_template_t template,
+<span class="lineNum">     324 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     325 </span>                :            : {
+<span class="lineNum">     326 </span>                :<span class="lineNoCov">          0 :         return (aes_common_init(ctx, mechanism, key, template, req, B_TRUE));</span>
+<span class="lineNum">     327 </span>                :            : }
+<a name="328"><span class="lineNum">     328 </span>                :            : </a>
+<span class="lineNum">     329 </span>                :            : static int
+<span class="lineNum">     330 </span>                :<span class="lineNoCov">          0 : aes_decrypt_init(crypto_ctx_t *ctx, crypto_mechanism_t *mechanism,</span>
+<span class="lineNum">     331 </span>                :            :     crypto_key_t *key, crypto_spi_ctx_template_t template,
+<span class="lineNum">     332 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     333 </span>                :            : {
+<span class="lineNum">     334 </span>                :<span class="lineNoCov">          0 :         return (aes_common_init(ctx, mechanism, key, template, req, B_FALSE));</span>
+<span class="lineNum">     335 </span>                :            : }
+<span class="lineNum">     336 </span>                :            : 
+<span class="lineNum">     337 </span>                :            : 
+<span class="lineNum">     338 </span>                :            : 
+<span class="lineNum">     339 </span>                :            : /*
+<span class="lineNum">     340 </span>                :            :  * KCF software provider encrypt entry points.
+<a name="341"><span class="lineNum">     341 </span>                :            :  */</a>
+<span class="lineNum">     342 </span>                :            : static int
+<span class="lineNum">     343 </span>                :<span class="lineNoCov">          0 : aes_common_init(crypto_ctx_t *ctx, crypto_mechanism_t *mechanism,</span>
+<span class="lineNum">     344 </span>                :            :     crypto_key_t *key, crypto_spi_ctx_template_t template,
+<span class="lineNum">     345 </span>                :            :     crypto_req_handle_t req, boolean_t is_encrypt_init)
+<span class="lineNum">     346 </span>                :            : {
+<span class="lineNum">     347 </span>                :            :         aes_ctx_t *aes_ctx;
+<span class="lineNum">     348 </span>                :            :         int rv;
+<span class="lineNum">     349 </span>                :            :         int kmflag;
+<span class="lineNum">     350 </span>                :            : 
+<span class="lineNum">     351 </span>                :            :         /*
+<span class="lineNum">     352 </span>                :            :          * Only keys by value are supported by this module.
+<span class="lineNum">     353 </span>                :            :          */
+<span class="lineNum">     354 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (key-&gt;ck_format != CRYPTO_KEY_RAW) {</span>
+<span class="lineNum">     355 </span>                :            :                 return (CRYPTO_KEY_TYPE_INCONSISTENT);
+<span class="lineNum">     356 </span>                :            :         }
+<span class="lineNum">     357 </span>                :            : 
+<span class="lineNum">     358 </span>                :<span class="lineNoCov">          0 :         kmflag = crypto_kmflag(req);</span>
+<span class="lineNum">     359 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((rv = aes_check_mech_param(mechanism, &amp;aes_ctx, kmflag))</span>
+<span class="lineNum">     360 </span>                :            :             != CRYPTO_SUCCESS)
+<span class="lineNum">     361 </span>                :            :                 return (rv);
+<span class="lineNum">     362 </span>                :            : 
+<span class="lineNum">     363 </span>                :<span class="lineNoCov">          0 :         rv = aes_common_init_ctx(aes_ctx, template, mechanism, key, kmflag,</span>
+<span class="lineNum">     364 </span>                :            :             is_encrypt_init);
+<span class="lineNum">     365 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rv != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     366 </span>                :<span class="lineNoCov">          0 :                 crypto_free_mode_ctx(aes_ctx);</span>
+<span class="lineNum">     367 </span>                :            :                 return (rv);
+<span class="lineNum">     368 </span>                :            :         }
+<span class="lineNum">     369 </span>                :            : 
+<span class="lineNum">     370 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;cc_provider_private = aes_ctx;</span>
+<span class="lineNum">     371 </span>                :            : 
+<span class="lineNum">     372 </span>                :            :         return (CRYPTO_SUCCESS);
+<span class="lineNum">     373 </span>                :            : }
+<a name="374"><span class="lineNum">     374 </span>                :            : </a>
+<span class="lineNum">     375 </span>                :            : static void
+<span class="lineNum">     376 </span>                :<span class="lineNoCov">          0 : aes_copy_block64(uint8_t *in, uint64_t *out)</span>
+<span class="lineNum">     377 </span>                :            : {
+<span class="lineNum">     378 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (IS_P2ALIGNED(in, sizeof (uint64_t))) {</span>
+<span class="lineNum">     379 </span>                :            :                 /* LINTED: pointer alignment */
+<span class="lineNum">     380 </span>                :<span class="lineNoCov">          0 :                 out[0] = *(uint64_t *)&amp;in[0];</span>
+<span class="lineNum">     381 </span>                :            :                 /* LINTED: pointer alignment */
+<span class="lineNum">     382 </span>                :<span class="lineNoCov">          0 :                 out[1] = *(uint64_t *)&amp;in[8];</span>
+<span class="lineNum">     383 </span>                :            :         } else {
+<span class="lineNum">     384 </span>                :<span class="lineNoCov">          0 :                 uint8_t *iv8 = (uint8_t *)&amp;out[0];</span>
+<span class="lineNum">     385 </span>                :            : 
+<span class="lineNum">     386 </span>                :<span class="lineNoCov">          0 :                 AES_COPY_BLOCK(in, iv8);</span>
+<span class="lineNum">     387 </span>                :            :         }
+<span class="lineNum">     388 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     389 </span>                :            : 
+<a name="390"><span class="lineNum">     390 </span>                :            : </a>
+<span class="lineNum">     391 </span>                :            : static int
+<span class="lineNum">     392 </span>                :<span class="lineNoCov">          0 : aes_encrypt(crypto_ctx_t *ctx, crypto_data_t *plaintext,</span>
+<span class="lineNum">     393 </span>                :            :     crypto_data_t *ciphertext, crypto_req_handle_t req)
+<span class="lineNum">     394 </span>                :            : {
+<span class="lineNum">     395 </span>                :<span class="lineNoCov">          0 :         int ret = CRYPTO_FAILED;</span>
+<span class="lineNum">     396 </span>                :            : 
+<span class="lineNum">     397 </span>                :            :         aes_ctx_t *aes_ctx;
+<span class="lineNum">     398 </span>                :            :         size_t saved_length, saved_offset, length_needed;
+<span class="lineNum">     399 </span>                :            : 
+<span class="lineNum">     400 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ctx-&gt;cc_provider_private != NULL);</span>
+<span class="lineNum">     401 </span>                :<span class="lineNoCov">          0 :         aes_ctx = ctx-&gt;cc_provider_private;</span>
+<span class="lineNum">     402 </span>                :            : 
+<span class="lineNum">     403 </span>                :            :         /*
+<span class="lineNum">     404 </span>                :            :          * For block ciphers, plaintext must be a multiple of AES block size.
+<span class="lineNum">     405 </span>                :            :          * This test is only valid for ciphers whose blocksize is a power of 2.
+<span class="lineNum">     406 </span>                :            :          */
+<span class="lineNum">     407 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (((aes_ctx-&gt;ac_flags &amp; (CTR_MODE|CCM_MODE|GCM_MODE|GMAC_MODE))</span>
+<span class="lineNum">     408 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :             == 0) &amp;&amp; (plaintext-&gt;cd_length &amp; (AES_BLOCK_LEN - 1)) != 0)</span>
+<span class="lineNum">     409 </span>                :            :                 return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     410 </span>                :            : 
+<span class="lineNum">     411 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         AES_ARG_INPLACE(plaintext, ciphertext);</span>
+<span class="lineNum">     412 </span>                :            : 
+<span class="lineNum">     413 </span>                :            :         /*
+<span class="lineNum">     414 </span>                :            :          * We need to just return the length needed to store the output.
+<span class="lineNum">     415 </span>                :            :          * We should not destroy the context for the following case.
+<span class="lineNum">     416 </span>                :            :          */
+<span class="lineNum">     417 </span>  [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (aes_ctx-&gt;ac_flags &amp; (CCM_MODE|GCM_MODE|GMAC_MODE)) {</span>
+<span class="lineNum">     418 </span>                :            :         case CCM_MODE:
+<span class="lineNum">     419 </span>                :<span class="lineNoCov">          0 :                 length_needed = plaintext-&gt;cd_length + aes_ctx-&gt;ac_mac_len;</span>
+<span class="lineNum">     420 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     421 </span>                :            :         case GCM_MODE:
+<span class="lineNum">     422 </span>                :<span class="lineNoCov">          0 :                 length_needed = plaintext-&gt;cd_length + aes_ctx-&gt;ac_tag_len;</span>
+<span class="lineNum">     423 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     424 </span>                :            :         case GMAC_MODE:
+<span class="lineNum">     425 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (plaintext-&gt;cd_length != 0)</span>
+<span class="lineNum">     426 </span>                :            :                         return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">     427 </span>                :            : 
+<span class="lineNum">     428 </span>                :<span class="lineNoCov">          0 :                 length_needed = aes_ctx-&gt;ac_tag_len;</span>
+<span class="lineNum">     429 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     430 </span>                :            :         default:
+<span class="lineNum">     431 </span>                :<span class="lineNoCov">          0 :                 length_needed = plaintext-&gt;cd_length;</span>
+<span class="lineNum">     432 </span>                :            :         }
+<span class="lineNum">     433 </span>                :            : 
+<span class="lineNum">     434 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ciphertext-&gt;cd_length &lt; length_needed) {</span>
+<span class="lineNum">     435 </span>                :<span class="lineNoCov">          0 :                 ciphertext-&gt;cd_length = length_needed;</span>
+<span class="lineNum">     436 </span>                :<span class="lineNoCov">          0 :                 return (CRYPTO_BUFFER_TOO_SMALL);</span>
+<span class="lineNum">     437 </span>                :            :         }
+<span class="lineNum">     438 </span>                :            : 
+<span class="lineNum">     439 </span>                :<span class="lineNoCov">          0 :         saved_length = ciphertext-&gt;cd_length;</span>
+<span class="lineNum">     440 </span>                :<span class="lineNoCov">          0 :         saved_offset = ciphertext-&gt;cd_offset;</span>
+<span class="lineNum">     441 </span>                :            : 
+<span class="lineNum">     442 </span>                :            :         /*
+<span class="lineNum">     443 </span>                :            :          * Do an update on the specified input data.
+<span class="lineNum">     444 </span>                :            :          */
+<span class="lineNum">     445 </span>                :<span class="lineNoCov">          0 :         ret = aes_encrypt_update(ctx, plaintext, ciphertext, req);</span>
+<span class="lineNum">     446 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     447 </span>                :            :                 return (ret);
+<span class="lineNum">     448 </span>                :            :         }
+<span class="lineNum">     449 </span>                :            : 
+<span class="lineNum">     450 </span>                :            :         /*
+<span class="lineNum">     451 </span>                :            :          * For CCM mode, aes_ccm_encrypt_final() will take care of any
+<span class="lineNum">     452 </span>                :            :          * left-over unprocessed data, and compute the MAC
+<span class="lineNum">     453 </span>                :            :          */
+<span class="lineNum">     454 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (aes_ctx-&gt;ac_flags &amp; CCM_MODE) {</span>
+<span class="lineNum">     455 </span>                :            :                 /*
+<span class="lineNum">     456 </span>                :            :                  * ccm_encrypt_final() will compute the MAC and append
+<span class="lineNum">     457 </span>                :            :                  * it to existing ciphertext. So, need to adjust the left over
+<span class="lineNum">     458 </span>                :            :                  * length value accordingly
+<span class="lineNum">     459 </span>                :            :                  */
+<span class="lineNum">     460 </span>                :            : 
+<span class="lineNum">     461 </span>                :            :                 /* order of following 2 lines MUST not be reversed */
+<span class="lineNum">     462 </span>                :<span class="lineNoCov">          0 :                 ciphertext-&gt;cd_offset = ciphertext-&gt;cd_length;</span>
+<span class="lineNum">     463 </span>                :<span class="lineNoCov">          0 :                 ciphertext-&gt;cd_length = saved_length - ciphertext-&gt;cd_length;</span>
+<span class="lineNum">     464 </span>                :<span class="lineNoCov">          0 :                 ret = ccm_encrypt_final((ccm_ctx_t *)aes_ctx, ciphertext,</span>
+<span class="lineNum">     465 </span>                :            :                     AES_BLOCK_LEN, aes_encrypt_block, aes_xor_block);
+<span class="lineNum">     466 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ret != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     467 </span>                :            :                         return (ret);
+<span class="lineNum">     468 </span>                :            :                 }
+<span class="lineNum">     469 </span>                :            : 
+<span class="lineNum">     470 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (plaintext != ciphertext) {</span>
+<span class="lineNum">     471 </span>                :<span class="lineNoCov">          0 :                         ciphertext-&gt;cd_length =</span>
+<span class="lineNum">     472 </span>                :<span class="lineNoCov">          0 :                             ciphertext-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">     473 </span>                :            :                 }
+<span class="lineNum">     474 </span>                :<span class="lineNoCov">          0 :                 ciphertext-&gt;cd_offset = saved_offset;</span>
+<span class="lineNum">     475 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } else if (aes_ctx-&gt;ac_flags &amp; (GCM_MODE|GMAC_MODE)) {</span>
+<span class="lineNum">     476 </span>                :            :                 /*
+<span class="lineNum">     477 </span>                :            :                  * gcm_encrypt_final() will compute the MAC and append
+<span class="lineNum">     478 </span>                :            :                  * it to existing ciphertext. So, need to adjust the left over
+<span class="lineNum">     479 </span>                :            :                  * length value accordingly
+<span class="lineNum">     480 </span>                :            :                  */
+<span class="lineNum">     481 </span>                :            : 
+<span class="lineNum">     482 </span>                :            :                 /* order of following 2 lines MUST not be reversed */
+<span class="lineNum">     483 </span>                :<span class="lineNoCov">          0 :                 ciphertext-&gt;cd_offset = ciphertext-&gt;cd_length;</span>
+<span class="lineNum">     484 </span>                :<span class="lineNoCov">          0 :                 ciphertext-&gt;cd_length = saved_length - ciphertext-&gt;cd_length;</span>
+<span class="lineNum">     485 </span>                :<span class="lineNoCov">          0 :                 ret = gcm_encrypt_final((gcm_ctx_t *)aes_ctx, ciphertext,</span>
+<span class="lineNum">     486 </span>                :            :                     AES_BLOCK_LEN, aes_encrypt_block, aes_copy_block,
+<span class="lineNum">     487 </span>                :            :                     aes_xor_block);
+<span class="lineNum">     488 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ret != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     489 </span>                :            :                         return (ret);
+<span class="lineNum">     490 </span>                :            :                 }
+<span class="lineNum">     491 </span>                :            : 
+<span class="lineNum">     492 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (plaintext != ciphertext) {</span>
+<span class="lineNum">     493 </span>                :<span class="lineNoCov">          0 :                         ciphertext-&gt;cd_length =</span>
+<span class="lineNum">     494 </span>                :<span class="lineNoCov">          0 :                             ciphertext-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">     495 </span>                :            :                 }
+<span class="lineNum">     496 </span>                :<span class="lineNoCov">          0 :                 ciphertext-&gt;cd_offset = saved_offset;</span>
+<span class="lineNum">     497 </span>                :            :         }
+<span class="lineNum">     498 </span>                :            : 
+<span class="lineNum">     499 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(aes_ctx-&gt;ac_remainder_len == 0);</span>
+<span class="lineNum">     500 </span>                :<span class="lineNoCov">          0 :         (void) aes_free_context(ctx);</span>
+<span class="lineNum">     501 </span>                :            : 
+<span class="lineNum">     502 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">     503 </span>                :            : }
+<span class="lineNum">     504 </span>                :            : 
+<a name="505"><span class="lineNum">     505 </span>                :            : </a>
+<span class="lineNum">     506 </span>                :            : static int
+<span class="lineNum">     507 </span>                :<span class="lineNoCov">          0 : aes_decrypt(crypto_ctx_t *ctx, crypto_data_t *ciphertext,</span>
+<span class="lineNum">     508 </span>                :            :     crypto_data_t *plaintext, crypto_req_handle_t req)
+<span class="lineNum">     509 </span>                :            : {
+<span class="lineNum">     510 </span>                :<span class="lineNoCov">          0 :         int ret = CRYPTO_FAILED;</span>
+<span class="lineNum">     511 </span>                :            : 
+<span class="lineNum">     512 </span>                :            :         aes_ctx_t *aes_ctx;
+<span class="lineNum">     513 </span>                :            :         off_t saved_offset;
+<span class="lineNum">     514 </span>                :            :         size_t saved_length, length_needed;
+<span class="lineNum">     515 </span>                :            : 
+<span class="lineNum">     516 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ctx-&gt;cc_provider_private != NULL);</span>
+<span class="lineNum">     517 </span>                :<span class="lineNoCov">          0 :         aes_ctx = ctx-&gt;cc_provider_private;</span>
+<span class="lineNum">     518 </span>                :            : 
+<span class="lineNum">     519 </span>                :            :         /*
+<span class="lineNum">     520 </span>                :            :          * For block ciphers, plaintext must be a multiple of AES block size.
+<span class="lineNum">     521 </span>                :            :          * This test is only valid for ciphers whose blocksize is a power of 2.
+<span class="lineNum">     522 </span>                :            :          */
+<span class="lineNum">     523 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (((aes_ctx-&gt;ac_flags &amp; (CTR_MODE|CCM_MODE|GCM_MODE|GMAC_MODE))</span>
+<span class="lineNum">     524 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :             == 0) &amp;&amp; (ciphertext-&gt;cd_length &amp; (AES_BLOCK_LEN - 1)) != 0) {</span>
+<span class="lineNum">     525 </span>                :            :                 return (CRYPTO_ENCRYPTED_DATA_LEN_RANGE);
+<span class="lineNum">     526 </span>                :            :         }
+<span class="lineNum">     527 </span>                :            : 
+<span class="lineNum">     528 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         AES_ARG_INPLACE(ciphertext, plaintext);</span>
+<span class="lineNum">     529 </span>                :            : 
+<span class="lineNum">     530 </span>                :            :         /*
+<span class="lineNum">     531 </span>                :            :          * Return length needed to store the output.
+<span class="lineNum">     532 </span>                :            :          * Do not destroy context when plaintext buffer is too small.
+<span class="lineNum">     533 </span>                :            :          *
+<span class="lineNum">     534 </span>                :            :          * CCM:  plaintext is MAC len smaller than cipher text
+<span class="lineNum">     535 </span>                :            :          * GCM:  plaintext is TAG len smaller than cipher text
+<span class="lineNum">     536 </span>                :            :          * GMAC: plaintext length must be zero
+<span class="lineNum">     537 </span>                :            :          */
+<span class="lineNum">     538 </span>  [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (aes_ctx-&gt;ac_flags &amp; (CCM_MODE|GCM_MODE|GMAC_MODE)) {</span>
+<span class="lineNum">     539 </span>                :            :         case CCM_MODE:
+<span class="lineNum">     540 </span>                :<span class="lineNoCov">          0 :                 length_needed = aes_ctx-&gt;ac_processed_data_len;</span>
+<span class="lineNum">     541 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     542 </span>                :            :         case GCM_MODE:
+<span class="lineNum">     543 </span>                :<span class="lineNoCov">          0 :                 length_needed = ciphertext-&gt;cd_length - aes_ctx-&gt;ac_tag_len;</span>
+<span class="lineNum">     544 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     545 </span>                :            :         case GMAC_MODE:
+<span class="lineNum">     546 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (plaintext-&gt;cd_length != 0)</span>
+<span class="lineNum">     547 </span>                :            :                         return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">     548 </span>                :            : 
+<span class="lineNum">     549 </span>                :            :                 length_needed = 0;
+<span class="lineNum">     550 </span>                :            :                 break;
+<span class="lineNum">     551 </span>                :            :         default:
+<span class="lineNum">     552 </span>                :<span class="lineNoCov">          0 :                 length_needed = ciphertext-&gt;cd_length;</span>
+<span class="lineNum">     553 </span>                :            :         }
+<span class="lineNum">     554 </span>                :            : 
+<span class="lineNum">     555 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (plaintext-&gt;cd_length &lt; length_needed) {</span>
+<span class="lineNum">     556 </span>                :<span class="lineNoCov">          0 :                 plaintext-&gt;cd_length = length_needed;</span>
+<span class="lineNum">     557 </span>                :<span class="lineNoCov">          0 :                 return (CRYPTO_BUFFER_TOO_SMALL);</span>
+<span class="lineNum">     558 </span>                :            :         }
+<span class="lineNum">     559 </span>                :            : 
+<span class="lineNum">     560 </span>                :<span class="lineNoCov">          0 :         saved_offset = plaintext-&gt;cd_offset;</span>
+<span class="lineNum">     561 </span>                :<span class="lineNoCov">          0 :         saved_length = plaintext-&gt;cd_length;</span>
+<span class="lineNum">     562 </span>                :            : 
+<span class="lineNum">     563 </span>                :            :         /*
+<span class="lineNum">     564 </span>                :            :          * Do an update on the specified input data.
+<span class="lineNum">     565 </span>                :            :          */
+<span class="lineNum">     566 </span>                :<span class="lineNoCov">          0 :         ret = aes_decrypt_update(ctx, ciphertext, plaintext, req);</span>
+<span class="lineNum">     567 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     568 </span>                :            :                 goto cleanup;
+<span class="lineNum">     569 </span>                :            :         }
+<span class="lineNum">     570 </span>                :            : 
+<span class="lineNum">     571 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (aes_ctx-&gt;ac_flags &amp; CCM_MODE) {</span>
+<span class="lineNum">     572 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(aes_ctx-&gt;ac_processed_data_len == aes_ctx-&gt;ac_data_len);</span>
+<span class="lineNum">     573 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(aes_ctx-&gt;ac_processed_mac_len == aes_ctx-&gt;ac_mac_len);</span>
+<span class="lineNum">     574 </span>                :            : 
+<span class="lineNum">     575 </span>                :            :                 /* order of following 2 lines MUST not be reversed */
+<span class="lineNum">     576 </span>                :<span class="lineNoCov">          0 :                 plaintext-&gt;cd_offset = plaintext-&gt;cd_length;</span>
+<span class="lineNum">     577 </span>                :<span class="lineNoCov">          0 :                 plaintext-&gt;cd_length = saved_length - plaintext-&gt;cd_length;</span>
+<span class="lineNum">     578 </span>                :            : 
+<span class="lineNum">     579 </span>                :<span class="lineNoCov">          0 :                 ret = ccm_decrypt_final((ccm_ctx_t *)aes_ctx, plaintext,</span>
+<span class="lineNum">     580 </span>                :            :                     AES_BLOCK_LEN, aes_encrypt_block, aes_copy_block,
+<span class="lineNum">     581 </span>                :            :                     aes_xor_block);
+<span class="lineNum">     582 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     583 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (plaintext != ciphertext) {</span>
+<span class="lineNum">     584 </span>                :<span class="lineNoCov">          0 :                                 plaintext-&gt;cd_length =</span>
+<span class="lineNum">     585 </span>                :<span class="lineNoCov">          0 :                                     plaintext-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">     586 </span>                :            :                         }
+<span class="lineNum">     587 </span>                :            :                 } else {
+<span class="lineNum">     588 </span>                :<span class="lineNoCov">          0 :                         plaintext-&gt;cd_length = saved_length;</span>
+<span class="lineNum">     589 </span>                :            :                 }
+<span class="lineNum">     590 </span>                :            : 
+<span class="lineNum">     591 </span>                :<span class="lineNoCov">          0 :                 plaintext-&gt;cd_offset = saved_offset;</span>
+<span class="lineNum">     592 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } else if (aes_ctx-&gt;ac_flags &amp; (GCM_MODE|GMAC_MODE)) {</span>
+<span class="lineNum">     593 </span>                :            :                 /* order of following 2 lines MUST not be reversed */
+<span class="lineNum">     594 </span>                :<span class="lineNoCov">          0 :                 plaintext-&gt;cd_offset = plaintext-&gt;cd_length;</span>
+<span class="lineNum">     595 </span>                :<span class="lineNoCov">          0 :                 plaintext-&gt;cd_length = saved_length - plaintext-&gt;cd_length;</span>
+<span class="lineNum">     596 </span>                :            : 
+<span class="lineNum">     597 </span>                :<span class="lineNoCov">          0 :                 ret = gcm_decrypt_final((gcm_ctx_t *)aes_ctx, plaintext,</span>
+<span class="lineNum">     598 </span>                :            :                     AES_BLOCK_LEN, aes_encrypt_block, aes_xor_block);
+<span class="lineNum">     599 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     600 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (plaintext != ciphertext) {</span>
+<span class="lineNum">     601 </span>                :<span class="lineNoCov">          0 :                                 plaintext-&gt;cd_length =</span>
+<span class="lineNum">     602 </span>                :<span class="lineNoCov">          0 :                                     plaintext-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">     603 </span>                :            :                         }
+<span class="lineNum">     604 </span>                :            :                 } else {
+<span class="lineNum">     605 </span>                :<span class="lineNoCov">          0 :                         plaintext-&gt;cd_length = saved_length;</span>
+<span class="lineNum">     606 </span>                :            :                 }
+<span class="lineNum">     607 </span>                :            : 
+<span class="lineNum">     608 </span>                :<span class="lineNoCov">          0 :                 plaintext-&gt;cd_offset = saved_offset;</span>
+<span class="lineNum">     609 </span>                :            :         }
+<span class="lineNum">     610 </span>                :            : 
+<span class="lineNum">     611 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(aes_ctx-&gt;ac_remainder_len == 0);</span>
+<span class="lineNum">     612 </span>                :            : 
+<span class="lineNum">     613 </span>                :            : cleanup:
+<span class="lineNum">     614 </span>                :<span class="lineNoCov">          0 :         (void) aes_free_context(ctx);</span>
+<span class="lineNum">     615 </span>                :            : 
+<span class="lineNum">     616 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">     617 </span>                :            : }
+<span class="lineNum">     618 </span>                :            : 
+<span class="lineNum">     619 </span>                :            : 
+<a name="620"><span class="lineNum">     620 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     621 </span>                :            : static int
+<span class="lineNum">     622 </span>                :<span class="lineNoCov">          0 : aes_encrypt_update(crypto_ctx_t *ctx, crypto_data_t *plaintext,</span>
+<span class="lineNum">     623 </span>                :            :     crypto_data_t *ciphertext, crypto_req_handle_t req)
+<span class="lineNum">     624 </span>                :            : {
+<span class="lineNum">     625 </span>                :            :         off_t saved_offset;
+<span class="lineNum">     626 </span>                :            :         size_t saved_length, out_len;
+<span class="lineNum">     627 </span>                :<span class="lineNoCov">          0 :         int ret = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     628 </span>                :            :         aes_ctx_t *aes_ctx;
+<span class="lineNum">     629 </span>                :            : 
+<span class="lineNum">     630 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ctx-&gt;cc_provider_private != NULL);</span>
+<span class="lineNum">     631 </span>                :<span class="lineNoCov">          0 :         aes_ctx = ctx-&gt;cc_provider_private;</span>
+<span class="lineNum">     632 </span>                :            : 
+<span class="lineNum">     633 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         AES_ARG_INPLACE(plaintext, ciphertext);</span>
+<span class="lineNum">     634 </span>                :            : 
+<span class="lineNum">     635 </span>                :            :         /* compute number of bytes that will hold the ciphertext */
+<span class="lineNum">     636 </span>                :<span class="lineNoCov">          0 :         out_len = aes_ctx-&gt;ac_remainder_len;</span>
+<span class="lineNum">     637 </span>                :<span class="lineNoCov">          0 :         out_len += plaintext-&gt;cd_length;</span>
+<span class="lineNum">     638 </span>                :<span class="lineNoCov">          0 :         out_len &amp;= ~(AES_BLOCK_LEN - 1);</span>
+<span class="lineNum">     639 </span>                :            : 
+<span class="lineNum">     640 </span>                :            :         /* return length needed to store the output */
+<span class="lineNum">     641 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ciphertext-&gt;cd_length &lt; out_len) {</span>
+<span class="lineNum">     642 </span>                :<span class="lineNoCov">          0 :                 ciphertext-&gt;cd_length = out_len;</span>
+<span class="lineNum">     643 </span>                :<span class="lineNoCov">          0 :                 return (CRYPTO_BUFFER_TOO_SMALL);</span>
+<span class="lineNum">     644 </span>                :            :         }
+<span class="lineNum">     645 </span>                :            : 
+<span class="lineNum">     646 </span>                :<span class="lineNoCov">          0 :         saved_offset = ciphertext-&gt;cd_offset;</span>
+<span class="lineNum">     647 </span>                :<span class="lineNoCov">          0 :         saved_length = ciphertext-&gt;cd_length;</span>
+<span class="lineNum">     648 </span>                :            : 
+<span class="lineNum">     649 </span>                :            :         /*
+<span class="lineNum">     650 </span>                :            :          * Do the AES update on the specified input data.
+<span class="lineNum">     651 </span>                :            :          */
+<span class="lineNum">     652 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (plaintext-&gt;cd_format) {</span>
+<span class="lineNum">     653 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     654 </span>                :<span class="lineNoCov">          0 :                 ret = crypto_update_iov(ctx-&gt;cc_provider_private,</span>
+<span class="lineNum">     655 </span>                :            :                     plaintext, ciphertext, aes_encrypt_contiguous_blocks,
+<span class="lineNum">     656 </span>                :            :                     aes_copy_block64);
+<span class="lineNum">     657 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     658 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     659 </span>                :<span class="lineNoCov">          0 :                 ret = crypto_update_uio(ctx-&gt;cc_provider_private,</span>
+<span class="lineNum">     660 </span>                :            :                     plaintext, ciphertext, aes_encrypt_contiguous_blocks,
+<span class="lineNum">     661 </span>                :            :                     aes_copy_block64);
+<span class="lineNum">     662 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     663 </span>                :            :         default:
+<span class="lineNum">     664 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     665 </span>                :            :         }
+<span class="lineNum">     666 </span>                :            : 
+<span class="lineNum">     667 </span>                :            :         /*
+<span class="lineNum">     668 </span>                :            :          * Since AES counter mode is a stream cipher, we call
+<span class="lineNum">     669 </span>                :            :          * ctr_mode_final() to pick up any remaining bytes.
+<span class="lineNum">     670 </span>                :            :          * It is an internal function that does not destroy
+<span class="lineNum">     671 </span>                :            :          * the context like *normal* final routines.
+<span class="lineNum">     672 </span>                :            :          */
+<span class="lineNum">     673 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((aes_ctx-&gt;ac_flags &amp; CTR_MODE) &amp;&amp; (aes_ctx-&gt;ac_remainder_len &gt; 0)) {</span>
+<span class="lineNum">     674 </span>                :<span class="lineNoCov">          0 :                 ret = ctr_mode_final((ctr_ctx_t *)aes_ctx,</span>
+<span class="lineNum">     675 </span>                :            :                     ciphertext, aes_encrypt_block);
+<span class="lineNum">     676 </span>                :            :         }
+<span class="lineNum">     677 </span>                :            : 
+<span class="lineNum">     678 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     679 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (plaintext != ciphertext)</span>
+<span class="lineNum">     680 </span>                :<span class="lineNoCov">          0 :                         ciphertext-&gt;cd_length =</span>
+<span class="lineNum">     681 </span>                :<span class="lineNoCov">          0 :                             ciphertext-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">     682 </span>                :            :         } else {
+<span class="lineNum">     683 </span>                :<span class="lineNoCov">          0 :                 ciphertext-&gt;cd_length = saved_length;</span>
+<span class="lineNum">     684 </span>                :            :         }
+<span class="lineNum">     685 </span>                :<span class="lineNoCov">          0 :         ciphertext-&gt;cd_offset = saved_offset;</span>
+<span class="lineNum">     686 </span>                :            : 
+<span class="lineNum">     687 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">     688 </span>                :            : }
+<span class="lineNum">     689 </span>                :            : 
+<a name="690"><span class="lineNum">     690 </span>                :            : </a>
+<span class="lineNum">     691 </span>                :            : static int
+<span class="lineNum">     692 </span>                :<span class="lineNoCov">          0 : aes_decrypt_update(crypto_ctx_t *ctx, crypto_data_t *ciphertext,</span>
+<span class="lineNum">     693 </span>                :            :     crypto_data_t *plaintext, crypto_req_handle_t req)
+<span class="lineNum">     694 </span>                :            : {
+<span class="lineNum">     695 </span>                :            :         off_t saved_offset;
+<span class="lineNum">     696 </span>                :            :         size_t saved_length, out_len;
+<span class="lineNum">     697 </span>                :<span class="lineNoCov">          0 :         int ret = CRYPTO_SUCCESS;</span>
+<span class="lineNum">     698 </span>                :            :         aes_ctx_t *aes_ctx;
+<span class="lineNum">     699 </span>                :            : 
+<span class="lineNum">     700 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ctx-&gt;cc_provider_private != NULL);</span>
+<span class="lineNum">     701 </span>                :<span class="lineNoCov">          0 :         aes_ctx = ctx-&gt;cc_provider_private;</span>
+<span class="lineNum">     702 </span>                :            : 
+<span class="lineNum">     703 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         AES_ARG_INPLACE(ciphertext, plaintext);</span>
+<span class="lineNum">     704 </span>                :            : 
+<span class="lineNum">     705 </span>                :            :         /*
+<span class="lineNum">     706 </span>                :            :          * Compute number of bytes that will hold the plaintext.
+<span class="lineNum">     707 </span>                :            :          * This is not necessary for CCM, GCM, and GMAC since these
+<span class="lineNum">     708 </span>                :            :          * mechanisms never return plaintext for update operations.
+<span class="lineNum">     709 </span>                :            :          */
+<span class="lineNum">     710 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((aes_ctx-&gt;ac_flags &amp; (CCM_MODE|GCM_MODE|GMAC_MODE)) == 0) {</span>
+<span class="lineNum">     711 </span>                :<span class="lineNoCov">          0 :                 out_len = aes_ctx-&gt;ac_remainder_len;</span>
+<span class="lineNum">     712 </span>                :<span class="lineNoCov">          0 :                 out_len += ciphertext-&gt;cd_length;</span>
+<span class="lineNum">     713 </span>                :<span class="lineNoCov">          0 :                 out_len &amp;= ~(AES_BLOCK_LEN - 1);</span>
+<span class="lineNum">     714 </span>                :            : 
+<span class="lineNum">     715 </span>                :            :                 /* return length needed to store the output */
+<span class="lineNum">     716 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (plaintext-&gt;cd_length &lt; out_len) {</span>
+<span class="lineNum">     717 </span>                :<span class="lineNoCov">          0 :                         plaintext-&gt;cd_length = out_len;</span>
+<span class="lineNum">     718 </span>                :<span class="lineNoCov">          0 :                         return (CRYPTO_BUFFER_TOO_SMALL);</span>
+<span class="lineNum">     719 </span>                :            :                 }
+<span class="lineNum">     720 </span>                :            :         }
+<span class="lineNum">     721 </span>                :            : 
+<span class="lineNum">     722 </span>                :<span class="lineNoCov">          0 :         saved_offset = plaintext-&gt;cd_offset;</span>
+<span class="lineNum">     723 </span>                :<span class="lineNoCov">          0 :         saved_length = plaintext-&gt;cd_length;</span>
+<span class="lineNum">     724 </span>                :            : 
+<span class="lineNum">     725 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (aes_ctx-&gt;ac_flags &amp; (GCM_MODE|GMAC_MODE))</span>
+<span class="lineNum">     726 </span>                :<span class="lineNoCov">          0 :                 gcm_set_kmflag((gcm_ctx_t *)aes_ctx, crypto_kmflag(req));</span>
+<span class="lineNum">     727 </span>                :            : 
+<span class="lineNum">     728 </span>                :            :         /*
+<span class="lineNum">     729 </span>                :            :          * Do the AES update on the specified input data.
+<span class="lineNum">     730 </span>                :            :          */
+<span class="lineNum">     731 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (ciphertext-&gt;cd_format) {</span>
+<span class="lineNum">     732 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">     733 </span>                :<span class="lineNoCov">          0 :                 ret = crypto_update_iov(ctx-&gt;cc_provider_private,</span>
+<span class="lineNum">     734 </span>                :            :                     ciphertext, plaintext, aes_decrypt_contiguous_blocks,
+<span class="lineNum">     735 </span>                :            :                     aes_copy_block64);
+<span class="lineNum">     736 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     737 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">     738 </span>                :<span class="lineNoCov">          0 :                 ret = crypto_update_uio(ctx-&gt;cc_provider_private,</span>
+<span class="lineNum">     739 </span>                :            :                     ciphertext, plaintext, aes_decrypt_contiguous_blocks,
+<span class="lineNum">     740 </span>                :            :                     aes_copy_block64);
+<span class="lineNum">     741 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     742 </span>                :            :         default:
+<span class="lineNum">     743 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">     744 </span>                :            :         }
+<span class="lineNum">     745 </span>                :            : 
+<span class="lineNum">     746 </span>                :            :         /*
+<span class="lineNum">     747 </span>                :            :          * Since AES counter mode is a stream cipher, we call
+<span class="lineNum">     748 </span>                :            :          * ctr_mode_final() to pick up any remaining bytes.
+<span class="lineNum">     749 </span>                :            :          * It is an internal function that does not destroy
+<span class="lineNum">     750 </span>                :            :          * the context like *normal* final routines.
+<span class="lineNum">     751 </span>                :            :          */
+<span class="lineNum">     752 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((aes_ctx-&gt;ac_flags &amp; CTR_MODE) &amp;&amp; (aes_ctx-&gt;ac_remainder_len &gt; 0)) {</span>
+<span class="lineNum">     753 </span>                :<span class="lineNoCov">          0 :                 ret = ctr_mode_final((ctr_ctx_t *)aes_ctx, plaintext,</span>
+<span class="lineNum">     754 </span>                :            :                     aes_encrypt_block);
+<span class="lineNum">     755 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ret == CRYPTO_DATA_LEN_RANGE)</span>
+<span class="lineNum">     756 </span>                :<span class="lineNoCov">          0 :                         ret = CRYPTO_ENCRYPTED_DATA_LEN_RANGE;</span>
+<span class="lineNum">     757 </span>                :            :         }
+<span class="lineNum">     758 </span>                :            : 
+<span class="lineNum">     759 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     760 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ciphertext != plaintext)</span>
+<span class="lineNum">     761 </span>                :<span class="lineNoCov">          0 :                         plaintext-&gt;cd_length =</span>
+<span class="lineNum">     762 </span>                :<span class="lineNoCov">          0 :                             plaintext-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">     763 </span>                :            :         } else {
+<span class="lineNum">     764 </span>                :<span class="lineNoCov">          0 :                 plaintext-&gt;cd_length = saved_length;</span>
+<span class="lineNum">     765 </span>                :            :         }
+<span class="lineNum">     766 </span>                :<span class="lineNoCov">          0 :         plaintext-&gt;cd_offset = saved_offset;</span>
+<span class="lineNum">     767 </span>                :            : 
+<span class="lineNum">     768 </span>                :            : 
+<span class="lineNum">     769 </span>                :<span class="lineNoCov">          0 :         return (ret);</span>
+<span class="lineNum">     770 </span>                :            : }
+<span class="lineNum">     771 </span>                :            : 
+<a name="772"><span class="lineNum">     772 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     773 </span>                :            : static int
+<span class="lineNum">     774 </span>                :<span class="lineNoCov">          0 : aes_encrypt_final(crypto_ctx_t *ctx, crypto_data_t *data,</span>
+<span class="lineNum">     775 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     776 </span>                :            : {
+<span class="lineNum">     777 </span>                :            :         aes_ctx_t *aes_ctx;
+<span class="lineNum">     778 </span>                :            :         int ret;
+<span class="lineNum">     779 </span>                :            : 
+<span class="lineNum">     780 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ctx-&gt;cc_provider_private != NULL);</span>
+<span class="lineNum">     781 </span>                :<span class="lineNoCov">          0 :         aes_ctx = ctx-&gt;cc_provider_private;</span>
+<span class="lineNum">     782 </span>                :            : 
+<span class="lineNum">     783 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (data-&gt;cd_format != CRYPTO_DATA_RAW &amp;&amp;</span>
+<span class="lineNum">     784 </span>                :            :             data-&gt;cd_format != CRYPTO_DATA_UIO) {
+<span class="lineNum">     785 </span>                :            :                 return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">     786 </span>                :            :         }
+<span class="lineNum">     787 </span>                :            : 
+<span class="lineNum">     788 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (aes_ctx-&gt;ac_flags &amp; CTR_MODE) {</span>
+<span class="lineNum">     789 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (aes_ctx-&gt;ac_remainder_len &gt; 0) {</span>
+<span class="lineNum">     790 </span>                :<span class="lineNoCov">          0 :                         ret = ctr_mode_final((ctr_ctx_t *)aes_ctx, data,</span>
+<span class="lineNum">     791 </span>                :            :                             aes_encrypt_block);
+<span class="lineNum">     792 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (ret != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     793 </span>                :            :                                 return (ret);
+<span class="lineNum">     794 </span>                :            :                 }
+<span class="lineNum">     795 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } else if (aes_ctx-&gt;ac_flags &amp; CCM_MODE) {</span>
+<span class="lineNum">     796 </span>                :<span class="lineNoCov">          0 :                 ret = ccm_encrypt_final((ccm_ctx_t *)aes_ctx, data,</span>
+<span class="lineNum">     797 </span>                :            :                     AES_BLOCK_LEN, aes_encrypt_block, aes_xor_block);
+<span class="lineNum">     798 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ret != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     799 </span>                :            :                         return (ret);
+<span class="lineNum">     800 </span>                :            :                 }
+<span class="lineNum">     801 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } else if (aes_ctx-&gt;ac_flags &amp; (GCM_MODE|GMAC_MODE)) {</span>
+<span class="lineNum">     802 </span>                :<span class="lineNoCov">          0 :                 size_t saved_offset = data-&gt;cd_offset;</span>
+<span class="lineNum">     803 </span>                :            : 
+<span class="lineNum">     804 </span>                :<span class="lineNoCov">          0 :                 ret = gcm_encrypt_final((gcm_ctx_t *)aes_ctx, data,</span>
+<span class="lineNum">     805 </span>                :            :                     AES_BLOCK_LEN, aes_encrypt_block, aes_copy_block,
+<span class="lineNum">     806 </span>                :            :                     aes_xor_block);
+<span class="lineNum">     807 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ret != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     808 </span>                :            :                         return (ret);
+<span class="lineNum">     809 </span>                :            :                 }
+<span class="lineNum">     810 </span>                :<span class="lineNoCov">          0 :                 data-&gt;cd_length = data-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">     811 </span>                :<span class="lineNoCov">          0 :                 data-&gt;cd_offset = saved_offset;</span>
+<span class="lineNum">     812 </span>                :            :         } else {
+<span class="lineNum">     813 </span>                :            :                 /*
+<span class="lineNum">     814 </span>                :            :                  * There must be no unprocessed plaintext.
+<span class="lineNum">     815 </span>                :            :                  * This happens if the length of the last data is
+<span class="lineNum">     816 </span>                :            :                  * not a multiple of the AES block length.
+<span class="lineNum">     817 </span>                :            :                  */
+<span class="lineNum">     818 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (aes_ctx-&gt;ac_remainder_len &gt; 0) {</span>
+<span class="lineNum">     819 </span>                :            :                         return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     820 </span>                :            :                 }
+<span class="lineNum">     821 </span>                :<span class="lineNoCov">          0 :                 data-&gt;cd_length = 0;</span>
+<span class="lineNum">     822 </span>                :            :         }
+<span class="lineNum">     823 </span>                :            : 
+<span class="lineNum">     824 </span>                :<span class="lineNoCov">          0 :         (void) aes_free_context(ctx);</span>
+<span class="lineNum">     825 </span>                :            : 
+<span class="lineNum">     826 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     827 </span>                :            : }
+<span class="lineNum">     828 </span>                :            : 
+<a name="829"><span class="lineNum">     829 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     830 </span>                :            : static int
+<span class="lineNum">     831 </span>                :<span class="lineNoCov">          0 : aes_decrypt_final(crypto_ctx_t *ctx, crypto_data_t *data,</span>
+<span class="lineNum">     832 </span>                :            :     crypto_req_handle_t req)
+<span class="lineNum">     833 </span>                :            : {
+<span class="lineNum">     834 </span>                :            :         aes_ctx_t *aes_ctx;
+<span class="lineNum">     835 </span>                :            :         int ret;
+<span class="lineNum">     836 </span>                :            :         off_t saved_offset;
+<span class="lineNum">     837 </span>                :            :         size_t saved_length;
+<span class="lineNum">     838 </span>                :            : 
+<span class="lineNum">     839 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(ctx-&gt;cc_provider_private != NULL);</span>
+<span class="lineNum">     840 </span>                :<span class="lineNoCov">          0 :         aes_ctx = ctx-&gt;cc_provider_private;</span>
+<span class="lineNum">     841 </span>                :            : 
+<span class="lineNum">     842 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (data-&gt;cd_format != CRYPTO_DATA_RAW &amp;&amp;</span>
+<span class="lineNum">     843 </span>                :            :             data-&gt;cd_format != CRYPTO_DATA_UIO) {
+<span class="lineNum">     844 </span>                :            :                 return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">     845 </span>                :            :         }
+<span class="lineNum">     846 </span>                :            : 
+<span class="lineNum">     847 </span>                :            :         /*
+<span class="lineNum">     848 </span>                :            :          * There must be no unprocessed ciphertext.
+<span class="lineNum">     849 </span>                :            :          * This happens if the length of the last ciphertext is
+<span class="lineNum">     850 </span>                :            :          * not a multiple of the AES block length.
+<span class="lineNum">     851 </span>                :            :          */
+<span class="lineNum">     852 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (aes_ctx-&gt;ac_remainder_len &gt; 0) {</span>
+<span class="lineNum">     853 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((aes_ctx-&gt;ac_flags &amp; CTR_MODE) == 0)</span>
+<span class="lineNum">     854 </span>                :            :                         return (CRYPTO_ENCRYPTED_DATA_LEN_RANGE);
+<span class="lineNum">     855 </span>                :            :                 else {
+<span class="lineNum">     856 </span>                :<span class="lineNoCov">          0 :                         ret = ctr_mode_final((ctr_ctx_t *)aes_ctx, data,</span>
+<span class="lineNum">     857 </span>                :            :                             aes_encrypt_block);
+<span class="lineNum">     858 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (ret == CRYPTO_DATA_LEN_RANGE)</span>
+<span class="lineNum">     859 </span>                :<span class="lineNoCov">          0 :                                 ret = CRYPTO_ENCRYPTED_DATA_LEN_RANGE;</span>
+<span class="lineNum">     860 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (ret != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     861 </span>                :            :                                 return (ret);
+<span class="lineNum">     862 </span>                :            :                 }
+<span class="lineNum">     863 </span>                :            :         }
+<span class="lineNum">     864 </span>                :            : 
+<span class="lineNum">     865 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (aes_ctx-&gt;ac_flags &amp; CCM_MODE) {</span>
+<span class="lineNum">     866 </span>                :            :                 /*
+<span class="lineNum">     867 </span>                :            :                  * This is where all the plaintext is returned, make sure
+<span class="lineNum">     868 </span>                :            :                  * the plaintext buffer is big enough
+<span class="lineNum">     869 </span>                :            :                  */
+<span class="lineNum">     870 </span>                :<span class="lineNoCov">          0 :                 size_t pt_len = aes_ctx-&gt;ac_data_len;</span>
+<span class="lineNum">     871 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (data-&gt;cd_length &lt; pt_len) {</span>
+<span class="lineNum">     872 </span>                :<span class="lineNoCov">          0 :                         data-&gt;cd_length = pt_len;</span>
+<span class="lineNum">     873 </span>                :<span class="lineNoCov">          0 :                         return (CRYPTO_BUFFER_TOO_SMALL);</span>
+<span class="lineNum">     874 </span>                :            :                 }
+<span class="lineNum">     875 </span>                :            : 
+<span class="lineNum">     876 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(aes_ctx-&gt;ac_processed_data_len == pt_len);</span>
+<span class="lineNum">     877 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(aes_ctx-&gt;ac_processed_mac_len == aes_ctx-&gt;ac_mac_len);</span>
+<span class="lineNum">     878 </span>                :<span class="lineNoCov">          0 :                 saved_offset = data-&gt;cd_offset;</span>
+<span class="lineNum">     879 </span>                :<span class="lineNoCov">          0 :                 saved_length = data-&gt;cd_length;</span>
+<span class="lineNum">     880 </span>                :<span class="lineNoCov">          0 :                 ret = ccm_decrypt_final((ccm_ctx_t *)aes_ctx, data,</span>
+<span class="lineNum">     881 </span>                :            :                     AES_BLOCK_LEN, aes_encrypt_block, aes_copy_block,
+<span class="lineNum">     882 </span>                :            :                     aes_xor_block);
+<span class="lineNum">     883 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     884 </span>                :<span class="lineNoCov">          0 :                         data-&gt;cd_length = data-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">     885 </span>                :            :                 } else {
+<span class="lineNum">     886 </span>                :<span class="lineNoCov">          0 :                         data-&gt;cd_length = saved_length;</span>
+<span class="lineNum">     887 </span>                :            :                 }
+<span class="lineNum">     888 </span>                :            : 
+<span class="lineNum">     889 </span>                :<span class="lineNoCov">          0 :                 data-&gt;cd_offset = saved_offset;</span>
+<span class="lineNum">     890 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ret != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     891 </span>                :            :                         return (ret);
+<span class="lineNum">     892 </span>                :            :                 }
+<span class="lineNum">     893 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } else if (aes_ctx-&gt;ac_flags &amp; (GCM_MODE|GMAC_MODE)) {</span>
+<span class="lineNum">     894 </span>                :            :                 /*
+<span class="lineNum">     895 </span>                :            :                  * This is where all the plaintext is returned, make sure
+<span class="lineNum">     896 </span>                :            :                  * the plaintext buffer is big enough
+<span class="lineNum">     897 </span>                :            :                  */
+<span class="lineNum">     898 </span>                :<span class="lineNoCov">          0 :                 gcm_ctx_t *ctx = (gcm_ctx_t *)aes_ctx;</span>
+<span class="lineNum">     899 </span>                :<span class="lineNoCov">          0 :                 size_t pt_len = ctx-&gt;gcm_processed_data_len - ctx-&gt;gcm_tag_len;</span>
+<span class="lineNum">     900 </span>                :            : 
+<span class="lineNum">     901 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (data-&gt;cd_length &lt; pt_len) {</span>
+<span class="lineNum">     902 </span>                :<span class="lineNoCov">          0 :                         data-&gt;cd_length = pt_len;</span>
+<span class="lineNum">     903 </span>                :<span class="lineNoCov">          0 :                         return (CRYPTO_BUFFER_TOO_SMALL);</span>
+<span class="lineNum">     904 </span>                :            :                 }
+<span class="lineNum">     905 </span>                :            : 
+<span class="lineNum">     906 </span>                :<span class="lineNoCov">          0 :                 saved_offset = data-&gt;cd_offset;</span>
+<span class="lineNum">     907 </span>                :<span class="lineNoCov">          0 :                 saved_length = data-&gt;cd_length;</span>
+<span class="lineNum">     908 </span>                :<span class="lineNoCov">          0 :                 ret = gcm_decrypt_final((gcm_ctx_t *)aes_ctx, data,</span>
+<span class="lineNum">     909 </span>                :            :                     AES_BLOCK_LEN, aes_encrypt_block, aes_xor_block);
+<span class="lineNum">     910 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     911 </span>                :<span class="lineNoCov">          0 :                         data-&gt;cd_length = data-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">     912 </span>                :            :                 } else {
+<span class="lineNum">     913 </span>                :<span class="lineNoCov">          0 :                         data-&gt;cd_length = saved_length;</span>
+<span class="lineNum">     914 </span>                :            :                 }
+<span class="lineNum">     915 </span>                :            : 
+<span class="lineNum">     916 </span>                :<span class="lineNoCov">          0 :                 data-&gt;cd_offset = saved_offset;</span>
+<span class="lineNum">     917 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ret != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">     918 </span>                :            :                         return (ret);
+<span class="lineNum">     919 </span>                :            :                 }
+<span class="lineNum">     920 </span>                :            :         }
+<span class="lineNum">     921 </span>                :            : 
+<span class="lineNum">     922 </span>                :            : 
+<span class="lineNum">     923 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((aes_ctx-&gt;ac_flags &amp; (CTR_MODE|CCM_MODE|GCM_MODE|GMAC_MODE)) == 0) {</span>
+<span class="lineNum">     924 </span>                :<span class="lineNoCov">          0 :                 data-&gt;cd_length = 0;</span>
+<span class="lineNum">     925 </span>                :            :         }
+<span class="lineNum">     926 </span>                :            : 
+<span class="lineNum">     927 </span>                :<span class="lineNoCov">          0 :         (void) aes_free_context(ctx);</span>
+<span class="lineNum">     928 </span>                :            : 
+<span class="lineNum">     929 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     930 </span>                :            : }
+<span class="lineNum">     931 </span>                :            : 
+<a name="932"><span class="lineNum">     932 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     933 </span>                :            : static int
+<span class="lineNum">     934 </span>                :<span class="lineNoCov">          0 : aes_encrypt_atomic(crypto_provider_handle_t provider,</span>
+<span class="lineNum">     935 </span>                :            :     crypto_session_id_t session_id, crypto_mechanism_t *mechanism,
+<span class="lineNum">     936 </span>                :            :     crypto_key_t *key, crypto_data_t *plaintext, crypto_data_t *ciphertext,
+<span class="lineNum">     937 </span>                :            :     crypto_spi_ctx_template_t template, crypto_req_handle_t req)
+<span class="lineNum">     938 </span>                :            : {
+<span class="lineNum">     939 </span>                :            :         aes_ctx_t aes_ctx;      /* on the stack */
+<span class="lineNum">     940 </span>                :            :         off_t saved_offset;
+<span class="lineNum">     941 </span>                :            :         size_t saved_length;
+<span class="lineNum">     942 </span>                :            :         size_t length_needed;
+<span class="lineNum">     943 </span>                :            :         int ret;
+<span class="lineNum">     944 </span>                :            : 
+<span class="lineNum">     945 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         AES_ARG_INPLACE(plaintext, ciphertext);</span>
+<span class="lineNum">     946 </span>                :            : 
+<span class="lineNum">     947 </span>                :            :         /*
+<span class="lineNum">     948 </span>                :            :          * CTR, CCM, GCM, and GMAC modes do not require that plaintext
+<span class="lineNum">     949 </span>                :            :          * be a multiple of AES block size.
+<span class="lineNum">     950 </span>                :            :          */
+<span class="lineNum">     951 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (mechanism-&gt;cm_type) {</span>
+<span class="lineNum">     952 </span>                :            :         case AES_CTR_MECH_INFO_TYPE:
+<span class="lineNum">     953 </span>                :            :         case AES_CCM_MECH_INFO_TYPE:
+<span class="lineNum">     954 </span>                :            :         case AES_GCM_MECH_INFO_TYPE:
+<span class="lineNum">     955 </span>                :            :         case AES_GMAC_MECH_INFO_TYPE:
+<span class="lineNum">     956 </span>                :            :                 break;
+<span class="lineNum">     957 </span>                :            :         default:
+<span class="lineNum">     958 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((plaintext-&gt;cd_length &amp; (AES_BLOCK_LEN - 1)) != 0)</span>
+<span class="lineNum">     959 </span>                :            :                         return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     960 </span>                :            :         }
+<span class="lineNum">     961 </span>                :            : 
+<span class="lineNum">     962 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((ret = aes_check_mech_param(mechanism, NULL, 0)) != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     963 </span>                :            :                 return (ret);
+<span class="lineNum">     964 </span>                :            : 
+<span class="lineNum">     965 </span>                :<span class="lineNoCov">          0 :         bzero(&amp;aes_ctx, sizeof (aes_ctx_t));</span>
+<span class="lineNum">     966 </span>                :            : 
+<span class="lineNum">     967 </span>                :<span class="lineNoCov">          0 :         ret = aes_common_init_ctx(&amp;aes_ctx, template, mechanism, key,</span>
+<span class="lineNum">     968 </span>                :            :             crypto_kmflag(req), B_TRUE);
+<span class="lineNum">     969 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     970 </span>                :            :                 return (ret);
+<span class="lineNum">     971 </span>                :            : 
+<span class="lineNum">     972 </span>  [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (mechanism-&gt;cm_type) {</span>
+<span class="lineNum">     973 </span>                :            :         case AES_CCM_MECH_INFO_TYPE:
+<span class="lineNum">     974 </span>                :<span class="lineNoCov">          0 :                 length_needed = plaintext-&gt;cd_length + aes_ctx.ac_mac_len;</span>
+<span class="lineNum">     975 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     976 </span>                :            :         case AES_GMAC_MECH_INFO_TYPE:
+<span class="lineNum">     977 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (plaintext-&gt;cd_length != 0)</span>
+<span class="lineNum">     978 </span>                :            :                         return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">     979 </span>                :            :                 /* FALLTHRU */
+<span class="lineNum">     980 </span>                :            :         case AES_GCM_MECH_INFO_TYPE:
+<span class="lineNum">     981 </span>                :<span class="lineNoCov">          0 :                 length_needed = plaintext-&gt;cd_length + aes_ctx.ac_tag_len;</span>
+<span class="lineNum">     982 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     983 </span>                :            :         default:
+<span class="lineNum">     984 </span>                :<span class="lineNoCov">          0 :                 length_needed = plaintext-&gt;cd_length;</span>
+<span class="lineNum">     985 </span>                :            :         }
+<span class="lineNum">     986 </span>                :            : 
+<span class="lineNum">     987 </span>                :            :         /* return size of buffer needed to store output */
+<span class="lineNum">     988 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ciphertext-&gt;cd_length &lt; length_needed) {</span>
+<span class="lineNum">     989 </span>                :<span class="lineNoCov">          0 :                 ciphertext-&gt;cd_length = length_needed;</span>
+<span class="lineNum">     990 </span>                :<span class="lineNoCov">          0 :                 ret = CRYPTO_BUFFER_TOO_SMALL;</span>
+<span class="lineNum">     991 </span>                :<span class="lineNoCov">          0 :                 goto out;</span>
+<span class="lineNum">     992 </span>                :            :         }
+<span class="lineNum">     993 </span>                :            : 
+<span class="lineNum">     994 </span>                :<span class="lineNoCov">          0 :         saved_offset = ciphertext-&gt;cd_offset;</span>
+<span class="lineNum">     995 </span>                :<span class="lineNoCov">          0 :         saved_length = ciphertext-&gt;cd_length;</span>
+<span class="lineNum">     996 </span>                :            : 
+<span class="lineNum">     997 </span>                :            :         /*
+<span class="lineNum">     998 </span>                :            :          * Do an update on the specified input data.
+<span class="lineNum">     999 </span>                :            :          */
+<span class="lineNum">    1000 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (plaintext-&gt;cd_format) {</span>
+<span class="lineNum">    1001 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">    1002 </span>                :<span class="lineNoCov">          0 :                 ret = crypto_update_iov(&amp;aes_ctx, plaintext, ciphertext,</span>
+<span class="lineNum">    1003 </span>                :            :                     aes_encrypt_contiguous_blocks, aes_copy_block64);
+<span class="lineNum">    1004 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1005 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">    1006 </span>                :<span class="lineNoCov">          0 :                 ret = crypto_update_uio(&amp;aes_ctx, plaintext, ciphertext,</span>
+<span class="lineNum">    1007 </span>                :            :                     aes_encrypt_contiguous_blocks, aes_copy_block64);
+<span class="lineNum">    1008 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1009 </span>                :            :         default:
+<span class="lineNum">    1010 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">    1011 </span>                :            :         }
+<span class="lineNum">    1012 </span>                :            : 
+<span class="lineNum">    1013 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">    1014 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (mechanism-&gt;cm_type == AES_CCM_MECH_INFO_TYPE) {</span>
+<span class="lineNum">    1015 </span>                :<span class="lineNoCov">          0 :                         ret = ccm_encrypt_final((ccm_ctx_t *)&amp;aes_ctx,</span>
+<span class="lineNum">    1016 </span>                :            :                             ciphertext, AES_BLOCK_LEN, aes_encrypt_block,
+<span class="lineNum">    1017 </span>                :            :                             aes_xor_block);
+<span class="lineNum">    1018 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (ret != CRYPTO_SUCCESS)</span>
+<span class="lineNum">    1019 </span>                :            :                                 goto out;
+<span class="lineNum">    1020 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(aes_ctx.ac_remainder_len == 0);</span>
+<span class="lineNum">    1021 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (mechanism-&gt;cm_type == AES_GCM_MECH_INFO_TYPE ||</span>
+<span class="lineNum">    1022 </span>                :            :                     mechanism-&gt;cm_type == AES_GMAC_MECH_INFO_TYPE) {
+<span class="lineNum">    1023 </span>                :<span class="lineNoCov">          0 :                         ret = gcm_encrypt_final((gcm_ctx_t *)&amp;aes_ctx,</span>
+<span class="lineNum">    1024 </span>                :            :                             ciphertext, AES_BLOCK_LEN, aes_encrypt_block,
+<span class="lineNum">    1025 </span>                :            :                             aes_copy_block, aes_xor_block);
+<span class="lineNum">    1026 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (ret != CRYPTO_SUCCESS)</span>
+<span class="lineNum">    1027 </span>                :            :                                 goto out;
+<span class="lineNum">    1028 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(aes_ctx.ac_remainder_len == 0);</span>
+<span class="lineNum">    1029 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (mechanism-&gt;cm_type == AES_CTR_MECH_INFO_TYPE) {</span>
+<span class="lineNum">    1030 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (aes_ctx.ac_remainder_len &gt; 0) {</span>
+<span class="lineNum">    1031 </span>                :<span class="lineNoCov">          0 :                                 ret = ctr_mode_final((ctr_ctx_t *)&amp;aes_ctx,</span>
+<span class="lineNum">    1032 </span>                :            :                                     ciphertext, aes_encrypt_block);
+<span class="lineNum">    1033 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 if (ret != CRYPTO_SUCCESS)</span>
+<span class="lineNum">    1034 </span>                :            :                                         goto out;
+<span class="lineNum">    1035 </span>                :            :                         }
+<span class="lineNum">    1036 </span>                :            :                 } else {
+<span class="lineNum">    1037 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(aes_ctx.ac_remainder_len == 0);</span>
+<span class="lineNum">    1038 </span>                :            :                 }
+<span class="lineNum">    1039 </span>                :            : 
+<span class="lineNum">    1040 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (plaintext != ciphertext) {</span>
+<span class="lineNum">    1041 </span>                :<span class="lineNoCov">          0 :                         ciphertext-&gt;cd_length =</span>
+<span class="lineNum">    1042 </span>                :<span class="lineNoCov">          0 :                             ciphertext-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">    1043 </span>                :            :                 }
+<span class="lineNum">    1044 </span>                :            :         } else {
+<span class="lineNum">    1045 </span>                :<span class="lineNoCov">          0 :                 ciphertext-&gt;cd_length = saved_length;</span>
+<span class="lineNum">    1046 </span>                :            :         }
+<span class="lineNum">    1047 </span>                :<span class="lineNoCov">          0 :         ciphertext-&gt;cd_offset = saved_offset;</span>
+<span class="lineNum">    1048 </span>                :            : 
+<span class="lineNum">    1049 </span>                :            : out:
+<span class="lineNum">    1050 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (aes_ctx.ac_flags &amp; PROVIDER_OWNS_KEY_SCHEDULE) {</span>
+<span class="lineNum">    1051 </span>                :<span class="lineNoCov">          0 :                 bzero(aes_ctx.ac_keysched, aes_ctx.ac_keysched_len);</span>
+<span class="lineNum">    1052 </span>                :<span class="lineNoCov">          0 :                 kmem_free(aes_ctx.ac_keysched, aes_ctx.ac_keysched_len);</span>
+<span class="lineNum">    1053 </span>                :            :         }
+<span class="lineNum">    1054 </span>                :            : 
+<span class="lineNum">    1055 </span>                :            :         return (ret);
+<span class="lineNum">    1056 </span>                :            : }
+<span class="lineNum">    1057 </span>                :            : 
+<a name="1058"><span class="lineNum">    1058 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">    1059 </span>                :            : static int
+<span class="lineNum">    1060 </span>                :<span class="lineNoCov">          0 : aes_decrypt_atomic(crypto_provider_handle_t provider,</span>
+<span class="lineNum">    1061 </span>                :            :     crypto_session_id_t session_id, crypto_mechanism_t *mechanism,
+<span class="lineNum">    1062 </span>                :            :     crypto_key_t *key, crypto_data_t *ciphertext, crypto_data_t *plaintext,
+<span class="lineNum">    1063 </span>                :            :     crypto_spi_ctx_template_t template, crypto_req_handle_t req)
+<span class="lineNum">    1064 </span>                :            : {
+<span class="lineNum">    1065 </span>                :            :         aes_ctx_t aes_ctx;      /* on the stack */
+<span class="lineNum">    1066 </span>                :            :         off_t saved_offset;
+<span class="lineNum">    1067 </span>                :            :         size_t saved_length;
+<span class="lineNum">    1068 </span>                :            :         size_t length_needed;
+<span class="lineNum">    1069 </span>                :            :         int ret;
+<span class="lineNum">    1070 </span>                :            : 
+<span class="lineNum">    1071 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         AES_ARG_INPLACE(ciphertext, plaintext);</span>
+<span class="lineNum">    1072 </span>                :            : 
+<span class="lineNum">    1073 </span>                :            :         /*
+<span class="lineNum">    1074 </span>                :            :          * CCM, GCM, CTR, and GMAC modes do not require that ciphertext
+<span class="lineNum">    1075 </span>                :            :          * be a multiple of AES block size.
+<span class="lineNum">    1076 </span>                :            :          */
+<span class="lineNum">    1077 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (mechanism-&gt;cm_type) {</span>
+<span class="lineNum">    1078 </span>                :            :         case AES_CTR_MECH_INFO_TYPE:
+<span class="lineNum">    1079 </span>                :            :         case AES_CCM_MECH_INFO_TYPE:
+<span class="lineNum">    1080 </span>                :            :         case AES_GCM_MECH_INFO_TYPE:
+<span class="lineNum">    1081 </span>                :            :         case AES_GMAC_MECH_INFO_TYPE:
+<span class="lineNum">    1082 </span>                :            :                 break;
+<span class="lineNum">    1083 </span>                :            :         default:
+<span class="lineNum">    1084 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((ciphertext-&gt;cd_length &amp; (AES_BLOCK_LEN - 1)) != 0)</span>
+<span class="lineNum">    1085 </span>                :            :                         return (CRYPTO_ENCRYPTED_DATA_LEN_RANGE);
+<span class="lineNum">    1086 </span>                :            :         }
+<span class="lineNum">    1087 </span>                :            : 
+<span class="lineNum">    1088 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((ret = aes_check_mech_param(mechanism, NULL, 0)) != CRYPTO_SUCCESS)</span>
+<span class="lineNum">    1089 </span>                :            :                 return (ret);
+<span class="lineNum">    1090 </span>                :            : 
+<span class="lineNum">    1091 </span>                :<span class="lineNoCov">          0 :         bzero(&amp;aes_ctx, sizeof (aes_ctx_t));</span>
+<span class="lineNum">    1092 </span>                :            : 
+<span class="lineNum">    1093 </span>                :<span class="lineNoCov">          0 :         ret = aes_common_init_ctx(&amp;aes_ctx, template, mechanism, key,</span>
+<span class="lineNum">    1094 </span>                :            :             crypto_kmflag(req), B_FALSE);
+<span class="lineNum">    1095 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret != CRYPTO_SUCCESS)</span>
+<span class="lineNum">    1096 </span>                :            :                 return (ret);
+<span class="lineNum">    1097 </span>                :            : 
+<span class="lineNum">    1098 </span>  [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (mechanism-&gt;cm_type) {</span>
+<span class="lineNum">    1099 </span>                :            :         case AES_CCM_MECH_INFO_TYPE:
+<span class="lineNum">    1100 </span>                :<span class="lineNoCov">          0 :                 length_needed = aes_ctx.ac_data_len;</span>
+<span class="lineNum">    1101 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1102 </span>                :            :         case AES_GCM_MECH_INFO_TYPE:
+<span class="lineNum">    1103 </span>                :<span class="lineNoCov">          0 :                 length_needed = ciphertext-&gt;cd_length - aes_ctx.ac_tag_len;</span>
+<span class="lineNum">    1104 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1105 </span>                :            :         case AES_GMAC_MECH_INFO_TYPE:
+<span class="lineNum">    1106 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (plaintext-&gt;cd_length != 0)</span>
+<span class="lineNum">    1107 </span>                :            :                         return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">    1108 </span>                :            :                 length_needed = 0;
+<span class="lineNum">    1109 </span>                :            :                 break;
+<span class="lineNum">    1110 </span>                :            :         default:
+<span class="lineNum">    1111 </span>                :<span class="lineNoCov">          0 :                 length_needed = ciphertext-&gt;cd_length;</span>
+<span class="lineNum">    1112 </span>                :            :         }
+<span class="lineNum">    1113 </span>                :            : 
+<span class="lineNum">    1114 </span>                :            :         /* return size of buffer needed to store output */
+<span class="lineNum">    1115 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (plaintext-&gt;cd_length &lt; length_needed) {</span>
+<span class="lineNum">    1116 </span>                :<span class="lineNoCov">          0 :                 plaintext-&gt;cd_length = length_needed;</span>
+<span class="lineNum">    1117 </span>                :<span class="lineNoCov">          0 :                 ret = CRYPTO_BUFFER_TOO_SMALL;</span>
+<span class="lineNum">    1118 </span>                :<span class="lineNoCov">          0 :                 goto out;</span>
+<span class="lineNum">    1119 </span>                :            :         }
+<span class="lineNum">    1120 </span>                :            : 
+<span class="lineNum">    1121 </span>                :<span class="lineNoCov">          0 :         saved_offset = plaintext-&gt;cd_offset;</span>
+<span class="lineNum">    1122 </span>                :<span class="lineNoCov">          0 :         saved_length = plaintext-&gt;cd_length;</span>
+<span class="lineNum">    1123 </span>                :            : 
+<span class="lineNum">    1124 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mechanism-&gt;cm_type == AES_GCM_MECH_INFO_TYPE ||</span>
+<span class="lineNum">    1125 </span>                :            :             mechanism-&gt;cm_type == AES_GMAC_MECH_INFO_TYPE)
+<span class="lineNum">    1126 </span>                :<span class="lineNoCov">          0 :                 gcm_set_kmflag((gcm_ctx_t *)&amp;aes_ctx, crypto_kmflag(req));</span>
+<span class="lineNum">    1127 </span>                :            : 
+<span class="lineNum">    1128 </span>                :            :         /*
+<span class="lineNum">    1129 </span>                :            :          * Do an update on the specified input data.
+<span class="lineNum">    1130 </span>                :            :          */
+<span class="lineNum">    1131 </span>     [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         switch (ciphertext-&gt;cd_format) {</span>
+<span class="lineNum">    1132 </span>                :            :         case CRYPTO_DATA_RAW:
+<span class="lineNum">    1133 </span>                :<span class="lineNoCov">          0 :                 ret = crypto_update_iov(&amp;aes_ctx, ciphertext, plaintext,</span>
+<span class="lineNum">    1134 </span>                :            :                     aes_decrypt_contiguous_blocks, aes_copy_block64);
+<span class="lineNum">    1135 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1136 </span>                :            :         case CRYPTO_DATA_UIO:
+<span class="lineNum">    1137 </span>                :<span class="lineNoCov">          0 :                 ret = crypto_update_uio(&amp;aes_ctx, ciphertext, plaintext,</span>
+<span class="lineNum">    1138 </span>                :            :                     aes_decrypt_contiguous_blocks, aes_copy_block64);
+<span class="lineNum">    1139 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1140 </span>                :            :         default:
+<span class="lineNum">    1141 </span>                :            :                 ret = CRYPTO_ARGUMENTS_BAD;
+<span class="lineNum">    1142 </span>                :            :         }
+<span class="lineNum">    1143 </span>                :            : 
+<span class="lineNum">    1144 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ret == CRYPTO_SUCCESS) {</span>
+<span class="lineNum">    1145 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (mechanism-&gt;cm_type == AES_CCM_MECH_INFO_TYPE) {</span>
+<span class="lineNum">    1146 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(aes_ctx.ac_processed_data_len</span>
+<span class="lineNum">    1147 </span>                :            :                             == aes_ctx.ac_data_len);
+<span class="lineNum">    1148 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(aes_ctx.ac_processed_mac_len</span>
+<span class="lineNum">    1149 </span>                :            :                             == aes_ctx.ac_mac_len);
+<span class="lineNum">    1150 </span>                :<span class="lineNoCov">          0 :                         ret = ccm_decrypt_final((ccm_ctx_t *)&amp;aes_ctx,</span>
+<span class="lineNum">    1151 </span>                :            :                             plaintext, AES_BLOCK_LEN, aes_encrypt_block,
+<span class="lineNum">    1152 </span>                :            :                             aes_copy_block, aes_xor_block);
+<span class="lineNum">    1153 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(aes_ctx.ac_remainder_len == 0);</span>
+<span class="lineNum">    1154 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if ((ret == CRYPTO_SUCCESS) &amp;&amp;</span>
+<span class="lineNum">    1155 </span>                :<span class="lineNoCov">          0 :                             (ciphertext != plaintext)) {</span>
+<span class="lineNum">    1156 </span>                :<span class="lineNoCov">          0 :                                 plaintext-&gt;cd_length =</span>
+<span class="lineNum">    1157 </span>                :<span class="lineNoCov">          0 :                                     plaintext-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">    1158 </span>                :            :                         } else {
+<span class="lineNum">    1159 </span>                :<span class="lineNoCov">          0 :                                 plaintext-&gt;cd_length = saved_length;</span>
+<span class="lineNum">    1160 </span>                :            :                         }
+<span class="lineNum">    1161 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (mechanism-&gt;cm_type == AES_GCM_MECH_INFO_TYPE ||</span>
+<span class="lineNum">    1162 </span>                :            :                     mechanism-&gt;cm_type == AES_GMAC_MECH_INFO_TYPE) {
+<span class="lineNum">    1163 </span>                :<span class="lineNoCov">          0 :                         ret = gcm_decrypt_final((gcm_ctx_t *)&amp;aes_ctx,</span>
+<span class="lineNum">    1164 </span>                :            :                             plaintext, AES_BLOCK_LEN, aes_encrypt_block,
+<span class="lineNum">    1165 </span>                :            :                             aes_xor_block);
+<span class="lineNum">    1166 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(aes_ctx.ac_remainder_len == 0);</span>
+<span class="lineNum">    1167 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if ((ret == CRYPTO_SUCCESS) &amp;&amp;</span>
+<span class="lineNum">    1168 </span>                :<span class="lineNoCov">          0 :                             (ciphertext != plaintext)) {</span>
+<span class="lineNum">    1169 </span>                :<span class="lineNoCov">          0 :                                 plaintext-&gt;cd_length =</span>
+<span class="lineNum">    1170 </span>                :<span class="lineNoCov">          0 :                                     plaintext-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">    1171 </span>                :            :                         } else {
+<span class="lineNum">    1172 </span>                :<span class="lineNoCov">          0 :                                 plaintext-&gt;cd_length = saved_length;</span>
+<span class="lineNum">    1173 </span>                :            :                         }
+<span class="lineNum">    1174 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 } else if (mechanism-&gt;cm_type != AES_CTR_MECH_INFO_TYPE) {</span>
+<span class="lineNum">    1175 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(aes_ctx.ac_remainder_len == 0);</span>
+<span class="lineNum">    1176 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (ciphertext != plaintext)</span>
+<span class="lineNum">    1177 </span>                :<span class="lineNoCov">          0 :                                 plaintext-&gt;cd_length =</span>
+<span class="lineNum">    1178 </span>                :<span class="lineNoCov">          0 :                                     plaintext-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">    1179 </span>                :            :                 } else {
+<span class="lineNum">    1180 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (aes_ctx.ac_remainder_len &gt; 0) {</span>
+<span class="lineNum">    1181 </span>                :<span class="lineNoCov">          0 :                                 ret = ctr_mode_final((ctr_ctx_t *)&amp;aes_ctx,</span>
+<span class="lineNum">    1182 </span>                :            :                                     plaintext, aes_encrypt_block);
+<span class="lineNum">    1183 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 if (ret == CRYPTO_DATA_LEN_RANGE)</span>
+<span class="lineNum">    1184 </span>                :<span class="lineNoCov">          0 :                                         ret = CRYPTO_ENCRYPTED_DATA_LEN_RANGE;</span>
+<span class="lineNum">    1185 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 if (ret != CRYPTO_SUCCESS)</span>
+<span class="lineNum">    1186 </span>                :            :                                         goto out;
+<span class="lineNum">    1187 </span>                :            :                         }
+<span class="lineNum">    1188 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (ciphertext != plaintext)</span>
+<span class="lineNum">    1189 </span>                :<span class="lineNoCov">          0 :                                 plaintext-&gt;cd_length =</span>
+<span class="lineNum">    1190 </span>                :<span class="lineNoCov">          0 :                                     plaintext-&gt;cd_offset - saved_offset;</span>
+<span class="lineNum">    1191 </span>                :            :                 }
+<span class="lineNum">    1192 </span>                :            :         } else {
+<span class="lineNum">    1193 </span>                :<span class="lineNoCov">          0 :                 plaintext-&gt;cd_length = saved_length;</span>
+<span class="lineNum">    1194 </span>                :            :         }
+<span class="lineNum">    1195 </span>                :<span class="lineNoCov">          0 :         plaintext-&gt;cd_offset = saved_offset;</span>
+<span class="lineNum">    1196 </span>                :            : 
+<span class="lineNum">    1197 </span>                :            : out:
+<span class="lineNum">    1198 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (aes_ctx.ac_flags &amp; PROVIDER_OWNS_KEY_SCHEDULE) {</span>
+<span class="lineNum">    1199 </span>                :<span class="lineNoCov">          0 :                 bzero(aes_ctx.ac_keysched, aes_ctx.ac_keysched_len);</span>
+<span class="lineNum">    1200 </span>                :<span class="lineNoCov">          0 :                 kmem_free(aes_ctx.ac_keysched, aes_ctx.ac_keysched_len);</span>
+<span class="lineNum">    1201 </span>                :            :         }
+<span class="lineNum">    1202 </span>                :            : 
+<span class="lineNum">    1203 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (aes_ctx.ac_flags &amp; CCM_MODE) {</span>
+<span class="lineNum">    1204 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (aes_ctx.ac_pt_buf != NULL) {</span>
+<span class="lineNum">    1205 </span>                :<span class="lineNoCov">          0 :                         vmem_free(aes_ctx.ac_pt_buf, aes_ctx.ac_data_len);</span>
+<span class="lineNum">    1206 </span>                :            :                 }
+<span class="lineNum">    1207 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } else if (aes_ctx.ac_flags &amp; (GCM_MODE|GMAC_MODE)) {</span>
+<span class="lineNum">    1208 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (((gcm_ctx_t *)&amp;aes_ctx)-&gt;gcm_pt_buf != NULL) {</span>
+<span class="lineNum">    1209 </span>                :<span class="lineNoCov">          0 :                         vmem_free(((gcm_ctx_t *)&amp;aes_ctx)-&gt;gcm_pt_buf,</span>
+<span class="lineNum">    1210 </span>                :            :                             ((gcm_ctx_t *)&amp;aes_ctx)-&gt;gcm_pt_buf_len);
+<span class="lineNum">    1211 </span>                :            :                 }
+<span class="lineNum">    1212 </span>                :            :         }
+<span class="lineNum">    1213 </span>                :            : 
+<span class="lineNum">    1214 </span>                :            :         return (ret);
+<span class="lineNum">    1215 </span>                :            : }
+<span class="lineNum">    1216 </span>                :            : 
+<span class="lineNum">    1217 </span>                :            : /*
+<span class="lineNum">    1218 </span>                :            :  * KCF software provider context template entry points.
+<span class="lineNum">    1219 </span>                :            :  */
+<a name="1220"><span class="lineNum">    1220 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">    1221 </span>                :            : static int
+<span class="lineNum">    1222 </span>                :<span class="lineNoCov">          0 : aes_create_ctx_template(crypto_provider_handle_t provider,</span>
+<span class="lineNum">    1223 </span>                :            :     crypto_mechanism_t *mechanism, crypto_key_t *key,
+<span class="lineNum">    1224 </span>                :            :     crypto_spi_ctx_template_t *tmpl, size_t *tmpl_size, crypto_req_handle_t req)
+<span class="lineNum">    1225 </span>                :            : {
+<span class="lineNum">    1226 </span>                :            :         void *keysched;
+<span class="lineNum">    1227 </span>                :            :         size_t size;
+<span class="lineNum">    1228 </span>                :            :         int rv;
+<span class="lineNum">    1229 </span>                :            : 
+<span class="lineNum">    1230 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mechanism-&gt;cm_type != AES_ECB_MECH_INFO_TYPE &amp;&amp;</span>
+<span class="lineNum">    1231 </span>                :<span class="lineNoCov">          0 :             mechanism-&gt;cm_type != AES_CBC_MECH_INFO_TYPE &amp;&amp;</span>
+<span class="lineNum">    1232 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :             mechanism-&gt;cm_type != AES_CTR_MECH_INFO_TYPE &amp;&amp;</span>
+<span class="lineNum">    1233 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :             mechanism-&gt;cm_type != AES_CCM_MECH_INFO_TYPE &amp;&amp;</span>
+<span class="lineNum">    1234 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :             mechanism-&gt;cm_type != AES_GCM_MECH_INFO_TYPE &amp;&amp;</span>
+<span class="lineNum">    1235 </span>                :            :             mechanism-&gt;cm_type != AES_GMAC_MECH_INFO_TYPE)
+<span class="lineNum">    1236 </span>                :            :                 return (CRYPTO_MECHANISM_INVALID);
+<span class="lineNum">    1237 </span>                :            : 
+<span class="lineNum">    1238 </span>        [<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((keysched = aes_alloc_keysched(&amp;size,</span>
+<span class="lineNum">    1239 </span>                :            :             crypto_kmflag(req))) == NULL) {
+<span class="lineNum">    1240 </span>                :            :                 return (CRYPTO_HOST_MEMORY);
+<span class="lineNum">    1241 </span>                :            :         }
+<span class="lineNum">    1242 </span>                :            : 
+<span class="lineNum">    1243 </span>                :            :         /*
+<span class="lineNum">    1244 </span>                :            :          * Initialize key schedule.  Key length information is stored
+<span class="lineNum">    1245 </span>                :            :          * in the key.
+<span class="lineNum">    1246 </span>                :            :          */
+<span class="lineNum">    1247 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((rv = init_keysched(key, keysched)) != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">    1248 </span>                :<span class="lineNoCov">          0 :                 bzero(keysched, size);</span>
+<span class="lineNum">    1249 </span>                :<span class="lineNoCov">          0 :                 kmem_free(keysched, size);</span>
+<span class="lineNum">    1250 </span>                :<span class="lineNoCov">          0 :                 return (rv);</span>
+<span class="lineNum">    1251 </span>                :            :         }
+<span class="lineNum">    1252 </span>                :            : 
+<span class="lineNum">    1253 </span>                :<span class="lineNoCov">          0 :         *tmpl = keysched;</span>
+<span class="lineNum">    1254 </span>                :<span class="lineNoCov">          0 :         *tmpl_size = size;</span>
+<span class="lineNum">    1255 </span>                :            : 
+<span class="lineNum">    1256 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">    1257 </span>                :            : }
+<span class="lineNum">    1258 </span>                :            : 
+<a name="1259"><span class="lineNum">    1259 </span>                :            : </a>
+<span class="lineNum">    1260 </span>                :            : static int
+<span class="lineNum">    1261 </span>                :<span class="lineNoCov">          0 : aes_free_context(crypto_ctx_t *ctx)</span>
+<span class="lineNum">    1262 </span>                :            : {
+<span class="lineNum">    1263 </span>                :<span class="lineNoCov">          0 :         aes_ctx_t *aes_ctx = ctx-&gt;cc_provider_private;</span>
+<span class="lineNum">    1264 </span>                :            : 
+<span class="lineNum">    1265 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (aes_ctx != NULL) {</span>
+<span class="lineNum">    1266 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (aes_ctx-&gt;ac_flags &amp; PROVIDER_OWNS_KEY_SCHEDULE) {</span>
+<span class="lineNum">    1267 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(aes_ctx-&gt;ac_keysched_len != 0);</span>
+<span class="lineNum">    1268 </span>                :<span class="lineNoCov">          0 :                         bzero(aes_ctx-&gt;ac_keysched, aes_ctx-&gt;ac_keysched_len);</span>
+<span class="lineNum">    1269 </span>                :<span class="lineNoCov">          0 :                         kmem_free(aes_ctx-&gt;ac_keysched,</span>
+<span class="lineNum">    1270 </span>                :            :                             aes_ctx-&gt;ac_keysched_len);
+<span class="lineNum">    1271 </span>                :            :                 }
+<span class="lineNum">    1272 </span>                :<span class="lineNoCov">          0 :                 crypto_free_mode_ctx(aes_ctx);</span>
+<span class="lineNum">    1273 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;cc_provider_private = NULL;</span>
+<span class="lineNum">    1274 </span>                :            :         }
+<span class="lineNum">    1275 </span>                :            : 
+<span class="lineNum">    1276 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">    1277 </span>                :            : }
+<span class="lineNum">    1278 </span>                :            : 
+<a name="1279"><span class="lineNum">    1279 </span>                :            : </a>
+<span class="lineNum">    1280 </span>                :            : static int
+<span class="lineNum">    1281 </span>                :<span class="lineNoCov">          0 : aes_common_init_ctx(aes_ctx_t *aes_ctx, crypto_spi_ctx_template_t *template,</span>
+<span class="lineNum">    1282 </span>                :            :     crypto_mechanism_t *mechanism, crypto_key_t *key, int kmflag,
+<span class="lineNum">    1283 </span>                :            :     boolean_t is_encrypt_init)
+<span class="lineNum">    1284 </span>                :            : {
+<span class="lineNum">    1285 </span>                :<span class="lineNoCov">          0 :         int rv = CRYPTO_SUCCESS;</span>
+<span class="lineNum">    1286 </span>                :            :         void *keysched;
+<span class="lineNum">    1287 </span>                :<span class="lineNoCov">          0 :         size_t size = 0;</span>
+<span class="lineNum">    1288 </span>                :            : 
+<span class="lineNum">    1289 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (template == NULL) {</span>
+<span class="lineNum">    1290 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((keysched = aes_alloc_keysched(&amp;size, kmflag)) == NULL)</span>
+<span class="lineNum">    1291 </span>                :            :                         return (CRYPTO_HOST_MEMORY);
+<span class="lineNum">    1292 </span>                :            :                 /*
+<span class="lineNum">    1293 </span>                :            :                  * Initialize key schedule.
+<span class="lineNum">    1294 </span>                :            :                  * Key length is stored in the key.
+<span class="lineNum">    1295 </span>                :            :                  */
+<span class="lineNum">    1296 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((rv = init_keysched(key, keysched)) != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">    1297 </span>                :<span class="lineNoCov">          0 :                         kmem_free(keysched, size);</span>
+<span class="lineNum">    1298 </span>                :<span class="lineNoCov">          0 :                         return (rv);</span>
+<span class="lineNum">    1299 </span>                :            :                 }
+<span class="lineNum">    1300 </span>                :            : 
+<span class="lineNum">    1301 </span>                :<span class="lineNoCov">          0 :                 aes_ctx-&gt;ac_flags |= PROVIDER_OWNS_KEY_SCHEDULE;</span>
+<span class="lineNum">    1302 </span>                :<span class="lineNoCov">          0 :                 aes_ctx-&gt;ac_keysched_len = size;</span>
+<span class="lineNum">    1303 </span>                :            :         } else {
+<span class="lineNum">    1304 </span>                :            :                 keysched = template;
+<span class="lineNum">    1305 </span>                :            :         }
+<span class="lineNum">    1306 </span>                :<span class="lineNoCov">          0 :         aes_ctx-&gt;ac_keysched = keysched;</span>
+<span class="lineNum">    1307 </span>                :            : 
+<span class="lineNum">    1308 </span>  [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span> :<span class="lineNoCov">          0 :         switch (mechanism-&gt;cm_type) {</span>
+<span class="lineNum">         </span>      <span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span><span class="branchNoExec" title="Branch 6 was not executed"> # </span>]
+<span class="lineNum">    1309 </span>                :            :         case AES_CBC_MECH_INFO_TYPE:
+<span class="lineNum">    1310 </span>                :<span class="lineNoCov">          0 :                 rv = cbc_init_ctx((cbc_ctx_t *)aes_ctx, mechanism-&gt;cm_param,</span>
+<span class="lineNum">    1311 </span>                :            :                     mechanism-&gt;cm_param_len, AES_BLOCK_LEN, aes_copy_block64);
+<span class="lineNum">    1312 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1313 </span>                :            :         case AES_CTR_MECH_INFO_TYPE: {
+<span class="lineNum">    1314 </span>                :            :                 CK_AES_CTR_PARAMS *pp;
+<span class="lineNum">    1315 </span>                :            : 
+<span class="lineNum">    1316 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (mechanism-&gt;cm_param == NULL ||</span>
+<span class="lineNum">    1317 </span>                :<span class="lineNoCov">          0 :                     mechanism-&gt;cm_param_len != sizeof (CK_AES_CTR_PARAMS)) {</span>
+<span class="lineNum">    1318 </span>                :            :                         return (CRYPTO_MECHANISM_PARAM_INVALID);
+<span class="lineNum">    1319 </span>                :            :                 }
+<span class="lineNum">    1320 </span>                :<span class="lineNoCov">          0 :                 pp = (CK_AES_CTR_PARAMS *)(void *)mechanism-&gt;cm_param;</span>
+<span class="lineNum">    1321 </span>                :<span class="lineNoCov">          0 :                 rv = ctr_init_ctx((ctr_ctx_t *)aes_ctx, pp-&gt;ulCounterBits,</span>
+<span class="lineNum">    1322 </span>                :<span class="lineNoCov">          0 :                     pp-&gt;cb, aes_copy_block);</span>
+<span class="lineNum">    1323 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1324 </span>                :            :         }
+<span class="lineNum">    1325 </span>                :            :         case AES_CCM_MECH_INFO_TYPE:
+<span class="lineNum">    1326 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (mechanism-&gt;cm_param == NULL ||</span>
+<span class="lineNum">    1327 </span>                :<span class="lineNoCov">          0 :                     mechanism-&gt;cm_param_len != sizeof (CK_AES_CCM_PARAMS)) {</span>
+<span class="lineNum">    1328 </span>                :            :                         return (CRYPTO_MECHANISM_PARAM_INVALID);
+<span class="lineNum">    1329 </span>                :            :                 }
+<span class="lineNum">    1330 </span>                :<span class="lineNoCov">          0 :                 rv = ccm_init_ctx((ccm_ctx_t *)aes_ctx, mechanism-&gt;cm_param,</span>
+<span class="lineNum">    1331 </span>                :            :                     kmflag, is_encrypt_init, AES_BLOCK_LEN, aes_encrypt_block,
+<span class="lineNum">    1332 </span>                :            :                     aes_xor_block);
+<span class="lineNum">    1333 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1334 </span>                :            :         case AES_GCM_MECH_INFO_TYPE:
+<span class="lineNum">    1335 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (mechanism-&gt;cm_param == NULL ||</span>
+<span class="lineNum">    1336 </span>                :<span class="lineNoCov">          0 :                     mechanism-&gt;cm_param_len != sizeof (CK_AES_GCM_PARAMS)) {</span>
+<span class="lineNum">    1337 </span>                :            :                         return (CRYPTO_MECHANISM_PARAM_INVALID);
+<span class="lineNum">    1338 </span>                :            :                 }
+<span class="lineNum">    1339 </span>                :<span class="lineNoCov">          0 :                 rv = gcm_init_ctx((gcm_ctx_t *)aes_ctx, mechanism-&gt;cm_param,</span>
+<span class="lineNum">    1340 </span>                :            :                     AES_BLOCK_LEN, aes_encrypt_block, aes_copy_block,
+<span class="lineNum">    1341 </span>                :            :                     aes_xor_block);
+<span class="lineNum">    1342 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1343 </span>                :            :         case AES_GMAC_MECH_INFO_TYPE:
+<span class="lineNum">    1344 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (mechanism-&gt;cm_param == NULL ||</span>
+<span class="lineNum">    1345 </span>                :<span class="lineNoCov">          0 :                     mechanism-&gt;cm_param_len != sizeof (CK_AES_GMAC_PARAMS)) {</span>
+<span class="lineNum">    1346 </span>                :            :                         return (CRYPTO_MECHANISM_PARAM_INVALID);
+<span class="lineNum">    1347 </span>                :            :                 }
+<span class="lineNum">    1348 </span>                :<span class="lineNoCov">          0 :                 rv = gmac_init_ctx((gcm_ctx_t *)aes_ctx, mechanism-&gt;cm_param,</span>
+<span class="lineNum">    1349 </span>                :            :                     AES_BLOCK_LEN, aes_encrypt_block, aes_copy_block,
+<span class="lineNum">    1350 </span>                :            :                     aes_xor_block);
+<span class="lineNum">    1351 </span>                :<span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">    1352 </span>                :            :         case AES_ECB_MECH_INFO_TYPE:
+<span class="lineNum">    1353 </span>                :<span class="lineNoCov">          0 :                 aes_ctx-&gt;ac_flags |= ECB_MODE;</span>
+<span class="lineNum">    1354 </span>                :            :         }
+<span class="lineNum">    1355 </span>                :            : 
+<span class="lineNum">    1356 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (rv != CRYPTO_SUCCESS) {</span>
+<span class="lineNum">    1357 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (aes_ctx-&gt;ac_flags &amp; PROVIDER_OWNS_KEY_SCHEDULE) {</span>
+<span class="lineNum">    1358 </span>                :<span class="lineNoCov">          0 :                         bzero(keysched, size);</span>
+<span class="lineNum">    1359 </span>                :<span class="lineNoCov">          0 :                         kmem_free(keysched, size);</span>
+<span class="lineNum">    1360 </span>                :            :                 }
+<span class="lineNum">    1361 </span>                :            :         }
+<span class="lineNum">    1362 </span>                :            : 
+<span class="lineNum">    1363 </span>                :            :         return (rv);
+<span class="lineNum">    1364 </span>                :            : }
+<a name="1365"><span class="lineNum">    1365 </span>                :            : </a>
+<span class="lineNum">    1366 </span>                :            : static int
+<span class="lineNum">    1367 </span>                :<span class="lineNoCov">          0 : process_gmac_mech(crypto_mechanism_t *mech, crypto_data_t *data,</span>
+<span class="lineNum">    1368 </span>                :            :     CK_AES_GCM_PARAMS *gcm_params)
+<span class="lineNum">    1369 </span>                :            : {
+<span class="lineNum">    1370 </span>                :            :         /* LINTED: pointer alignment */
+<span class="lineNum">    1371 </span>                :<span class="lineNoCov">          0 :         CK_AES_GMAC_PARAMS *params = (CK_AES_GMAC_PARAMS *)mech-&gt;cm_param;</span>
+<span class="lineNum">    1372 </span>                :            : 
+<span class="lineNum">    1373 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mech-&gt;cm_type != AES_GMAC_MECH_INFO_TYPE)</span>
+<span class="lineNum">    1374 </span>                :            :                 return (CRYPTO_MECHANISM_INVALID);
+<span class="lineNum">    1375 </span>                :            : 
+<span class="lineNum">    1376 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (mech-&gt;cm_param_len != sizeof (CK_AES_GMAC_PARAMS))</span>
+<span class="lineNum">    1377 </span>                :            :                 return (CRYPTO_MECHANISM_PARAM_INVALID);
+<span class="lineNum">    1378 </span>                :            : 
+<span class="lineNum">    1379 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (params-&gt;pIv == NULL)</span>
+<span class="lineNum">    1380 </span>                :            :                 return (CRYPTO_MECHANISM_PARAM_INVALID);
+<span class="lineNum">    1381 </span>                :            : 
+<span class="lineNum">    1382 </span>                :<span class="lineNoCov">          0 :         gcm_params-&gt;pIv = params-&gt;pIv;</span>
+<span class="lineNum">    1383 </span>                :<span class="lineNoCov">          0 :         gcm_params-&gt;ulIvLen = AES_GMAC_IV_LEN;</span>
+<span class="lineNum">    1384 </span>                :<span class="lineNoCov">          0 :         gcm_params-&gt;ulTagBits = AES_GMAC_TAG_BITS;</span>
+<span class="lineNum">    1385 </span>                :            : 
+<span class="lineNum">    1386 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (data == NULL)</span>
+<span class="lineNum">    1387 </span>                :            :                 return (CRYPTO_SUCCESS);
+<span class="lineNum">    1388 </span>                :            : 
+<span class="lineNum">    1389 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (data-&gt;cd_format != CRYPTO_DATA_RAW)</span>
+<span class="lineNum">    1390 </span>                :            :                 return (CRYPTO_ARGUMENTS_BAD);
+<span class="lineNum">    1391 </span>                :            : 
+<span class="lineNum">    1392 </span>                :<span class="lineNoCov">          0 :         gcm_params-&gt;pAAD = (uchar_t *)data-&gt;cd_raw.iov_base;</span>
+<span class="lineNum">    1393 </span>                :<span class="lineNoCov">          0 :         gcm_params-&gt;ulAADLen = data-&gt;cd_length;</span>
+<span class="lineNum">    1394 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">    1395 </span>                :            : }
+<a name="1396"><span class="lineNum">    1396 </span>                :            : </a>
+<span class="lineNum">    1397 </span>                :            : static int
+<span class="lineNum">    1398 </span>                :<span class="lineNoCov">          0 : aes_mac_atomic(crypto_provider_handle_t provider,</span>
+<span class="lineNum">    1399 </span>                :            :     crypto_session_id_t session_id, crypto_mechanism_t *mechanism,
+<span class="lineNum">    1400 </span>                :            :     crypto_key_t *key, crypto_data_t *data, crypto_data_t *mac,
+<span class="lineNum">    1401 </span>                :            :     crypto_spi_ctx_template_t template, crypto_req_handle_t req)
+<span class="lineNum">    1402 </span>                :            : {
+<span class="lineNum">    1403 </span>                :            :         CK_AES_GCM_PARAMS gcm_params;
+<span class="lineNum">    1404 </span>                :            :         crypto_mechanism_t gcm_mech;
+<span class="lineNum">    1405 </span>                :            :         int rv;
+<span class="lineNum">    1406 </span>                :            : 
+<span class="lineNum">    1407 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((rv = process_gmac_mech(mechanism, data, &amp;gcm_params))</span>
+<span class="lineNum">    1408 </span>                :            :             != CRYPTO_SUCCESS)
+<span class="lineNum">    1409 </span>                :            :                 return (rv);
+<span class="lineNum">    1410 </span>                :            : 
+<span class="lineNum">    1411 </span>                :<span class="lineNoCov">          0 :         gcm_mech.cm_type = AES_GCM_MECH_INFO_TYPE;</span>
+<span class="lineNum">    1412 </span>                :<span class="lineNoCov">          0 :         gcm_mech.cm_param_len = sizeof (CK_AES_GCM_PARAMS);</span>
+<span class="lineNum">    1413 </span>                :<span class="lineNoCov">          0 :         gcm_mech.cm_param = (char *)&amp;gcm_params;</span>
+<span class="lineNum">    1414 </span>                :            : 
+<span class="lineNum">    1415 </span>                :<span class="lineNoCov">          0 :         return (aes_encrypt_atomic(provider, session_id, &amp;gcm_mech,</span>
+<span class="lineNum">    1416 </span>                :            :             key, &amp;null_crypto_data, mac, template, req));
+<span class="lineNum">    1417 </span>                :            : }
+<a name="1418"><span class="lineNum">    1418 </span>                :            : </a>
+<span class="lineNum">    1419 </span>                :            : static int
+<span class="lineNum">    1420 </span>                :<span class="lineNoCov">          0 : aes_mac_verify_atomic(crypto_provider_handle_t provider,</span>
+<span class="lineNum">    1421 </span>                :            :     crypto_session_id_t session_id, crypto_mechanism_t *mechanism,
+<span class="lineNum">    1422 </span>                :            :     crypto_key_t *key, crypto_data_t *data, crypto_data_t *mac,
+<span class="lineNum">    1423 </span>                :            :     crypto_spi_ctx_template_t template, crypto_req_handle_t req)
+<span class="lineNum">    1424 </span>                :            : {
+<span class="lineNum">    1425 </span>                :            :         CK_AES_GCM_PARAMS gcm_params;
+<span class="lineNum">    1426 </span>                :            :         crypto_mechanism_t gcm_mech;
+<span class="lineNum">    1427 </span>                :            :         int rv;
+<span class="lineNum">    1428 </span>                :            : 
+<span class="lineNum">    1429 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((rv = process_gmac_mech(mechanism, data, &amp;gcm_params))</span>
+<span class="lineNum">    1430 </span>                :            :             != CRYPTO_SUCCESS)
+<span class="lineNum">    1431 </span>                :            :                 return (rv);
+<span class="lineNum">    1432 </span>                :            : 
+<span class="lineNum">    1433 </span>                :<span class="lineNoCov">          0 :         gcm_mech.cm_type = AES_GCM_MECH_INFO_TYPE;</span>
+<span class="lineNum">    1434 </span>                :<span class="lineNoCov">          0 :         gcm_mech.cm_param_len = sizeof (CK_AES_GCM_PARAMS);</span>
+<span class="lineNum">    1435 </span>                :<span class="lineNoCov">          0 :         gcm_mech.cm_param = (char *)&amp;gcm_params;</span>
+<span class="lineNum">    1436 </span>                :            : 
+<span class="lineNum">    1437 </span>                :<span class="lineNoCov">          0 :         return (aes_decrypt_atomic(provider, session_id, &amp;gcm_mech,</span>
+<span class="lineNum">    1438 </span>                :            :             key, mac, &amp;null_crypto_data, template, req));
+<span class="lineNum">    1439 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

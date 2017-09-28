@@ -1,0 +1,665 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/zio_checksum.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - zio_checksum.c<span style="font-size: 80%;"> (source / <a href="zio_checksum.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">162</td>
+            <td class="headerCovTableEntry">189</td>
+            <td class="headerCovTableEntryMed">85.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntryMed">88.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">93</td>
+            <td class="headerCovTableEntry">133</td>
+            <td class="headerCovTableEntryLo">69.9 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2013, 2016 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright 2013 Saso Kiselkov. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  */
+<span class="lineNum">      26 </span>                :            : 
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/spa_impl.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/zio.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/zio_checksum.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/zil.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/abd.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;zfs_fletcher.h&gt;
+<span class="lineNum">      35 </span>                :            : 
+<span class="lineNum">      36 </span>                :            : /*
+<span class="lineNum">      37 </span>                :            :  * Checksum vectors.
+<span class="lineNum">      38 </span>                :            :  *
+<span class="lineNum">      39 </span>                :            :  * In the SPA, everything is checksummed.  We support checksum vectors
+<span class="lineNum">      40 </span>                :            :  * for three distinct reasons:
+<span class="lineNum">      41 </span>                :            :  *
+<span class="lineNum">      42 </span>                :            :  *   1. Different kinds of data need different levels of protection.
+<span class="lineNum">      43 </span>                :            :  *      For SPA metadata, we always want a very strong checksum.
+<span class="lineNum">      44 </span>                :            :  *      For user data, we let users make the trade-off between speed
+<span class="lineNum">      45 </span>                :            :  *      and checksum strength.
+<span class="lineNum">      46 </span>                :            :  *
+<span class="lineNum">      47 </span>                :            :  *   2. Cryptographic hash and MAC algorithms are an area of active research.
+<span class="lineNum">      48 </span>                :            :  *      It is likely that in future hash functions will be at least as strong
+<span class="lineNum">      49 </span>                :            :  *      as current best-of-breed, and may be substantially faster as well.
+<span class="lineNum">      50 </span>                :            :  *      We want the ability to take advantage of these new hashes as soon as
+<span class="lineNum">      51 </span>                :            :  *      they become available.
+<span class="lineNum">      52 </span>                :            :  *
+<span class="lineNum">      53 </span>                :            :  *   3. If someone develops hardware that can compute a strong hash quickly,
+<span class="lineNum">      54 </span>                :            :  *      we want the ability to take advantage of that hardware.
+<span class="lineNum">      55 </span>                :            :  *
+<span class="lineNum">      56 </span>                :            :  * Of course, we don't want a checksum upgrade to invalidate existing
+<span class="lineNum">      57 </span>                :            :  * data, so we store the checksum *function* in eight bits of the bp.
+<span class="lineNum">      58 </span>                :            :  * This gives us room for up to 256 different checksum functions.
+<span class="lineNum">      59 </span>                :            :  *
+<span class="lineNum">      60 </span>                :            :  * When writing a block, we always checksum it with the latest-and-greatest
+<span class="lineNum">      61 </span>                :            :  * checksum function of the appropriate strength.  When reading a block,
+<span class="lineNum">      62 </span>                :            :  * we compare the expected checksum against the actual checksum, which we
+<span class="lineNum">      63 </span>                :            :  * compute via the checksum function specified by BP_GET_CHECKSUM(bp).
+<span class="lineNum">      64 </span>                :            :  *
+<span class="lineNum">      65 </span>                :            :  * SALTED CHECKSUMS
+<span class="lineNum">      66 </span>                :            :  *
+<span class="lineNum">      67 </span>                :            :  * To enable the use of less secure hash algorithms with dedup, we
+<span class="lineNum">      68 </span>                :            :  * introduce the notion of salted checksums (MACs, really).  A salted
+<span class="lineNum">      69 </span>                :            :  * checksum is fed both a random 256-bit value (the salt) and the data
+<span class="lineNum">      70 </span>                :            :  * to be checksummed.  This salt is kept secret (stored on the pool, but
+<span class="lineNum">      71 </span>                :            :  * never shown to the user).  Thus even if an attacker knew of collision
+<span class="lineNum">      72 </span>                :            :  * weaknesses in the hash algorithm, they won't be able to mount a known
+<span class="lineNum">      73 </span>                :            :  * plaintext attack on the DDT, since the actual hash value cannot be
+<span class="lineNum">      74 </span>                :            :  * known ahead of time.  How the salt is used is algorithm-specific
+<span class="lineNum">      75 </span>                :            :  * (some might simply prefix it to the data block, others might need to
+<span class="lineNum">      76 </span>                :            :  * utilize a full-blown HMAC).  On disk the salt is stored in a ZAP
+<span class="lineNum">      77 </span>                :            :  * object in the MOS (DMU_POOL_CHECKSUM_SALT).
+<span class="lineNum">      78 </span>                :            :  *
+<span class="lineNum">      79 </span>                :            :  * CONTEXT TEMPLATES
+<span class="lineNum">      80 </span>                :            :  *
+<span class="lineNum">      81 </span>                :            :  * Some hashing algorithms need to perform a substantial amount of
+<span class="lineNum">      82 </span>                :            :  * initialization work (e.g. salted checksums above may need to pre-hash
+<span class="lineNum">      83 </span>                :            :  * the salt) before being able to process data.  Performing this
+<span class="lineNum">      84 </span>                :            :  * redundant work for each block would be wasteful, so we instead allow
+<span class="lineNum">      85 </span>                :            :  * a checksum algorithm to do the work once (the first time it's used)
+<span class="lineNum">      86 </span>                :            :  * and then keep this pre-initialized context as a template inside the
+<span class="lineNum">      87 </span>                :            :  * spa_t (spa_cksum_tmpls).  If the zio_checksum_info_t contains
+<span class="lineNum">      88 </span>                :            :  * non-NULL ci_tmpl_init and ci_tmpl_free callbacks, they are used to
+<span class="lineNum">      89 </span>                :            :  * construct and destruct the pre-initialized checksum context.  The
+<span class="lineNum">      90 </span>                :            :  * pre-initialized context is then reused during each checksum
+<span class="lineNum">      91 </span>                :            :  * invocation and passed to the checksum function.
+<span class="lineNum">      92 </span>                :            :  */
+<span class="lineNum">      93 </span>                :            : 
+<a name="94"><span class="lineNum">      94 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">      95 </span>                :            : static void
+<span class="lineNum">      96 </span>                :<span class="lineCov">        767 : abd_checksum_off(abd_t *abd, uint64_t size,</span>
+<span class="lineNum">      97 </span>                :            :     const void *ctx_template, zio_cksum_t *zcp)
+<span class="lineNum">      98 </span>                :            : {
+<span class="lineNum">      99 </span>                :<span class="lineCov">        767 :         ZIO_SET_CHECKSUM(zcp, 0, 0, 0, 0);</span>
+<span class="lineNum">     100 </span>                :<span class="lineCov">        767 : }</span>
+<span class="lineNum">     101 </span>                :            : 
+<a name="102"><span class="lineNum">     102 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     103 </span>                :            : void
+<span class="lineNum">     104 </span>                :<span class="lineCov">      10949 : abd_fletcher_2_native(abd_t *abd, uint64_t size,</span>
+<span class="lineNum">     105 </span>                :            :     const void *ctx_template, zio_cksum_t *zcp)
+<span class="lineNum">     106 </span>                :            : {
+<span class="lineNum">     107 </span>                :<span class="lineCov">      10949 :         fletcher_init(zcp);</span>
+<span class="lineNum">     108 </span>                :<span class="lineCov">      10951 :         (void) abd_iterate_func(abd, 0, size,</span>
+<span class="lineNum">     109 </span>                :            :             fletcher_2_incremental_native, zcp);
+<span class="lineNum">     110 </span>                :<span class="lineCov">      10951 : }</span>
+<span class="lineNum">     111 </span>                :            : 
+<a name="112"><span class="lineNum">     112 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     113 </span>                :            : void
+<span class="lineNum">     114 </span>                :<span class="lineNoCov">          0 : abd_fletcher_2_byteswap(abd_t *abd, uint64_t size,</span>
+<span class="lineNum">     115 </span>                :            :     const void *ctx_template, zio_cksum_t *zcp)
+<span class="lineNum">     116 </span>                :            : {
+<span class="lineNum">     117 </span>                :<span class="lineNoCov">          0 :         fletcher_init(zcp);</span>
+<span class="lineNum">     118 </span>                :<span class="lineNoCov">          0 :         (void) abd_iterate_func(abd, 0, size,</span>
+<span class="lineNum">     119 </span>                :            :             fletcher_2_incremental_byteswap, zcp);
+<span class="lineNum">     120 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="121"><span class="lineNum">     121 </span>                :            : </a>
+<span class="lineNum">     122 </span>                :            : static inline void
+<span class="lineNum">     123 </span>                :<span class="lineCov">     940387 : abd_fletcher_4_impl(abd_t *abd, uint64_t size, zio_abd_checksum_data_t *acdp)</span>
+<span class="lineNum">     124 </span>                :            : {
+<span class="lineNum">     125 </span>                :<span class="lineCov">     940387 :         fletcher_4_abd_ops.acf_init(acdp);</span>
+<span class="lineNum">     126 </span>                :<span class="lineCov">     940008 :         abd_iterate_func(abd, 0, size, fletcher_4_abd_ops.acf_iter, acdp);</span>
+<span class="lineNum">     127 </span>                :<span class="lineCov">     941049 :         fletcher_4_abd_ops.acf_fini(acdp);</span>
+<span class="lineNum">     128 </span>                :<span class="lineCov">     940857 : }</span>
+<span class="lineNum">     129 </span>                :            : 
+<a name="130"><span class="lineNum">     130 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     131 </span>                :            : void
+<span class="lineNum">     132 </span>                :<span class="lineCov">     904433 : abd_fletcher_4_native(abd_t *abd, uint64_t size,</span>
+<span class="lineNum">     133 </span>                :            :     const void *ctx_template, zio_cksum_t *zcp)
+<span class="lineNum">     134 </span>                :            : {
+<span class="lineNum">     135 </span>                :            :         fletcher_4_ctx_t ctx;
+<span class="lineNum">     136 </span>                :            : 
+<span class="lineNum">     137 </span>                :<span class="lineCov">     904433 :         zio_abd_checksum_data_t acd = {</span>
+<span class="lineNum">     138 </span>                :            :                 .acd_byteorder  = ZIO_CHECKSUM_NATIVE,
+<span class="lineNum">     139 </span>                :            :                 .acd_zcp        = zcp,
+<span class="lineNum">     140 </span>                :            :                 .acd_ctx        = &amp;ctx
+<span class="lineNum">     141 </span>                :            :         };
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>                :<span class="lineCov">     904433 :         abd_fletcher_4_impl(abd, size, &amp;acd);</span>
+<span class="lineNum">     144 </span>                :            : 
+<span class="lineNum">     145 </span>                :<span class="lineCov">     904435 : }</span>
+<span class="lineNum">     146 </span>                :            : 
+<a name="147"><span class="lineNum">     147 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     148 </span>                :            : void
+<span class="lineNum">     149 </span>                :<span class="lineCov">      36418 : abd_fletcher_4_byteswap(abd_t *abd, uint64_t size,</span>
+<span class="lineNum">     150 </span>                :            :     const void *ctx_template, zio_cksum_t *zcp)
+<span class="lineNum">     151 </span>                :            : {
+<span class="lineNum">     152 </span>                :            :         fletcher_4_ctx_t ctx;
+<span class="lineNum">     153 </span>                :            : 
+<span class="lineNum">     154 </span>                :<span class="lineCov">      36418 :         zio_abd_checksum_data_t acd = {</span>
+<span class="lineNum">     155 </span>                :            :                 .acd_byteorder  = ZIO_CHECKSUM_BYTESWAP,
+<span class="lineNum">     156 </span>                :            :                 .acd_zcp        = zcp,
+<span class="lineNum">     157 </span>                :            :                 .acd_ctx        = &amp;ctx
+<span class="lineNum">     158 </span>                :            :         };
+<span class="lineNum">     159 </span>                :            : 
+<span class="lineNum">     160 </span>                :<span class="lineCov">      36418 :         abd_fletcher_4_impl(abd, size, &amp;acd);</span>
+<span class="lineNum">     161 </span>                :<span class="lineCov">      36418 : }</span>
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>                :            : zio_checksum_info_t zio_checksum_table[ZIO_CHECKSUM_FUNCTIONS] = {
+<span class="lineNum">     164 </span>                :            :         {{NULL, NULL}, NULL, NULL, 0, &quot;inherit&quot;},
+<span class="lineNum">     165 </span>                :            :         {{NULL, NULL}, NULL, NULL, 0, &quot;on&quot;},
+<span class="lineNum">     166 </span>                :            :         {{abd_checksum_off,             abd_checksum_off},
+<span class="lineNum">     167 </span>                :            :             NULL, NULL, 0, &quot;off&quot;},
+<span class="lineNum">     168 </span>                :            :         {{abd_checksum_SHA256,          abd_checksum_SHA256},
+<span class="lineNum">     169 </span>                :            :             NULL, NULL, ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_EMBEDDED,
+<span class="lineNum">     170 </span>                :            :             &quot;label&quot;},
+<span class="lineNum">     171 </span>                :            :         {{abd_checksum_SHA256,          abd_checksum_SHA256},
+<span class="lineNum">     172 </span>                :            :             NULL, NULL, ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_EMBEDDED,
+<span class="lineNum">     173 </span>                :            :             &quot;gang_header&quot;},
+<span class="lineNum">     174 </span>                :            :         {{abd_fletcher_2_native,        abd_fletcher_2_byteswap},
+<span class="lineNum">     175 </span>                :            :             NULL, NULL, ZCHECKSUM_FLAG_EMBEDDED, &quot;zilog&quot;},
+<span class="lineNum">     176 </span>                :            :         {{abd_fletcher_2_native,        abd_fletcher_2_byteswap},
+<span class="lineNum">     177 </span>                :            :             NULL, NULL, 0, &quot;fletcher2&quot;},
+<span class="lineNum">     178 </span>                :            :         {{abd_fletcher_4_native,        abd_fletcher_4_byteswap},
+<span class="lineNum">     179 </span>                :            :             NULL, NULL, ZCHECKSUM_FLAG_METADATA, &quot;fletcher4&quot;},
+<span class="lineNum">     180 </span>                :            :         {{abd_checksum_SHA256,          abd_checksum_SHA256},
+<span class="lineNum">     181 </span>                :            :             NULL, NULL, ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_DEDUP |
+<span class="lineNum">     182 </span>                :            :             ZCHECKSUM_FLAG_NOPWRITE, &quot;sha256&quot;},
+<span class="lineNum">     183 </span>                :            :         {{abd_fletcher_4_native,        abd_fletcher_4_byteswap},
+<span class="lineNum">     184 </span>                :            :             NULL, NULL, ZCHECKSUM_FLAG_EMBEDDED, &quot;zilog2&quot;},
+<span class="lineNum">     185 </span>                :            :         {{abd_checksum_off,             abd_checksum_off},
+<span class="lineNum">     186 </span>                :            :             NULL, NULL, 0, &quot;noparity&quot;},
+<span class="lineNum">     187 </span>                :            :         {{abd_checksum_SHA512_native,   abd_checksum_SHA512_byteswap},
+<span class="lineNum">     188 </span>                :            :             NULL, NULL, ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_DEDUP |
+<span class="lineNum">     189 </span>                :            :             ZCHECKSUM_FLAG_NOPWRITE, &quot;sha512&quot;},
+<span class="lineNum">     190 </span>                :            :         {{abd_checksum_skein_native,    abd_checksum_skein_byteswap},
+<span class="lineNum">     191 </span>                :            :             abd_checksum_skein_tmpl_init, abd_checksum_skein_tmpl_free,
+<span class="lineNum">     192 </span>                :            :             ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_DEDUP |
+<span class="lineNum">     193 </span>                :            :             ZCHECKSUM_FLAG_SALTED | ZCHECKSUM_FLAG_NOPWRITE, &quot;skein&quot;},
+<span class="lineNum">     194 </span>                :            :         {{abd_checksum_edonr_native,    abd_checksum_edonr_byteswap},
+<span class="lineNum">     195 </span>                :            :             abd_checksum_edonr_tmpl_init, abd_checksum_edonr_tmpl_free,
+<span class="lineNum">     196 </span>                :            :             ZCHECKSUM_FLAG_METADATA | ZCHECKSUM_FLAG_SALTED |
+<span class="lineNum">     197 </span>                :            :             ZCHECKSUM_FLAG_NOPWRITE, &quot;edonr&quot;},
+<span class="lineNum">     198 </span>                :            : };
+<span class="lineNum">     199 </span>                :            : 
+<span class="lineNum">     200 </span>                :            : /*
+<span class="lineNum">     201 </span>                :            :  * The flag corresponding to the &quot;verify&quot; in dedup=[checksum,]verify
+<span class="lineNum">     202 </span>                :            :  * must be cleared first, so callers should use ZIO_CHECKSUM_MASK.
+<a name="203"><span class="lineNum">     203 </span>                :            :  */</a>
+<span class="lineNum">     204 </span>                :            : spa_feature_t
+<span class="lineNum">     205 </span>                :<span class="lineCov">     334492 : zio_checksum_to_feature(enum zio_checksum cksum)</span>
+<span class="lineNum">     206 </span>                :            : {
+<span class="lineNum">     207 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 334492 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 328133 times"> + </span><span class="branchCov" title="Branch 4 was taken 6359 times"> + </span>]:<span class="lineCov">     334492 :         VERIFY((cksum &amp; ~ZIO_CHECKSUM_MASK) == 0);</span>
+<span class="lineNum">     208 </span>                :            : 
+<span class="lineNum">     209 </span>                :            :         switch (cksum) {
+<span class="lineNum">     210 </span>                :            :         case ZIO_CHECKSUM_SHA512:
+<span class="lineNum">     211 </span>                :            :                 return (SPA_FEATURE_SHA512);
+<span class="lineNum">     212 </span>                :            :         case ZIO_CHECKSUM_SKEIN:
+<span class="lineNum">     213 </span>                :            :                 return (SPA_FEATURE_SKEIN);
+<span class="lineNum">     214 </span>                :            :         case ZIO_CHECKSUM_EDONR:
+<span class="lineNum">     215 </span>                :            :                 return (SPA_FEATURE_EDONR);
+<span class="lineNum">     216 </span>                :            :         default:
+<span class="lineNum">     217 </span>                :            :                 return (SPA_FEATURE_NONE);
+<span class="lineNum">     218 </span>                :            :         }
+<span class="lineNum">     219 </span>                :            : }
+<a name="220"><span class="lineNum">     220 </span>                :            : </a>
+<span class="lineNum">     221 </span>                :            : enum zio_checksum
+<span class="lineNum">     222 </span>                :<span class="lineCov">      47711 : zio_checksum_select(enum zio_checksum child, enum zio_checksum parent)</span>
+<span class="lineNum">     223 </span>                :            : {
+<span class="lineNum">     224 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 47711 times"> + </span>]:<span class="lineCov">      47711 :         ASSERT(child &lt; ZIO_CHECKSUM_FUNCTIONS);</span>
+<span class="lineNum">     225 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 47711 times"> + </span>]:<span class="lineCov">      47711 :         ASSERT(parent &lt; ZIO_CHECKSUM_FUNCTIONS);</span>
+<span class="lineNum">     226 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 47711 times"> + </span>]:<span class="lineCov">      47711 :         ASSERT(parent != ZIO_CHECKSUM_INHERIT &amp;&amp; parent != ZIO_CHECKSUM_ON);</span>
+<span class="lineNum">     227 </span>                :            : 
+<span class="lineNum">     228 </span>        [<span class="branchCov" title="Branch 0 was taken 30713 times"> + </span><span class="branchCov" title="Branch 1 was taken 16998 times"> + </span>]:<span class="lineCov">      47711 :         if (child == ZIO_CHECKSUM_INHERIT)</span>
+<span class="lineNum">     229 </span>                :            :                 return (parent);
+<span class="lineNum">     230 </span>                :            : 
+<span class="lineNum">     231 </span>        [<span class="branchCov" title="Branch 0 was taken 21365 times"> + </span><span class="branchCov" title="Branch 1 was taken 9348 times"> + </span>]:<span class="lineCov">      30713 :         if (child == ZIO_CHECKSUM_ON)</span>
+<span class="lineNum">     232 </span>                :            :                 return (ZIO_CHECKSUM_ON_VALUE);
+<span class="lineNum">     233 </span>                :            : 
+<span class="lineNum">     234 </span>                :<span class="lineCov">      21365 :         return (child);</span>
+<span class="lineNum">     235 </span>                :            : }
+<a name="236"><span class="lineNum">     236 </span>                :            : </a>
+<span class="lineNum">     237 </span>                :            : enum zio_checksum
+<span class="lineNum">     238 </span>                :<span class="lineCov">       8971 : zio_checksum_dedup_select(spa_t *spa, enum zio_checksum child,</span>
+<span class="lineNum">     239 </span>                :            :     enum zio_checksum parent)
+<span class="lineNum">     240 </span>                :            : {
+<span class="lineNum">     241 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8971 times"> + </span>]:<span class="lineCov">       8971 :         ASSERT((child &amp; ZIO_CHECKSUM_MASK) &lt; ZIO_CHECKSUM_FUNCTIONS);</span>
+<span class="lineNum">     242 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8971 times"> + </span>]:<span class="lineCov">       8971 :         ASSERT((parent &amp; ZIO_CHECKSUM_MASK) &lt; ZIO_CHECKSUM_FUNCTIONS);</span>
+<span class="lineNum">     243 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8971 times"> + </span>]:<span class="lineCov">       8971 :         ASSERT(parent != ZIO_CHECKSUM_INHERIT &amp;&amp; parent != ZIO_CHECKSUM_ON);</span>
+<span class="lineNum">     244 </span>                :            : 
+<span class="lineNum">     245 </span>        [<span class="branchCov" title="Branch 0 was taken 8971 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       8971 :         if (child == ZIO_CHECKSUM_INHERIT)</span>
+<span class="lineNum">     246 </span>                :            :                 return (parent);
+<span class="lineNum">     247 </span>                :            : 
+<span class="lineNum">     248 </span>        [<span class="branchCov" title="Branch 0 was taken 61 times"> + </span><span class="branchCov" title="Branch 1 was taken 8910 times"> + </span>]:<span class="lineCov">       8971 :         if (child == ZIO_CHECKSUM_ON)</span>
+<span class="lineNum">     249 </span>                :<span class="lineCov">         61 :                 return (spa_dedup_checksum(spa));</span>
+<span class="lineNum">     250 </span>                :            : 
+<span class="lineNum">     251 </span>        [<span class="branchCov" title="Branch 0 was taken 79 times"> + </span><span class="branchCov" title="Branch 1 was taken 8831 times"> + </span>]:<span class="lineCov">       8910 :         if (child == (ZIO_CHECKSUM_ON | ZIO_CHECKSUM_VERIFY))</span>
+<span class="lineNum">     252 </span>                :<span class="lineCov">         79 :                 return (spa_dedup_checksum(spa) | ZIO_CHECKSUM_VERIFY);</span>
+<span class="lineNum">     253 </span>                :            : 
+<span class="lineNum">     254 </span>[<span class="branchCov" title="Branch 0 was taken 7638 times"> + </span><span class="branchCov" title="Branch 1 was taken 1193 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 7565 times"> + </span><span class="branchCov" title="Branch 3 was taken 73 times"> + </span>]:<span class="lineCov">       8831 :         ASSERT((zio_checksum_table[child &amp; ZIO_CHECKSUM_MASK].ci_flags &amp;</span>
+<span class="lineNum">         </span>        [<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 7565 times"> + </span>]
+<span class="lineNum">     255 </span>                :            :             ZCHECKSUM_FLAG_DEDUP) ||
+<span class="lineNum">     256 </span>                :            :             (child &amp; ZIO_CHECKSUM_VERIFY) || child == ZIO_CHECKSUM_OFF);
+<span class="lineNum">     257 </span>                :            : 
+<span class="lineNum">     258 </span>                :            :         return (child);
+<span class="lineNum">     259 </span>                :            : }
+<span class="lineNum">     260 </span>                :            : 
+<span class="lineNum">     261 </span>                :            : /*
+<span class="lineNum">     262 </span>                :            :  * Set the external verifier for a gang block based on &lt;vdev, offset, txg&gt;,
+<span class="lineNum">     263 </span>                :            :  * a tuple which is guaranteed to be unique for the life of the pool.
+<a name="264"><span class="lineNum">     264 </span>                :            :  */</a>
+<span class="lineNum">     265 </span>                :            : static void
+<span class="lineNum">     266 </span>                :<span class="lineCov">      36205 : zio_checksum_gang_verifier(zio_cksum_t *zcp, const blkptr_t *bp)</span>
+<span class="lineNum">     267 </span>                :            : {
+<span class="lineNum">     268 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 36205 times"> + </span>]:<span class="lineCov">      36205 :         const dva_t *dva = BP_IDENTITY(bp);</span>
+<span class="lineNum">     269 </span>        [<span class="branchCov" title="Branch 0 was taken 36095 times"> + </span><span class="branchCov" title="Branch 1 was taken 110 times"> + </span>]:<span class="lineCov">      36205 :         uint64_t txg = BP_PHYSICAL_BIRTH(bp);</span>
+<span class="lineNum">     270 </span>                :            : 
+<span class="lineNum">     271 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 36205 times"> + </span>]:<span class="lineCov">      36205 :         ASSERT(BP_IS_GANG(bp));</span>
+<span class="lineNum">     272 </span>                :            : 
+<span class="lineNum">     273 </span>                :<span class="lineCov">      36205 :         ZIO_SET_CHECKSUM(zcp, DVA_GET_VDEV(dva), DVA_GET_OFFSET(dva), txg, 0);</span>
+<span class="lineNum">     274 </span>                :<span class="lineCov">      36205 : }</span>
+<span class="lineNum">     275 </span>                :            : 
+<span class="lineNum">     276 </span>                :            : /*
+<span class="lineNum">     277 </span>                :            :  * Set the external verifier for a label block based on its offset.
+<span class="lineNum">     278 </span>                :            :  * The vdev is implicit, and the txg is unknowable at pool open time --
+<span class="lineNum">     279 </span>                :            :  * hence the logic in vdev_uberblock_load() to find the most recent copy.
+<a name="280"><span class="lineNum">     280 </span>                :            :  */</a>
+<span class="lineNum">     281 </span>                :            : static void
+<span class="lineNum">     282 </span>                :<span class="lineCov">    2185579 : zio_checksum_label_verifier(zio_cksum_t *zcp, uint64_t offset)</span>
+<span class="lineNum">     283 </span>                :            : {
+<span class="lineNum">     284 </span>                :<span class="lineCov">    2185579 :         ZIO_SET_CHECKSUM(zcp, offset, 0, 0, 0);</span>
+<span class="lineNum">     285 </span>                :<span class="lineCov">    2185579 : }</span>
+<span class="lineNum">     286 </span>                :            : 
+<span class="lineNum">     287 </span>                :            : /*
+<span class="lineNum">     288 </span>                :            :  * Calls the template init function of a checksum which supports context
+<span class="lineNum">     289 </span>                :            :  * templates and installs the template into the spa_t.
+<a name="290"><span class="lineNum">     290 </span>                :            :  */</a>
+<span class="lineNum">     291 </span>                :            : static void
+<span class="lineNum">     292 </span>                :<span class="lineCov">    4117348 : zio_checksum_template_init(enum zio_checksum checksum, spa_t *spa)</span>
+<span class="lineNum">     293 </span>                :            : {
+<span class="lineNum">     294 </span>                :<span class="lineCov">    4117348 :         zio_checksum_info_t *ci = &amp;zio_checksum_table[checksum];</span>
+<span class="lineNum">     295 </span>                :            : 
+<span class="lineNum">     296 </span>        [<span class="branchCov" title="Branch 0 was taken 34025 times"> + </span><span class="branchCov" title="Branch 1 was taken 4083323 times"> + </span>]:<span class="lineCov">    4117348 :         if (ci-&gt;ci_tmpl_init == NULL)</span>
+<span class="lineNum">     297 </span>                :            :                 return;
+<span class="lineNum">     298 </span>        [<span class="branchCov" title="Branch 0 was taken 271 times"> + </span><span class="branchCov" title="Branch 1 was taken 33754 times"> + </span>]:<span class="lineCov">      34025 :         if (spa-&gt;spa_cksum_tmpls[checksum] != NULL)</span>
+<span class="lineNum">     299 </span>                :            :                 return;
+<span class="lineNum">     300 </span>                :            : 
+<span class="lineNum">     301 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 271 times"> + </span>]:<span class="lineCov">        271 :         VERIFY(ci-&gt;ci_tmpl_free != NULL);</span>
+<span class="lineNum">     302 </span>                :<span class="lineCov">        271 :         mutex_enter(&amp;spa-&gt;spa_cksum_tmpls_lock);</span>
+<span class="lineNum">     303 </span>        [<span class="branchCov" title="Branch 0 was taken 251 times"> + </span><span class="branchCov" title="Branch 1 was taken 20 times"> + </span>]:<span class="lineCov">        271 :         if (spa-&gt;spa_cksum_tmpls[checksum] == NULL) {</span>
+<span class="lineNum">     304 </span>                :<span class="lineCov">        251 :                 spa-&gt;spa_cksum_tmpls[checksum] =</span>
+<span class="lineNum">     305 </span>                :<span class="lineCov">        251 :                     ci-&gt;ci_tmpl_init(&amp;spa-&gt;spa_cksum_salt);</span>
+<span class="lineNum">     306 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 251 times"> + </span>]:<span class="lineCov">        251 :                 VERIFY(spa-&gt;spa_cksum_tmpls[checksum] != NULL);</span>
+<span class="lineNum">     307 </span>                :            :         }
+<span class="lineNum">     308 </span>                :<span class="lineCov">        271 :         mutex_exit(&amp;spa-&gt;spa_cksum_tmpls_lock);</span>
+<span class="lineNum">     309 </span>                :            : }
+<span class="lineNum">     310 </span>                :            : 
+<a name="311"><span class="lineNum">     311 </span>                :            : /* convenience function to update a checksum to accomodate an encryption MAC */</a>
+<span class="lineNum">     312 </span>                :            : static void
+<span class="lineNum">     313 </span>                :<span class="lineNoCov">          0 : zio_checksum_handle_crypt(zio_cksum_t *cksum, zio_cksum_t *saved, boolean_t xor)</span>
+<span class="lineNum">     314 </span>                :            : {
+<span class="lineNum">     315 </span>                :            :         /*
+<span class="lineNum">     316 </span>                :            :          * Weak checksums do not have their entropy spread evenly
+<span class="lineNum">     317 </span>                :            :          * across the bits of the checksum. Therefore, when truncating
+<span class="lineNum">     318 </span>                :            :          * a weak checksum we XOR the first 2 words with the last 2 so
+<span class="lineNum">     319 </span>                :            :          * that we don't &quot;lose&quot; any entropy unnecessarily.
+<span class="lineNum">     320 </span>                :            :          */
+<span class="lineNum">     321 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (xor) {</span>
+<span class="lineNum">     322 </span>                :<span class="lineNoCov">          0 :                 cksum-&gt;zc_word[0] ^= cksum-&gt;zc_word[2];</span>
+<span class="lineNum">     323 </span>                :<span class="lineNoCov">          0 :                 cksum-&gt;zc_word[1] ^= cksum-&gt;zc_word[3];</span>
+<span class="lineNum">     324 </span>                :            :         }
+<span class="lineNum">     325 </span>                :            : 
+<span class="lineNum">     326 </span>                :<span class="lineNoCov">          0 :         cksum-&gt;zc_word[2] = saved-&gt;zc_word[2];</span>
+<span class="lineNum">     327 </span>                :<span class="lineNoCov">          0 :         cksum-&gt;zc_word[3] = saved-&gt;zc_word[3];</span>
+<span class="lineNum">     328 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     329 </span>                :            : 
+<span class="lineNum">     330 </span>                :            : /*
+<span class="lineNum">     331 </span>                :            :  * Generate the checksum.
+<a name="332"><span class="lineNum">     332 </span>                :            :  */</a>
+<span class="lineNum">     333 </span>                :            : void
+<span class="lineNum">     334 </span>                :<span class="lineCov">     813103 : zio_checksum_compute(zio_t *zio, enum zio_checksum checksum,</span>
+<span class="lineNum">     335 </span>                :            :     abd_t *abd, uint64_t size)
+<span class="lineNum">     336 </span>                :            : {
+<span class="lineNum">     337 </span>                :            :         static const uint64_t zec_magic = ZEC_MAGIC;
+<span class="lineNum">     338 </span>                :<span class="lineCov">     813103 :         blkptr_t *bp = zio-&gt;io_bp;</span>
+<span class="lineNum">     339 </span>                :<span class="lineCov">     813103 :         uint64_t offset = zio-&gt;io_offset;</span>
+<span class="lineNum">     340 </span>                :<span class="lineCov">     813103 :         zio_checksum_info_t *ci = &amp;zio_checksum_table[checksum];</span>
+<span class="lineNum">     341 </span>                :            :         zio_cksum_t cksum, saved;
+<span class="lineNum">     342 </span>                :<span class="lineCov">     813103 :         spa_t *spa = zio-&gt;io_spa;</span>
+<span class="lineNum">     343 </span>                :<span class="lineCov">     813103 :         boolean_t insecure = (ci-&gt;ci_flags &amp; ZCHECKSUM_FLAG_DEDUP) == 0;</span>
+<span class="lineNum">     344 </span>                :            : 
+<span class="lineNum">     345 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 813103 times"> + </span>]:<span class="lineCov">     813103 :         ASSERT((uint_t)checksum &lt; ZIO_CHECKSUM_FUNCTIONS);</span>
+<span class="lineNum">     346 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 813103 times"> + </span>]:<span class="lineCov">     813103 :         ASSERT(ci-&gt;ci_func[0] != NULL);</span>
+<span class="lineNum">     347 </span>                :            : 
+<span class="lineNum">     348 </span>                :<span class="lineCov">     813103 :         zio_checksum_template_init(checksum, spa);</span>
+<span class="lineNum">     349 </span>                :            : 
+<span class="lineNum">     350 </span>        [<span class="branchCov" title="Branch 0 was taken 144499 times"> + </span><span class="branchCov" title="Branch 1 was taken 668622 times"> + </span>]:<span class="lineCov">     813121 :         if (ci-&gt;ci_flags &amp; ZCHECKSUM_FLAG_EMBEDDED) {</span>
+<span class="lineNum">     351 </span>                :            :                 zio_eck_t eck;
+<span class="lineNum">     352 </span>                :            :                 size_t eck_offset;
+<span class="lineNum">     353 </span>                :            : 
+<span class="lineNum">     354 </span>                :<span class="lineCov">     144499 :                 bzero(&amp;saved, sizeof (zio_cksum_t));</span>
+<span class="lineNum">     355 </span>                :            : 
+<span class="lineNum">     356 </span>        [<span class="branchCov" title="Branch 0 was taken 123 times"> + </span><span class="branchCov" title="Branch 1 was taken 144376 times"> + </span>]:<span class="lineCov">     144499 :                 if (checksum == ZIO_CHECKSUM_ZILOG2) {</span>
+<span class="lineNum">     357 </span>                :            :                         zil_chain_t zilc;
+<span class="lineNum">     358 </span>                :<span class="lineCov">        123 :                         abd_copy_to_buf(&amp;zilc, abd, sizeof (zil_chain_t));</span>
+<span class="lineNum">     359 </span>                :            : 
+<span class="lineNum">     360 </span>                :<span class="lineCov">        123 :                         size = P2ROUNDUP_TYPED(zilc.zc_nused, ZIL_MIN_BLKSZ,</span>
+<span class="lineNum">     361 </span>                :            :                             uint64_t);
+<span class="lineNum">     362 </span>                :<span class="lineCov">        123 :                         eck = zilc.zc_eck;</span>
+<span class="lineNum">     363 </span>                :<span class="lineCov">        123 :                         eck_offset = offsetof(zil_chain_t, zc_eck);</span>
+<span class="lineNum">     364 </span>                :            :                 } else {
+<span class="lineNum">     365 </span>                :<span class="lineCov">     144376 :                         eck_offset = size - sizeof (zio_eck_t);</span>
+<span class="lineNum">     366 </span>                :<span class="lineCov">     144376 :                         abd_copy_to_buf_off(&amp;eck, abd, eck_offset,</span>
+<span class="lineNum">     367 </span>                :            :                             sizeof (zio_eck_t));
+<span class="lineNum">     368 </span>                :            :                 }
+<span class="lineNum">     369 </span>                :            : 
+<span class="lineNum">     370 </span>        [<span class="branchCov" title="Branch 0 was taken 3881 times"> + </span><span class="branchCov" title="Branch 1 was taken 140617 times"> + </span>]:<span class="lineCov">     144498 :                 if (checksum == ZIO_CHECKSUM_GANG_HEADER) {</span>
+<span class="lineNum">     371 </span>                :<span class="lineCov">       3881 :                         zio_checksum_gang_verifier(&amp;eck.zec_cksum, bp);</span>
+<span class="lineNum">     372 </span>        [<span class="branchCov" title="Branch 0 was taken 140494 times"> + </span><span class="branchCov" title="Branch 1 was taken 123 times"> + </span>]:<span class="lineCov">     140617 :                 } else if (checksum == ZIO_CHECKSUM_LABEL) {</span>
+<span class="lineNum">     373 </span>                :<span class="lineCov">     140494 :                         zio_checksum_label_verifier(&amp;eck.zec_cksum, offset);</span>
+<span class="lineNum">     374 </span>                :            :                 } else {
+<span class="lineNum">     375 </span>                :<span class="lineCov">        123 :                         saved = eck.zec_cksum;</span>
+<span class="lineNum">     376 </span>                :<span class="lineCov">        123 :                         eck.zec_cksum = bp-&gt;blk_cksum;</span>
+<span class="lineNum">     377 </span>                :            :                 }
+<span class="lineNum">     378 </span>                :            : 
+<span class="lineNum">     379 </span>                :<span class="lineCov">     144497 :                 abd_copy_from_buf_off(abd, &amp;zec_magic,</span>
+<span class="lineNum">     380 </span>                :            :                     eck_offset + offsetof(zio_eck_t, zec_magic),
+<span class="lineNum">     381 </span>                :            :                     sizeof (zec_magic));
+<span class="lineNum">     382 </span>                :<span class="lineCov">     144498 :                 abd_copy_from_buf_off(abd, &amp;eck.zec_cksum,</span>
+<span class="lineNum">     383 </span>                :            :                     eck_offset + offsetof(zio_eck_t, zec_cksum),
+<span class="lineNum">     384 </span>                :            :                     sizeof (zio_cksum_t));
+<span class="lineNum">     385 </span>                :            : 
+<span class="lineNum">     386 </span>                :<span class="lineCov">     144499 :                 ci-&gt;ci_func[0](abd, size, spa-&gt;spa_cksum_tmpls[checksum],</span>
+<span class="lineNum">     387 </span>                :            :                     &amp;cksum);
+<span class="lineNum">     388 </span>[<span class="branchCov" title="Branch 0 was taken 4004 times"> + </span><span class="branchCov" title="Branch 1 was taken 140494 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 4004 times"> + </span>]:<span class="lineCov">     144498 :                 if (bp != NULL &amp;&amp; BP_USES_CRYPT(bp) &amp;&amp;</span>
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">     389 </span>                :<span class="lineNoCov">          0 :                     BP_GET_TYPE(bp) != DMU_OT_OBJSET)</span>
+<span class="lineNum">     390 </span>                :<span class="lineNoCov">          0 :                         zio_checksum_handle_crypt(&amp;cksum, &amp;saved, insecure);</span>
+<span class="lineNum">     391 </span>                :            : 
+<span class="lineNum">     392 </span>                :<span class="lineCov">     144498 :                 abd_copy_from_buf_off(abd, &amp;cksum,</span>
+<span class="lineNum">     393 </span>                :            :                     eck_offset + offsetof(zio_eck_t, zec_cksum),
+<span class="lineNum">     394 </span>                :            :                     sizeof (zio_cksum_t));
+<span class="lineNum">     395 </span>                :            :         } else {
+<span class="lineNum">     396 </span>                :<span class="lineCov">     668622 :                 saved = bp-&gt;blk_cksum;</span>
+<span class="lineNum">     397 </span>                :<span class="lineCov">     668622 :                 ci-&gt;ci_func[0](abd, size, spa-&gt;spa_cksum_tmpls[checksum],</span>
+<span class="lineNum">     398 </span>                :            :                     &amp;cksum);
+<span class="lineNum">     399 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 668630 times"> + </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineCov">     668630 :                 if (BP_USES_CRYPT(bp) &amp;&amp; BP_GET_TYPE(bp) != DMU_OT_OBJSET)</span>
+<span class="lineNum">     400 </span>                :<span class="lineNoCov">          0 :                         zio_checksum_handle_crypt(&amp;cksum, &amp;saved, insecure);</span>
+<span class="lineNum">     401 </span>                :<span class="lineCov">     668691 :                 bp-&gt;blk_cksum = cksum;</span>
+<span class="lineNum">     402 </span>                :            :         }
+<span class="lineNum">     403 </span>                :<span class="lineCov">     813189 : }</span>
+<a name="404"><span class="lineNum">     404 </span>                :            : </a>
+<span class="lineNum">     405 </span>                :            : int
+<span class="lineNum">     406 </span>                :<span class="lineCov">    3304532 : zio_checksum_error_impl(spa_t *spa, const blkptr_t *bp,</span>
+<span class="lineNum">     407 </span>                :            :     enum zio_checksum checksum, abd_t *abd, uint64_t size, uint64_t offset,
+<span class="lineNum">     408 </span>                :            :     zio_bad_cksum_t *info)
+<span class="lineNum">     409 </span>                :            : {
+<span class="lineNum">     410 </span>                :<span class="lineCov">    3304532 :         zio_checksum_info_t *ci = &amp;zio_checksum_table[checksum];</span>
+<span class="lineNum">     411 </span>                :            :         zio_cksum_t actual_cksum, expected_cksum;
+<span class="lineNum">     412 </span>                :            :         zio_eck_t eck;
+<span class="lineNum">     413 </span>                :            :         int byteswap;
+<span class="lineNum">     414 </span>                :            : 
+<span class="lineNum">     415 </span>   [<span class="branchCov" title="Branch 0 was taken 3304081 times"> + </span><span class="branchCov" title="Branch 1 was taken 451 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 3304277 times"> + </span>]:<span class="lineCov">    3304532 :         if (checksum &gt;= ZIO_CHECKSUM_FUNCTIONS || ci-&gt;ci_func[0] == NULL)</span>
+<span class="lineNum">     416 </span>                :<span class="lineCov">        255 :                 return (SET_ERROR(EINVAL));</span>
+<span class="lineNum">     417 </span>                :            : 
+<span class="lineNum">     418 </span>                :<span class="lineCov">    3304277 :         zio_checksum_template_init(checksum, spa);</span>
+<span class="lineNum">     419 </span>                :            : 
+<span class="lineNum">     420 </span>        [<span class="branchCov" title="Branch 0 was taken 2116567 times"> + </span><span class="branchCov" title="Branch 1 was taken 1187718 times"> + </span>]:<span class="lineCov">    3304285 :         if (ci-&gt;ci_flags &amp; ZCHECKSUM_FLAG_EMBEDDED) {</span>
+<span class="lineNum">     421 </span>                :            :                 zio_cksum_t verifier;
+<span class="lineNum">     422 </span>                :            :                 size_t eck_offset;
+<span class="lineNum">     423 </span>                :            : 
+<span class="lineNum">     424 </span>        [<span class="branchCov" title="Branch 0 was taken 39156 times"> + </span><span class="branchCov" title="Branch 1 was taken 2077411 times"> + </span>]:<span class="lineCov">    2116567 :                 if (checksum == ZIO_CHECKSUM_ZILOG2) {</span>
+<span class="lineNum">     425 </span>                :            :                         zil_chain_t zilc;
+<span class="lineNum">     426 </span>                :            :                         uint64_t nused;
+<span class="lineNum">     427 </span>                :            : 
+<span class="lineNum">     428 </span>                :<span class="lineCov">      39156 :                         abd_copy_to_buf(&amp;zilc, abd, sizeof (zil_chain_t));</span>
+<span class="lineNum">     429 </span>                :            : 
+<span class="lineNum">     430 </span>                :<span class="lineCov">      39149 :                         eck = zilc.zc_eck;</span>
+<span class="lineNum">     431 </span>                :<span class="lineCov">      39149 :                         eck_offset = offsetof(zil_chain_t, zc_eck) +</span>
+<span class="lineNum">     432 </span>                :            :                             offsetof(zio_eck_t, zec_cksum);
+<span class="lineNum">     433 </span>                :            : 
+<span class="lineNum">     434 </span>        [<span class="branchCov" title="Branch 0 was taken 330 times"> + </span><span class="branchCov" title="Branch 1 was taken 38819 times"> + </span>]:<span class="lineCov">      39149 :                         if (eck.zec_magic == ZEC_MAGIC) {</span>
+<span class="lineNum">     435 </span>                :<span class="lineCov">        330 :                                 nused = zilc.zc_nused;</span>
+<span class="lineNum">     436 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 38819 times"> + </span>]:<span class="lineCov">      38819 :                         } else if (eck.zec_magic == BSWAP_64(ZEC_MAGIC)) {</span>
+<span class="lineNum">     437 </span>                :<span class="lineNoCov">          0 :                                 nused = BSWAP_64(zilc.zc_nused);</span>
+<span class="lineNum">     438 </span>                :            :                         } else {
+<span class="lineNum">     439 </span>                :<span class="lineCov">      38819 :                                 return (SET_ERROR(ECKSUM));</span>
+<span class="lineNum">     440 </span>                :            :                         }
+<span class="lineNum">     441 </span>                :            : 
+<span class="lineNum">     442 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 330 times"> + </span>]:<span class="lineCov">        330 :                         if (nused &gt; size) {</span>
+<span class="lineNum">     443 </span>                :<span class="lineNoCov">          0 :                                 return (SET_ERROR(ECKSUM));</span>
+<span class="lineNum">     444 </span>                :            :                         }
+<span class="lineNum">     445 </span>                :            : 
+<span class="lineNum">     446 </span>                :<span class="lineCov">        330 :                         size = P2ROUNDUP_TYPED(nused, ZIL_MIN_BLKSZ, uint64_t);</span>
+<span class="lineNum">     447 </span>                :            :                 } else {
+<span class="lineNum">     448 </span>                :<span class="lineCov">    2077411 :                         eck_offset = size - sizeof (zio_eck_t);</span>
+<span class="lineNum">     449 </span>                :<span class="lineCov">    2077411 :                         abd_copy_to_buf_off(&amp;eck, abd, eck_offset,</span>
+<span class="lineNum">     450 </span>                :            :                             sizeof (zio_eck_t));
+<span class="lineNum">     451 </span>                :<span class="lineCov">    2077408 :                         eck_offset += offsetof(zio_eck_t, zec_cksum);</span>
+<span class="lineNum">     452 </span>                :            :                 }
+<span class="lineNum">     453 </span>                :            : 
+<span class="lineNum">     454 </span>        [<span class="branchCov" title="Branch 0 was taken 32323 times"> + </span><span class="branchCov" title="Branch 1 was taken 2045415 times"> + </span>]:<span class="lineCov">    2077738 :                 if (checksum == ZIO_CHECKSUM_GANG_HEADER)</span>
+<span class="lineNum">     455 </span>                :<span class="lineCov">      32323 :                         zio_checksum_gang_verifier(&amp;verifier, bp);</span>
+<span class="lineNum">     456 </span>        [<span class="branchCov" title="Branch 0 was taken 2045086 times"> + </span><span class="branchCov" title="Branch 1 was taken 329 times"> + </span>]:<span class="lineCov">    2045415 :                 else if (checksum == ZIO_CHECKSUM_LABEL)</span>
+<span class="lineNum">     457 </span>                :<span class="lineCov">    2045086 :                         zio_checksum_label_verifier(&amp;verifier, offset);</span>
+<span class="lineNum">     458 </span>                :            :                 else
+<span class="lineNum">     459 </span>                :<span class="lineCov">        329 :                         verifier = bp-&gt;blk_cksum;</span>
+<span class="lineNum">     460 </span>                :            : 
+<span class="lineNum">     461 </span>                :<span class="lineCov">    2077734 :                 byteswap = (eck.zec_magic == BSWAP_64(ZEC_MAGIC));</span>
+<span class="lineNum">     462 </span>                :            : 
+<span class="lineNum">     463 </span>        [<span class="branchCov" title="Branch 0 was taken 5816 times"> + </span><span class="branchCov" title="Branch 1 was taken 2071918 times"> + </span>]:<span class="lineCov">    2077734 :                 if (byteswap)</span>
+<span class="lineNum">     464 </span>                :<span class="lineCov">       5816 :                         byteswap_uint64_array(&amp;verifier, sizeof (zio_cksum_t));</span>
+<span class="lineNum">     465 </span>                :            : 
+<span class="lineNum">     466 </span>                :<span class="lineCov">    2077734 :                 expected_cksum = eck.zec_cksum;</span>
+<span class="lineNum">     467 </span>                :            : 
+<span class="lineNum">     468 </span>                :<span class="lineCov">    2077734 :                 abd_copy_from_buf_off(abd, &amp;verifier, eck_offset,</span>
+<span class="lineNum">     469 </span>                :            :                     sizeof (zio_cksum_t));
+<span class="lineNum">     470 </span>                :            : 
+<span class="lineNum">     471 </span>                :<span class="lineCov">    2077736 :                 ci-&gt;ci_func[byteswap](abd, size,</span>
+<span class="lineNum">     472 </span>                :<span class="lineCov">    2077736 :                     spa-&gt;spa_cksum_tmpls[checksum], &amp;actual_cksum);</span>
+<span class="lineNum">     473 </span>                :            : 
+<span class="lineNum">     474 </span>                :<span class="lineCov">    2077754 :                 abd_copy_from_buf_off(abd, &amp;expected_cksum, eck_offset,</span>
+<span class="lineNum">     475 </span>                :            :                     sizeof (zio_cksum_t));
+<span class="lineNum">     476 </span>                :            : 
+<span class="lineNum">     477 </span>        [<span class="branchCov" title="Branch 0 was taken 5816 times"> + </span><span class="branchCov" title="Branch 1 was taken 2071930 times"> + </span>]:<span class="lineCov">    2077746 :                 if (byteswap) {</span>
+<span class="lineNum">     478 </span>                :<span class="lineCov">    2077746 :                         byteswap_uint64_array(&amp;expected_cksum,</span>
+<span class="lineNum">     479 </span>                :            :                             sizeof (zio_cksum_t));
+<span class="lineNum">     480 </span>                :            :                 }
+<span class="lineNum">     481 </span>                :            :         } else {
+<span class="lineNum">     482 </span>                :<span class="lineCov">    1187718 :                 byteswap = BP_SHOULD_BYTESWAP(bp);</span>
+<span class="lineNum">     483 </span>                :<span class="lineCov">    1187718 :                 expected_cksum = bp-&gt;blk_cksum;</span>
+<span class="lineNum">     484 </span>                :<span class="lineCov">    1187718 :                 ci-&gt;ci_func[byteswap](abd, size,</span>
+<span class="lineNum">     485 </span>                :<span class="lineCov">    1187718 :                     spa-&gt;spa_cksum_tmpls[checksum], &amp;actual_cksum);</span>
+<span class="lineNum">     486 </span>                :            :         }
+<span class="lineNum">     487 </span>                :            : 
+<span class="lineNum">     488 </span>                :            :         /*
+<span class="lineNum">     489 </span>                :            :          * MAC checksums are a special case since half of this checksum will
+<span class="lineNum">     490 </span>                :            :          * actually be the encryption MAC. This will be verified by the
+<span class="lineNum">     491 </span>                :            :          * decryption process, so we just check the truncated checksum now.
+<span class="lineNum">     492 </span>                :            :          * Objset blocks use embedded MACs so we don't truncate the checksum
+<span class="lineNum">     493 </span>                :            :          * for them.
+<span class="lineNum">     494 </span>                :            :          */
+<span class="lineNum">     495 </span>[<span class="branchCov" title="Branch 0 was taken 1220507 times"> + </span><span class="branchCov" title="Branch 1 was taken 2045004 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 1220507 times"> + </span>]:<span class="lineCov">    3265511 :         if (bp != NULL &amp;&amp; BP_USES_CRYPT(bp) &amp;&amp;</span>
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">     496 </span>                :<span class="lineNoCov">          0 :             BP_GET_TYPE(bp) != DMU_OT_OBJSET) {</span>
+<span class="lineNum">     497 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (!(ci-&gt;ci_flags &amp; ZCHECKSUM_FLAG_DEDUP)) {</span>
+<span class="lineNum">     498 </span>                :<span class="lineNoCov">          0 :                         actual_cksum.zc_word[0] ^= actual_cksum.zc_word[2];</span>
+<span class="lineNum">     499 </span>                :<span class="lineNoCov">          0 :                         actual_cksum.zc_word[1] ^= actual_cksum.zc_word[3];</span>
+<span class="lineNum">     500 </span>                :            :                 }
+<span class="lineNum">     501 </span>                :            : 
+<span class="lineNum">     502 </span>                :<span class="lineNoCov">          0 :                 actual_cksum.zc_word[2] = 0;</span>
+<span class="lineNum">     503 </span>                :<span class="lineNoCov">          0 :                 actual_cksum.zc_word[3] = 0;</span>
+<span class="lineNum">     504 </span>                :<span class="lineNoCov">          0 :                 expected_cksum.zc_word[2] = 0;</span>
+<span class="lineNum">     505 </span>                :<span class="lineNoCov">          0 :                 expected_cksum.zc_word[3] = 0;</span>
+<span class="lineNum">     506 </span>                :            :         }
+<span class="lineNum">     507 </span>                :            : 
+<span class="lineNum">     508 </span>           [<span class="branchCov" title="Branch 0 was taken 3265521 times"> + </span>]:<span class="lineCov">    3265511 :         if (info != NULL) {</span>
+<span class="lineNum">     509 </span>                :<span class="lineCov">    3265521 :                 info-&gt;zbc_expected = expected_cksum;</span>
+<span class="lineNum">     510 </span>                :<span class="lineCov">    3265521 :                 info-&gt;zbc_actual = actual_cksum;</span>
+<span class="lineNum">     511 </span>                :<span class="lineCov">    3265521 :                 info-&gt;zbc_checksum_name = ci-&gt;ci_name;</span>
+<span class="lineNum">     512 </span>                :<span class="lineCov">    3265521 :                 info-&gt;zbc_byteswapped = byteswap;</span>
+<span class="lineNum">     513 </span>                :<span class="lineCov">    3265521 :                 info-&gt;zbc_injected = 0;</span>
+<span class="lineNum">     514 </span>                :<span class="lineCov">    3265521 :                 info-&gt;zbc_has_cksum = 1;</span>
+<span class="lineNum">     515 </span>                :            :         }
+<span class="lineNum">     516 </span>                :            : 
+<span class="lineNum">     517 </span>        [<span class="branchCov" title="Branch 0 was taken 1197940 times"> + </span><span class="branchCov" title="Branch 1 was taken 2067571 times"> + </span>]:<span class="lineCov">    3265511 :         if (!ZIO_CHECKSUM_EQUAL(actual_cksum, expected_cksum))</span>
+<span class="lineNum">     518 </span>                :<span class="lineCov">    1197940 :                 return (SET_ERROR(ECKSUM));</span>
+<span class="lineNum">     519 </span>                :            : 
+<span class="lineNum">     520 </span>                :            :         return (0);
+<span class="lineNum">     521 </span>                :            : }
+<a name="522"><span class="lineNum">     522 </span>                :            : </a>
+<span class="lineNum">     523 </span>                :            : int
+<span class="lineNum">     524 </span>                :<span class="lineCov">    3304605 : zio_checksum_error(zio_t *zio, zio_bad_cksum_t *info)</span>
+<span class="lineNum">     525 </span>                :            : {
+<span class="lineNum">     526 </span>                :<span class="lineCov">    3304605 :         blkptr_t *bp = zio-&gt;io_bp;</span>
+<span class="lineNum">     527 </span>[<span class="branchCov" title="Branch 0 was taken 2045086 times"> + </span><span class="branchCov" title="Branch 1 was taken 1259519 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 1259357 times"> + </span><span class="branchCov" title="Branch 3 was taken 162 times"> + </span>]:<span class="lineCov">    4531570 :         uint_t checksum = (bp == NULL ? zio-&gt;io_prop.zp_checksum :</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 1227127 times"> + </span><span class="branchNoCov" title="Branch 5 was not taken"> - </span>]
+<span class="lineNum">     528 </span>        [<span class="branchCov" title="Branch 0 was taken 1226965 times"> + </span><span class="branchCov" title="Branch 1 was taken 32392 times"> + </span>]:<span class="lineCov">    1259357 :             (BP_IS_GANG(bp) ? ZIO_CHECKSUM_GANG_HEADER : BP_GET_CHECKSUM(bp)));</span>
+<span class="lineNum">     529 </span>                :            :         int error;
+<span class="lineNum">     530 </span>   [<span class="branchCov" title="Branch 0 was taken 2045086 times"> + </span><span class="branchCov" title="Branch 1 was taken 1259519 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 1259526 times"> + </span>]:<span class="lineCov">    4531770 :         uint64_t size = (bp == NULL ? zio-&gt;io_size :</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 1227158 times"> + </span><span class="branchNoCov" title="Branch 5 was not taken"> - </span>]
+<span class="lineNum">     531 </span>        [<span class="branchCov" title="Branch 0 was taken 1227165 times"> + </span><span class="branchCov" title="Branch 1 was taken 32361 times"> + </span>]:<span class="lineCov">    1259526 :             (BP_IS_GANG(bp) ? SPA_GANGBLOCKSIZE : BP_GET_PSIZE(bp)));</span>
+<span class="lineNum">     532 </span>                :<span class="lineCov">    3304605 :         uint64_t offset = zio-&gt;io_offset;</span>
+<span class="lineNum">     533 </span>                :<span class="lineCov">    3304605 :         abd_t *data = zio-&gt;io_abd;</span>
+<span class="lineNum">     534 </span>                :<span class="lineCov">    3304605 :         spa_t *spa = zio-&gt;io_spa;</span>
+<span class="lineNum">     535 </span>                :            : 
+<span class="lineNum">     536 </span>                :<span class="lineCov">    3304605 :         error = zio_checksum_error_impl(spa, bp, checksum, data, size,</span>
+<span class="lineNum">     537 </span>                :            :             offset, info);
+<span class="lineNum">     538 </span>                :            : 
+<span class="lineNum">     539 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3304329 times"> + </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineCov">    3304329 :         if (zio_injection_enabled &amp;&amp; error == 0 &amp;&amp; zio-&gt;io_error == 0) {</span>
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">     540 </span>                :<span class="lineNoCov">          0 :                 error = zio_handle_fault_injection(zio, ECKSUM);</span>
+<span class="lineNum">     541 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (error != 0)</span>
+<span class="lineNum">     542 </span>                :<span class="lineNoCov">          0 :                         info-&gt;zbc_injected = 1;</span>
+<span class="lineNum">     543 </span>                :            :         }
+<span class="lineNum">     544 </span>                :            : 
+<span class="lineNum">     545 </span>                :<span class="lineCov">    3304329 :         return (error);</span>
+<span class="lineNum">     546 </span>                :            : }
+<span class="lineNum">     547 </span>                :            : 
+<span class="lineNum">     548 </span>                :            : /*
+<span class="lineNum">     549 </span>                :            :  * Called by a spa_t that's about to be deallocated. This steps through
+<span class="lineNum">     550 </span>                :            :  * all of the checksum context templates and deallocates any that were
+<span class="lineNum">     551 </span>                :            :  * initialized using the algorithm-specific template init function.
+<a name="552"><span class="lineNum">     552 </span>                :            :  */</a>
+<span class="lineNum">     553 </span>                :            : void
+<span class="lineNum">     554 </span>                :<span class="lineCov">       1136 : zio_checksum_templates_free(spa_t *spa)</span>
+<span class="lineNum">     555 </span>                :            : {
+<span class="lineNum">     556 </span>                :            :         enum zio_checksum checksum;
+<span class="lineNum">     557 </span>        [<span class="branchCov" title="Branch 0 was taken 15904 times"> + </span><span class="branchCov" title="Branch 1 was taken 1136 times"> + </span>]:<span class="lineCov">      17040 :         for (checksum = 0; checksum &lt; ZIO_CHECKSUM_FUNCTIONS;</span>
+<span class="lineNum">     558 </span>                :<span class="lineCov">      15904 :             checksum++) {</span>
+<span class="lineNum">     559 </span>        [<span class="branchCov" title="Branch 0 was taken 251 times"> + </span><span class="branchCov" title="Branch 1 was taken 15653 times"> + </span>]:<span class="lineCov">      15904 :                 if (spa-&gt;spa_cksum_tmpls[checksum] != NULL) {</span>
+<span class="lineNum">     560 </span>                :<span class="lineCov">        251 :                         zio_checksum_info_t *ci = &amp;zio_checksum_table[checksum];</span>
+<span class="lineNum">     561 </span>                :            : 
+<span class="lineNum">     562 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 251 times"> + </span>]:<span class="lineCov">        251 :                         VERIFY(ci-&gt;ci_tmpl_free != NULL);</span>
+<span class="lineNum">     563 </span>                :<span class="lineCov">        251 :                         ci-&gt;ci_tmpl_free(spa-&gt;spa_cksum_tmpls[checksum]);</span>
+<span class="lineNum">     564 </span>                :<span class="lineCov">        251 :                         spa-&gt;spa_cksum_tmpls[checksum] = NULL;</span>
+<span class="lineNum">     565 </span>                :            :                 }
+<span class="lineNum">     566 </span>                :            :         }
+<span class="lineNum">     567 </span>                :<span class="lineCov">       1136 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,1014 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zcommon/zfs_fletcher.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zcommon</a> - zfs_fletcher.c<span style="font-size: 80%;"> (source / <a href="zfs_fletcher.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">200</td>
+            <td class="headerCovTableEntry">243</td>
+            <td class="headerCovTableEntryMed">82.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">24</td>
+            <td class="headerCovTableEntry">27</td>
+            <td class="headerCovTableEntryMed">88.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">55</td>
+            <td class="headerCovTableEntry">97</td>
+            <td class="headerCovTableEntryLo">56.7 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      24 </span>                :            :  * Copyright (C) 2016 Gvozden Nešković. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  */
+<span class="lineNum">      26 </span>                :            : /*
+<span class="lineNum">      27 </span>                :            :  * Copyright 2013 Saso Kiselkov. All rights reserved.
+<span class="lineNum">      28 </span>                :            :  */
+<span class="lineNum">      29 </span>                :            : 
+<span class="lineNum">      30 </span>                :            : /*
+<span class="lineNum">      31 </span>                :            :  * Copyright (c) 2016 by Delphix. All rights reserved.
+<span class="lineNum">      32 </span>                :            :  */
+<span class="lineNum">      33 </span>                :            : 
+<span class="lineNum">      34 </span>                :            : /*
+<span class="lineNum">      35 </span>                :            :  * Fletcher Checksums
+<span class="lineNum">      36 </span>                :            :  * ------------------
+<span class="lineNum">      37 </span>                :            :  *
+<span class="lineNum">      38 </span>                :            :  * ZFS's 2nd and 4th order Fletcher checksums are defined by the following
+<span class="lineNum">      39 </span>                :            :  * recurrence relations:
+<span class="lineNum">      40 </span>                :            :  *
+<span class="lineNum">      41 </span>                :            :  *      a  = a    + f
+<span class="lineNum">      42 </span>                :            :  *       i    i-1    i-1
+<span class="lineNum">      43 </span>                :            :  *
+<span class="lineNum">      44 </span>                :            :  *      b  = b    + a
+<span class="lineNum">      45 </span>                :            :  *       i    i-1    i
+<span class="lineNum">      46 </span>                :            :  *
+<span class="lineNum">      47 </span>                :            :  *      c  = c    + b           (fletcher-4 only)
+<span class="lineNum">      48 </span>                :            :  *       i    i-1    i
+<span class="lineNum">      49 </span>                :            :  *
+<span class="lineNum">      50 </span>                :            :  *      d  = d    + c           (fletcher-4 only)
+<span class="lineNum">      51 </span>                :            :  *       i    i-1    i
+<span class="lineNum">      52 </span>                :            :  *
+<span class="lineNum">      53 </span>                :            :  * Where
+<span class="lineNum">      54 </span>                :            :  *      a_0 = b_0 = c_0 = d_0 = 0
+<span class="lineNum">      55 </span>                :            :  * and
+<span class="lineNum">      56 </span>                :            :  *      f_0 .. f_(n-1) are the input data.
+<span class="lineNum">      57 </span>                :            :  *
+<span class="lineNum">      58 </span>                :            :  * Using standard techniques, these translate into the following series:
+<span class="lineNum">      59 </span>                :            :  *
+<span class="lineNum">      60 </span>                :            :  *           __n_                            __n_
+<span class="lineNum">      61 </span>                :            :  *           \   |                           \   |
+<span class="lineNum">      62 </span>                :            :  *      a  =  &gt;     f                        b  =  &gt;     i * f
+<span class="lineNum">      63 </span>                :            :  *       n   /___|   n - i               n   /___|       n - i
+<span class="lineNum">      64 </span>                :            :  *           i = 1                           i = 1
+<span class="lineNum">      65 </span>                :            :  *
+<span class="lineNum">      66 </span>                :            :  *
+<span class="lineNum">      67 </span>                :            :  *           __n_                            __n_
+<span class="lineNum">      68 </span>                :            :  *           \   |  i*(i+1)                  \   |  i*(i+1)*(i+2)
+<span class="lineNum">      69 </span>                :            :  *      c  =  &gt;     ------- f                d  =  &gt;     ------------- f
+<span class="lineNum">      70 </span>                :            :  *       n   /___|     2     n - i       n   /___|        6        n - i
+<span class="lineNum">      71 </span>                :            :  *           i = 1                           i = 1
+<span class="lineNum">      72 </span>                :            :  *
+<span class="lineNum">      73 </span>                :            :  * For fletcher-2, the f_is are 64-bit, and [ab]_i are 64-bit accumulators.
+<span class="lineNum">      74 </span>                :            :  * Since the additions are done mod (2^64), errors in the high bits may not
+<span class="lineNum">      75 </span>                :            :  * be noticed.  For this reason, fletcher-2 is deprecated.
+<span class="lineNum">      76 </span>                :            :  *
+<span class="lineNum">      77 </span>                :            :  * For fletcher-4, the f_is are 32-bit, and [abcd]_i are 64-bit accumulators.
+<span class="lineNum">      78 </span>                :            :  * A conservative estimate of how big the buffer can get before we overflow
+<span class="lineNum">      79 </span>                :            :  * can be estimated using f_i = 0xffffffff for all i:
+<span class="lineNum">      80 </span>                :            :  *
+<span class="lineNum">      81 </span>                :            :  * % bc
+<span class="lineNum">      82 </span>                :            :  *  f=2^32-1;d=0; for (i = 1; d&lt;2^64; i++) { d += f*i*(i+1)*(i+2)/6 }; (i-1)*4
+<span class="lineNum">      83 </span>                :            :  * 2264
+<span class="lineNum">      84 </span>                :            :  *  quit
+<span class="lineNum">      85 </span>                :            :  * %
+<span class="lineNum">      86 </span>                :            :  *
+<span class="lineNum">      87 </span>                :            :  * So blocks of up to 2k will not overflow.  Our largest block size is
+<span class="lineNum">      88 </span>                :            :  * 128k, which has 32k 4-byte words, so we can compute the largest possible
+<span class="lineNum">      89 </span>                :            :  * accumulators, then divide by 2^64 to figure the max amount of overflow:
+<span class="lineNum">      90 </span>                :            :  *
+<span class="lineNum">      91 </span>                :            :  * % bc
+<span class="lineNum">      92 </span>                :            :  *  a=b=c=d=0; f=2^32-1; for (i=1; i&lt;=32*1024; i++) { a+=f; b+=a; c+=b; d+=c }
+<span class="lineNum">      93 </span>                :            :  *  a/2^64;b/2^64;c/2^64;d/2^64
+<span class="lineNum">      94 </span>                :            :  * 0
+<span class="lineNum">      95 </span>                :            :  * 0
+<span class="lineNum">      96 </span>                :            :  * 1365
+<span class="lineNum">      97 </span>                :            :  * 11186858
+<span class="lineNum">      98 </span>                :            :  *  quit
+<span class="lineNum">      99 </span>                :            :  * %
+<span class="lineNum">     100 </span>                :            :  *
+<span class="lineNum">     101 </span>                :            :  * So a and b cannot overflow.  To make sure each bit of input has some
+<span class="lineNum">     102 </span>                :            :  * effect on the contents of c and d, we can look at what the factors of
+<span class="lineNum">     103 </span>                :            :  * the coefficients in the equations for c_n and d_n are.  The number of 2s
+<span class="lineNum">     104 </span>                :            :  * in the factors determines the lowest set bit in the multiplier.  Running
+<span class="lineNum">     105 </span>                :            :  * through the cases for n*(n+1)/2 reveals that the highest power of 2 is
+<span class="lineNum">     106 </span>                :            :  * 2^14, and for n*(n+1)*(n+2)/6 it is 2^15.  So while some data may overflow
+<span class="lineNum">     107 </span>                :            :  * the 64-bit accumulators, every bit of every f_i effects every accumulator,
+<span class="lineNum">     108 </span>                :            :  * even for 128k blocks.
+<span class="lineNum">     109 </span>                :            :  *
+<span class="lineNum">     110 </span>                :            :  * If we wanted to make a stronger version of fletcher4 (fletcher4c?),
+<span class="lineNum">     111 </span>                :            :  * we could do our calculations mod (2^32 - 1) by adding in the carries
+<span class="lineNum">     112 </span>                :            :  * periodically, and store the number of carries in the top 32-bits.
+<span class="lineNum">     113 </span>                :            :  *
+<span class="lineNum">     114 </span>                :            :  * --------------------
+<span class="lineNum">     115 </span>                :            :  * Checksum Performance
+<span class="lineNum">     116 </span>                :            :  * --------------------
+<span class="lineNum">     117 </span>                :            :  *
+<span class="lineNum">     118 </span>                :            :  * There are two interesting components to checksum performance: cached and
+<span class="lineNum">     119 </span>                :            :  * uncached performance.  With cached data, fletcher-2 is about four times
+<span class="lineNum">     120 </span>                :            :  * faster than fletcher-4.  With uncached data, the performance difference is
+<span class="lineNum">     121 </span>                :            :  * negligible, since the cost of a cache fill dominates the processing time.
+<span class="lineNum">     122 </span>                :            :  * Even though fletcher-4 is slower than fletcher-2, it is still a pretty
+<span class="lineNum">     123 </span>                :            :  * efficient pass over the data.
+<span class="lineNum">     124 </span>                :            :  *
+<span class="lineNum">     125 </span>                :            :  * In normal operation, the data which is being checksummed is in a buffer
+<span class="lineNum">     126 </span>                :            :  * which has been filled either by:
+<span class="lineNum">     127 </span>                :            :  *
+<span class="lineNum">     128 </span>                :            :  *      1. a compression step, which will be mostly cached, or
+<span class="lineNum">     129 </span>                :            :  *      2. a bcopy() or copyin(), which will be uncached (because the
+<span class="lineNum">     130 </span>                :            :  *         copy is cache-bypassing).
+<span class="lineNum">     131 </span>                :            :  *
+<span class="lineNum">     132 </span>                :            :  * For both cached and uncached data, both fletcher checksums are much faster
+<span class="lineNum">     133 </span>                :            :  * than sha-256, and slower than 'off', which doesn't touch the data at all.
+<span class="lineNum">     134 </span>                :            :  */
+<span class="lineNum">     135 </span>                :            : 
+<span class="lineNum">     136 </span>                :            : #include &lt;sys/types.h&gt;
+<span class="lineNum">     137 </span>                :            : #include &lt;sys/sysmacros.h&gt;
+<span class="lineNum">     138 </span>                :            : #include &lt;sys/byteorder.h&gt;
+<span class="lineNum">     139 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">     140 </span>                :            : #include &lt;sys/zio_checksum.h&gt;
+<span class="lineNum">     141 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">     142 </span>                :            : #include &lt;zfs_fletcher.h&gt;
+<span class="lineNum">     143 </span>                :            : 
+<span class="lineNum">     144 </span>                :            : #define FLETCHER_MIN_SIMD_SIZE  64
+<span class="lineNum">     145 </span>                :            : 
+<span class="lineNum">     146 </span>                :            : static void fletcher_4_scalar_init(fletcher_4_ctx_t *ctx);
+<span class="lineNum">     147 </span>                :            : static void fletcher_4_scalar_fini(fletcher_4_ctx_t *ctx, zio_cksum_t *zcp);
+<span class="lineNum">     148 </span>                :            : static void fletcher_4_scalar_native(fletcher_4_ctx_t *ctx,
+<span class="lineNum">     149 </span>                :            :     const void *buf, uint64_t size);
+<span class="lineNum">     150 </span>                :            : static void fletcher_4_scalar_byteswap(fletcher_4_ctx_t *ctx,
+<span class="lineNum">     151 </span>                :            :     const void *buf, uint64_t size);
+<span class="lineNum">     152 </span>                :            : static boolean_t fletcher_4_scalar_valid(void);
+<span class="lineNum">     153 </span>                :            : 
+<span class="lineNum">     154 </span>                :            : static const fletcher_4_ops_t fletcher_4_scalar_ops = {
+<span class="lineNum">     155 </span>                :            :         .init_native = fletcher_4_scalar_init,
+<span class="lineNum">     156 </span>                :            :         .fini_native = fletcher_4_scalar_fini,
+<span class="lineNum">     157 </span>                :            :         .compute_native = fletcher_4_scalar_native,
+<span class="lineNum">     158 </span>                :            :         .init_byteswap = fletcher_4_scalar_init,
+<span class="lineNum">     159 </span>                :            :         .fini_byteswap = fletcher_4_scalar_fini,
+<span class="lineNum">     160 </span>                :            :         .compute_byteswap = fletcher_4_scalar_byteswap,
+<span class="lineNum">     161 </span>                :            :         .valid = fletcher_4_scalar_valid,
+<span class="lineNum">     162 </span>                :            :         .name = &quot;scalar&quot;
+<span class="lineNum">     163 </span>                :            : };
+<span class="lineNum">     164 </span>                :            : 
+<span class="lineNum">     165 </span>                :            : static fletcher_4_ops_t fletcher_4_fastest_impl = {
+<span class="lineNum">     166 </span>                :            :         .name = &quot;fastest&quot;,
+<span class="lineNum">     167 </span>                :            :         .valid = fletcher_4_scalar_valid
+<span class="lineNum">     168 </span>                :            : };
+<span class="lineNum">     169 </span>                :            : 
+<span class="lineNum">     170 </span>                :            : static const fletcher_4_ops_t *fletcher_4_impls[] = {
+<span class="lineNum">     171 </span>                :            :         &amp;fletcher_4_scalar_ops,
+<span class="lineNum">     172 </span>                :            :         &amp;fletcher_4_superscalar_ops,
+<span class="lineNum">     173 </span>                :            :         &amp;fletcher_4_superscalar4_ops,
+<span class="lineNum">     174 </span>                :            : #if defined(HAVE_SSE2)
+<span class="lineNum">     175 </span>                :            :         &amp;fletcher_4_sse2_ops,
+<span class="lineNum">     176 </span>                :            : #endif
+<span class="lineNum">     177 </span>                :            : #if defined(HAVE_SSE2) &amp;&amp; defined(HAVE_SSSE3)
+<span class="lineNum">     178 </span>                :            :         &amp;fletcher_4_ssse3_ops,
+<span class="lineNum">     179 </span>                :            : #endif
+<span class="lineNum">     180 </span>                :            : #if defined(HAVE_AVX) &amp;&amp; defined(HAVE_AVX2)
+<span class="lineNum">     181 </span>                :            :         &amp;fletcher_4_avx2_ops,
+<span class="lineNum">     182 </span>                :            : #endif
+<span class="lineNum">     183 </span>                :            : #if defined(__x86_64) &amp;&amp; defined(HAVE_AVX512F)
+<span class="lineNum">     184 </span>                :            :         &amp;fletcher_4_avx512f_ops,
+<span class="lineNum">     185 </span>                :            : #endif
+<span class="lineNum">     186 </span>                :            : #if defined(__aarch64__)
+<span class="lineNum">     187 </span>                :            :         &amp;fletcher_4_aarch64_neon_ops,
+<span class="lineNum">     188 </span>                :            : #endif
+<span class="lineNum">     189 </span>                :            : };
+<span class="lineNum">     190 </span>                :            : 
+<span class="lineNum">     191 </span>                :            : /* Hold all supported implementations */
+<span class="lineNum">     192 </span>                :            : static uint32_t fletcher_4_supp_impls_cnt = 0;
+<span class="lineNum">     193 </span>                :            : static fletcher_4_ops_t *fletcher_4_supp_impls[ARRAY_SIZE(fletcher_4_impls)];
+<span class="lineNum">     194 </span>                :            : 
+<span class="lineNum">     195 </span>                :            : /* Select fletcher4 implementation */
+<span class="lineNum">     196 </span>                :            : #define IMPL_FASTEST    (UINT32_MAX)
+<span class="lineNum">     197 </span>                :            : #define IMPL_CYCLE      (UINT32_MAX - 1)
+<span class="lineNum">     198 </span>                :            : #define IMPL_SCALAR     (0)
+<span class="lineNum">     199 </span>                :            : 
+<span class="lineNum">     200 </span>                :            : static uint32_t fletcher_4_impl_chosen = IMPL_FASTEST;
+<span class="lineNum">     201 </span>                :            : 
+<span class="lineNum">     202 </span>                :            : #define IMPL_READ(i)    (*(volatile uint32_t *) &amp;(i))
+<span class="lineNum">     203 </span>                :            : 
+<span class="lineNum">     204 </span>                :            : static struct fletcher_4_impl_selector {
+<span class="lineNum">     205 </span>                :            :         const char      *fis_name;
+<span class="lineNum">     206 </span>                :            :         uint32_t        fis_sel;
+<span class="lineNum">     207 </span>                :            : } fletcher_4_impl_selectors[] = {
+<span class="lineNum">     208 </span>                :            : #if !defined(_KERNEL)
+<span class="lineNum">     209 </span>                :            :         { &quot;cycle&quot;,    IMPL_CYCLE },
+<span class="lineNum">     210 </span>                :            : #endif
+<span class="lineNum">     211 </span>                :            :         { &quot;fastest&quot;,  IMPL_FASTEST },
+<span class="lineNum">     212 </span>                :            :         { &quot;scalar&quot;,   IMPL_SCALAR }
+<span class="lineNum">     213 </span>                :            : };
+<span class="lineNum">     214 </span>                :            : 
+<span class="lineNum">     215 </span>                :            : #if defined(_KERNEL)
+<span class="lineNum">     216 </span>                :            : static kstat_t *fletcher_4_kstat;
+<span class="lineNum">     217 </span>                :            : #endif
+<span class="lineNum">     218 </span>                :            : 
+<span class="lineNum">     219 </span>                :            : static struct fletcher_4_kstat {
+<span class="lineNum">     220 </span>                :            :         uint64_t native;
+<span class="lineNum">     221 </span>                :            :         uint64_t byteswap;
+<span class="lineNum">     222 </span>                :            : } fletcher_4_stat_data[ARRAY_SIZE(fletcher_4_impls) + 1];
+<span class="lineNum">     223 </span>                :            : 
+<span class="lineNum">     224 </span>                :            : /* Indicate that benchmark has been completed */
+<span class="lineNum">     225 </span>                :            : static boolean_t fletcher_4_initialized = B_FALSE;
+<span class="lineNum">     226 </span>                :            : 
+<a name="227"><span class="lineNum">     227 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     228 </span>                :            : void
+<span class="lineNum">     229 </span>                :<span class="lineCov">    4333757 : fletcher_init(zio_cksum_t *zcp)</span>
+<span class="lineNum">     230 </span>                :            : {
+<span class="lineNum">     231 </span>                :<span class="lineCov">    4333757 :         ZIO_SET_CHECKSUM(zcp, 0, 0, 0, 0);</span>
+<span class="lineNum">     232 </span>                :<span class="lineCov">    4333757 : }</span>
+<a name="233"><span class="lineNum">     233 </span>                :            : </a>
+<span class="lineNum">     234 </span>                :            : int
+<span class="lineNum">     235 </span>                :<span class="lineCov">    4344842 : fletcher_2_incremental_native(void *buf, size_t size, void *data)</span>
+<span class="lineNum">     236 </span>                :            : {
+<span class="lineNum">     237 </span>                :<span class="lineCov">    4344842 :         zio_cksum_t *zcp = data;</span>
+<span class="lineNum">     238 </span>                :            : 
+<span class="lineNum">     239 </span>                :<span class="lineCov">    4344842 :         const uint64_t *ip = buf;</span>
+<span class="lineNum">     240 </span>                :<span class="lineCov">    4344842 :         const uint64_t *ipend = ip + (size / sizeof (uint64_t));</span>
+<span class="lineNum">     241 </span>                :            :         uint64_t a0, b0, a1, b1;
+<span class="lineNum">     242 </span>                :            : 
+<span class="lineNum">     243 </span>                :<span class="lineCov">    4344842 :         a0 = zcp-&gt;zc_word[0];</span>
+<span class="lineNum">     244 </span>                :<span class="lineCov">    4344842 :         a1 = zcp-&gt;zc_word[1];</span>
+<span class="lineNum">     245 </span>                :<span class="lineCov">    4344842 :         b0 = zcp-&gt;zc_word[2];</span>
+<span class="lineNum">     246 </span>                :<span class="lineCov">    4344842 :         b1 = zcp-&gt;zc_word[3];</span>
+<span class="lineNum">     247 </span>                :            : 
+<span class="lineNum">     248 </span>        [<span class="branchCov" title="Branch 0 was taken 699954208 times"> + </span><span class="branchCov" title="Branch 1 was taken 4344842 times"> + </span>]:<span class="lineCov"> 9294233642 :         for (; ip &lt; ipend; ip += 2) {</span>
+<span class="lineNum">     249 </span>                :<span class="lineCov"> 9289888800 :                 a0 += ip[0];</span>
+<span class="lineNum">     250 </span>                :<span class="lineCov"> 9289888800 :                 a1 += ip[1];</span>
+<span class="lineNum">     251 </span>                :<span class="lineCov"> 9289888800 :                 b0 += a0;</span>
+<span class="lineNum">     252 </span>                :<span class="lineCov"> 9289888800 :                 b1 += a1;</span>
+<span class="lineNum">     253 </span>                :            :         }
+<span class="lineNum">     254 </span>                :            : 
+<span class="lineNum">     255 </span>                :<span class="lineCov">    4344842 :         ZIO_SET_CHECKSUM(zcp, a0, a1, b0, b1);</span>
+<span class="lineNum">     256 </span>                :<span class="lineCov">    4344842 :         return (0);</span>
+<span class="lineNum">     257 </span>                :            : }
+<span class="lineNum">     258 </span>                :            : 
+<a name="259"><span class="lineNum">     259 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     260 </span>                :            : void
+<span class="lineNum">     261 </span>                :<span class="lineCov">    4322738 : fletcher_2_native(const void *buf, uint64_t size,</span>
+<span class="lineNum">     262 </span>                :            :     const void *ctx_template, zio_cksum_t *zcp)
+<span class="lineNum">     263 </span>                :            : {
+<span class="lineNum">     264 </span>                :<span class="lineCov">    4322738 :         fletcher_init(zcp);</span>
+<span class="lineNum">     265 </span>                :<span class="lineCov">    4322873 :         (void) fletcher_2_incremental_native((void *) buf, size, zcp);</span>
+<span class="lineNum">     266 </span>                :<span class="lineCov">    4324010 : }</span>
+<a name="267"><span class="lineNum">     267 </span>                :            : </a>
+<span class="lineNum">     268 </span>                :            : int
+<span class="lineNum">     269 </span>                :<span class="lineNoCov">          0 : fletcher_2_incremental_byteswap(void *buf, size_t size, void *data)</span>
+<span class="lineNum">     270 </span>                :            : {
+<span class="lineNum">     271 </span>                :<span class="lineNoCov">          0 :         zio_cksum_t *zcp = data;</span>
+<span class="lineNum">     272 </span>                :            : 
+<span class="lineNum">     273 </span>                :<span class="lineNoCov">          0 :         const uint64_t *ip = buf;</span>
+<span class="lineNum">     274 </span>                :<span class="lineNoCov">          0 :         const uint64_t *ipend = ip + (size / sizeof (uint64_t));</span>
+<span class="lineNum">     275 </span>                :            :         uint64_t a0, b0, a1, b1;
+<span class="lineNum">     276 </span>                :            : 
+<span class="lineNum">     277 </span>                :<span class="lineNoCov">          0 :         a0 = zcp-&gt;zc_word[0];</span>
+<span class="lineNum">     278 </span>                :<span class="lineNoCov">          0 :         a1 = zcp-&gt;zc_word[1];</span>
+<span class="lineNum">     279 </span>                :<span class="lineNoCov">          0 :         b0 = zcp-&gt;zc_word[2];</span>
+<span class="lineNum">     280 </span>                :<span class="lineNoCov">          0 :         b1 = zcp-&gt;zc_word[3];</span>
+<span class="lineNum">     281 </span>                :            : 
+<span class="lineNum">     282 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (; ip &lt; ipend; ip += 2) {</span>
+<span class="lineNum">     283 </span>                :<span class="lineNoCov">          0 :                 a0 += BSWAP_64(ip[0]);</span>
+<span class="lineNum">     284 </span>                :<span class="lineNoCov">          0 :                 a1 += BSWAP_64(ip[1]);</span>
+<span class="lineNum">     285 </span>                :<span class="lineNoCov">          0 :                 b0 += a0;</span>
+<span class="lineNum">     286 </span>                :<span class="lineNoCov">          0 :                 b1 += a1;</span>
+<span class="lineNum">     287 </span>                :            :         }
+<span class="lineNum">     288 </span>                :            : 
+<span class="lineNum">     289 </span>                :<span class="lineNoCov">          0 :         ZIO_SET_CHECKSUM(zcp, a0, a1, b0, b1);</span>
+<span class="lineNum">     290 </span>                :<span class="lineNoCov">          0 :         return (0);</span>
+<span class="lineNum">     291 </span>                :            : }
+<span class="lineNum">     292 </span>                :            : 
+<a name="293"><span class="lineNum">     293 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     294 </span>                :            : void
+<span class="lineNum">     295 </span>                :<span class="lineNoCov">          0 : fletcher_2_byteswap(const void *buf, uint64_t size,</span>
+<span class="lineNum">     296 </span>                :            :     const void *ctx_template, zio_cksum_t *zcp)
+<span class="lineNum">     297 </span>                :            : {
+<span class="lineNum">     298 </span>                :<span class="lineNoCov">          0 :         fletcher_init(zcp);</span>
+<span class="lineNum">     299 </span>                :<span class="lineNoCov">          0 :         (void) fletcher_2_incremental_byteswap((void *) buf, size, zcp);</span>
+<span class="lineNum">     300 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="301"><span class="lineNum">     301 </span>                :            : </a>
+<span class="lineNum">     302 </span>                :            : static void
+<span class="lineNum">     303 </span>                :<span class="lineCov">      89140 : fletcher_4_scalar_init(fletcher_4_ctx_t *ctx)</span>
+<span class="lineNum">     304 </span>                :            : {
+<span class="lineNum">     305 </span>                :<span class="lineCov">      89140 :         ZIO_SET_CHECKSUM(&amp;ctx-&gt;scalar, 0, 0, 0, 0);</span>
+<span class="lineNum">     306 </span>                :<span class="lineCov">      89140 : }</span>
+<a name="307"><span class="lineNum">     307 </span>                :            : </a>
+<span class="lineNum">     308 </span>                :            : static void
+<span class="lineNum">     309 </span>                :<span class="lineCov">      89148 : fletcher_4_scalar_fini(fletcher_4_ctx_t *ctx, zio_cksum_t *zcp)</span>
+<span class="lineNum">     310 </span>                :            : {
+<span class="lineNum">     311 </span>                :<span class="lineCov">     178296 :         memcpy(zcp, &amp;ctx-&gt;scalar, sizeof (zio_cksum_t));</span>
+<span class="lineNum">     312 </span>                :<span class="lineCov">      89148 : }</span>
+<a name="313"><span class="lineNum">     313 </span>                :            : </a>
+<span class="lineNum">     314 </span>                :            : static void
+<span class="lineNum">     315 </span>                :<span class="lineCov">     327078 : fletcher_4_scalar_native(fletcher_4_ctx_t *ctx, const void *buf,</span>
+<span class="lineNum">     316 </span>                :            :     uint64_t size)
+<span class="lineNum">     317 </span>                :            : {
+<span class="lineNum">     318 </span>                :<span class="lineCov">     327078 :         const uint32_t *ip = buf;</span>
+<span class="lineNum">     319 </span>                :<span class="lineCov">     327078 :         const uint32_t *ipend = ip + (size / sizeof (uint32_t));</span>
+<span class="lineNum">     320 </span>                :            :         uint64_t a, b, c, d;
+<span class="lineNum">     321 </span>                :            : 
+<span class="lineNum">     322 </span>                :<span class="lineCov">     327078 :         a = ctx-&gt;scalar.zc_word[0];</span>
+<span class="lineNum">     323 </span>                :<span class="lineCov">     327078 :         b = ctx-&gt;scalar.zc_word[1];</span>
+<span class="lineNum">     324 </span>                :<span class="lineCov">     327078 :         c = ctx-&gt;scalar.zc_word[2];</span>
+<span class="lineNum">     325 </span>                :<span class="lineCov">     327078 :         d = ctx-&gt;scalar.zc_word[3];</span>
+<span class="lineNum">     326 </span>                :            : 
+<span class="lineNum">     327 </span>        [<span class="branchCov" title="Branch 0 was taken 293354518 times"> + </span><span class="branchCov" title="Branch 1 was taken 327078 times"> + </span>]:<span class="lineCov">  293681596 :         for (; ip &lt; ipend; ip++) {</span>
+<span class="lineNum">     328 </span>                :<span class="lineCov">  293354518 :                 a += ip[0];</span>
+<span class="lineNum">     329 </span>                :<span class="lineCov">  293354518 :                 b += a;</span>
+<span class="lineNum">     330 </span>                :<span class="lineCov">  293354518 :                 c += b;</span>
+<span class="lineNum">     331 </span>                :<span class="lineCov">  293354518 :                 d += c;</span>
+<span class="lineNum">     332 </span>                :            :         }
+<span class="lineNum">     333 </span>                :            : 
+<span class="lineNum">     334 </span>                :<span class="lineCov">     327078 :         ZIO_SET_CHECKSUM(&amp;ctx-&gt;scalar, a, b, c, d);</span>
+<span class="lineNum">     335 </span>                :<span class="lineCov">     327078 : }</span>
+<a name="336"><span class="lineNum">     336 </span>                :            : </a>
+<span class="lineNum">     337 </span>                :            : static void
+<span class="lineNum">     338 </span>                :<span class="lineCov">     115441 : fletcher_4_scalar_byteswap(fletcher_4_ctx_t *ctx, const void *buf,</span>
+<span class="lineNum">     339 </span>                :            :     uint64_t size)
+<span class="lineNum">     340 </span>                :            : {
+<span class="lineNum">     341 </span>                :<span class="lineCov">     115441 :         const uint32_t *ip = buf;</span>
+<span class="lineNum">     342 </span>                :<span class="lineCov">     115441 :         const uint32_t *ipend = ip + (size / sizeof (uint32_t));</span>
+<span class="lineNum">     343 </span>                :            :         uint64_t a, b, c, d;
+<span class="lineNum">     344 </span>                :            : 
+<span class="lineNum">     345 </span>                :<span class="lineCov">     115441 :         a = ctx-&gt;scalar.zc_word[0];</span>
+<span class="lineNum">     346 </span>                :<span class="lineCov">     115441 :         b = ctx-&gt;scalar.zc_word[1];</span>
+<span class="lineNum">     347 </span>                :<span class="lineCov">     115441 :         c = ctx-&gt;scalar.zc_word[2];</span>
+<span class="lineNum">     348 </span>                :<span class="lineCov">     115441 :         d = ctx-&gt;scalar.zc_word[3];</span>
+<span class="lineNum">     349 </span>                :            : 
+<span class="lineNum">     350 </span>        [<span class="branchCov" title="Branch 0 was taken 246621120 times"> + </span><span class="branchCov" title="Branch 1 was taken 115441 times"> + </span>]:<span class="lineCov">  246736561 :         for (; ip &lt; ipend; ip++) {</span>
+<span class="lineNum">     351 </span>                :<span class="lineCov">  246621120 :                 a += BSWAP_32(ip[0]);</span>
+<span class="lineNum">     352 </span>                :<span class="lineCov">  246621120 :                 b += a;</span>
+<span class="lineNum">     353 </span>                :<span class="lineCov">  246621120 :                 c += b;</span>
+<span class="lineNum">     354 </span>                :<span class="lineCov">  246621120 :                 d += c;</span>
+<span class="lineNum">     355 </span>                :            :         }
+<span class="lineNum">     356 </span>                :            : 
+<span class="lineNum">     357 </span>                :<span class="lineCov">     115441 :         ZIO_SET_CHECKSUM(&amp;ctx-&gt;scalar, a, b, c, d);</span>
+<span class="lineNum">     358 </span>                :<span class="lineCov">     115441 : }</span>
+<a name="359"><span class="lineNum">     359 </span>                :            : </a>
+<span class="lineNum">     360 </span>                :            : static boolean_t
+<span class="lineNum">     361 </span>                :<span class="lineCov">      59904 : fletcher_4_scalar_valid(void)</span>
+<span class="lineNum">     362 </span>                :            : {
+<span class="lineNum">     363 </span>                :<span class="lineCov">      59904 :         return (B_TRUE);</span>
+<span class="lineNum">     364 </span>                :            : }
+<a name="365"><span class="lineNum">     365 </span>                :            : </a>
+<span class="lineNum">     366 </span>                :            : int
+<span class="lineNum">     367 </span>                :<span class="lineCov">       1000 : fletcher_4_impl_set(const char *val)</span>
+<span class="lineNum">     368 </span>                :            : {
+<span class="lineNum">     369 </span>                :<span class="lineCov">       1000 :         int err = -EINVAL;</span>
+<span class="lineNum">     370 </span>                :<span class="lineCov">       1000 :         uint32_t impl = IMPL_READ(fletcher_4_impl_chosen);</span>
+<span class="lineNum">     371 </span>                :            :         size_t i, val_len;
+<span class="lineNum">     372 </span>                :            : 
+<span class="lineNum">     373 </span>                :<span class="lineCov">       1000 :         val_len = strlen(val);</span>
+<span class="lineNum">     374 </span>[<span class="branchCov" title="Branch 0 was taken 1000 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 1000 times"> + </span>]:<span class="lineCov">       1000 :         while ((val_len &gt; 0) &amp;&amp; !!isspace(val[val_len-1])) /* trim '\n' */</span>
+<span class="lineNum">     375 </span>                :            :                 val_len--;
+<span class="lineNum">     376 </span>                :            : 
+<span class="lineNum">     377 </span>                :            :         /* check mandatory implementations */
+<span class="lineNum">     378 </span>        [<span class="branchCov" title="Branch 0 was taken 2000 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       2000 :         for (i = 0; i &lt; ARRAY_SIZE(fletcher_4_impl_selectors); i++) {</span>
+<span class="lineNum">     379 </span>                :<span class="lineCov">       2000 :                 const char *name = fletcher_4_impl_selectors[i].fis_name;</span>
+<span class="lineNum">     380 </span>                :            : 
+<span class="lineNum">     381 </span>[<span class="branchCov" title="Branch 0 was taken 1000 times"> + </span><span class="branchCov" title="Branch 1 was taken 1000 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 1000 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">       2000 :                 if (val_len == strlen(name) &amp;&amp;</span>
+<span class="lineNum">     382 </span>                :<span class="lineCov">       1000 :                     strncmp(val, name, val_len) == 0) {</span>
+<span class="lineNum">     383 </span>                :<span class="lineCov">       1000 :                         impl = fletcher_4_impl_selectors[i].fis_sel;</span>
+<span class="lineNum">     384 </span>                :<span class="lineCov">       1000 :                         err = 0;</span>
+<span class="lineNum">     385 </span>                :<span class="lineCov">       1000 :                         break;</span>
+<span class="lineNum">     386 </span>                :            :                 }
+<span class="lineNum">     387 </span>                :            :         }
+<span class="lineNum">     388 </span>                :            : 
+<span class="lineNum">     389 </span>[<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1000 times"> + </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineCov">       1000 :         if (err != 0 &amp;&amp; fletcher_4_initialized) {</span>
+<span class="lineNum">     390 </span>                :            :                 /* check all supported implementations */
+<span class="lineNum">     391 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 for (i = 0; i &lt; fletcher_4_supp_impls_cnt; i++) {</span>
+<span class="lineNum">     392 </span>                :<span class="lineNoCov">          0 :                         const char *name = fletcher_4_supp_impls[i]-&gt;name;</span>
+<span class="lineNum">     393 </span>                :            : 
+<span class="lineNum">     394 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (val_len == strlen(name) &amp;&amp;</span>
+<span class="lineNum">     395 </span>                :<span class="lineNoCov">          0 :                             strncmp(val, name, val_len) == 0) {</span>
+<span class="lineNum">     396 </span>                :<span class="lineNoCov">          0 :                                 impl = i;</span>
+<span class="lineNum">     397 </span>                :<span class="lineNoCov">          0 :                                 err = 0;</span>
+<span class="lineNum">     398 </span>                :<span class="lineNoCov">          0 :                                 break;</span>
+<span class="lineNum">     399 </span>                :            :                         }
+<span class="lineNum">     400 </span>                :            :                 }
+<span class="lineNum">     401 </span>                :            :         }
+<span class="lineNum">     402 </span>                :            : 
+<span class="lineNum">     403 </span>        [<span class="branchCov" title="Branch 0 was taken 1000 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       1000 :         if (err == 0) {</span>
+<span class="lineNum">     404 </span>                :<span class="lineCov">       1000 :                 atomic_swap_32(&amp;fletcher_4_impl_chosen, impl);</span>
+<span class="lineNum">     405 </span>                :<span class="lineCov">       1000 :                 membar_producer();</span>
+<span class="lineNum">     406 </span>                :            :         }
+<span class="lineNum">     407 </span>                :            : 
+<span class="lineNum">     408 </span>                :<span class="lineCov">       1000 :         return (err);</span>
+<span class="lineNum">     409 </span>                :            : }
+<a name="410"><span class="lineNum">     410 </span>                :            : </a>
+<span class="lineNum">     411 </span>                :            : static inline const fletcher_4_ops_t *
+<span class="lineNum">     412 </span>                :<span class="lineCov">    1247013 : fletcher_4_impl_get(void)</span>
+<span class="lineNum">     413 </span>                :            : {
+<span class="lineNum">     414 </span>                :<span class="lineCov">    1247013 :         fletcher_4_ops_t *ops = NULL;</span>
+<span class="lineNum">     415 </span>                :<span class="lineCov">    1247013 :         const uint32_t impl = IMPL_READ(fletcher_4_impl_chosen);</span>
+<span class="lineNum">     416 </span>                :            : 
+<span class="lineNum">     417 </span>     [<span class="branchCov" title="Branch 0 was taken 805337 times"> + </span><span class="branchCov" title="Branch 1 was taken 440672 times"> + </span><span class="branchCov" title="Branch 2 was taken 1004 times"> + </span>]:<span class="lineCov">    1247013 :         switch (impl) {</span>
+<span class="lineNum">     418 </span>                :            :         case IMPL_FASTEST:
+<span class="lineNum">     419 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 805337 times"> + </span>]:<span class="lineCov">     805337 :                 ASSERT(fletcher_4_initialized);</span>
+<span class="lineNum">     420 </span>                :            :                 ops = &amp;fletcher_4_fastest_impl;
+<span class="lineNum">     421 </span>                :            :                 break;
+<span class="lineNum">     422 </span>                :            : #if !defined(_KERNEL)
+<span class="lineNum">     423 </span>                :            :         case IMPL_CYCLE: {
+<span class="lineNum">     424 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 440672 times"> + </span>]:<span class="lineCov">     440672 :                 ASSERT(fletcher_4_initialized);</span>
+<span class="lineNum">     425 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 440672 times"> + </span>]:<span class="lineCov">     440672 :                 ASSERT3U(fletcher_4_supp_impls_cnt, &gt;, 0);</span>
+<span class="lineNum">     426 </span>                :            : 
+<span class="lineNum">     427 </span>                :            :                 static uint32_t cycle_count = 0;
+<span class="lineNum">     428 </span>                :<span class="lineCov">     440672 :                 uint32_t idx = (++cycle_count) % fletcher_4_supp_impls_cnt;</span>
+<span class="lineNum">     429 </span>                :<span class="lineCov">     440672 :                 ops = fletcher_4_supp_impls[idx];</span>
+<span class="lineNum">     430 </span>                :            :         }
+<span class="lineNum">     431 </span>                :<span class="lineCov">     440672 :         break;</span>
+<span class="lineNum">     432 </span>                :            : #endif
+<span class="lineNum">     433 </span>                :            :         default:
+<span class="lineNum">     434 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1004 times"> + </span>]:<span class="lineCov">       1004 :                 ASSERT3U(fletcher_4_supp_impls_cnt, &gt;, 0);</span>
+<span class="lineNum">     435 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1004 times"> + </span>]:<span class="lineCov">       1004 :                 ASSERT3U(impl, &lt;, fletcher_4_supp_impls_cnt);</span>
+<span class="lineNum">     436 </span>                :            : 
+<span class="lineNum">     437 </span>                :<span class="lineCov">       1004 :                 ops = fletcher_4_supp_impls[impl];</span>
+<span class="lineNum">     438 </span>                :<span class="lineCov">       1004 :                 break;</span>
+<span class="lineNum">     439 </span>                :            :         }
+<span class="lineNum">     440 </span>                :            : 
+<span class="lineNum">     441 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1247013 times"> + </span>]:<span class="lineCov">    1247013 :         ASSERT3P(ops, !=, NULL);</span>
+<span class="lineNum">     442 </span>                :            : 
+<span class="lineNum">     443 </span>                :<span class="lineCov">    1247013 :         return (ops);</span>
+<span class="lineNum">     444 </span>                :            : }
+<a name="445"><span class="lineNum">     445 </span>                :            : </a>
+<span class="lineNum">     446 </span>                :            : static inline void
+<span class="lineNum">     447 </span>                :<span class="lineCov">     192323 : fletcher_4_native_impl(const void *buf, uint64_t size, zio_cksum_t *zcp)</span>
+<span class="lineNum">     448 </span>                :            : {
+<span class="lineNum">     449 </span>                :            :         fletcher_4_ctx_t ctx;
+<span class="lineNum">     450 </span>                :<span class="lineCov">     192323 :         const fletcher_4_ops_t *ops = fletcher_4_impl_get();</span>
+<span class="lineNum">     451 </span>                :            : 
+<span class="lineNum">     452 </span>                :<span class="lineCov">     192323 :         ops-&gt;init_native(&amp;ctx);</span>
+<span class="lineNum">     453 </span>                :<span class="lineCov">     192323 :         ops-&gt;compute_native(&amp;ctx, buf, size);</span>
+<span class="lineNum">     454 </span>                :<span class="lineCov">     192323 :         ops-&gt;fini_native(&amp;ctx, zcp);</span>
+<span class="lineNum">     455 </span>                :<span class="lineCov">     192323 : }</span>
+<span class="lineNum">     456 </span>                :            : 
+<a name="457"><span class="lineNum">     457 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     458 </span>                :            : void
+<span class="lineNum">     459 </span>                :<span class="lineCov">     192323 : fletcher_4_native(const void *buf, uint64_t size,</span>
+<span class="lineNum">     460 </span>                :            :     const void *ctx_template, zio_cksum_t *zcp)
+<span class="lineNum">     461 </span>                :            : {
+<span class="lineNum">     462 </span>                :<span class="lineCov">     192323 :         const uint64_t p2size = P2ALIGN(size, FLETCHER_MIN_SIMD_SIZE);</span>
+<span class="lineNum">     463 </span>                :            : 
+<span class="lineNum">     464 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 192323 times"> + </span>]:<span class="lineCov">     192323 :         ASSERT(IS_P2ALIGNED(size, sizeof (uint32_t)));</span>
+<span class="lineNum">     465 </span>                :            : 
+<span class="lineNum">     466 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 192323 times"> + </span>]:<span class="lineCov">     192323 :         if (size == 0 || p2size == 0) {</span>
+<span class="lineNum">     467 </span>                :<span class="lineNoCov">          0 :                 ZIO_SET_CHECKSUM(zcp, 0, 0, 0, 0);</span>
+<span class="lineNum">     468 </span>                :            : 
+<span class="lineNum">     469 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (size &gt; 0)</span>
+<span class="lineNum">     470 </span>                :<span class="lineNoCov">          0 :                         fletcher_4_scalar_native((fletcher_4_ctx_t *)zcp,</span>
+<span class="lineNum">     471 </span>                :            :                             buf, size);
+<span class="lineNum">     472 </span>                :            :         } else {
+<span class="lineNum">     473 </span>                :<span class="lineCov">     192323 :                 fletcher_4_native_impl(buf, p2size, zcp);</span>
+<span class="lineNum">     474 </span>                :            : 
+<span class="lineNum">     475 </span>        [<span class="branchCov" title="Branch 0 was taken 7433 times"> + </span><span class="branchCov" title="Branch 1 was taken 184890 times"> + </span>]:<span class="lineCov">     192323 :                 if (p2size &lt; size)</span>
+<span class="lineNum">     476 </span>                :<span class="lineCov">       7433 :                         fletcher_4_scalar_native((fletcher_4_ctx_t *)zcp,</span>
+<span class="lineNum">     477 </span>                :            :                             (char *)buf + p2size, size - p2size);
+<span class="lineNum">     478 </span>                :            :         }
+<span class="lineNum">     479 </span>                :<span class="lineCov">     192323 : }</span>
+<a name="480"><span class="lineNum">     480 </span>                :            : </a>
+<span class="lineNum">     481 </span>                :            : void
+<span class="lineNum">     482 </span>                :<span class="lineCov">       9580 : fletcher_4_native_varsize(const void *buf, uint64_t size, zio_cksum_t *zcp)</span>
+<span class="lineNum">     483 </span>                :            : {
+<span class="lineNum">     484 </span>                :<span class="lineCov">       9580 :         ZIO_SET_CHECKSUM(zcp, 0, 0, 0, 0);</span>
+<span class="lineNum">     485 </span>                :<span class="lineCov">       9580 :         fletcher_4_scalar_native((fletcher_4_ctx_t *)zcp, buf, size);</span>
+<span class="lineNum">     486 </span>                :<span class="lineCov">       9580 : }</span>
+<a name="487"><span class="lineNum">     487 </span>                :            : </a>
+<span class="lineNum">     488 </span>                :            : static inline void
+<span class="lineNum">     489 </span>                :<span class="lineCov">     114027 : fletcher_4_byteswap_impl(const void *buf, uint64_t size, zio_cksum_t *zcp)</span>
+<span class="lineNum">     490 </span>                :            : {
+<span class="lineNum">     491 </span>                :            :         fletcher_4_ctx_t ctx;
+<span class="lineNum">     492 </span>                :<span class="lineCov">     114027 :         const fletcher_4_ops_t *ops = fletcher_4_impl_get();</span>
+<span class="lineNum">     493 </span>                :            : 
+<span class="lineNum">     494 </span>                :<span class="lineCov">     114027 :         ops-&gt;init_byteswap(&amp;ctx);</span>
+<span class="lineNum">     495 </span>                :<span class="lineCov">     114027 :         ops-&gt;compute_byteswap(&amp;ctx, buf, size);</span>
+<span class="lineNum">     496 </span>                :<span class="lineCov">     114027 :         ops-&gt;fini_byteswap(&amp;ctx, zcp);</span>
+<span class="lineNum">     497 </span>                :<span class="lineCov">     114027 : }</span>
+<span class="lineNum">     498 </span>                :            : 
+<a name="499"><span class="lineNum">     499 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">     500 </span>                :            : void
+<span class="lineNum">     501 </span>                :<span class="lineCov">     114027 : fletcher_4_byteswap(const void *buf, uint64_t size,</span>
+<span class="lineNum">     502 </span>                :            :     const void *ctx_template, zio_cksum_t *zcp)
+<span class="lineNum">     503 </span>                :            : {
+<span class="lineNum">     504 </span>                :<span class="lineCov">     114027 :         const uint64_t p2size = P2ALIGN(size, FLETCHER_MIN_SIMD_SIZE);</span>
+<span class="lineNum">     505 </span>                :            : 
+<span class="lineNum">     506 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 114027 times"> + </span>]:<span class="lineCov">     114027 :         ASSERT(IS_P2ALIGNED(size, sizeof (uint32_t)));</span>
+<span class="lineNum">     507 </span>                :            : 
+<span class="lineNum">     508 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 114027 times"> + </span>]:<span class="lineCov">     114027 :         if (size == 0 || p2size == 0) {</span>
+<span class="lineNum">     509 </span>                :<span class="lineNoCov">          0 :                 ZIO_SET_CHECKSUM(zcp, 0, 0, 0, 0);</span>
+<span class="lineNum">     510 </span>                :            : 
+<span class="lineNum">     511 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (size &gt; 0)</span>
+<span class="lineNum">     512 </span>                :<span class="lineNoCov">          0 :                         fletcher_4_scalar_byteswap((fletcher_4_ctx_t *)zcp,</span>
+<span class="lineNum">     513 </span>                :            :                             buf, size);
+<span class="lineNum">     514 </span>                :            :         } else {
+<span class="lineNum">     515 </span>                :<span class="lineCov">     114027 :                 fletcher_4_byteswap_impl(buf, p2size, zcp);</span>
+<span class="lineNum">     516 </span>                :            : 
+<span class="lineNum">     517 </span>        [<span class="branchCov" title="Branch 0 was taken 7235 times"> + </span><span class="branchCov" title="Branch 1 was taken 106792 times"> + </span>]:<span class="lineCov">     114027 :                 if (p2size &lt; size)</span>
+<span class="lineNum">     518 </span>                :<span class="lineCov">       7235 :                         fletcher_4_scalar_byteswap((fletcher_4_ctx_t *)zcp,</span>
+<span class="lineNum">     519 </span>                :            :                             (char *)buf + p2size, size - p2size);
+<span class="lineNum">     520 </span>                :            :         }
+<span class="lineNum">     521 </span>                :<span class="lineCov">     114027 : }</span>
+<span class="lineNum">     522 </span>                :            : 
+<span class="lineNum">     523 </span>                :            : /* Incremental Fletcher 4 */
+<span class="lineNum">     524 </span>                :            : 
+<span class="lineNum">     525 </span>                :            : #define ZFS_FLETCHER_4_INC_MAX_SIZE     (8ULL &lt;&lt; 20)
+<a name="526"><span class="lineNum">     526 </span>                :            : </a>
+<span class="lineNum">     527 </span>                :            : static inline void
+<span class="lineNum">     528 </span>                :<span class="lineCov">     268950 : fletcher_4_incremental_combine(zio_cksum_t *zcp, const uint64_t size,</span>
+<span class="lineNum">     529 </span>                :            :     const zio_cksum_t *nzcp)
+<span class="lineNum">     530 </span>                :            : {
+<span class="lineNum">     531 </span>                :<span class="lineCov">     268950 :         const uint64_t c1 = size / sizeof (uint32_t);</span>
+<span class="lineNum">     532 </span>                :<span class="lineCov">     268950 :         const uint64_t c2 = c1 * (c1 + 1) / 2;</span>
+<span class="lineNum">     533 </span>                :<span class="lineCov">     268950 :         const uint64_t c3 = c2 * (c1 + 2) / 3;</span>
+<span class="lineNum">     534 </span>                :            : 
+<span class="lineNum">     535 </span>                :            :         /*
+<span class="lineNum">     536 </span>                :            :          * Value of 'c3' overflows on buffer sizes close to 16MiB. For that
+<span class="lineNum">     537 </span>                :            :          * reason we split incremental fletcher4 computation of large buffers
+<span class="lineNum">     538 </span>                :            :          * to steps of (ZFS_FLETCHER_4_INC_MAX_SIZE) size.
+<span class="lineNum">     539 </span>                :            :          */
+<span class="lineNum">     540 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 268950 times"> + </span>]:<span class="lineCov">     268950 :         ASSERT3U(size, &lt;=, ZFS_FLETCHER_4_INC_MAX_SIZE);</span>
+<span class="lineNum">     541 </span>                :            : 
+<span class="lineNum">     542 </span>                :<span class="lineCov">     806850 :         zcp-&gt;zc_word[3] += nzcp-&gt;zc_word[3] + c1 * zcp-&gt;zc_word[2] +</span>
+<span class="lineNum">     543 </span>                :<span class="lineCov">     537900 :             c2 * zcp-&gt;zc_word[1] + c3 * zcp-&gt;zc_word[0];</span>
+<span class="lineNum">     544 </span>                :<span class="lineCov">     537900 :         zcp-&gt;zc_word[2] += nzcp-&gt;zc_word[2] + c1 * zcp-&gt;zc_word[1] +</span>
+<span class="lineNum">     545 </span>                :<span class="lineCov">     268950 :             c2 * zcp-&gt;zc_word[0];</span>
+<span class="lineNum">     546 </span>                :<span class="lineCov">     268950 :         zcp-&gt;zc_word[1] += nzcp-&gt;zc_word[1] + c1 * zcp-&gt;zc_word[0];</span>
+<span class="lineNum">     547 </span>                :<span class="lineCov">     268950 :         zcp-&gt;zc_word[0] += nzcp-&gt;zc_word[0];</span>
+<span class="lineNum">     548 </span>                :<span class="lineCov">     268950 : }</span>
+<a name="549"><span class="lineNum">     549 </span>                :            : </a>
+<span class="lineNum">     550 </span>                :            : static inline void
+<span class="lineNum">     551 </span>                :<span class="lineCov">     268950 : fletcher_4_incremental_impl(boolean_t native, const void *buf, uint64_t size,</span>
+<span class="lineNum">     552 </span>                :            :     zio_cksum_t *zcp)
+<span class="lineNum">     553 </span>                :            : {
+<span class="lineNum">     554 </span>        [<span class="branchCov" title="Branch 0 was taken 268950 times"> + </span><span class="branchCov" title="Branch 1 was taken 268950 times"> + </span>]:<span class="lineCov">     537900 :         while (size &gt; 0) {</span>
+<span class="lineNum">     555 </span>                :            :                 zio_cksum_t nzc;
+<span class="lineNum">     556 </span>                :<span class="lineCov">     268950 :                 uint64_t len = MIN(size, ZFS_FLETCHER_4_INC_MAX_SIZE);</span>
+<span class="lineNum">     557 </span>                :            : 
+<span class="lineNum">     558 </span>        [<span class="branchCov" title="Branch 0 was taken 173623 times"> + </span><span class="branchCov" title="Branch 1 was taken 95327 times"> + </span>]:<span class="lineCov">     268950 :                 if (native)</span>
+<span class="lineNum">     559 </span>                :<span class="lineCov">     173623 :                         fletcher_4_native(buf, len, NULL, &amp;nzc);</span>
+<span class="lineNum">     560 </span>                :            :                 else
+<span class="lineNum">     561 </span>                :<span class="lineCov">      95327 :                         fletcher_4_byteswap(buf, len, NULL, &amp;nzc);</span>
+<span class="lineNum">     562 </span>                :            : 
+<span class="lineNum">     563 </span>                :<span class="lineCov">     268950 :                 fletcher_4_incremental_combine(zcp, len, &amp;nzc);</span>
+<span class="lineNum">     564 </span>                :            : 
+<span class="lineNum">     565 </span>                :<span class="lineCov">     268950 :                 size -= len;</span>
+<span class="lineNum">     566 </span>                :<span class="lineCov">     268950 :                 buf += len;</span>
+<span class="lineNum">     567 </span>                :            :         }
+<span class="lineNum">     568 </span>                :<span class="lineCov">     268950 : }</span>
+<a name="569"><span class="lineNum">     569 </span>                :            : </a>
+<span class="lineNum">     570 </span>                :            : int
+<span class="lineNum">     571 </span>                :<span class="lineCov">     371700 : fletcher_4_incremental_native(void *buf, size_t size, void *data)</span>
+<span class="lineNum">     572 </span>                :            : {
+<span class="lineNum">     573 </span>                :<span class="lineCov">     371700 :         zio_cksum_t *zcp = data;</span>
+<span class="lineNum">     574 </span>                :            :         /* Use scalar impl to directly update cksum of small blocks */
+<span class="lineNum">     575 </span>        [<span class="branchCov" title="Branch 0 was taken 198077 times"> + </span><span class="branchCov" title="Branch 1 was taken 173623 times"> + </span>]:<span class="lineCov">     371700 :         if (size &lt; SPA_MINBLOCKSIZE)</span>
+<span class="lineNum">     576 </span>                :<span class="lineCov">     198077 :                 fletcher_4_scalar_native((fletcher_4_ctx_t *)zcp, buf, size);</span>
+<span class="lineNum">     577 </span>                :            :         else
+<span class="lineNum">     578 </span>                :<span class="lineCov">     173623 :                 fletcher_4_incremental_impl(B_TRUE, buf, size, zcp);</span>
+<span class="lineNum">     579 </span>                :<span class="lineCov">     371700 :         return (0);</span>
+<span class="lineNum">     580 </span>                :            : }
+<a name="581"><span class="lineNum">     581 </span>                :            : </a>
+<span class="lineNum">     582 </span>                :            : int
+<span class="lineNum">     583 </span>                :<span class="lineCov">     123575 : fletcher_4_incremental_byteswap(void *buf, size_t size, void *data)</span>
+<span class="lineNum">     584 </span>                :            : {
+<span class="lineNum">     585 </span>                :<span class="lineCov">     123575 :         zio_cksum_t *zcp = data;</span>
+<span class="lineNum">     586 </span>                :            :         /* Use scalar impl to directly update cksum of small blocks */
+<span class="lineNum">     587 </span>        [<span class="branchCov" title="Branch 0 was taken 28248 times"> + </span><span class="branchCov" title="Branch 1 was taken 95327 times"> + </span>]:<span class="lineCov">     123575 :         if (size &lt; SPA_MINBLOCKSIZE)</span>
+<span class="lineNum">     588 </span>                :<span class="lineCov">      28248 :                 fletcher_4_scalar_byteswap((fletcher_4_ctx_t *)zcp, buf, size);</span>
+<span class="lineNum">     589 </span>                :            :         else
+<span class="lineNum">     590 </span>                :<span class="lineCov">      95327 :                 fletcher_4_incremental_impl(B_FALSE, buf, size, zcp);</span>
+<span class="lineNum">     591 </span>                :<span class="lineCov">     123575 :         return (0);</span>
+<span class="lineNum">     592 </span>                :            : }
+<span class="lineNum">     593 </span>                :            : 
+<span class="lineNum">     594 </span>                :            : #if defined(_KERNEL)
+<span class="lineNum">     595 </span>                :            : /* Fletcher 4 kstats */
+<span class="lineNum">     596 </span>                :            : 
+<span class="lineNum">     597 </span>                :            : static int
+<span class="lineNum">     598 </span>                :            : fletcher_4_kstat_headers(char *buf, size_t size)
+<span class="lineNum">     599 </span>                :            : {
+<span class="lineNum">     600 </span>                :            :         ssize_t off = 0;
+<span class="lineNum">     601 </span>                :            : 
+<span class="lineNum">     602 </span>                :            :         off += snprintf(buf + off, size, &quot;%-17s&quot;, &quot;implementation&quot;);
+<span class="lineNum">     603 </span>                :            :         off += snprintf(buf + off, size - off, &quot;%-15s&quot;, &quot;native&quot;);
+<span class="lineNum">     604 </span>                :            :         (void) snprintf(buf + off, size - off, &quot;%-15s\n&quot;, &quot;byteswap&quot;);
+<span class="lineNum">     605 </span>                :            : 
+<span class="lineNum">     606 </span>                :            :         return (0);
+<span class="lineNum">     607 </span>                :            : }
+<span class="lineNum">     608 </span>                :            : 
+<span class="lineNum">     609 </span>                :            : static int
+<span class="lineNum">     610 </span>                :            : fletcher_4_kstat_data(char *buf, size_t size, void *data)
+<span class="lineNum">     611 </span>                :            : {
+<span class="lineNum">     612 </span>                :            :         struct fletcher_4_kstat *fastest_stat =
+<span class="lineNum">     613 </span>                :            :             &amp;fletcher_4_stat_data[fletcher_4_supp_impls_cnt];
+<span class="lineNum">     614 </span>                :            :         struct fletcher_4_kstat *curr_stat = (struct fletcher_4_kstat *)data;
+<span class="lineNum">     615 </span>                :            :         ssize_t off = 0;
+<span class="lineNum">     616 </span>                :            : 
+<span class="lineNum">     617 </span>                :            :         if (curr_stat == fastest_stat) {
+<span class="lineNum">     618 </span>                :            :                 off += snprintf(buf + off, size - off, &quot;%-17s&quot;, &quot;fastest&quot;);
+<span class="lineNum">     619 </span>                :            :                 off += snprintf(buf + off, size - off, &quot;%-15s&quot;,
+<span class="lineNum">     620 </span>                :            :                     fletcher_4_supp_impls[fastest_stat-&gt;native]-&gt;name);
+<span class="lineNum">     621 </span>                :            :                 off += snprintf(buf + off, size - off, &quot;%-15s\n&quot;,
+<span class="lineNum">     622 </span>                :            :                     fletcher_4_supp_impls[fastest_stat-&gt;byteswap]-&gt;name);
+<span class="lineNum">     623 </span>                :            :         } else {
+<span class="lineNum">     624 </span>                :            :                 ptrdiff_t id = curr_stat - fletcher_4_stat_data;
+<span class="lineNum">     625 </span>                :            : 
+<span class="lineNum">     626 </span>                :            :                 off += snprintf(buf + off, size - off, &quot;%-17s&quot;,
+<span class="lineNum">     627 </span>                :            :                     fletcher_4_supp_impls[id]-&gt;name);
+<span class="lineNum">     628 </span>                :            :                 off += snprintf(buf + off, size - off, &quot;%-15llu&quot;,
+<span class="lineNum">     629 </span>                :            :                     (u_longlong_t)curr_stat-&gt;native);
+<span class="lineNum">     630 </span>                :            :                 off += snprintf(buf + off, size - off, &quot;%-15llu\n&quot;,
+<span class="lineNum">     631 </span>                :            :                     (u_longlong_t)curr_stat-&gt;byteswap);
+<span class="lineNum">     632 </span>                :            :         }
+<span class="lineNum">     633 </span>                :            : 
+<span class="lineNum">     634 </span>                :            :         return (0);
+<span class="lineNum">     635 </span>                :            : }
+<span class="lineNum">     636 </span>                :            : 
+<span class="lineNum">     637 </span>                :            : static void *
+<span class="lineNum">     638 </span>                :            : fletcher_4_kstat_addr(kstat_t *ksp, loff_t n)
+<span class="lineNum">     639 </span>                :            : {
+<span class="lineNum">     640 </span>                :            :         if (n &lt;= fletcher_4_supp_impls_cnt)
+<span class="lineNum">     641 </span>                :            :                 ksp-&gt;ks_private = (void *) (fletcher_4_stat_data + n);
+<span class="lineNum">     642 </span>                :            :         else
+<span class="lineNum">     643 </span>                :            :                 ksp-&gt;ks_private = NULL;
+<span class="lineNum">     644 </span>                :            : 
+<span class="lineNum">     645 </span>                :            :         return (ksp-&gt;ks_private);
+<span class="lineNum">     646 </span>                :            : }
+<span class="lineNum">     647 </span>                :            : #endif
+<span class="lineNum">     648 </span>                :            : 
+<span class="lineNum">     649 </span>                :            : #define FLETCHER_4_FASTEST_FN_COPY(type, src)                             \
+<span class="lineNum">     650 </span>                :            : {                                                                         \
+<span class="lineNum">     651 </span>                :            :         fletcher_4_fastest_impl.init_ ## type = src-&gt;init_ ## type;    \
+<span class="lineNum">     652 </span>                :            :         fletcher_4_fastest_impl.fini_ ## type = src-&gt;fini_ ## type;    \
+<span class="lineNum">     653 </span>                :            :         fletcher_4_fastest_impl.compute_ ## type = src-&gt;compute_ ## type; \
+<span class="lineNum">     654 </span>                :            : }
+<span class="lineNum">     655 </span>                :            : 
+<span class="lineNum">     656 </span>                :            : #define FLETCHER_4_BENCH_NS     (MSEC2NSEC(50))         /* 50ms */
+<span class="lineNum">     657 </span>                :            : 
+<span class="lineNum">     658 </span>                :            : typedef void fletcher_checksum_func_t(const void *, uint64_t, const void *,
+<span class="lineNum">     659 </span>                :            :                                         zio_cksum_t *);
+<span class="lineNum">     660 </span>                :            : 
+<span class="lineNum">     661 </span>                :            : static void
+<span class="lineNum">     662 </span>                :            : fletcher_4_benchmark_impl(boolean_t native, char *data, uint64_t data_size)
+<span class="lineNum">     663 </span>                :            : {
+<span class="lineNum">     664 </span>                :            : 
+<span class="lineNum">     665 </span>                :            :         struct fletcher_4_kstat *fastest_stat =
+<span class="lineNum">     666 </span>                :            :             &amp;fletcher_4_stat_data[fletcher_4_supp_impls_cnt];
+<span class="lineNum">     667 </span>                :            :         hrtime_t start;
+<span class="lineNum">     668 </span>                :            :         uint64_t run_bw, run_time_ns, best_run = 0;
+<span class="lineNum">     669 </span>                :            :         zio_cksum_t zc;
+<span class="lineNum">     670 </span>                :            :         uint32_t i, l, sel_save = IMPL_READ(fletcher_4_impl_chosen);
+<span class="lineNum">     671 </span>                :            : 
+<span class="lineNum">     672 </span>                :            : 
+<span class="lineNum">     673 </span>                :            :         fletcher_checksum_func_t *fletcher_4_test = native ?
+<span class="lineNum">     674 </span>                :            :             fletcher_4_native : fletcher_4_byteswap;
+<span class="lineNum">     675 </span>                :            : 
+<span class="lineNum">     676 </span>                :            :         for (i = 0; i &lt; fletcher_4_supp_impls_cnt; i++) {
+<span class="lineNum">     677 </span>                :            :                 struct fletcher_4_kstat *stat = &amp;fletcher_4_stat_data[i];
+<span class="lineNum">     678 </span>                :            :                 uint64_t run_count = 0;
+<span class="lineNum">     679 </span>                :            : 
+<span class="lineNum">     680 </span>                :            :                 /* temporary set an implementation */
+<span class="lineNum">     681 </span>                :            :                 fletcher_4_impl_chosen = i;
+<span class="lineNum">     682 </span>                :            : 
+<span class="lineNum">     683 </span>                :            :                 kpreempt_disable();
+<span class="lineNum">     684 </span>                :            :                 start = gethrtime();
+<span class="lineNum">     685 </span>                :            :                 do {
+<span class="lineNum">     686 </span>                :            :                         for (l = 0; l &lt; 32; l++, run_count++)
+<span class="lineNum">     687 </span>                :            :                                 fletcher_4_test(data, data_size, NULL, &amp;zc);
+<span class="lineNum">     688 </span>                :            : 
+<span class="lineNum">     689 </span>                :            :                         run_time_ns = gethrtime() - start;
+<span class="lineNum">     690 </span>                :            :                 } while (run_time_ns &lt; FLETCHER_4_BENCH_NS);
+<span class="lineNum">     691 </span>                :            :                 kpreempt_enable();
+<span class="lineNum">     692 </span>                :            : 
+<span class="lineNum">     693 </span>                :            :                 run_bw = data_size * run_count * NANOSEC;
+<span class="lineNum">     694 </span>                :            :                 run_bw /= run_time_ns;  /* B/s */
+<span class="lineNum">     695 </span>                :            : 
+<span class="lineNum">     696 </span>                :            :                 if (native)
+<span class="lineNum">     697 </span>                :            :                         stat-&gt;native = run_bw;
+<span class="lineNum">     698 </span>                :            :                 else
+<span class="lineNum">     699 </span>                :            :                         stat-&gt;byteswap = run_bw;
+<span class="lineNum">     700 </span>                :            : 
+<span class="lineNum">     701 </span>                :            :                 if (run_bw &gt; best_run) {
+<span class="lineNum">     702 </span>                :            :                         best_run = run_bw;
+<span class="lineNum">     703 </span>                :            : 
+<span class="lineNum">     704 </span>                :            :                         if (native) {
+<span class="lineNum">     705 </span>                :            :                                 fastest_stat-&gt;native = i;
+<span class="lineNum">     706 </span>                :            :                                 FLETCHER_4_FASTEST_FN_COPY(native,
+<span class="lineNum">     707 </span>                :            :                                     fletcher_4_supp_impls[i]);
+<span class="lineNum">     708 </span>                :            :                         } else {
+<span class="lineNum">     709 </span>                :            :                                 fastest_stat-&gt;byteswap = i;
+<span class="lineNum">     710 </span>                :            :                                 FLETCHER_4_FASTEST_FN_COPY(byteswap,
+<span class="lineNum">     711 </span>                :            :                                     fletcher_4_supp_impls[i]);
+<span class="lineNum">     712 </span>                :            :                         }
+<span class="lineNum">     713 </span>                :            :                 }
+<span class="lineNum">     714 </span>                :            :         }
+<span class="lineNum">     715 </span>                :            : 
+<span class="lineNum">     716 </span>                :            :         /* restore original selection */
+<span class="lineNum">     717 </span>                :            :         atomic_swap_32(&amp;fletcher_4_impl_chosen, sel_save);
+<span class="lineNum">     718 </span>                :            : }
+<a name="719"><span class="lineNum">     719 </span>                :            : </a>
+<span class="lineNum">     720 </span>                :            : void
+<span class="lineNum">     721 </span>                :<span class="lineCov">      59904 : fletcher_4_init(void)</span>
+<span class="lineNum">     722 </span>                :            : {
+<span class="lineNum">     723 </span>                :            :         static const size_t data_size = 1 &lt;&lt; SPA_OLD_MAXBLOCKSHIFT; /* 128kiB */
+<span class="lineNum">     724 </span>                :            :         fletcher_4_ops_t *curr_impl;
+<span class="lineNum">     725 </span>                :            :         char *databuf;
+<span class="lineNum">     726 </span>                :            :         int i, c;
+<span class="lineNum">     727 </span>                :            : 
+<span class="lineNum">     728 </span>                :            :         /* move supported impl into fletcher_4_supp_impls */
+<span class="lineNum">     729 </span>        [<span class="branchCov" title="Branch 0 was taken 419328 times"> + </span><span class="branchCov" title="Branch 1 was taken 59904 times"> + </span>]:<span class="lineCov">     479232 :         for (i = 0, c = 0; i &lt; ARRAY_SIZE(fletcher_4_impls); i++) {</span>
+<span class="lineNum">     730 </span>                :<span class="lineCov">     419328 :                 curr_impl = (fletcher_4_ops_t *)fletcher_4_impls[i];</span>
+<span class="lineNum">     731 </span>                :            : 
+<span class="lineNum">     732 </span>[<span class="branchCov" title="Branch 0 was taken 419328 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 3 was taken 299520 times"> + </span><span class="branchCov" title="Branch 4 was taken 119808 times"> + </span>]:<span class="lineCov">     419328 :                 if (curr_impl-&gt;valid &amp;&amp; curr_impl-&gt;valid())</span>
+<span class="lineNum">     733 </span>                :<span class="lineCov">     299520 :                         fletcher_4_supp_impls[c++] = curr_impl;</span>
+<span class="lineNum">     734 </span>                :            :         }
+<span class="lineNum">     735 </span>                :<span class="lineCov">      59904 :         membar_producer();      /* complete fletcher_4_supp_impls[] init */</span>
+<span class="lineNum">     736 </span>                :<span class="lineCov">      59904 :         fletcher_4_supp_impls_cnt = c;  /* number of supported impl */</span>
+<span class="lineNum">     737 </span>                :            : 
+<span class="lineNum">     738 </span>                :            : #if !defined(_KERNEL)
+<span class="lineNum">     739 </span>                :            :         /* Skip benchmarking and use last implementation as fastest */
+<span class="lineNum">     740 </span>                :<span class="lineCov">      59904 :         memcpy(&amp;fletcher_4_fastest_impl,</span>
+<span class="lineNum">     741 </span>                :<span class="lineCov">      59904 :             fletcher_4_supp_impls[fletcher_4_supp_impls_cnt-1],</span>
+<span class="lineNum">     742 </span>                :            :             sizeof (fletcher_4_fastest_impl));
+<span class="lineNum">     743 </span>                :<span class="lineCov">      59904 :         fletcher_4_fastest_impl.name = &quot;fastest&quot;;</span>
+<span class="lineNum">     744 </span>                :<span class="lineCov">      59904 :         membar_producer();</span>
+<span class="lineNum">     745 </span>                :            : 
+<span class="lineNum">     746 </span>                :<span class="lineCov">      59904 :         fletcher_4_initialized = B_TRUE;</span>
+<span class="lineNum">     747 </span>                :            :         return;
+<span class="lineNum">     748 </span>                :            : #endif
+<span class="lineNum">     749 </span>                :            :         /* Benchmark all supported implementations */
+<span class="lineNum">     750 </span>                :            :         databuf = vmem_alloc(data_size, KM_SLEEP);
+<span class="lineNum">     751 </span>                :            :         for (i = 0; i &lt; data_size / sizeof (uint64_t); i++)
+<span class="lineNum">     752 </span>                :            :                 ((uint64_t *)databuf)[i] = (uintptr_t)(databuf+i); /* warm-up */
+<span class="lineNum">     753 </span>                :            : 
+<span class="lineNum">     754 </span>                :            :         fletcher_4_benchmark_impl(B_FALSE, databuf, data_size);
+<span class="lineNum">     755 </span>                :            :         fletcher_4_benchmark_impl(B_TRUE, databuf, data_size);
+<span class="lineNum">     756 </span>                :            : 
+<span class="lineNum">     757 </span>                :            :         vmem_free(databuf, data_size);
+<span class="lineNum">     758 </span>                :            : 
+<span class="lineNum">     759 </span>                :            : #if defined(_KERNEL)
+<span class="lineNum">     760 </span>                :            :         /* install kstats for all implementations */
+<span class="lineNum">     761 </span>                :            :         fletcher_4_kstat = kstat_create(&quot;zfs&quot;, 0, &quot;fletcher_4_bench&quot;, &quot;misc&quot;,
+<span class="lineNum">     762 </span>                :            :             KSTAT_TYPE_RAW, 0, KSTAT_FLAG_VIRTUAL);
+<span class="lineNum">     763 </span>                :            :         if (fletcher_4_kstat != NULL) {
+<span class="lineNum">     764 </span>                :            :                 fletcher_4_kstat-&gt;ks_data = NULL;
+<span class="lineNum">     765 </span>                :            :                 fletcher_4_kstat-&gt;ks_ndata = UINT32_MAX;
+<span class="lineNum">     766 </span>                :            :                 kstat_set_raw_ops(fletcher_4_kstat,
+<span class="lineNum">     767 </span>                :            :                     fletcher_4_kstat_headers,
+<span class="lineNum">     768 </span>                :            :                     fletcher_4_kstat_data,
+<span class="lineNum">     769 </span>                :            :                     fletcher_4_kstat_addr);
+<span class="lineNum">     770 </span>                :            :                 kstat_install(fletcher_4_kstat);
+<span class="lineNum">     771 </span>                :            :         }
+<span class="lineNum">     772 </span>                :            : #endif
+<span class="lineNum">     773 </span>                :            : 
+<span class="lineNum">     774 </span>                :            :         /* Finish initialization */
+<span class="lineNum">     775 </span>                :            :         fletcher_4_initialized = B_TRUE;
+<span class="lineNum">     776 </span>                :            : }
+<a name="777"><span class="lineNum">     777 </span>                :            : </a>
+<span class="lineNum">     778 </span>                :            : void
+<span class="lineNum">     779 </span>                :<span class="lineCov">      55537 : fletcher_4_fini(void)</span>
+<span class="lineNum">     780 </span>                :            : {
+<span class="lineNum">     781 </span>                :            : #if defined(_KERNEL)
+<span class="lineNum">     782 </span>                :            :         if (fletcher_4_kstat != NULL) {
+<span class="lineNum">     783 </span>                :            :                 kstat_delete(fletcher_4_kstat);
+<span class="lineNum">     784 </span>                :            :                 fletcher_4_kstat = NULL;
+<span class="lineNum">     785 </span>                :            :         }
+<span class="lineNum">     786 </span>                :            : #endif
+<span class="lineNum">     787 </span>                :<span class="lineCov">      55537 : }</span>
+<span class="lineNum">     788 </span>                :            : 
+<span class="lineNum">     789 </span>                :            : /* ABD adapters */
+<a name="790"><span class="lineNum">     790 </span>                :            : </a>
+<span class="lineNum">     791 </span>                :            : static void
+<span class="lineNum">     792 </span>                :<span class="lineCov">     940937 : abd_fletcher_4_init(zio_abd_checksum_data_t *cdp)</span>
+<span class="lineNum">     793 </span>                :            : {
+<span class="lineNum">     794 </span>                :<span class="lineCov">     940937 :         const fletcher_4_ops_t *ops = fletcher_4_impl_get();</span>
+<span class="lineNum">     795 </span>                :<span class="lineCov">     940631 :         cdp-&gt;acd_private = (void *) ops;</span>
+<span class="lineNum">     796 </span>                :            : 
+<span class="lineNum">     797 </span>        [<span class="branchCov" title="Branch 0 was taken 904213 times"> + </span><span class="branchCov" title="Branch 1 was taken 36418 times"> + </span>]:<span class="lineCov">     940631 :         if (cdp-&gt;acd_byteorder == ZIO_CHECKSUM_NATIVE)</span>
+<span class="lineNum">     798 </span>                :<span class="lineCov">     904213 :                 ops-&gt;init_native(cdp-&gt;acd_ctx);</span>
+<span class="lineNum">     799 </span>                :            :         else
+<span class="lineNum">     800 </span>                :<span class="lineCov">      36418 :                 ops-&gt;init_byteswap(cdp-&gt;acd_ctx);</span>
+<span class="lineNum">     801 </span>                :<span class="lineCov">     939959 : }</span>
+<a name="802"><span class="lineNum">     802 </span>                :            : </a>
+<span class="lineNum">     803 </span>                :            : static void
+<span class="lineNum">     804 </span>                :<span class="lineCov">     940830 : abd_fletcher_4_fini(zio_abd_checksum_data_t *cdp)</span>
+<span class="lineNum">     805 </span>                :            : {
+<span class="lineNum">     806 </span>                :<span class="lineCov">     940830 :         fletcher_4_ops_t *ops = (fletcher_4_ops_t *)cdp-&gt;acd_private;</span>
+<span class="lineNum">     807 </span>                :            : 
+<span class="lineNum">     808 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 940830 times"> + </span>]:<span class="lineCov">     940830 :         ASSERT(ops);</span>
+<span class="lineNum">     809 </span>                :            : 
+<span class="lineNum">     810 </span>        [<span class="branchCov" title="Branch 0 was taken 904412 times"> + </span><span class="branchCov" title="Branch 1 was taken 36418 times"> + </span>]:<span class="lineCov">     940830 :         if (cdp-&gt;acd_byteorder == ZIO_CHECKSUM_NATIVE)</span>
+<span class="lineNum">     811 </span>                :<span class="lineCov">     904412 :                 ops-&gt;fini_native(cdp-&gt;acd_ctx, cdp-&gt;acd_zcp);</span>
+<span class="lineNum">     812 </span>                :            :         else
+<span class="lineNum">     813 </span>                :<span class="lineCov">      36418 :                 ops-&gt;fini_byteswap(cdp-&gt;acd_ctx, cdp-&gt;acd_zcp);</span>
+<span class="lineNum">     814 </span>                :<span class="lineCov">     940841 : }</span>
+<a name="815"><span class="lineNum">     815 </span>                :            : </a>
+<span class="lineNum">     816 </span>                :            : static void
+<span class="lineNum">     817 </span>                :<span class="lineNoCov">          0 : abd_fletcher_4_simd2scalar(boolean_t native, void *data, size_t size,</span>
+<span class="lineNum">     818 </span>                :            :     zio_abd_checksum_data_t *cdp)
+<span class="lineNum">     819 </span>                :            : {
+<span class="lineNum">     820 </span>                :<span class="lineNoCov">          0 :         zio_cksum_t *zcp = cdp-&gt;acd_zcp;</span>
+<span class="lineNum">     821 </span>                :            : 
+<span class="lineNum">     822 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3U(size, &lt;, FLETCHER_MIN_SIMD_SIZE);</span>
+<span class="lineNum">     823 </span>                :            : 
+<span class="lineNum">     824 </span>                :<span class="lineNoCov">          0 :         abd_fletcher_4_fini(cdp);</span>
+<span class="lineNum">     825 </span>                :<span class="lineNoCov">          0 :         cdp-&gt;acd_private = (void *)&amp;fletcher_4_scalar_ops;</span>
+<span class="lineNum">     826 </span>                :            : 
+<span class="lineNum">     827 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (native)</span>
+<span class="lineNum">     828 </span>                :<span class="lineNoCov">          0 :                 fletcher_4_incremental_native(data, size, zcp);</span>
+<span class="lineNum">     829 </span>                :            :         else
+<span class="lineNum">     830 </span>                :<span class="lineNoCov">          0 :                 fletcher_4_incremental_byteswap(data, size, zcp);</span>
+<span class="lineNum">     831 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="832"><span class="lineNum">     832 </span>                :            : </a>
+<span class="lineNum">     833 </span>                :            : static int
+<span class="lineNum">     834 </span>                :<span class="lineCov">    1998252 : abd_fletcher_4_iter(void *data, size_t size, void *private)</span>
+<span class="lineNum">     835 </span>                :            : {
+<span class="lineNum">     836 </span>                :<span class="lineCov">    1998252 :         zio_abd_checksum_data_t *cdp = (zio_abd_checksum_data_t *)private;</span>
+<span class="lineNum">     837 </span>                :<span class="lineCov">    1998252 :         fletcher_4_ctx_t *ctx = cdp-&gt;acd_ctx;</span>
+<span class="lineNum">     838 </span>                :<span class="lineCov">    1998252 :         fletcher_4_ops_t *ops = (fletcher_4_ops_t *)cdp-&gt;acd_private;</span>
+<span class="lineNum">     839 </span>                :<span class="lineCov">    1998252 :         boolean_t native = cdp-&gt;acd_byteorder == ZIO_CHECKSUM_NATIVE;</span>
+<span class="lineNum">     840 </span>                :<span class="lineCov">    1998252 :         uint64_t asize = P2ALIGN(size, FLETCHER_MIN_SIMD_SIZE);</span>
+<span class="lineNum">     841 </span>                :            : 
+<span class="lineNum">     842 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1998252 times"> + </span>]:<span class="lineCov">    1998252 :         ASSERT(IS_P2ALIGNED(size, sizeof (uint32_t)));</span>
+<span class="lineNum">     843 </span>                :            : 
+<span class="lineNum">     844 </span>        [<span class="branchCov" title="Branch 0 was taken 1998353 times"> + </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineCov">    1998252 :         if (asize &gt; 0) {</span>
+<span class="lineNum">     845 </span>        [<span class="branchCov" title="Branch 0 was taken 1713735 times"> + </span><span class="branchCov" title="Branch 1 was taken 284618 times"> + </span>]:<span class="lineCov">    1998353 :                 if (native)</span>
+<span class="lineNum">     846 </span>                :<span class="lineCov">    1713735 :                         ops-&gt;compute_native(ctx, data, asize);</span>
+<span class="lineNum">     847 </span>                :            :                 else
+<span class="lineNum">     848 </span>                :<span class="lineCov">     284618 :                         ops-&gt;compute_byteswap(ctx, data, asize);</span>
+<span class="lineNum">     849 </span>                :            : 
+<span class="lineNum">     850 </span>                :<span class="lineCov">    1998839 :                 size -= asize;</span>
+<span class="lineNum">     851 </span>                :<span class="lineCov">    1998839 :                 data = (char *)data + asize;</span>
+<span class="lineNum">     852 </span>                :            :         }
+<span class="lineNum">     853 </span>                :            : 
+<span class="lineNum">     854 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1998738 times"> + </span>]:<span class="lineCov">    1998738 :         if (size &gt; 0) {</span>
+<span class="lineNum">     855 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT3U(size, &lt;, FLETCHER_MIN_SIMD_SIZE);</span>
+<span class="lineNum">     856 </span>                :            :                 /* At this point we have to switch to scalar impl */
+<span class="lineNum">     857 </span>                :<span class="lineNoCov">          0 :                 abd_fletcher_4_simd2scalar(native, data, size, cdp);</span>
+<span class="lineNum">     858 </span>                :            :         }
+<span class="lineNum">     859 </span>                :            : 
+<span class="lineNum">     860 </span>                :<span class="lineCov">    1998738 :         return (0);</span>
+<span class="lineNum">     861 </span>                :            : }
+<span class="lineNum">     862 </span>                :            : 
+<span class="lineNum">     863 </span>                :            : zio_abd_checksum_func_t fletcher_4_abd_ops = {
+<span class="lineNum">     864 </span>                :            :         .acf_init = abd_fletcher_4_init,
+<span class="lineNum">     865 </span>                :            :         .acf_fini = abd_fletcher_4_fini,
+<span class="lineNum">     866 </span>                :            :         .acf_iter = abd_fletcher_4_iter
+<span class="lineNum">     867 </span>                :            : };
+<span class="lineNum">     868 </span>                :            : 
+<span class="lineNum">     869 </span>                :            : 
+<span class="lineNum">     870 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     871 </span>                :            : #include &lt;linux/mod_compat.h&gt;
+<span class="lineNum">     872 </span>                :            : 
+<span class="lineNum">     873 </span>                :            : static int
+<span class="lineNum">     874 </span>                :            : fletcher_4_param_get(char *buffer, zfs_kernel_param_t *unused)
+<span class="lineNum">     875 </span>                :            : {
+<span class="lineNum">     876 </span>                :            :         const uint32_t impl = IMPL_READ(fletcher_4_impl_chosen);
+<span class="lineNum">     877 </span>                :            :         char *fmt;
+<span class="lineNum">     878 </span>                :            :         int i, cnt = 0;
+<span class="lineNum">     879 </span>                :            : 
+<span class="lineNum">     880 </span>                :            :         /* list fastest */
+<span class="lineNum">     881 </span>                :            :         fmt = (impl == IMPL_FASTEST) ? &quot;[%s] &quot; : &quot;%s &quot;;
+<span class="lineNum">     882 </span>                :            :         cnt += sprintf(buffer + cnt, fmt, &quot;fastest&quot;);
+<span class="lineNum">     883 </span>                :            : 
+<span class="lineNum">     884 </span>                :            :         /* list all supported implementations */
+<span class="lineNum">     885 </span>                :            :         for (i = 0; i &lt; fletcher_4_supp_impls_cnt; i++) {
+<span class="lineNum">     886 </span>                :            :                 fmt = (i == impl) ? &quot;[%s] &quot; : &quot;%s &quot;;
+<span class="lineNum">     887 </span>                :            :                 cnt += sprintf(buffer + cnt, fmt,
+<span class="lineNum">     888 </span>                :            :                     fletcher_4_supp_impls[i]-&gt;name);
+<span class="lineNum">     889 </span>                :            :         }
+<span class="lineNum">     890 </span>                :            : 
+<span class="lineNum">     891 </span>                :            :         return (cnt);
+<span class="lineNum">     892 </span>                :            : }
+<span class="lineNum">     893 </span>                :            : 
+<span class="lineNum">     894 </span>                :            : static int
+<span class="lineNum">     895 </span>                :            : fletcher_4_param_set(const char *val, zfs_kernel_param_t *unused)
+<span class="lineNum">     896 </span>                :            : {
+<span class="lineNum">     897 </span>                :            :         return (fletcher_4_impl_set(val));
+<span class="lineNum">     898 </span>                :            : }
+<span class="lineNum">     899 </span>                :            : 
+<span class="lineNum">     900 </span>                :            : /*
+<span class="lineNum">     901 </span>                :            :  * Choose a fletcher 4 implementation in ZFS.
+<span class="lineNum">     902 </span>                :            :  * Users can choose &quot;cycle&quot; to exercise all implementations, but this is
+<span class="lineNum">     903 </span>                :            :  * for testing purpose therefore it can only be set in user space.
+<span class="lineNum">     904 </span>                :            :  */
+<span class="lineNum">     905 </span>                :            : module_param_call(zfs_fletcher_4_impl,
+<span class="lineNum">     906 </span>                :            :     fletcher_4_param_set, fletcher_4_param_get, NULL, 0644);
+<span class="lineNum">     907 </span>                :            : MODULE_PARM_DESC(zfs_fletcher_4_impl, &quot;Select fletcher 4 implementation.&quot;);
+<span class="lineNum">     908 </span>                :            : 
+<span class="lineNum">     909 </span>                :            : EXPORT_SYMBOL(fletcher_init);
+<span class="lineNum">     910 </span>                :            : EXPORT_SYMBOL(fletcher_2_incremental_native);
+<span class="lineNum">     911 </span>                :            : EXPORT_SYMBOL(fletcher_2_incremental_byteswap);
+<span class="lineNum">     912 </span>                :            : EXPORT_SYMBOL(fletcher_4_init);
+<span class="lineNum">     913 </span>                :            : EXPORT_SYMBOL(fletcher_4_fini);
+<span class="lineNum">     914 </span>                :            : EXPORT_SYMBOL(fletcher_2_native);
+<span class="lineNum">     915 </span>                :            : EXPORT_SYMBOL(fletcher_2_byteswap);
+<span class="lineNum">     916 </span>                :            : EXPORT_SYMBOL(fletcher_4_native);
+<span class="lineNum">     917 </span>                :            : EXPORT_SYMBOL(fletcher_4_native_varsize);
+<span class="lineNum">     918 </span>                :            : EXPORT_SYMBOL(fletcher_4_byteswap);
+<span class="lineNum">     919 </span>                :            : EXPORT_SYMBOL(fletcher_4_incremental_native);
+<span class="lineNum">     920 </span>                :            : EXPORT_SYMBOL(fletcher_4_incremental_byteswap);
+<span class="lineNum">     921 </span>                :            : EXPORT_SYMBOL(fletcher_4_abd_ops);
+<span class="lineNum">     922 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

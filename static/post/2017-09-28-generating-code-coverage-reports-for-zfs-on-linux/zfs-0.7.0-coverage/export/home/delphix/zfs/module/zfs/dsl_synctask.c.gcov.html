@@ -1,0 +1,283 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/dsl_synctask.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - dsl_synctask.c<span style="font-size: 80%;"> (source / <a href="dsl_synctask.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">63</td>
+            <td class="headerCovTableEntry">64</td>
+            <td class="headerCovTableEntryHi">98.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntry">28</td>
+            <td class="headerCovTableEntryMed">78.6 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2012, 2014 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : #include &lt;sys/dmu.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/dmu_tx.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/dsl_pool.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/dsl_dir.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/dsl_synctask.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/metaslab.h&gt;
+<span class="lineNum">      32 </span>                :            : 
+<span class="lineNum">      33 </span>                :            : #define DST_AVG_BLKSHIFT 14
+<span class="lineNum">      34 </span>                :            : 
+<a name="35"><span class="lineNum">      35 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">      36 </span>                :            : static int
+<span class="lineNum">      37 </span>                :<span class="lineCov">        490 : dsl_null_checkfunc(void *arg, dmu_tx_t *tx)</span>
+<span class="lineNum">      38 </span>                :            : {
+<span class="lineNum">      39 </span>                :<span class="lineCov">        490 :         return (0);</span>
+<span class="lineNum">      40 </span>                :            : }
+<span class="lineNum">      41 </span>                :            : 
+<span class="lineNum">      42 </span>                :            : /*
+<span class="lineNum">      43 </span>                :            :  * Called from open context to perform a callback in syncing context.  Waits
+<span class="lineNum">      44 </span>                :            :  * for the operation to complete.
+<span class="lineNum">      45 </span>                :            :  *
+<span class="lineNum">      46 </span>                :            :  * The checkfunc will be called from open context as a preliminary check
+<span class="lineNum">      47 </span>                :            :  * which can quickly fail.  If it succeeds, it will be called again from
+<span class="lineNum">      48 </span>                :            :  * syncing context.  The checkfunc should generally be designed to work
+<span class="lineNum">      49 </span>                :            :  * properly in either context, but if necessary it can check
+<span class="lineNum">      50 </span>                :            :  * dmu_tx_is_syncing(tx).
+<span class="lineNum">      51 </span>                :            :  *
+<span class="lineNum">      52 </span>                :            :  * The synctask infrastructure enforces proper locking strategy with respect
+<span class="lineNum">      53 </span>                :            :  * to the dp_config_rwlock -- the lock will always be held when the callbacks
+<span class="lineNum">      54 </span>                :            :  * are called.  It will be held for read during the open-context (preliminary)
+<span class="lineNum">      55 </span>                :            :  * call to the checkfunc, and then held for write from syncing context during
+<span class="lineNum">      56 </span>                :            :  * the calls to the check and sync funcs.
+<span class="lineNum">      57 </span>                :            :  *
+<span class="lineNum">      58 </span>                :            :  * A dataset or pool name can be passed as the first argument.  Typically,
+<span class="lineNum">      59 </span>                :            :  * the check func will hold, check the return value of the hold, and then
+<span class="lineNum">      60 </span>                :            :  * release the dataset.  The sync func will VERIFYO(hold()) the dataset.
+<span class="lineNum">      61 </span>                :            :  * This is safe because no changes can be made between the check and sync funcs,
+<span class="lineNum">      62 </span>                :            :  * and the sync func will only be called if the check func successfully opened
+<span class="lineNum">      63 </span>                :            :  * the dataset.
+<a name="64"><span class="lineNum">      64 </span>                :            :  */</a>
+<span class="lineNum">      65 </span>                :            : int
+<span class="lineNum">      66 </span>                :<span class="lineCov">       8488 : dsl_sync_task(const char *pool, dsl_checkfunc_t *checkfunc,</span>
+<span class="lineNum">      67 </span>                :            :     dsl_syncfunc_t *syncfunc, void *arg,
+<span class="lineNum">      68 </span>                :            :     int blocks_modified, zfs_space_check_t space_check)
+<span class="lineNum">      69 </span>                :            : {
+<span class="lineNum">      70 </span>                :            :         spa_t *spa;
+<span class="lineNum">      71 </span>                :            :         dmu_tx_t *tx;
+<span class="lineNum">      72 </span>                :            :         int err;
+<span class="lineNum">      73 </span>                :<span class="lineCov">       8488 :         dsl_sync_task_t dst = { { { NULL } } };</span>
+<span class="lineNum">      74 </span>                :            :         dsl_pool_t *dp;
+<span class="lineNum">      75 </span>                :            : 
+<span class="lineNum">      76 </span>                :<span class="lineCov">       8488 :         err = spa_open(pool, &amp;spa, FTAG);</span>
+<span class="lineNum">      77 </span>        [<span class="branchCov" title="Branch 0 was taken 8491 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       8491 :         if (err != 0)</span>
+<span class="lineNum">      78 </span>                :            :                 return (err);
+<span class="lineNum">      79 </span>                :<span class="lineCov">       8491 :         dp = spa_get_dsl(spa);</span>
+<span class="lineNum">      80 </span>                :            : 
+<span class="lineNum">      81 </span>                :            : top:
+<span class="lineNum">      82 </span>                :<span class="lineCov">       8494 :         tx = dmu_tx_create_dd(dp-&gt;dp_mos_dir);</span>
+<span class="lineNum">      83 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 8493 times"> + </span>]:<span class="lineCov">       8493 :         VERIFY0(dmu_tx_assign(tx, TXG_WAIT));</span>
+<span class="lineNum">      84 </span>                :            : 
+<span class="lineNum">      85 </span>                :<span class="lineCov">       8493 :         dst.dst_pool = dp;</span>
+<span class="lineNum">      86 </span>                :<span class="lineCov">       8493 :         dst.dst_txg = dmu_tx_get_txg(tx);</span>
+<span class="lineNum">      87 </span>                :<span class="lineCov">       8493 :         dst.dst_space = blocks_modified &lt;&lt; DST_AVG_BLKSHIFT;</span>
+<span class="lineNum">      88 </span>                :<span class="lineCov">       8493 :         dst.dst_space_check = space_check;</span>
+<span class="lineNum">      89 </span>        [<span class="branchCov" title="Branch 0 was taken 70 times"> + </span><span class="branchCov" title="Branch 1 was taken 8423 times"> + </span>]:<span class="lineCov">       8493 :         dst.dst_checkfunc = checkfunc != NULL ? checkfunc : dsl_null_checkfunc;</span>
+<span class="lineNum">      90 </span>                :<span class="lineCov">       8493 :         dst.dst_syncfunc = syncfunc;</span>
+<span class="lineNum">      91 </span>                :<span class="lineCov">       8493 :         dst.dst_arg = arg;</span>
+<span class="lineNum">      92 </span>                :<span class="lineCov">       8493 :         dst.dst_error = 0;</span>
+<span class="lineNum">      93 </span>                :<span class="lineCov">       8493 :         dst.dst_nowaiter = B_FALSE;</span>
+<span class="lineNum">      94 </span>                :            : 
+<span class="lineNum">      95 </span>                :<span class="lineCov">       8493 :         dsl_pool_config_enter(dp, FTAG);</span>
+<span class="lineNum">      96 </span>                :<span class="lineCov">       8494 :         err = dst.dst_checkfunc(arg, tx);</span>
+<span class="lineNum">      97 </span>                :<span class="lineCov">       8494 :         dsl_pool_config_exit(dp, FTAG);</span>
+<span class="lineNum">      98 </span>                :            : 
+<span class="lineNum">      99 </span>        [<span class="branchCov" title="Branch 0 was taken 547 times"> + </span><span class="branchCov" title="Branch 1 was taken 7947 times"> + </span>]:<span class="lineCov">       8494 :         if (err != 0) {</span>
+<span class="lineNum">     100 </span>                :<span class="lineCov">        547 :                 dmu_tx_commit(tx);</span>
+<span class="lineNum">     101 </span>                :<span class="lineCov">        547 :                 spa_close(spa, FTAG);</span>
+<span class="lineNum">     102 </span>                :<span class="lineCov">        547 :                 return (err);</span>
+<span class="lineNum">     103 </span>                :            :         }
+<span class="lineNum">     104 </span>                :            : 
+<span class="lineNum">     105 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 7947 times"> + </span>]:<span class="lineCov">       7947 :         VERIFY(txg_list_add_tail(&amp;dp-&gt;dp_sync_tasks, &amp;dst, dst.dst_txg));</span>
+<span class="lineNum">     106 </span>                :            : 
+<span class="lineNum">     107 </span>                :<span class="lineCov">       7947 :         dmu_tx_commit(tx);</span>
+<span class="lineNum">     108 </span>                :            : 
+<span class="lineNum">     109 </span>                :<span class="lineCov">       7947 :         txg_wait_synced(dp, dst.dst_txg);</span>
+<span class="lineNum">     110 </span>                :            : 
+<span class="lineNum">     111 </span>        [<span class="branchCov" title="Branch 0 was taken 3 times"> + </span><span class="branchCov" title="Branch 1 was taken 7944 times"> + </span>]:<span class="lineCov">       7947 :         if (dst.dst_error == EAGAIN) {</span>
+<span class="lineNum">     112 </span>                :<span class="lineCov">          3 :                 txg_wait_synced(dp, dst.dst_txg + TXG_DEFER_SIZE);</span>
+<span class="lineNum">     113 </span>                :<span class="lineCov">          3 :                 goto top;</span>
+<span class="lineNum">     114 </span>                :            :         }
+<span class="lineNum">     115 </span>                :            : 
+<span class="lineNum">     116 </span>                :<span class="lineCov">       7944 :         spa_close(spa, FTAG);</span>
+<span class="lineNum">     117 </span>                :<span class="lineCov">       7944 :         return (dst.dst_error);</span>
+<span class="lineNum">     118 </span>                :            : }
+<a name="119"><span class="lineNum">     119 </span>                :            : </a>
+<span class="lineNum">     120 </span>                :            : void
+<span class="lineNum">     121 </span>                :<span class="lineCov">        350 : dsl_sync_task_nowait(dsl_pool_t *dp, dsl_syncfunc_t *syncfunc, void *arg,</span>
+<span class="lineNum">     122 </span>                :            :     int blocks_modified, zfs_space_check_t space_check, dmu_tx_t *tx)
+<span class="lineNum">     123 </span>                :            : {
+<span class="lineNum">     124 </span>                :<span class="lineCov">        350 :         dsl_sync_task_t *dst = kmem_zalloc(sizeof (*dst), KM_SLEEP);</span>
+<span class="lineNum">     125 </span>                :            : 
+<span class="lineNum">     126 </span>                :<span class="lineCov">        350 :         dst-&gt;dst_pool = dp;</span>
+<span class="lineNum">     127 </span>                :<span class="lineCov">        350 :         dst-&gt;dst_txg = dmu_tx_get_txg(tx);</span>
+<span class="lineNum">     128 </span>                :<span class="lineCov">        350 :         dst-&gt;dst_space = blocks_modified &lt;&lt; DST_AVG_BLKSHIFT;</span>
+<span class="lineNum">     129 </span>                :<span class="lineCov">        350 :         dst-&gt;dst_space_check = space_check;</span>
+<span class="lineNum">     130 </span>                :<span class="lineCov">        350 :         dst-&gt;dst_checkfunc = dsl_null_checkfunc;</span>
+<span class="lineNum">     131 </span>                :<span class="lineCov">        350 :         dst-&gt;dst_syncfunc = syncfunc;</span>
+<span class="lineNum">     132 </span>                :<span class="lineCov">        350 :         dst-&gt;dst_arg = arg;</span>
+<span class="lineNum">     133 </span>                :<span class="lineCov">        350 :         dst-&gt;dst_error = 0;</span>
+<span class="lineNum">     134 </span>                :<span class="lineCov">        350 :         dst-&gt;dst_nowaiter = B_TRUE;</span>
+<span class="lineNum">     135 </span>                :            : 
+<span class="lineNum">     136 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 350 times"> + </span>]:<span class="lineCov">        350 :         VERIFY(txg_list_add_tail(&amp;dp-&gt;dp_sync_tasks, dst, dst-&gt;dst_txg));</span>
+<span class="lineNum">     137 </span>                :<span class="lineCov">        350 : }</span>
+<span class="lineNum">     138 </span>                :            : 
+<span class="lineNum">     139 </span>                :            : /*
+<span class="lineNum">     140 </span>                :            :  * Called in syncing context to execute the synctask.
+<a name="141"><span class="lineNum">     141 </span>                :            :  */</a>
+<span class="lineNum">     142 </span>                :            : void
+<span class="lineNum">     143 </span>                :<span class="lineCov">       8297 : dsl_sync_task_sync(dsl_sync_task_t *dst, dmu_tx_t *tx)</span>
+<span class="lineNum">     144 </span>                :            : {
+<span class="lineNum">     145 </span>                :<span class="lineCov">       8297 :         dsl_pool_t *dp = dst-&gt;dst_pool;</span>
+<span class="lineNum">     146 </span>                :            : 
+<span class="lineNum">     147 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8297 times"> + </span>]:<span class="lineCov">       8297 :         ASSERT0(dst-&gt;dst_error);</span>
+<span class="lineNum">     148 </span>                :            : 
+<span class="lineNum">     149 </span>                :            :         /*
+<span class="lineNum">     150 </span>                :            :          * Check for sufficient space.
+<span class="lineNum">     151 </span>                :            :          *
+<span class="lineNum">     152 </span>                :            :          * When the sync task was created, the caller specified the
+<span class="lineNum">     153 </span>                :            :          * type of space checking required.  See the comment in
+<span class="lineNum">     154 </span>                :            :          * zfs_space_check_t for details on the semantics of each
+<span class="lineNum">     155 </span>                :            :          * type of space checking.
+<span class="lineNum">     156 </span>                :            :          *
+<span class="lineNum">     157 </span>                :            :          * We just check against what's on-disk; we don't want any
+<span class="lineNum">     158 </span>                :            :          * in-flight accounting to get in our way, because open context
+<span class="lineNum">     159 </span>                :            :          * may have already used up various in-core limits
+<span class="lineNum">     160 </span>                :            :          * (arc_tempreserve, dsl_pool_tempreserve).
+<span class="lineNum">     161 </span>                :            :          */
+<span class="lineNum">     162 </span>        [<span class="branchCov" title="Branch 0 was taken 7330 times"> + </span><span class="branchCov" title="Branch 1 was taken 967 times"> + </span>]:<span class="lineCov">       8297 :         if (dst-&gt;dst_space_check != ZFS_SPACE_CHECK_NONE) {</span>
+<span class="lineNum">     163 </span>                :<span class="lineCov">       7330 :                 uint64_t quota = dsl_pool_adjustedsize(dp,</span>
+<span class="lineNum">     164 </span>                :            :                     dst-&gt;dst_space_check == ZFS_SPACE_CHECK_RESERVED) -
+<span class="lineNum">     165 </span>                :<span class="lineCov">       7330 :                     metaslab_class_get_deferred(spa_normal_class(dp-&gt;dp_spa));</span>
+<span class="lineNum">     166 </span>                :<span class="lineCov">       7330 :                 uint64_t used = dsl_dir_phys(dp-&gt;dp_root_dir)-&gt;dd_used_bytes;</span>
+<span class="lineNum">     167 </span>                :            :                 /* MOS space is triple-dittoed, so we multiply by 3. */
+<span class="lineNum">     168 </span>[<span class="branchCov" title="Branch 0 was taken 6797 times"> + </span><span class="branchCov" title="Branch 1 was taken 533 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 3 times"> + </span><span class="branchCov" title="Branch 3 was taken 6794 times"> + </span>]:<span class="lineCov">       7330 :                 if (dst-&gt;dst_space &gt; 0 &amp;&amp; used + dst-&gt;dst_space * 3 &gt; quota) {</span>
+<span class="lineNum">     169 </span>                :<span class="lineCov">          3 :                         dst-&gt;dst_error = SET_ERROR(ENOSPC);</span>
+<span class="lineNum">     170 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 3 times"> + </span>]:<span class="lineCov">          3 :                         if (dst-&gt;dst_nowaiter)</span>
+<span class="lineNum">     171 </span>                :<span class="lineNoCov">          0 :                                 kmem_free(dst, sizeof (*dst));</span>
+<span class="lineNum">     172 </span>                :            :                         return;
+<span class="lineNum">     173 </span>                :            :                 }
+<span class="lineNum">     174 </span>                :            :         }
+<span class="lineNum">     175 </span>                :            : 
+<span class="lineNum">     176 </span>                :            :         /*
+<span class="lineNum">     177 </span>                :            :          * Check for errors by calling checkfunc.
+<span class="lineNum">     178 </span>                :            :          */
+<span class="lineNum">     179 </span>                :<span class="lineCov">       8294 :         rrw_enter(&amp;dp-&gt;dp_config_rwlock, RW_WRITER, FTAG);</span>
+<span class="lineNum">     180 </span>                :<span class="lineCov">       8294 :         dst-&gt;dst_error = dst-&gt;dst_checkfunc(dst-&gt;dst_arg, tx);</span>
+<span class="lineNum">     181 </span>        [<span class="branchCov" title="Branch 0 was taken 8226 times"> + </span><span class="branchCov" title="Branch 1 was taken 68 times"> + </span>]:<span class="lineCov">       8294 :         if (dst-&gt;dst_error == 0)</span>
+<span class="lineNum">     182 </span>                :<span class="lineCov">       8226 :                 dst-&gt;dst_syncfunc(dst-&gt;dst_arg, tx);</span>
+<span class="lineNum">     183 </span>                :<span class="lineCov">       8294 :         rrw_exit(&amp;dp-&gt;dp_config_rwlock, FTAG);</span>
+<span class="lineNum">     184 </span>        [<span class="branchCov" title="Branch 0 was taken 350 times"> + </span><span class="branchCov" title="Branch 1 was taken 7944 times"> + </span>]:<span class="lineCov">       8294 :         if (dst-&gt;dst_nowaiter)</span>
+<span class="lineNum">     185 </span>                :<span class="lineCov">        350 :                 kmem_free(dst, sizeof (*dst));</span>
+<span class="lineNum">     186 </span>                :            : }
+<span class="lineNum">     187 </span>                :            : 
+<span class="lineNum">     188 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">     189 </span>                :            : EXPORT_SYMBOL(dsl_sync_task);
+<span class="lineNum">     190 </span>                :            : EXPORT_SYMBOL(dsl_sync_task_nowait);
+<span class="lineNum">     191 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

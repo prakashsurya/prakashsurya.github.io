@@ -1,0 +1,1012 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/icp/algs/modes/ccm.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/icp/algs/modes</a> - ccm.c<span style="font-size: 80%;"> (source / <a href="ccm.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">316</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">128</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Use is subject to license terms.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      27 </span>                :            : #include &lt;modes/modes.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/crypto/common.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/crypto/impl.h&gt;
+<span class="lineNum">      30 </span>                :            : 
+<span class="lineNum">      31 </span>                :            : #if defined(__i386) || defined(__amd64)
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/byteorder.h&gt;
+<span class="lineNum">      33 </span>                :            : #define UNALIGNED_POINTERS_PERMITTED
+<span class="lineNum">      34 </span>                :            : #endif
+<span class="lineNum">      35 </span>                :            : 
+<span class="lineNum">      36 </span>                :            : /*
+<span class="lineNum">      37 </span>                :            :  * Encrypt multiple blocks of data in CCM mode.  Decrypt for CCM mode
+<span class="lineNum">      38 </span>                :            :  * is done in another function.
+<a name="39"><span class="lineNum">      39 </span>                :            :  */</a>
+<span class="lineNum">      40 </span>                :            : int
+<span class="lineNum">      41 </span>                :<span class="lineNoCov">          0 : ccm_mode_encrypt_contiguous_blocks(ccm_ctx_t *ctx, char *data, size_t length,</span>
+<span class="lineNum">      42 </span>                :            :     crypto_data_t *out, size_t block_size,
+<span class="lineNum">      43 </span>                :            :     int (*encrypt_block)(const void *, const uint8_t *, uint8_t *),
+<span class="lineNum">      44 </span>                :            :     void (*copy_block)(uint8_t *, uint8_t *),
+<span class="lineNum">      45 </span>                :            :     void (*xor_block)(uint8_t *, uint8_t *))
+<span class="lineNum">      46 </span>                :            : {
+<span class="lineNum">      47 </span>                :<span class="lineNoCov">          0 :         size_t remainder = length;</span>
+<span class="lineNum">      48 </span>                :<span class="lineNoCov">          0 :         size_t need = 0;</span>
+<span class="lineNum">      49 </span>                :<span class="lineNoCov">          0 :         uint8_t *datap = (uint8_t *)data;</span>
+<span class="lineNum">      50 </span>                :            :         uint8_t *blockp;
+<span class="lineNum">      51 </span>                :            :         uint8_t *lastp;
+<span class="lineNum">      52 </span>                :            :         void *iov_or_mp;
+<span class="lineNum">      53 </span>                :            :         offset_t offset;
+<span class="lineNum">      54 </span>                :            :         uint8_t *out_data_1;
+<span class="lineNum">      55 </span>                :            :         uint8_t *out_data_2;
+<span class="lineNum">      56 </span>                :            :         size_t out_data_1_len;
+<span class="lineNum">      57 </span>                :            :         uint64_t counter;
+<span class="lineNum">      58 </span>                :            :         uint8_t *mac_buf;
+<span class="lineNum">      59 </span>                :            : 
+<span class="lineNum">      60 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (length + ctx-&gt;ccm_remainder_len &lt; block_size) {</span>
+<span class="lineNum">      61 </span>                :            :                 /* accumulate bytes here and return */
+<span class="lineNum">      62 </span>                :<span class="lineNoCov">          0 :                 bcopy(datap,</span>
+<span class="lineNum">      63 </span>                :<span class="lineNoCov">          0 :                     (uint8_t *)ctx-&gt;ccm_remainder + ctx-&gt;ccm_remainder_len,</span>
+<span class="lineNum">      64 </span>                :            :                     length);
+<span class="lineNum">      65 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_remainder_len += length;</span>
+<span class="lineNum">      66 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_copy_to = datap;</span>
+<span class="lineNum">      67 </span>                :<span class="lineNoCov">          0 :                 return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">      68 </span>                :            :         }
+<span class="lineNum">      69 </span>                :            : 
+<span class="lineNum">      70 </span>                :<span class="lineNoCov">          0 :         lastp = (uint8_t *)ctx-&gt;ccm_cb;</span>
+<span class="lineNum">      71 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (out != NULL)</span>
+<span class="lineNum">      72 </span>                :<span class="lineNoCov">          0 :                 crypto_init_ptrs(out, &amp;iov_or_mp, &amp;offset);</span>
+<span class="lineNum">      73 </span>                :            : 
+<span class="lineNum">      74 </span>                :<span class="lineNoCov">          0 :         mac_buf = (uint8_t *)ctx-&gt;ccm_mac_buf;</span>
+<span class="lineNum">      75 </span>                :            : 
+<span class="lineNum">      76 </span>                :            :         do {
+<span class="lineNum">      77 </span>                :            :                 /* Unprocessed data from last call. */
+<span class="lineNum">      78 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ctx-&gt;ccm_remainder_len &gt; 0) {</span>
+<span class="lineNum">      79 </span>                :<span class="lineNoCov">          0 :                         need = block_size - ctx-&gt;ccm_remainder_len;</span>
+<span class="lineNum">      80 </span>                :            : 
+<span class="lineNum">      81 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (need &gt; remainder)</span>
+<span class="lineNum">      82 </span>                :            :                                 return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">      83 </span>                :            : 
+<span class="lineNum">      84 </span>                :<span class="lineNoCov">          0 :                         bcopy(datap, &amp;((uint8_t *)ctx-&gt;ccm_remainder)</span>
+<span class="lineNum">      85 </span>                :            :                             [ctx-&gt;ccm_remainder_len], need);
+<span class="lineNum">      86 </span>                :            : 
+<span class="lineNum">      87 </span>                :<span class="lineNoCov">          0 :                         blockp = (uint8_t *)ctx-&gt;ccm_remainder;</span>
+<span class="lineNum">      88 </span>                :            :                 } else {
+<span class="lineNum">      89 </span>                :            :                         blockp = datap;
+<span class="lineNum">      90 </span>                :            :                 }
+<span class="lineNum">      91 </span>                :            : 
+<span class="lineNum">      92 </span>                :            :                 /*
+<span class="lineNum">      93 </span>                :            :                  * do CBC MAC
+<span class="lineNum">      94 </span>                :            :                  *
+<span class="lineNum">      95 </span>                :            :                  * XOR the previous cipher block current clear block.
+<span class="lineNum">      96 </span>                :            :                  * mac_buf always contain previous cipher block.
+<span class="lineNum">      97 </span>                :            :                  */
+<span class="lineNum">      98 </span>                :<span class="lineNoCov">          0 :                 xor_block(blockp, mac_buf);</span>
+<span class="lineNum">      99 </span>                :<span class="lineNoCov">          0 :                 encrypt_block(ctx-&gt;ccm_keysched, mac_buf, mac_buf);</span>
+<span class="lineNum">     100 </span>                :            : 
+<span class="lineNum">     101 </span>                :            :                 /* ccm_cb is the counter block */
+<span class="lineNum">     102 </span>                :<span class="lineNoCov">          0 :                 encrypt_block(ctx-&gt;ccm_keysched, (uint8_t *)ctx-&gt;ccm_cb,</span>
+<span class="lineNum">     103 </span>                :<span class="lineNoCov">          0 :                     (uint8_t *)ctx-&gt;ccm_tmp);</span>
+<span class="lineNum">     104 </span>                :            : 
+<span class="lineNum">     105 </span>                :<span class="lineNoCov">          0 :                 lastp = (uint8_t *)ctx-&gt;ccm_tmp;</span>
+<span class="lineNum">     106 </span>                :            : 
+<span class="lineNum">     107 </span>                :            :                 /*
+<span class="lineNum">     108 </span>                :            :                  * Increment counter. Counter bits are confined
+<span class="lineNum">     109 </span>                :            :                  * to the bottom 64 bits of the counter block.
+<span class="lineNum">     110 </span>                :            :                  */
+<span class="lineNum">     111 </span>                :            : #ifdef _LITTLE_ENDIAN
+<span class="lineNum">     112 </span>                :<span class="lineNoCov">          0 :                 counter = ntohll(ctx-&gt;ccm_cb[1] &amp; ctx-&gt;ccm_counter_mask);</span>
+<span class="lineNum">     113 </span>                :<span class="lineNoCov">          0 :                 counter = htonll(counter + 1);</span>
+<span class="lineNum">     114 </span>                :            : #else
+<span class="lineNum">     115 </span>                :            :                 counter = ctx-&gt;ccm_cb[1] &amp; ctx-&gt;ccm_counter_mask;
+<span class="lineNum">     116 </span>                :            :                 counter++;
+<span class="lineNum">     117 </span>                :            : #endif  /* _LITTLE_ENDIAN */
+<span class="lineNum">     118 </span>                :<span class="lineNoCov">          0 :                 counter &amp;= ctx-&gt;ccm_counter_mask;</span>
+<span class="lineNum">     119 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_cb[1] =</span>
+<span class="lineNum">     120 </span>                :<span class="lineNoCov">          0 :                     (ctx-&gt;ccm_cb[1] &amp; ~(ctx-&gt;ccm_counter_mask)) | counter;</span>
+<span class="lineNum">     121 </span>                :            : 
+<span class="lineNum">     122 </span>                :            :                 /*
+<span class="lineNum">     123 </span>                :            :                  * XOR encrypted counter block with the current clear block.
+<span class="lineNum">     124 </span>                :            :                  */
+<span class="lineNum">     125 </span>                :<span class="lineNoCov">          0 :                 xor_block(blockp, lastp);</span>
+<span class="lineNum">     126 </span>                :            : 
+<span class="lineNum">     127 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_processed_data_len += block_size;</span>
+<span class="lineNum">     128 </span>                :            : 
+<span class="lineNum">     129 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (out == NULL) {</span>
+<span class="lineNum">     130 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (ctx-&gt;ccm_remainder_len &gt; 0) {</span>
+<span class="lineNum">     131 </span>                :<span class="lineNoCov">          0 :                                 bcopy(blockp, ctx-&gt;ccm_copy_to,</span>
+<span class="lineNum">     132 </span>                :            :                                     ctx-&gt;ccm_remainder_len);
+<span class="lineNum">     133 </span>                :<span class="lineNoCov">          0 :                                 bcopy(blockp + ctx-&gt;ccm_remainder_len, datap,</span>
+<span class="lineNum">     134 </span>                :            :                                     need);
+<span class="lineNum">     135 </span>                :            :                         }
+<span class="lineNum">     136 </span>                :            :                 } else {
+<span class="lineNum">     137 </span>                :<span class="lineNoCov">          0 :                         crypto_get_ptrs(out, &amp;iov_or_mp, &amp;offset, &amp;out_data_1,</span>
+<span class="lineNum">     138 </span>                :            :                             &amp;out_data_1_len, &amp;out_data_2, block_size);
+<span class="lineNum">     139 </span>                :            : 
+<span class="lineNum">     140 </span>                :            :                         /* copy block to where it belongs */
+<span class="lineNum">     141 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (out_data_1_len == block_size) {</span>
+<span class="lineNum">     142 </span>                :<span class="lineNoCov">          0 :                                 copy_block(lastp, out_data_1);</span>
+<span class="lineNum">     143 </span>                :            :                         } else {
+<span class="lineNum">     144 </span>                :<span class="lineNoCov">          0 :                                 bcopy(lastp, out_data_1, out_data_1_len);</span>
+<span class="lineNum">     145 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 if (out_data_2 != NULL) {</span>
+<span class="lineNum">     146 </span>                :<span class="lineNoCov">          0 :                                         bcopy(lastp + out_data_1_len,</span>
+<span class="lineNum">     147 </span>                :            :                                             out_data_2,
+<span class="lineNum">     148 </span>                :            :                                             block_size - out_data_1_len);
+<span class="lineNum">     149 </span>                :            :                                 }
+<span class="lineNum">     150 </span>                :            :                         }
+<span class="lineNum">     151 </span>                :            :                         /* update offset */
+<span class="lineNum">     152 </span>                :<span class="lineNoCov">          0 :                         out-&gt;cd_offset += block_size;</span>
+<span class="lineNum">     153 </span>                :            :                 }
+<span class="lineNum">     154 </span>                :            : 
+<span class="lineNum">     155 </span>                :            :                 /* Update pointer to next block of data to be processed. */
+<span class="lineNum">     156 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ctx-&gt;ccm_remainder_len != 0) {</span>
+<span class="lineNum">     157 </span>                :<span class="lineNoCov">          0 :                         datap += need;</span>
+<span class="lineNum">     158 </span>                :<span class="lineNoCov">          0 :                         ctx-&gt;ccm_remainder_len = 0;</span>
+<span class="lineNum">     159 </span>                :            :                 } else {
+<span class="lineNum">     160 </span>                :<span class="lineNoCov">          0 :                         datap += block_size;</span>
+<span class="lineNum">     161 </span>                :            :                 }
+<span class="lineNum">     162 </span>                :            : 
+<span class="lineNum">     163 </span>                :<span class="lineNoCov">          0 :                 remainder = (size_t)&amp;data[length] - (size_t)datap;</span>
+<span class="lineNum">     164 </span>                :            : 
+<span class="lineNum">     165 </span>                :            :                 /* Incomplete last block. */
+<span class="lineNum">     166 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (remainder &gt; 0 &amp;&amp; remainder &lt; block_size) {</span>
+<span class="lineNum">     167 </span>                :<span class="lineNoCov">          0 :                         bcopy(datap, ctx-&gt;ccm_remainder, remainder);</span>
+<span class="lineNum">     168 </span>                :<span class="lineNoCov">          0 :                         ctx-&gt;ccm_remainder_len = remainder;</span>
+<span class="lineNum">     169 </span>                :<span class="lineNoCov">          0 :                         ctx-&gt;ccm_copy_to = datap;</span>
+<span class="lineNum">     170 </span>                :<span class="lineNoCov">          0 :                         goto out;</span>
+<span class="lineNum">     171 </span>                :            :                 }
+<span class="lineNum">     172 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_copy_to = NULL;</span>
+<span class="lineNum">     173 </span>                :            : 
+<span class="lineNum">     174 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } while (remainder &gt; 0);</span>
+<span class="lineNum">     175 </span>                :            : 
+<span class="lineNum">     176 </span>                :            : out:
+<span class="lineNum">     177 </span>                :            :         return (CRYPTO_SUCCESS);
+<span class="lineNum">     178 </span>                :            : }
+<a name="179"><span class="lineNum">     179 </span>                :            : </a>
+<span class="lineNum">     180 </span>                :            : void
+<span class="lineNum">     181 </span>                :<span class="lineNoCov">          0 : calculate_ccm_mac(ccm_ctx_t *ctx, uint8_t *ccm_mac,</span>
+<span class="lineNum">     182 </span>                :            :     int (*encrypt_block)(const void *, const uint8_t *, uint8_t *))
+<span class="lineNum">     183 </span>                :            : {
+<span class="lineNum">     184 </span>                :            :         uint64_t counter;
+<span class="lineNum">     185 </span>                :            :         uint8_t *counterp, *mac_buf;
+<span class="lineNum">     186 </span>                :            :         int i;
+<span class="lineNum">     187 </span>                :            : 
+<span class="lineNum">     188 </span>                :<span class="lineNoCov">          0 :         mac_buf = (uint8_t *)ctx-&gt;ccm_mac_buf;</span>
+<span class="lineNum">     189 </span>                :            : 
+<span class="lineNum">     190 </span>                :            :         /* first counter block start with index 0 */
+<span class="lineNum">     191 </span>                :<span class="lineNoCov">          0 :         counter = 0;</span>
+<span class="lineNum">     192 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;ccm_cb[1] = (ctx-&gt;ccm_cb[1] &amp; ~(ctx-&gt;ccm_counter_mask)) | counter;</span>
+<span class="lineNum">     193 </span>                :            : 
+<span class="lineNum">     194 </span>                :<span class="lineNoCov">          0 :         counterp = (uint8_t *)ctx-&gt;ccm_tmp;</span>
+<span class="lineNum">     195 </span>                :<span class="lineNoCov">          0 :         encrypt_block(ctx-&gt;ccm_keysched, (uint8_t *)ctx-&gt;ccm_cb, counterp);</span>
+<span class="lineNum">     196 </span>                :            : 
+<span class="lineNum">     197 </span>                :            :         /* calculate XOR of MAC with first counter block */
+<span class="lineNum">     198 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0; i &lt; ctx-&gt;ccm_mac_len; i++) {</span>
+<span class="lineNum">     199 </span>                :<span class="lineNoCov">          0 :                 ccm_mac[i] = mac_buf[i] ^ counterp[i];</span>
+<span class="lineNum">     200 </span>                :            :         }
+<span class="lineNum">     201 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     202 </span>                :            : 
+<a name="203"><span class="lineNum">     203 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     204 </span>                :            : int
+<span class="lineNum">     205 </span>                :<span class="lineNoCov">          0 : ccm_encrypt_final(ccm_ctx_t *ctx, crypto_data_t *out, size_t block_size,</span>
+<span class="lineNum">     206 </span>                :            :     int (*encrypt_block)(const void *, const uint8_t *, uint8_t *),
+<span class="lineNum">     207 </span>                :            :     void (*xor_block)(uint8_t *, uint8_t *))
+<span class="lineNum">     208 </span>                :            : {
+<span class="lineNum">     209 </span>                :<span class="lineNoCov">          0 :         uint8_t *lastp, *mac_buf, *ccm_mac_p, *macp = NULL;</span>
+<span class="lineNum">     210 </span>                :            :         void *iov_or_mp;
+<span class="lineNum">     211 </span>                :            :         offset_t offset;
+<span class="lineNum">     212 </span>                :            :         uint8_t *out_data_1;
+<span class="lineNum">     213 </span>                :            :         uint8_t *out_data_2;
+<span class="lineNum">     214 </span>                :            :         size_t out_data_1_len;
+<span class="lineNum">     215 </span>                :            :         int i;
+<span class="lineNum">     216 </span>                :            : 
+<span class="lineNum">     217 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (out-&gt;cd_length &lt; (ctx-&gt;ccm_remainder_len + ctx-&gt;ccm_mac_len)) {</span>
+<span class="lineNum">     218 </span>                :            :                 return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     219 </span>                :            :         }
+<span class="lineNum">     220 </span>                :            : 
+<span class="lineNum">     221 </span>                :            :         /*
+<span class="lineNum">     222 </span>                :            :          * When we get here, the number of bytes of payload processed
+<span class="lineNum">     223 </span>                :            :          * plus whatever data remains, if any,
+<span class="lineNum">     224 </span>                :            :          * should be the same as the number of bytes that's being
+<span class="lineNum">     225 </span>                :            :          * passed in the argument during init time.
+<span class="lineNum">     226 </span>                :            :          */
+<span class="lineNum">     227 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((ctx-&gt;ccm_processed_data_len + ctx-&gt;ccm_remainder_len)</span>
+<span class="lineNum">     228 </span>                :<span class="lineNoCov">          0 :             != (ctx-&gt;ccm_data_len)) {</span>
+<span class="lineNum">     229 </span>                :            :                 return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     230 </span>                :            :         }
+<span class="lineNum">     231 </span>                :            : 
+<span class="lineNum">     232 </span>                :<span class="lineNoCov">          0 :         mac_buf = (uint8_t *)ctx-&gt;ccm_mac_buf;</span>
+<span class="lineNum">     233 </span>                :            : 
+<span class="lineNum">     234 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ctx-&gt;ccm_remainder_len &gt; 0) {</span>
+<span class="lineNum">     235 </span>                :            : 
+<span class="lineNum">     236 </span>                :            :                 /* ccm_mac_input_buf is not used for encryption */
+<span class="lineNum">     237 </span>                :<span class="lineNoCov">          0 :                 macp = (uint8_t *)ctx-&gt;ccm_mac_input_buf;</span>
+<span class="lineNum">     238 </span>                :<span class="lineNoCov">          0 :                 bzero(macp, block_size);</span>
+<span class="lineNum">     239 </span>                :            : 
+<span class="lineNum">     240 </span>                :            :                 /* copy remainder to temporary buffer */
+<span class="lineNum">     241 </span>                :<span class="lineNoCov">          0 :                 bcopy(ctx-&gt;ccm_remainder, macp, ctx-&gt;ccm_remainder_len);</span>
+<span class="lineNum">     242 </span>                :            : 
+<span class="lineNum">     243 </span>                :            :                 /* calculate the CBC MAC */
+<span class="lineNum">     244 </span>                :<span class="lineNoCov">          0 :                 xor_block(macp, mac_buf);</span>
+<span class="lineNum">     245 </span>                :<span class="lineNoCov">          0 :                 encrypt_block(ctx-&gt;ccm_keysched, mac_buf, mac_buf);</span>
+<span class="lineNum">     246 </span>                :            : 
+<span class="lineNum">     247 </span>                :            :                 /* calculate the counter mode */
+<span class="lineNum">     248 </span>                :<span class="lineNoCov">          0 :                 lastp = (uint8_t *)ctx-&gt;ccm_tmp;</span>
+<span class="lineNum">     249 </span>                :<span class="lineNoCov">          0 :                 encrypt_block(ctx-&gt;ccm_keysched, (uint8_t *)ctx-&gt;ccm_cb, lastp);</span>
+<span class="lineNum">     250 </span>                :            : 
+<span class="lineNum">     251 </span>                :            :                 /* XOR with counter block */
+<span class="lineNum">     252 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 for (i = 0; i &lt; ctx-&gt;ccm_remainder_len; i++) {</span>
+<span class="lineNum">     253 </span>                :<span class="lineNoCov">          0 :                         macp[i] ^= lastp[i];</span>
+<span class="lineNum">     254 </span>                :            :                 }
+<span class="lineNum">     255 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_processed_data_len += ctx-&gt;ccm_remainder_len;</span>
+<span class="lineNum">     256 </span>                :            :         }
+<span class="lineNum">     257 </span>                :            : 
+<span class="lineNum">     258 </span>                :            :         /* Calculate the CCM MAC */
+<span class="lineNum">     259 </span>                :<span class="lineNoCov">          0 :         ccm_mac_p = (uint8_t *)ctx-&gt;ccm_tmp;</span>
+<span class="lineNum">     260 </span>                :<span class="lineNoCov">          0 :         calculate_ccm_mac(ctx, ccm_mac_p, encrypt_block);</span>
+<span class="lineNum">     261 </span>                :            : 
+<span class="lineNum">     262 </span>                :<span class="lineNoCov">          0 :         crypto_init_ptrs(out, &amp;iov_or_mp, &amp;offset);</span>
+<span class="lineNum">     263 </span>                :<span class="lineNoCov">          0 :         crypto_get_ptrs(out, &amp;iov_or_mp, &amp;offset, &amp;out_data_1,</span>
+<span class="lineNum">     264 </span>                :            :             &amp;out_data_1_len, &amp;out_data_2,
+<span class="lineNum">     265 </span>                :<span class="lineNoCov">          0 :             ctx-&gt;ccm_remainder_len + ctx-&gt;ccm_mac_len);</span>
+<span class="lineNum">     266 </span>                :            : 
+<span class="lineNum">     267 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ctx-&gt;ccm_remainder_len &gt; 0) {</span>
+<span class="lineNum">     268 </span>                :            : 
+<span class="lineNum">     269 </span>                :            :                 /* copy temporary block to where it belongs */
+<span class="lineNum">     270 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (out_data_2 == NULL) {</span>
+<span class="lineNum">     271 </span>                :            :                         /* everything will fit in out_data_1 */
+<span class="lineNum">     272 </span>                :<span class="lineNoCov">          0 :                         bcopy(macp, out_data_1, ctx-&gt;ccm_remainder_len);</span>
+<span class="lineNum">     273 </span>                :<span class="lineNoCov">          0 :                         bcopy(ccm_mac_p, out_data_1 + ctx-&gt;ccm_remainder_len,</span>
+<span class="lineNum">     274 </span>                :            :                             ctx-&gt;ccm_mac_len);
+<span class="lineNum">     275 </span>                :            :                 } else {
+<span class="lineNum">     276 </span>                :            : 
+<span class="lineNum">     277 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (out_data_1_len &lt; ctx-&gt;ccm_remainder_len) {</span>
+<span class="lineNum">     278 </span>                :            : 
+<span class="lineNum">     279 </span>                :            :                                 size_t data_2_len_used;
+<span class="lineNum">     280 </span>                :            : 
+<span class="lineNum">     281 </span>                :<span class="lineNoCov">          0 :                                 bcopy(macp, out_data_1, out_data_1_len);</span>
+<span class="lineNum">     282 </span>                :            : 
+<span class="lineNum">     283 </span>                :<span class="lineNoCov">          0 :                                 data_2_len_used = ctx-&gt;ccm_remainder_len</span>
+<span class="lineNum">     284 </span>                :<span class="lineNoCov">          0 :                                     - out_data_1_len;</span>
+<span class="lineNum">     285 </span>                :            : 
+<span class="lineNum">     286 </span>                :<span class="lineNoCov">          0 :                                 bcopy((uint8_t *)macp + out_data_1_len,</span>
+<span class="lineNum">     287 </span>                :            :                                     out_data_2, data_2_len_used);
+<span class="lineNum">     288 </span>                :<span class="lineNoCov">          0 :                                 bcopy(ccm_mac_p, out_data_2 + data_2_len_used,</span>
+<span class="lineNum">     289 </span>                :            :                                     ctx-&gt;ccm_mac_len);
+<span class="lineNum">     290 </span>                :            :                         } else {
+<span class="lineNum">     291 </span>                :<span class="lineNoCov">          0 :                                 bcopy(macp, out_data_1, out_data_1_len);</span>
+<span class="lineNum">     292 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 if (out_data_1_len == ctx-&gt;ccm_remainder_len) {</span>
+<span class="lineNum">     293 </span>                :            :                                         /* mac will be in out_data_2 */
+<span class="lineNum">     294 </span>                :<span class="lineNoCov">          0 :                                         bcopy(ccm_mac_p, out_data_2,</span>
+<span class="lineNum">     295 </span>                :            :                                             ctx-&gt;ccm_mac_len);
+<span class="lineNum">     296 </span>                :            :                                 } else {
+<span class="lineNum">     297 </span>                :<span class="lineNoCov">          0 :                                         size_t len_not_used = out_data_1_len -</span>
+<span class="lineNum">     298 </span>                :            :                                             ctx-&gt;ccm_remainder_len;
+<span class="lineNum">     299 </span>                :            :                                         /*
+<span class="lineNum">     300 </span>                :            :                                          * part of mac in will be in
+<span class="lineNum">     301 </span>                :            :                                          * out_data_1, part of the mac will be
+<span class="lineNum">     302 </span>                :            :                                          * in out_data_2
+<span class="lineNum">     303 </span>                :            :                                          */
+<span class="lineNum">     304 </span>                :<span class="lineNoCov">          0 :                                         bcopy(ccm_mac_p,</span>
+<span class="lineNum">     305 </span>                :<span class="lineNoCov">          0 :                                             out_data_1 + ctx-&gt;ccm_remainder_len,</span>
+<span class="lineNum">     306 </span>                :            :                                             len_not_used);
+<span class="lineNum">     307 </span>                :<span class="lineNoCov">          0 :                                         bcopy(ccm_mac_p + len_not_used,</span>
+<span class="lineNum">     308 </span>                :            :                                             out_data_2,
+<span class="lineNum">     309 </span>                :<span class="lineNoCov">          0 :                                             ctx-&gt;ccm_mac_len - len_not_used);</span>
+<span class="lineNum">     310 </span>                :            : 
+<span class="lineNum">     311 </span>                :            :                                 }
+<span class="lineNum">     312 </span>                :            :                         }
+<span class="lineNum">     313 </span>                :            :                 }
+<span class="lineNum">     314 </span>                :            :         } else {
+<span class="lineNum">     315 </span>                :            :                 /* copy block to where it belongs */
+<span class="lineNum">     316 </span>                :<span class="lineNoCov">          0 :                 bcopy(ccm_mac_p, out_data_1, out_data_1_len);</span>
+<span class="lineNum">     317 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (out_data_2 != NULL) {</span>
+<span class="lineNum">     318 </span>                :<span class="lineNoCov">          0 :                         bcopy(ccm_mac_p + out_data_1_len, out_data_2,</span>
+<span class="lineNum">     319 </span>                :            :                             block_size - out_data_1_len);
+<span class="lineNum">     320 </span>                :            :                 }
+<span class="lineNum">     321 </span>                :            :         }
+<span class="lineNum">     322 </span>                :<span class="lineNoCov">          0 :         out-&gt;cd_offset += ctx-&gt;ccm_remainder_len + ctx-&gt;ccm_mac_len;</span>
+<span class="lineNum">     323 </span>                :<span class="lineNoCov">          0 :         ctx-&gt;ccm_remainder_len = 0;</span>
+<span class="lineNum">     324 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     325 </span>                :            : }
+<span class="lineNum">     326 </span>                :            : 
+<span class="lineNum">     327 </span>                :            : /*
+<span class="lineNum">     328 </span>                :            :  * This will only deal with decrypting the last block of the input that
+<span class="lineNum">     329 </span>                :            :  * might not be a multiple of block length.
+<a name="330"><span class="lineNum">     330 </span>                :            :  */</a>
+<span class="lineNum">     331 </span>                :            : void
+<span class="lineNum">     332 </span>                :<span class="lineNoCov">          0 : ccm_decrypt_incomplete_block(ccm_ctx_t *ctx,</span>
+<span class="lineNum">     333 </span>                :            :     int (*encrypt_block)(const void *, const uint8_t *, uint8_t *))
+<span class="lineNum">     334 </span>                :            : {
+<span class="lineNum">     335 </span>                :            :         uint8_t *datap, *outp, *counterp;
+<span class="lineNum">     336 </span>                :            :         int i;
+<span class="lineNum">     337 </span>                :            : 
+<span class="lineNum">     338 </span>                :<span class="lineNoCov">          0 :         datap = (uint8_t *)ctx-&gt;ccm_remainder;</span>
+<span class="lineNum">     339 </span>                :<span class="lineNoCov">          0 :         outp = &amp;((ctx-&gt;ccm_pt_buf)[ctx-&gt;ccm_processed_data_len]);</span>
+<span class="lineNum">     340 </span>                :            : 
+<span class="lineNum">     341 </span>                :<span class="lineNoCov">          0 :         counterp = (uint8_t *)ctx-&gt;ccm_tmp;</span>
+<span class="lineNum">     342 </span>                :<span class="lineNoCov">          0 :         encrypt_block(ctx-&gt;ccm_keysched, (uint8_t *)ctx-&gt;ccm_cb, counterp);</span>
+<span class="lineNum">     343 </span>                :            : 
+<span class="lineNum">     344 </span>                :            :         /* XOR with counter block */
+<span class="lineNum">     345 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0; i &lt; ctx-&gt;ccm_remainder_len; i++) {</span>
+<span class="lineNum">     346 </span>                :<span class="lineNoCov">          0 :                 outp[i] = datap[i] ^ counterp[i];</span>
+<span class="lineNum">     347 </span>                :            :         }
+<span class="lineNum">     348 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     349 </span>                :            : 
+<span class="lineNum">     350 </span>                :            : /*
+<span class="lineNum">     351 </span>                :            :  * This will decrypt the cipher text.  However, the plaintext won't be
+<span class="lineNum">     352 </span>                :            :  * returned to the caller.  It will be returned when decrypt_final() is
+<span class="lineNum">     353 </span>                :            :  * called if the MAC matches
+<span class="lineNum">     354 </span>                :            :  */
+<a name="355"><span class="lineNum">     355 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     356 </span>                :            : int
+<span class="lineNum">     357 </span>                :<span class="lineNoCov">          0 : ccm_mode_decrypt_contiguous_blocks(ccm_ctx_t *ctx, char *data, size_t length,</span>
+<span class="lineNum">     358 </span>                :            :     crypto_data_t *out, size_t block_size,
+<span class="lineNum">     359 </span>                :            :     int (*encrypt_block)(const void *, const uint8_t *, uint8_t *),
+<span class="lineNum">     360 </span>                :            :     void (*copy_block)(uint8_t *, uint8_t *),
+<span class="lineNum">     361 </span>                :            :     void (*xor_block)(uint8_t *, uint8_t *))
+<span class="lineNum">     362 </span>                :            : {
+<span class="lineNum">     363 </span>                :<span class="lineNoCov">          0 :         size_t remainder = length;</span>
+<span class="lineNum">     364 </span>                :<span class="lineNoCov">          0 :         size_t need = 0;</span>
+<span class="lineNum">     365 </span>                :<span class="lineNoCov">          0 :         uint8_t *datap = (uint8_t *)data;</span>
+<span class="lineNum">     366 </span>                :            :         uint8_t *blockp;
+<span class="lineNum">     367 </span>                :            :         uint8_t *cbp;
+<span class="lineNum">     368 </span>                :            :         uint64_t counter;
+<span class="lineNum">     369 </span>                :            :         size_t pt_len, total_decrypted_len, mac_len, pm_len, pd_len;
+<span class="lineNum">     370 </span>                :            :         uint8_t *resultp;
+<span class="lineNum">     371 </span>                :            : 
+<span class="lineNum">     372 </span>                :            : 
+<span class="lineNum">     373 </span>                :<span class="lineNoCov">          0 :         pm_len = ctx-&gt;ccm_processed_mac_len;</span>
+<span class="lineNum">     374 </span>                :            : 
+<span class="lineNum">     375 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (pm_len &gt; 0) {</span>
+<span class="lineNum">     376 </span>                :            :                 uint8_t *tmp;
+<span class="lineNum">     377 </span>                :            :                 /*
+<span class="lineNum">     378 </span>                :            :                  * all ciphertext has been processed, just waiting for
+<span class="lineNum">     379 </span>                :            :                  * part of the value of the mac
+<span class="lineNum">     380 </span>                :            :                  */
+<span class="lineNum">     381 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((pm_len + length) &gt; ctx-&gt;ccm_mac_len) {</span>
+<span class="lineNum">     382 </span>                :            :                         return (CRYPTO_ENCRYPTED_DATA_LEN_RANGE);
+<span class="lineNum">     383 </span>                :            :                 }
+<span class="lineNum">     384 </span>                :<span class="lineNoCov">          0 :                 tmp = (uint8_t *)ctx-&gt;ccm_mac_input_buf;</span>
+<span class="lineNum">     385 </span>                :            : 
+<span class="lineNum">     386 </span>                :<span class="lineNoCov">          0 :                 bcopy(datap, tmp + pm_len, length);</span>
+<span class="lineNum">     387 </span>                :            : 
+<span class="lineNum">     388 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_processed_mac_len += length;</span>
+<span class="lineNum">     389 </span>                :<span class="lineNoCov">          0 :                 return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     390 </span>                :            :         }
+<span class="lineNum">     391 </span>                :            : 
+<span class="lineNum">     392 </span>                :            :         /*
+<span class="lineNum">     393 </span>                :            :          * If we decrypt the given data, what total amount of data would
+<span class="lineNum">     394 </span>                :            :          * have been decrypted?
+<span class="lineNum">     395 </span>                :            :          */
+<span class="lineNum">     396 </span>                :<span class="lineNoCov">          0 :         pd_len = ctx-&gt;ccm_processed_data_len;</span>
+<span class="lineNum">     397 </span>                :<span class="lineNoCov">          0 :         total_decrypted_len = pd_len + length + ctx-&gt;ccm_remainder_len;</span>
+<span class="lineNum">     398 </span>                :            : 
+<span class="lineNum">     399 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (total_decrypted_len &gt;</span>
+<span class="lineNum">     400 </span>                :<span class="lineNoCov">          0 :             (ctx-&gt;ccm_data_len + ctx-&gt;ccm_mac_len)) {</span>
+<span class="lineNum">     401 </span>                :            :                 return (CRYPTO_ENCRYPTED_DATA_LEN_RANGE);
+<span class="lineNum">     402 </span>                :            :         }
+<span class="lineNum">     403 </span>                :            : 
+<span class="lineNum">     404 </span>                :<span class="lineNoCov">          0 :         pt_len = ctx-&gt;ccm_data_len;</span>
+<span class="lineNum">     405 </span>                :            : 
+<span class="lineNum">     406 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (total_decrypted_len &gt; pt_len) {</span>
+<span class="lineNum">     407 </span>                :            :                 /*
+<span class="lineNum">     408 </span>                :            :                  * part of the input will be the MAC, need to isolate that
+<span class="lineNum">     409 </span>                :            :                  * to be dealt with later.  The left-over data in
+<span class="lineNum">     410 </span>                :            :                  * ccm_remainder_len from last time will not be part of the
+<span class="lineNum">     411 </span>                :            :                  * MAC.  Otherwise, it would have already been taken out
+<span class="lineNum">     412 </span>                :            :                  * when this call is made last time.
+<span class="lineNum">     413 </span>                :            :                  */
+<span class="lineNum">     414 </span>                :<span class="lineNoCov">          0 :                 size_t pt_part = pt_len - pd_len - ctx-&gt;ccm_remainder_len;</span>
+<span class="lineNum">     415 </span>                :            : 
+<span class="lineNum">     416 </span>                :<span class="lineNoCov">          0 :                 mac_len = length - pt_part;</span>
+<span class="lineNum">     417 </span>                :            : 
+<span class="lineNum">     418 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_processed_mac_len = mac_len;</span>
+<span class="lineNum">     419 </span>                :<span class="lineNoCov">          0 :                 bcopy(data + pt_part, ctx-&gt;ccm_mac_input_buf, mac_len);</span>
+<span class="lineNum">     420 </span>                :            : 
+<span class="lineNum">     421 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (pt_part + ctx-&gt;ccm_remainder_len &lt; block_size) {</span>
+<span class="lineNum">     422 </span>                :            :                         /*
+<span class="lineNum">     423 </span>                :            :                          * since this is last of the ciphertext, will
+<span class="lineNum">     424 </span>                :            :                          * just decrypt with it here
+<span class="lineNum">     425 </span>                :            :                          */
+<span class="lineNum">     426 </span>                :<span class="lineNoCov">          0 :                         bcopy(datap, &amp;((uint8_t *)ctx-&gt;ccm_remainder)</span>
+<span class="lineNum">     427 </span>                :            :                             [ctx-&gt;ccm_remainder_len], pt_part);
+<span class="lineNum">     428 </span>                :<span class="lineNoCov">          0 :                         ctx-&gt;ccm_remainder_len += pt_part;</span>
+<span class="lineNum">     429 </span>                :<span class="lineNoCov">          0 :                         ccm_decrypt_incomplete_block(ctx, encrypt_block);</span>
+<span class="lineNum">     430 </span>                :<span class="lineNoCov">          0 :                         ctx-&gt;ccm_processed_data_len += ctx-&gt;ccm_remainder_len;</span>
+<span class="lineNum">     431 </span>                :<span class="lineNoCov">          0 :                         ctx-&gt;ccm_remainder_len = 0;</span>
+<span class="lineNum">     432 </span>                :<span class="lineNoCov">          0 :                         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     433 </span>                :            :                 } else {
+<span class="lineNum">     434 </span>                :            :                         /* let rest of the code handle this */
+<span class="lineNum">     435 </span>                :            :                         length = pt_part;
+<span class="lineNum">     436 </span>                :            :                 }
+<span class="lineNum">     437 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } else if (length + ctx-&gt;ccm_remainder_len &lt; block_size) {</span>
+<span class="lineNum">     438 </span>                :            :                         /* accumulate bytes here and return */
+<span class="lineNum">     439 </span>                :<span class="lineNoCov">          0 :                 bcopy(datap,</span>
+<span class="lineNum">     440 </span>                :<span class="lineNoCov">          0 :                     (uint8_t *)ctx-&gt;ccm_remainder + ctx-&gt;ccm_remainder_len,</span>
+<span class="lineNum">     441 </span>                :            :                     length);
+<span class="lineNum">     442 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_remainder_len += length;</span>
+<span class="lineNum">     443 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_copy_to = datap;</span>
+<span class="lineNum">     444 </span>                :<span class="lineNoCov">          0 :                 return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     445 </span>                :            :         }
+<span class="lineNum">     446 </span>                :            : 
+<span class="lineNum">     447 </span>                :            :         do {
+<span class="lineNum">     448 </span>                :            :                 /* Unprocessed data from last call. */
+<span class="lineNum">     449 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ctx-&gt;ccm_remainder_len &gt; 0) {</span>
+<span class="lineNum">     450 </span>                :<span class="lineNoCov">          0 :                         need = block_size - ctx-&gt;ccm_remainder_len;</span>
+<span class="lineNum">     451 </span>                :            : 
+<span class="lineNum">     452 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (need &gt; remainder)</span>
+<span class="lineNum">     453 </span>                :            :                                 return (CRYPTO_ENCRYPTED_DATA_LEN_RANGE);
+<span class="lineNum">     454 </span>                :            : 
+<span class="lineNum">     455 </span>                :<span class="lineNoCov">          0 :                         bcopy(datap, &amp;((uint8_t *)ctx-&gt;ccm_remainder)</span>
+<span class="lineNum">     456 </span>                :            :                             [ctx-&gt;ccm_remainder_len], need);
+<span class="lineNum">     457 </span>                :            : 
+<span class="lineNum">     458 </span>                :<span class="lineNoCov">          0 :                         blockp = (uint8_t *)ctx-&gt;ccm_remainder;</span>
+<span class="lineNum">     459 </span>                :            :                 } else {
+<span class="lineNum">     460 </span>                :            :                         blockp = datap;
+<span class="lineNum">     461 </span>                :            :                 }
+<span class="lineNum">     462 </span>                :            : 
+<span class="lineNum">     463 </span>                :            :                 /* Calculate the counter mode, ccm_cb is the counter block */
+<span class="lineNum">     464 </span>                :<span class="lineNoCov">          0 :                 cbp = (uint8_t *)ctx-&gt;ccm_tmp;</span>
+<span class="lineNum">     465 </span>                :<span class="lineNoCov">          0 :                 encrypt_block(ctx-&gt;ccm_keysched, (uint8_t *)ctx-&gt;ccm_cb, cbp);</span>
+<span class="lineNum">     466 </span>                :            : 
+<span class="lineNum">     467 </span>                :            :                 /*
+<span class="lineNum">     468 </span>                :            :                  * Increment counter.
+<span class="lineNum">     469 </span>                :            :                  * Counter bits are confined to the bottom 64 bits
+<span class="lineNum">     470 </span>                :            :                  */
+<span class="lineNum">     471 </span>                :            : #ifdef _LITTLE_ENDIAN
+<span class="lineNum">     472 </span>                :<span class="lineNoCov">          0 :                 counter = ntohll(ctx-&gt;ccm_cb[1] &amp; ctx-&gt;ccm_counter_mask);</span>
+<span class="lineNum">     473 </span>                :<span class="lineNoCov">          0 :                 counter = htonll(counter + 1);</span>
+<span class="lineNum">     474 </span>                :            : #else
+<span class="lineNum">     475 </span>                :            :                 counter = ctx-&gt;ccm_cb[1] &amp; ctx-&gt;ccm_counter_mask;
+<span class="lineNum">     476 </span>                :            :                 counter++;
+<span class="lineNum">     477 </span>                :            : #endif  /* _LITTLE_ENDIAN */
+<span class="lineNum">     478 </span>                :<span class="lineNoCov">          0 :                 counter &amp;= ctx-&gt;ccm_counter_mask;</span>
+<span class="lineNum">     479 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_cb[1] =</span>
+<span class="lineNum">     480 </span>                :<span class="lineNoCov">          0 :                     (ctx-&gt;ccm_cb[1] &amp; ~(ctx-&gt;ccm_counter_mask)) | counter;</span>
+<span class="lineNum">     481 </span>                :            : 
+<span class="lineNum">     482 </span>                :            :                 /* XOR with the ciphertext */
+<span class="lineNum">     483 </span>                :<span class="lineNoCov">          0 :                 xor_block(blockp, cbp);</span>
+<span class="lineNum">     484 </span>                :            : 
+<span class="lineNum">     485 </span>                :            :                 /* Copy the plaintext to the &quot;holding buffer&quot; */
+<span class="lineNum">     486 </span>                :<span class="lineNoCov">          0 :                 resultp = (uint8_t *)ctx-&gt;ccm_pt_buf +</span>
+<span class="lineNum">     487 </span>                :<span class="lineNoCov">          0 :                     ctx-&gt;ccm_processed_data_len;</span>
+<span class="lineNum">     488 </span>                :<span class="lineNoCov">          0 :                 copy_block(cbp, resultp);</span>
+<span class="lineNum">     489 </span>                :            : 
+<span class="lineNum">     490 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_processed_data_len += block_size;</span>
+<span class="lineNum">     491 </span>                :            : 
+<span class="lineNum">     492 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_lastp = blockp;</span>
+<span class="lineNum">     493 </span>                :            : 
+<span class="lineNum">     494 </span>                :            :                 /* Update pointer to next block of data to be processed. */
+<span class="lineNum">     495 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ctx-&gt;ccm_remainder_len != 0) {</span>
+<span class="lineNum">     496 </span>                :<span class="lineNoCov">          0 :                         datap += need;</span>
+<span class="lineNum">     497 </span>                :<span class="lineNoCov">          0 :                         ctx-&gt;ccm_remainder_len = 0;</span>
+<span class="lineNum">     498 </span>                :            :                 } else {
+<span class="lineNum">     499 </span>                :<span class="lineNoCov">          0 :                         datap += block_size;</span>
+<span class="lineNum">     500 </span>                :            :                 }
+<span class="lineNum">     501 </span>                :            : 
+<span class="lineNum">     502 </span>                :<span class="lineNoCov">          0 :                 remainder = (size_t)&amp;data[length] - (size_t)datap;</span>
+<span class="lineNum">     503 </span>                :            : 
+<span class="lineNum">     504 </span>                :            :                 /* Incomplete last block */
+<span class="lineNum">     505 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (remainder &gt; 0 &amp;&amp; remainder &lt; block_size) {</span>
+<span class="lineNum">     506 </span>                :<span class="lineNoCov">          0 :                         bcopy(datap, ctx-&gt;ccm_remainder, remainder);</span>
+<span class="lineNum">     507 </span>                :<span class="lineNoCov">          0 :                         ctx-&gt;ccm_remainder_len = remainder;</span>
+<span class="lineNum">     508 </span>                :<span class="lineNoCov">          0 :                         ctx-&gt;ccm_copy_to = datap;</span>
+<span class="lineNum">     509 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (ctx-&gt;ccm_processed_mac_len &gt; 0) {</span>
+<span class="lineNum">     510 </span>                :            :                                 /*
+<span class="lineNum">     511 </span>                :            :                                  * not expecting anymore ciphertext, just
+<span class="lineNum">     512 </span>                :            :                                  * compute plaintext for the remaining input
+<span class="lineNum">     513 </span>                :            :                                  */
+<span class="lineNum">     514 </span>                :<span class="lineNoCov">          0 :                                 ccm_decrypt_incomplete_block(ctx,</span>
+<span class="lineNum">     515 </span>                :            :                                     encrypt_block);
+<span class="lineNum">     516 </span>                :<span class="lineNoCov">          0 :                                 ctx-&gt;ccm_processed_data_len += remainder;</span>
+<span class="lineNum">     517 </span>                :<span class="lineNoCov">          0 :                                 ctx-&gt;ccm_remainder_len = 0;</span>
+<span class="lineNum">     518 </span>                :            :                         }
+<span class="lineNum">     519 </span>                :            :                         goto out;
+<span class="lineNum">     520 </span>                :            :                 }
+<span class="lineNum">     521 </span>                :<span class="lineNoCov">          0 :                 ctx-&gt;ccm_copy_to = NULL;</span>
+<span class="lineNum">     522 </span>                :            : 
+<span class="lineNum">     523 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } while (remainder &gt; 0);</span>
+<span class="lineNum">     524 </span>                :            : 
+<span class="lineNum">     525 </span>                :            : out:
+<span class="lineNum">     526 </span>                :            :         return (CRYPTO_SUCCESS);
+<span class="lineNum">     527 </span>                :            : }
+<a name="528"><span class="lineNum">     528 </span>                :            : </a>
+<span class="lineNum">     529 </span>                :            : int
+<span class="lineNum">     530 </span>                :<span class="lineNoCov">          0 : ccm_decrypt_final(ccm_ctx_t *ctx, crypto_data_t *out, size_t block_size,</span>
+<span class="lineNum">     531 </span>                :            :     int (*encrypt_block)(const void *, const uint8_t *, uint8_t *),
+<span class="lineNum">     532 </span>                :            :     void (*copy_block)(uint8_t *, uint8_t *),
+<span class="lineNum">     533 </span>                :            :     void (*xor_block)(uint8_t *, uint8_t *))
+<span class="lineNum">     534 </span>                :            : {
+<span class="lineNum">     535 </span>                :            :         size_t mac_remain, pt_len;
+<span class="lineNum">     536 </span>                :            :         uint8_t *pt, *mac_buf, *macp, *ccm_mac_p;
+<span class="lineNum">     537 </span>                :            :         int rv;
+<span class="lineNum">     538 </span>                :            : 
+<span class="lineNum">     539 </span>                :<span class="lineNoCov">          0 :         pt_len = ctx-&gt;ccm_data_len;</span>
+<span class="lineNum">     540 </span>                :            : 
+<span class="lineNum">     541 </span>                :            :         /* Make sure output buffer can fit all of the plaintext */
+<span class="lineNum">     542 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (out-&gt;cd_length &lt; pt_len) {</span>
+<span class="lineNum">     543 </span>                :            :                 return (CRYPTO_DATA_LEN_RANGE);
+<span class="lineNum">     544 </span>                :            :         }
+<span class="lineNum">     545 </span>                :            : 
+<span class="lineNum">     546 </span>                :<span class="lineNoCov">          0 :         pt = ctx-&gt;ccm_pt_buf;</span>
+<span class="lineNum">     547 </span>                :<span class="lineNoCov">          0 :         mac_remain = ctx-&gt;ccm_processed_data_len;</span>
+<span class="lineNum">     548 </span>                :<span class="lineNoCov">          0 :         mac_buf = (uint8_t *)ctx-&gt;ccm_mac_buf;</span>
+<span class="lineNum">     549 </span>                :            : 
+<span class="lineNum">     550 </span>                :<span class="lineNoCov">          0 :         macp = (uint8_t *)ctx-&gt;ccm_tmp;</span>
+<span class="lineNum">     551 </span>                :            : 
+<span class="lineNum">     552 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         while (mac_remain &gt; 0) {</span>
+<span class="lineNum">     553 </span>                :            : 
+<span class="lineNum">     554 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (mac_remain &lt; block_size) {</span>
+<span class="lineNum">     555 </span>                :<span class="lineNoCov">          0 :                         bzero(macp, block_size);</span>
+<span class="lineNum">     556 </span>                :<span class="lineNoCov">          0 :                         bcopy(pt, macp, mac_remain);</span>
+<span class="lineNum">     557 </span>                :<span class="lineNoCov">          0 :                         mac_remain = 0;</span>
+<span class="lineNum">     558 </span>                :            :                 } else {
+<span class="lineNum">     559 </span>                :<span class="lineNoCov">          0 :                         copy_block(pt, macp);</span>
+<span class="lineNum">     560 </span>                :<span class="lineNoCov">          0 :                         mac_remain -= block_size;</span>
+<span class="lineNum">     561 </span>                :<span class="lineNoCov">          0 :                         pt += block_size;</span>
+<span class="lineNum">     562 </span>                :            :                 }
+<span class="lineNum">     563 </span>                :            : 
+<span class="lineNum">     564 </span>                :            :                 /* calculate the CBC MAC */
+<span class="lineNum">     565 </span>                :<span class="lineNoCov">          0 :                 xor_block(macp, mac_buf);</span>
+<span class="lineNum">     566 </span>                :<span class="lineNoCov">          0 :                 encrypt_block(ctx-&gt;ccm_keysched, mac_buf, mac_buf);</span>
+<span class="lineNum">     567 </span>                :            :         }
+<span class="lineNum">     568 </span>                :            : 
+<span class="lineNum">     569 </span>                :            :         /* Calculate the CCM MAC */
+<span class="lineNum">     570 </span>                :<span class="lineNoCov">          0 :         ccm_mac_p = (uint8_t *)ctx-&gt;ccm_tmp;</span>
+<span class="lineNum">     571 </span>                :<span class="lineNoCov">          0 :         calculate_ccm_mac((ccm_ctx_t *)ctx, ccm_mac_p, encrypt_block);</span>
+<span class="lineNum">     572 </span>                :            : 
+<span class="lineNum">     573 </span>                :            :         /* compare the input CCM MAC value with what we calculated */
+<span class="lineNum">     574 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (bcmp(ctx-&gt;ccm_mac_input_buf, ccm_mac_p, ctx-&gt;ccm_mac_len)) {</span>
+<span class="lineNum">     575 </span>                :            :                 /* They don't match */
+<span class="lineNum">     576 </span>                :            :                 return (CRYPTO_INVALID_MAC);
+<span class="lineNum">     577 </span>                :            :         } else {
+<span class="lineNum">     578 </span>                :<span class="lineNoCov">          0 :                 rv = crypto_put_output_data(ctx-&gt;ccm_pt_buf, out, pt_len);</span>
+<span class="lineNum">     579 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (rv != CRYPTO_SUCCESS)</span>
+<span class="lineNum">     580 </span>                :            :                         return (rv);
+<span class="lineNum">     581 </span>                :<span class="lineNoCov">          0 :                 out-&gt;cd_offset += pt_len;</span>
+<span class="lineNum">     582 </span>                :            :         }
+<span class="lineNum">     583 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     584 </span>                :            : }
+<a name="585"><span class="lineNum">     585 </span>                :            : </a>
+<span class="lineNum">     586 </span>                :            : int
+<span class="lineNum">     587 </span>                :<span class="lineNoCov">          0 : ccm_validate_args(CK_AES_CCM_PARAMS *ccm_param, boolean_t is_encrypt_init)</span>
+<span class="lineNum">     588 </span>                :            : {
+<span class="lineNum">     589 </span>                :            :         size_t macSize, nonceSize;
+<span class="lineNum">     590 </span>                :            :         uint8_t q;
+<span class="lineNum">     591 </span>                :            :         uint64_t maxValue;
+<span class="lineNum">     592 </span>                :            : 
+<span class="lineNum">     593 </span>                :            :         /*
+<span class="lineNum">     594 </span>                :            :          * Check the length of the MAC.  The only valid
+<span class="lineNum">     595 </span>                :            :          * lengths for the MAC are: 4, 6, 8, 10, 12, 14, 16
+<span class="lineNum">     596 </span>                :            :          */
+<span class="lineNum">     597 </span>                :<span class="lineNoCov">          0 :         macSize = ccm_param-&gt;ulMACSize;</span>
+<span class="lineNum">     598 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((macSize &lt; 4) || (macSize &gt; 16) || ((macSize % 2) != 0)) {</span>
+<span class="lineNum">     599 </span>                :            :                 return (CRYPTO_MECHANISM_PARAM_INVALID);
+<span class="lineNum">     600 </span>                :            :         }
+<span class="lineNum">     601 </span>                :            : 
+<span class="lineNum">     602 </span>                :            :         /* Check the nonce length.  Valid values are 7, 8, 9, 10, 11, 12, 13 */
+<span class="lineNum">     603 </span>                :<span class="lineNoCov">          0 :         nonceSize = ccm_param-&gt;ulNonceSize;</span>
+<span class="lineNum">     604 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((nonceSize &lt; 7) || (nonceSize &gt; 13)) {</span>
+<span class="lineNum">     605 </span>                :            :                 return (CRYPTO_MECHANISM_PARAM_INVALID);
+<span class="lineNum">     606 </span>                :            :         }
+<span class="lineNum">     607 </span>                :            : 
+<span class="lineNum">     608 </span>                :            :         /* q is the length of the field storing the length, in bytes */
+<span class="lineNum">     609 </span>                :<span class="lineNoCov">          0 :         q = (uint8_t)((15 - nonceSize) &amp; 0xFF);</span>
+<span class="lineNum">     610 </span>                :            : 
+<span class="lineNum">     611 </span>                :            : 
+<span class="lineNum">     612 </span>                :            :         /*
+<span class="lineNum">     613 </span>                :            :          * If it is decrypt, need to make sure size of ciphertext is at least
+<span class="lineNum">     614 </span>                :            :          * bigger than MAC len
+<span class="lineNum">     615 </span>                :            :          */
+<span class="lineNum">     616 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((!is_encrypt_init) &amp;&amp; (ccm_param-&gt;ulDataSize &lt; macSize)) {</span>
+<span class="lineNum">     617 </span>                :            :                 return (CRYPTO_MECHANISM_PARAM_INVALID);
+<span class="lineNum">     618 </span>                :            :         }
+<span class="lineNum">     619 </span>                :            : 
+<span class="lineNum">     620 </span>                :            :         /*
+<span class="lineNum">     621 </span>                :            :          * Check to make sure the length of the payload is within the
+<span class="lineNum">     622 </span>                :            :          * range of values allowed by q
+<span class="lineNum">     623 </span>                :            :          */
+<span class="lineNum">     624 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (q &lt; 8) {</span>
+<span class="lineNum">     625 </span>                :<span class="lineNoCov">          0 :                 maxValue = (1ULL &lt;&lt; (q * 8)) - 1;</span>
+<span class="lineNum">     626 </span>                :            :         } else {
+<span class="lineNum">     627 </span>                :            :                 maxValue = ULONG_MAX;
+<span class="lineNum">     628 </span>                :            :         }
+<span class="lineNum">     629 </span>                :            : 
+<span class="lineNum">     630 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ccm_param-&gt;ulDataSize &gt; maxValue) {</span>
+<span class="lineNum">     631 </span>                :            :                 return (CRYPTO_MECHANISM_PARAM_INVALID);
+<span class="lineNum">     632 </span>                :            :         }
+<span class="lineNum">     633 </span>                :<span class="lineNoCov">          0 :         return (CRYPTO_SUCCESS);</span>
+<span class="lineNum">     634 </span>                :            : }
+<span class="lineNum">     635 </span>                :            : 
+<span class="lineNum">     636 </span>                :            : /*
+<span class="lineNum">     637 </span>                :            :  * Format the first block used in CBC-MAC (B0) and the initial counter
+<span class="lineNum">     638 </span>                :            :  * block based on formatting functions and counter generation functions
+<span class="lineNum">     639 </span>                :            :  * specified in RFC 3610 and NIST publication 800-38C, appendix A
+<span class="lineNum">     640 </span>                :            :  *
+<span class="lineNum">     641 </span>                :            :  * b0 is the first block used in CBC-MAC
+<span class="lineNum">     642 </span>                :            :  * cb0 is the first counter block
+<span class="lineNum">     643 </span>                :            :  *
+<span class="lineNum">     644 </span>                :            :  * It's assumed that the arguments b0 and cb0 are preallocated AES blocks
+<span class="lineNum">     645 </span>                :            :  *
+<a name="646"><span class="lineNum">     646 </span>                :            :  */</a>
+<span class="lineNum">     647 </span>                :            : static void
+<span class="lineNum">     648 </span>                :<span class="lineNoCov">          0 : ccm_format_initial_blocks(uchar_t *nonce, ulong_t nonceSize,</span>
+<span class="lineNum">     649 </span>                :            :     ulong_t authDataSize, uint8_t *b0, ccm_ctx_t *aes_ctx)
+<span class="lineNum">     650 </span>                :            : {
+<span class="lineNum">     651 </span>                :            :         uint64_t payloadSize;
+<span class="lineNum">     652 </span>                :<span class="lineNoCov">          0 :         uint8_t t, q, have_adata = 0;</span>
+<span class="lineNum">     653 </span>                :            :         size_t limit;
+<span class="lineNum">     654 </span>                :            :         int i, j, k;
+<span class="lineNum">     655 </span>                :<span class="lineNoCov">          0 :         uint64_t mask = 0;</span>
+<span class="lineNum">     656 </span>                :            :         uint8_t *cb;
+<span class="lineNum">     657 </span>                :            : 
+<span class="lineNum">     658 </span>                :<span class="lineNoCov">          0 :         q = (uint8_t)((15 - nonceSize) &amp; 0xFF);</span>
+<span class="lineNum">     659 </span>                :<span class="lineNoCov">          0 :         t = (uint8_t)((aes_ctx-&gt;ccm_mac_len) &amp; 0xFF);</span>
+<span class="lineNum">     660 </span>                :            : 
+<span class="lineNum">     661 </span>                :            :         /* Construct the first octet of b0 */
+<span class="lineNum">     662 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (authDataSize &gt; 0) {</span>
+<span class="lineNum">     663 </span>                :<span class="lineNoCov">          0 :                 have_adata = 1;</span>
+<span class="lineNum">     664 </span>                :            :         }
+<span class="lineNum">     665 </span>                :<span class="lineNoCov">          0 :         b0[0] = (have_adata &lt;&lt; 6) | (((t - 2)  / 2) &lt;&lt; 3) | (q - 1);</span>
+<span class="lineNum">     666 </span>                :            : 
+<span class="lineNum">     667 </span>                :            :         /* copy the nonce value into b0 */
+<span class="lineNum">     668 </span>                :<span class="lineNoCov">          0 :         bcopy(nonce, &amp;(b0[1]), nonceSize);</span>
+<span class="lineNum">     669 </span>                :            : 
+<span class="lineNum">     670 </span>                :            :         /* store the length of the payload into b0 */
+<span class="lineNum">     671 </span>                :<span class="lineNoCov">          0 :         bzero(&amp;(b0[1+nonceSize]), q);</span>
+<span class="lineNum">     672 </span>                :            : 
+<span class="lineNum">     673 </span>                :<span class="lineNoCov">          0 :         payloadSize = aes_ctx-&gt;ccm_data_len;</span>
+<span class="lineNum">     674 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         limit = 8 &lt; q ? 8 : q;</span>
+<span class="lineNum">     675 </span>                :            : 
+<span class="lineNum">     676 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (i = 0, j = 0, k = 15; i &lt; limit; i++, j += 8, k--) {</span>
+<span class="lineNum">     677 </span>                :<span class="lineNoCov">          0 :                 b0[k] = (uint8_t)((payloadSize &gt;&gt; j) &amp; 0xFF);</span>
+<span class="lineNum">     678 </span>                :            :         }
+<span class="lineNum">     679 </span>                :            : 
+<span class="lineNum">     680 </span>                :            :         /* format the counter block */
+<span class="lineNum">     681 </span>                :            : 
+<span class="lineNum">     682 </span>                :<span class="lineNoCov">          0 :         cb = (uint8_t *)aes_ctx-&gt;ccm_cb;</span>
+<span class="lineNum">     683 </span>                :            : 
+<span class="lineNum">     684 </span>                :<span class="lineNoCov">          0 :         cb[0] = 0x07 &amp; (q-1); /* first byte */</span>
+<span class="lineNum">     685 </span>                :            : 
+<span class="lineNum">     686 </span>                :            :         /* copy the nonce value into the counter block */
+<span class="lineNum">     687 </span>                :<span class="lineNoCov">          0 :         bcopy(nonce, &amp;(cb[1]), nonceSize);</span>
+<span class="lineNum">     688 </span>                :            : 
+<span class="lineNum">     689 </span>                :<span class="lineNoCov">          0 :         bzero(&amp;(cb[1+nonceSize]), q);</span>
+<span class="lineNum">     690 </span>                :            : 
+<span class="lineNum">     691 </span>                :            :         /* Create the mask for the counter field based on the size of nonce */
+<span class="lineNum">     692 </span>                :<span class="lineNoCov">          0 :         q &lt;&lt;= 3;</span>
+<span class="lineNum">     693 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         while (q-- &gt; 0) {</span>
+<span class="lineNum">     694 </span>                :<span class="lineNoCov">          0 :                 mask |= (1ULL &lt;&lt; q);</span>
+<span class="lineNum">     695 </span>                :            :         }
+<span class="lineNum">     696 </span>                :            : 
+<span class="lineNum">     697 </span>                :            : #ifdef _LITTLE_ENDIAN
+<span class="lineNum">     698 </span>                :<span class="lineNoCov">          0 :         mask = htonll(mask);</span>
+<span class="lineNum">     699 </span>                :            : #endif
+<span class="lineNum">     700 </span>                :<span class="lineNoCov">          0 :         aes_ctx-&gt;ccm_counter_mask = mask;</span>
+<span class="lineNum">     701 </span>                :            : 
+<span class="lineNum">     702 </span>                :            :         /*
+<span class="lineNum">     703 </span>                :            :          * During calculation, we start using counter block 1, we will
+<span class="lineNum">     704 </span>                :            :          * set it up right here.
+<span class="lineNum">     705 </span>                :            :          * We can just set the last byte to have the value 1, because
+<span class="lineNum">     706 </span>                :            :          * even with the biggest nonce of 13, the last byte of the
+<span class="lineNum">     707 </span>                :            :          * counter block will be used for the counter value.
+<span class="lineNum">     708 </span>                :            :          */
+<span class="lineNum">     709 </span>                :<span class="lineNoCov">          0 :         cb[15] = 0x01;</span>
+<span class="lineNum">     710 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     711 </span>                :            : 
+<span class="lineNum">     712 </span>                :            : /*
+<span class="lineNum">     713 </span>                :            :  * Encode the length of the associated data as
+<span class="lineNum">     714 </span>                :            :  * specified in RFC 3610 and NIST publication 800-38C, appendix A
+<a name="715"><span class="lineNum">     715 </span>                :            :  */</a>
+<span class="lineNum">     716 </span>                :            : static void
+<span class="lineNum">     717 </span>                :<span class="lineNoCov">          0 : encode_adata_len(ulong_t auth_data_len, uint8_t *encoded, size_t *encoded_len)</span>
+<span class="lineNum">     718 </span>                :            : {
+<span class="lineNum">     719 </span>                :            : #ifdef UNALIGNED_POINTERS_PERMITTED
+<span class="lineNum">     720 </span>                :            :         uint32_t        *lencoded_ptr;
+<span class="lineNum">     721 </span>                :            : #ifdef _LP64
+<span class="lineNum">     722 </span>                :            :         uint64_t        *llencoded_ptr;
+<span class="lineNum">     723 </span>                :            : #endif
+<span class="lineNum">     724 </span>                :            : #endif  /* UNALIGNED_POINTERS_PERMITTED */
+<span class="lineNum">     725 </span>                :            : 
+<span class="lineNum">     726 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (auth_data_len &lt; ((1ULL&lt;&lt;16) - (1ULL&lt;&lt;8))) {</span>
+<span class="lineNum">     727 </span>                :            :                 /* 0 &lt; a &lt; (2^16-2^8) */
+<span class="lineNum">     728 </span>                :<span class="lineNoCov">          0 :                 *encoded_len = 2;</span>
+<span class="lineNum">     729 </span>                :<span class="lineNoCov">          0 :                 encoded[0] = (auth_data_len &amp; 0xff00) &gt;&gt; 8;</span>
+<span class="lineNum">     730 </span>                :<span class="lineNoCov">          0 :                 encoded[1] = auth_data_len &amp; 0xff;</span>
+<span class="lineNum">     731 </span>                :            : 
+<span class="lineNum">     732 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } else if ((auth_data_len &gt;= ((1ULL&lt;&lt;16) - (1ULL&lt;&lt;8))) &amp;&amp;</span>
+<span class="lineNum">     733 </span>                :            :             (auth_data_len &lt; (1ULL &lt;&lt; 31))) {
+<span class="lineNum">     734 </span>                :            :                 /* (2^16-2^8) &lt;= a &lt; 2^32 */
+<span class="lineNum">     735 </span>                :<span class="lineNoCov">          0 :                 *encoded_len = 6;</span>
+<span class="lineNum">     736 </span>                :<span class="lineNoCov">          0 :                 encoded[0] = 0xff;</span>
+<span class="lineNum">     737 </span>                :<span class="lineNoCov">          0 :                 encoded[1] = 0xfe;</span>
+<span class="lineNum">     738 </span>                :            : #ifdef UNALIGNED_POINTERS_PERMITTED
+<span class="lineNum">     739 </span>                :<span class="lineNoCov">          0 :                 lencoded_ptr = (uint32_t *)&amp;encoded[2];</span>
+<span class="lineNum">     740 </span>                :<span class="lineNoCov">          0 :                 *lencoded_ptr = htonl(auth_data_len);</span>
+<span class="lineNum">     741 </span>                :            : #else
+<span class="lineNum">     742 </span>                :            :                 encoded[2] = (auth_data_len &amp; 0xff000000) &gt;&gt; 24;
+<span class="lineNum">     743 </span>                :            :                 encoded[3] = (auth_data_len &amp; 0xff0000) &gt;&gt; 16;
+<span class="lineNum">     744 </span>                :            :                 encoded[4] = (auth_data_len &amp; 0xff00) &gt;&gt; 8;
+<span class="lineNum">     745 </span>                :            :                 encoded[5] = auth_data_len &amp; 0xff;
+<span class="lineNum">     746 </span>                :            : #endif  /* UNALIGNED_POINTERS_PERMITTED */
+<span class="lineNum">     747 </span>                :            : 
+<span class="lineNum">     748 </span>                :            : #ifdef _LP64
+<span class="lineNum">     749 </span>                :            :         } else {
+<span class="lineNum">     750 </span>                :            :                 /* 2^32 &lt;= a &lt; 2^64 */
+<span class="lineNum">     751 </span>                :<span class="lineNoCov">          0 :                 *encoded_len = 10;</span>
+<span class="lineNum">     752 </span>                :<span class="lineNoCov">          0 :                 encoded[0] = 0xff;</span>
+<span class="lineNum">     753 </span>                :<span class="lineNoCov">          0 :                 encoded[1] = 0xff;</span>
+<span class="lineNum">     754 </span>                :            : #ifdef UNALIGNED_POINTERS_PERMITTED
+<span class="lineNum">     755 </span>                :<span class="lineNoCov">          0 :                 llencoded_ptr = (uint64_t *)&amp;encoded[2];</span>
+<span class="lineNum">     756 </span>                :<span class="lineNoCov">          0 :                 *llencoded_ptr = htonl(auth_data_len);</span>
+<span class="lineNum">     757 </span>                :            : #else
+<span class="lineNum">     758 </span>                :            :                 encoded[2] = (auth_data_len &amp; 0xff00000000000000) &gt;&gt; 56;
+<span class="lineNum">     759 </span>                :            :                 encoded[3] = (auth_data_len &amp; 0xff000000000000) &gt;&gt; 48;
+<span class="lineNum">     760 </span>                :            :                 encoded[4] = (auth_data_len &amp; 0xff0000000000) &gt;&gt; 40;
+<span class="lineNum">     761 </span>                :            :                 encoded[5] = (auth_data_len &amp; 0xff00000000) &gt;&gt; 32;
+<span class="lineNum">     762 </span>                :            :                 encoded[6] = (auth_data_len &amp; 0xff000000) &gt;&gt; 24;
+<span class="lineNum">     763 </span>                :            :                 encoded[7] = (auth_data_len &amp; 0xff0000) &gt;&gt; 16;
+<span class="lineNum">     764 </span>                :            :                 encoded[8] = (auth_data_len &amp; 0xff00) &gt;&gt; 8;
+<span class="lineNum">     765 </span>                :            :                 encoded[9] = auth_data_len &amp; 0xff;
+<span class="lineNum">     766 </span>                :            : #endif  /* UNALIGNED_POINTERS_PERMITTED */
+<span class="lineNum">     767 </span>                :            : #endif  /* _LP64 */
+<span class="lineNum">     768 </span>                :            :         }
+<span class="lineNum">     769 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     770 </span>                :            : 
+<span class="lineNum">     771 </span>                :            : /*
+<span class="lineNum">     772 </span>                :            :  * The following function should be call at encrypt or decrypt init time
+<span class="lineNum">     773 </span>                :            :  * for AES CCM mode.
+<a name="774"><span class="lineNum">     774 </span>                :            :  */</a>
+<span class="lineNum">     775 </span>                :            : int
+<span class="lineNum">     776 </span>                :<span class="lineNoCov">          0 : ccm_init(ccm_ctx_t *ctx, unsigned char *nonce, size_t nonce_len,</span>
+<span class="lineNum">     777 </span>                :            :     unsigned char *auth_data, size_t auth_data_len, size_t block_size,
+<span class="lineNum">     778 </span>                :            :     int (*encrypt_block)(const void *, const uint8_t *, uint8_t *),
+<span class="lineNum">     779 </span>                :            :     void (*xor_block)(uint8_t *, uint8_t *))
+<span class="lineNum">     780 </span>                :            : {
+<span class="lineNum">     781 </span>                :            :         uint8_t *mac_buf, *datap, *ivp, *authp;
+<span class="lineNum">     782 </span>                :            :         size_t remainder, processed;
+<span class="lineNum">     783 </span>                :            :         uint8_t encoded_a[10]; /* max encoded auth data length is 10 octets */
+<span class="lineNum">     784 </span>                :<span class="lineNoCov">          0 :         size_t encoded_a_len = 0;</span>
+<span class="lineNum">     785 </span>                :            : 
+<span class="lineNum">     786 </span>                :<span class="lineNoCov">          0 :         mac_buf = (uint8_t *)&amp;(ctx-&gt;ccm_mac_buf);</span>
+<span class="lineNum">     787 </span>                :            : 
+<span class="lineNum">     788 </span>                :            :         /*
+<span class="lineNum">     789 </span>                :            :          * Format the 1st block for CBC-MAC and construct the
+<span class="lineNum">     790 </span>                :            :          * 1st counter block.
+<span class="lineNum">     791 </span>                :            :          *
+<span class="lineNum">     792 </span>                :            :          * aes_ctx-&gt;ccm_iv is used for storing the counter block
+<span class="lineNum">     793 </span>                :            :          * mac_buf will store b0 at this time.
+<span class="lineNum">     794 </span>                :            :          */
+<span class="lineNum">     795 </span>                :<span class="lineNoCov">          0 :         ccm_format_initial_blocks(nonce, nonce_len,</span>
+<span class="lineNum">     796 </span>                :            :             auth_data_len, mac_buf, ctx);
+<span class="lineNum">     797 </span>                :            : 
+<span class="lineNum">     798 </span>                :            :         /* The IV for CBC MAC for AES CCM mode is always zero */
+<span class="lineNum">     799 </span>                :<span class="lineNoCov">          0 :         ivp = (uint8_t *)ctx-&gt;ccm_tmp;</span>
+<span class="lineNum">     800 </span>                :<span class="lineNoCov">          0 :         bzero(ivp, block_size);</span>
+<span class="lineNum">     801 </span>                :            : 
+<span class="lineNum">     802 </span>                :<span class="lineNoCov">          0 :         xor_block(ivp, mac_buf);</span>
+<span class="lineNum">     803 </span>                :            : 
+<span class="lineNum">     804 </span>                :            :         /* encrypt the nonce */
+<span class="lineNum">     805 </span>                :<span class="lineNoCov">          0 :         encrypt_block(ctx-&gt;ccm_keysched, mac_buf, mac_buf);</span>
+<span class="lineNum">     806 </span>                :            : 
+<span class="lineNum">     807 </span>                :            :         /* take care of the associated data, if any */
+<span class="lineNum">     808 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (auth_data_len == 0) {</span>
+<span class="lineNum">     809 </span>                :            :                 return (CRYPTO_SUCCESS);
+<span class="lineNum">     810 </span>                :            :         }
+<span class="lineNum">     811 </span>                :            : 
+<span class="lineNum">     812 </span>                :<span class="lineNoCov">          0 :         encode_adata_len(auth_data_len, encoded_a, &amp;encoded_a_len);</span>
+<span class="lineNum">     813 </span>                :            : 
+<span class="lineNum">     814 </span>                :<span class="lineNoCov">          0 :         remainder = auth_data_len;</span>
+<span class="lineNum">     815 </span>                :            : 
+<span class="lineNum">     816 </span>                :            :         /* 1st block: it contains encoded associated data, and some data */
+<span class="lineNum">     817 </span>                :<span class="lineNoCov">          0 :         authp = (uint8_t *)ctx-&gt;ccm_tmp;</span>
+<span class="lineNum">     818 </span>                :<span class="lineNoCov">          0 :         bzero(authp, block_size);</span>
+<span class="lineNum">     819 </span>                :<span class="lineNoCov">          0 :         bcopy(encoded_a, authp, encoded_a_len);</span>
+<span class="lineNum">     820 </span>                :<span class="lineNoCov">          0 :         processed = block_size - encoded_a_len;</span>
+<span class="lineNum">     821 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (processed &gt; auth_data_len) {</span>
+<span class="lineNum">     822 </span>                :            :                 /* in case auth_data is very small */
+<span class="lineNum">     823 </span>                :<span class="lineNoCov">          0 :                 processed = auth_data_len;</span>
+<span class="lineNum">     824 </span>                :            :         }
+<span class="lineNum">     825 </span>                :<span class="lineNoCov">          0 :         bcopy(auth_data, authp+encoded_a_len, processed);</span>
+<span class="lineNum">     826 </span>                :            :         /* xor with previous buffer */
+<span class="lineNum">     827 </span>                :<span class="lineNoCov">          0 :         xor_block(authp, mac_buf);</span>
+<span class="lineNum">     828 </span>                :<span class="lineNoCov">          0 :         encrypt_block(ctx-&gt;ccm_keysched, mac_buf, mac_buf);</span>
+<span class="lineNum">     829 </span>                :<span class="lineNoCov">          0 :         remainder -= processed;</span>
+<span class="lineNum">     830 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (remainder == 0) {</span>
+<span class="lineNum">     831 </span>                :            :                 /* a small amount of associated data, it's all done now */
+<span class="lineNum">     832 </span>                :            :                 return (CRYPTO_SUCCESS);
+<span class="lineNum">     833 </span>                :            :         }
+<span class="lineNum">     834 </span>                :            : 
+<span class="lineNum">     835 </span>                :            :         do {
+<span class="lineNum">     836 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (remainder &lt; block_size) {</span>
+<span class="lineNum">     837 </span>                :            :                         /*
+<span class="lineNum">     838 </span>                :            :                          * There's not a block full of data, pad rest of
+<span class="lineNum">     839 </span>                :            :                          * buffer with zero
+<span class="lineNum">     840 </span>                :            :                          */
+<span class="lineNum">     841 </span>                :<span class="lineNoCov">          0 :                         bzero(authp, block_size);</span>
+<span class="lineNum">     842 </span>                :<span class="lineNoCov">          0 :                         bcopy(&amp;(auth_data[processed]), authp, remainder);</span>
+<span class="lineNum">     843 </span>                :<span class="lineNoCov">          0 :                         datap = (uint8_t *)authp;</span>
+<span class="lineNum">     844 </span>                :<span class="lineNoCov">          0 :                         remainder = 0;</span>
+<span class="lineNum">     845 </span>                :            :                 } else {
+<span class="lineNum">     846 </span>                :<span class="lineNoCov">          0 :                         datap = (uint8_t *)(&amp;(auth_data[processed]));</span>
+<span class="lineNum">     847 </span>                :<span class="lineNoCov">          0 :                         processed += block_size;</span>
+<span class="lineNum">     848 </span>                :<span class="lineNoCov">          0 :                         remainder -= block_size;</span>
+<span class="lineNum">     849 </span>                :            :                 }
+<span class="lineNum">     850 </span>                :            : 
+<span class="lineNum">     851 </span>                :<span class="lineNoCov">          0 :                 xor_block(datap, mac_buf);</span>
+<span class="lineNum">     852 </span>                :<span class="lineNoCov">          0 :                 encrypt_block(ctx-&gt;ccm_keysched, mac_buf, mac_buf);</span>
+<span class="lineNum">     853 </span>                :            : 
+<span class="lineNum">     854 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         } while (remainder &gt; 0);</span>
+<span class="lineNum">     855 </span>                :            : 
+<span class="lineNum">     856 </span>                :            :         return (CRYPTO_SUCCESS);
+<span class="lineNum">     857 </span>                :            : }
+<a name="858"><span class="lineNum">     858 </span>                :            : </a>
+<span class="lineNum">     859 </span>                :            : int
+<span class="lineNum">     860 </span>                :<span class="lineNoCov">          0 : ccm_init_ctx(ccm_ctx_t *ccm_ctx, char *param, int kmflag,</span>
+<span class="lineNum">     861 </span>                :            :     boolean_t is_encrypt_init, size_t block_size,
+<span class="lineNum">     862 </span>                :            :     int (*encrypt_block)(const void *, const uint8_t *, uint8_t *),
+<span class="lineNum">     863 </span>                :            :     void (*xor_block)(uint8_t *, uint8_t *))
+<span class="lineNum">     864 </span>                :            : {
+<span class="lineNum">     865 </span>                :            :         int rv;
+<span class="lineNum">     866 </span>                :            :         CK_AES_CCM_PARAMS *ccm_param;
+<span class="lineNum">     867 </span>                :            : 
+<span class="lineNum">     868 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (param != NULL) {</span>
+<span class="lineNum">     869 </span>                :<span class="lineNoCov">          0 :                 ccm_param = (CK_AES_CCM_PARAMS *)param;</span>
+<span class="lineNum">     870 </span>                :            : 
+<span class="lineNum">     871 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if ((rv = ccm_validate_args(ccm_param,</span>
+<span class="lineNum">     872 </span>                :            :                     is_encrypt_init)) != 0) {
+<span class="lineNum">     873 </span>                :            :                         return (rv);
+<span class="lineNum">     874 </span>                :            :                 }
+<span class="lineNum">     875 </span>                :            : 
+<span class="lineNum">     876 </span>                :<span class="lineNoCov">          0 :                 ccm_ctx-&gt;ccm_mac_len = ccm_param-&gt;ulMACSize;</span>
+<span class="lineNum">     877 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (is_encrypt_init) {</span>
+<span class="lineNum">     878 </span>                :<span class="lineNoCov">          0 :                         ccm_ctx-&gt;ccm_data_len = ccm_param-&gt;ulDataSize;</span>
+<span class="lineNum">     879 </span>                :            :                 } else {
+<span class="lineNum">     880 </span>                :<span class="lineNoCov">          0 :                         ccm_ctx-&gt;ccm_data_len =</span>
+<span class="lineNum">     881 </span>                :<span class="lineNoCov">          0 :                             ccm_param-&gt;ulDataSize - ccm_ctx-&gt;ccm_mac_len;</span>
+<span class="lineNum">     882 </span>                :<span class="lineNoCov">          0 :                         ccm_ctx-&gt;ccm_processed_mac_len = 0;</span>
+<span class="lineNum">     883 </span>                :            :                 }
+<span class="lineNum">     884 </span>                :<span class="lineNoCov">          0 :                 ccm_ctx-&gt;ccm_processed_data_len = 0;</span>
+<span class="lineNum">     885 </span>                :            : 
+<span class="lineNum">     886 </span>                :<span class="lineNoCov">          0 :                 ccm_ctx-&gt;ccm_flags |= CCM_MODE;</span>
+<span class="lineNum">     887 </span>                :            :         } else {
+<span class="lineNum">     888 </span>                :            :                 rv = CRYPTO_MECHANISM_PARAM_INVALID;
+<span class="lineNum">     889 </span>                :            :                 goto out;
+<span class="lineNum">     890 </span>                :            :         }
+<span class="lineNum">     891 </span>                :            : 
+<span class="lineNum">     892 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (ccm_init(ccm_ctx, ccm_param-&gt;nonce, ccm_param-&gt;ulNonceSize,</span>
+<span class="lineNum">     893 </span>                :<span class="lineNoCov">          0 :             ccm_param-&gt;authData, ccm_param-&gt;ulAuthDataSize, block_size,</span>
+<span class="lineNum">     894 </span>                :            :             encrypt_block, xor_block) != 0) {
+<span class="lineNum">     895 </span>                :            :                 rv = CRYPTO_MECHANISM_PARAM_INVALID;
+<span class="lineNum">     896 </span>                :            :                 goto out;
+<span class="lineNum">     897 </span>                :            :         }
+<span class="lineNum">     898 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (!is_encrypt_init) {</span>
+<span class="lineNum">     899 </span>                :            :                 /* allocate buffer for storing decrypted plaintext */
+<span class="lineNum">     900 </span>                :<span class="lineNoCov">          0 :                 ccm_ctx-&gt;ccm_pt_buf = vmem_alloc(ccm_ctx-&gt;ccm_data_len,</span>
+<span class="lineNum">     901 </span>                :            :                     kmflag);
+<span class="lineNum">     902 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (ccm_ctx-&gt;ccm_pt_buf == NULL) {</span>
+<span class="lineNum">     903 </span>                :<span class="lineNoCov">          0 :                         rv = CRYPTO_HOST_MEMORY;</span>
+<span class="lineNum">     904 </span>                :            :                 }
+<span class="lineNum">     905 </span>                :            :         }
+<span class="lineNum">     906 </span>                :            : out:
+<span class="lineNum">     907 </span>                :            :         return (rv);
+<span class="lineNum">     908 </span>                :            : }
+<a name="909"><span class="lineNum">     909 </span>                :            : </a>
+<span class="lineNum">     910 </span>                :            : void *
+<span class="lineNum">     911 </span>                :<span class="lineNoCov">          0 : ccm_alloc_ctx(int kmflag)</span>
+<span class="lineNum">     912 </span>                :            : {
+<span class="lineNum">     913 </span>                :            :         ccm_ctx_t *ccm_ctx;
+<span class="lineNum">     914 </span>                :            : 
+<span class="lineNum">     915 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if ((ccm_ctx = kmem_zalloc(sizeof (ccm_ctx_t), kmflag)) == NULL)</span>
+<span class="lineNum">     916 </span>                :            :                 return (NULL);
+<span class="lineNum">     917 </span>                :            : 
+<span class="lineNum">     918 </span>                :<span class="lineNoCov">          0 :         ccm_ctx-&gt;ccm_flags = CCM_MODE;</span>
+<span class="lineNum">     919 </span>                :<span class="lineNoCov">          0 :         return (ccm_ctx);</span>
+<span class="lineNum">     920 </span>                :            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

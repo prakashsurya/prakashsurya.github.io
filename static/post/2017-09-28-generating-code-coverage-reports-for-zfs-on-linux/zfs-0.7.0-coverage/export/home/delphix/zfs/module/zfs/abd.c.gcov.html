@@ -1,0 +1,1635 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/abd.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - abd.c<span style="font-size: 80%;"> (source / <a href="abd.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">423</td>
+            <td class="headerCovTableEntry">430</td>
+            <td class="headerCovTableEntryHi">98.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">51</td>
+            <td class="headerCovTableEntry">51</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">158</td>
+            <td class="headerCovTableEntry">218</td>
+            <td class="headerCovTableEntryLo">72.5 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2014 by Chunwei Chen. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright (c) 2016 by Delphix. All rights reserved.
+<span class="lineNum">      24 </span>                :            :  */
+<span class="lineNum">      25 </span>                :            : 
+<span class="lineNum">      26 </span>                :            : /*
+<span class="lineNum">      27 </span>                :            :  * ARC buffer data (ABD).
+<span class="lineNum">      28 </span>                :            :  *
+<span class="lineNum">      29 </span>                :            :  * ABDs are an abstract data structure for the ARC which can use two
+<span class="lineNum">      30 </span>                :            :  * different ways of storing the underlying data:
+<span class="lineNum">      31 </span>                :            :  *
+<span class="lineNum">      32 </span>                :            :  * (a) Linear buffer. In this case, all the data in the ABD is stored in one
+<span class="lineNum">      33 </span>                :            :  *     contiguous buffer in memory (from a zio_[data_]buf_* kmem cache).
+<span class="lineNum">      34 </span>                :            :  *
+<span class="lineNum">      35 </span>                :            :  *         +-------------------+
+<span class="lineNum">      36 </span>                :            :  *         | ABD (linear)      |
+<span class="lineNum">      37 </span>                :            :  *         |   abd_flags = ... |
+<span class="lineNum">      38 </span>                :            :  *         |   abd_size = ...  |     +--------------------------------+
+<span class="lineNum">      39 </span>                :            :  *         |   abd_buf -------------&gt;| raw buffer of size abd_size    |
+<span class="lineNum">      40 </span>                :            :  *         +-------------------+     +--------------------------------+
+<span class="lineNum">      41 </span>                :            :  *              no abd_chunks
+<span class="lineNum">      42 </span>                :            :  *
+<span class="lineNum">      43 </span>                :            :  * (b) Scattered buffer. In this case, the data in the ABD is split into
+<span class="lineNum">      44 </span>                :            :  *     equal-sized chunks (from the abd_chunk_cache kmem_cache), with pointers
+<span class="lineNum">      45 </span>                :            :  *     to the chunks recorded in an array at the end of the ABD structure.
+<span class="lineNum">      46 </span>                :            :  *
+<span class="lineNum">      47 </span>                :            :  *         +-------------------+
+<span class="lineNum">      48 </span>                :            :  *         | ABD (scattered)   |
+<span class="lineNum">      49 </span>                :            :  *         |   abd_flags = ... |
+<span class="lineNum">      50 </span>                :            :  *         |   abd_size = ...  |
+<span class="lineNum">      51 </span>                :            :  *         |   abd_offset = 0  |                           +-----------+
+<span class="lineNum">      52 </span>                :            :  *         |   abd_chunks[0] -----------------------------&gt;| chunk 0   |
+<span class="lineNum">      53 </span>                :            :  *         |   abd_chunks[1] ---------------------+        +-----------+
+<span class="lineNum">      54 </span>                :            :  *         |   ...             |                  |        +-----------+
+<span class="lineNum">      55 </span>                :            :  *         |   abd_chunks[N-1] ---------+         +-------&gt;| chunk 1   |
+<span class="lineNum">      56 </span>                :            :  *         +-------------------+        |                  +-----------+
+<span class="lineNum">      57 </span>                :            :  *                                      |                      ...
+<span class="lineNum">      58 </span>                :            :  *                                      |                  +-----------+
+<span class="lineNum">      59 </span>                :            :  *                                      +-----------------&gt;| chunk N-1 |
+<span class="lineNum">      60 </span>                :            :  *                                                         +-----------+
+<span class="lineNum">      61 </span>                :            :  *
+<span class="lineNum">      62 </span>                :            :  * Linear buffers act exactly like normal buffers and are always mapped into the
+<span class="lineNum">      63 </span>                :            :  * kernel's virtual memory space, while scattered ABD data chunks are allocated
+<span class="lineNum">      64 </span>                :            :  * as physical pages and then mapped in only while they are actually being
+<span class="lineNum">      65 </span>                :            :  * accessed through one of the abd_* library functions. Using scattered ABDs
+<span class="lineNum">      66 </span>                :            :  * provides several benefits:
+<span class="lineNum">      67 </span>                :            :  *
+<span class="lineNum">      68 </span>                :            :  *  (1) They avoid use of kmem_*, preventing performance problems where running
+<span class="lineNum">      69 </span>                :            :  *      kmem_reap on very large memory systems never finishes and causes
+<span class="lineNum">      70 </span>                :            :  *      constant TLB shootdowns.
+<span class="lineNum">      71 </span>                :            :  *
+<span class="lineNum">      72 </span>                :            :  *  (2) Fragmentation is less of an issue since when we are at the limit of
+<span class="lineNum">      73 </span>                :            :  *      allocatable space, we won't have to search around for a long free
+<span class="lineNum">      74 </span>                :            :  *      hole in the VA space for large ARC allocations. Each chunk is mapped in
+<span class="lineNum">      75 </span>                :            :  *      individually, so even if we weren't using segkpm (see next point) we
+<span class="lineNum">      76 </span>                :            :  *      wouldn't need to worry about finding a contiguous address range.
+<span class="lineNum">      77 </span>                :            :  *
+<span class="lineNum">      78 </span>                :            :  *  (3) Use of segkpm will avoid the need for map / unmap / TLB shootdown costs
+<span class="lineNum">      79 </span>                :            :  *      on each ABD access. (If segkpm isn't available then we use all linear
+<span class="lineNum">      80 </span>                :            :  *      ABDs to avoid this penalty.) See seg_kpm.c for more details.
+<span class="lineNum">      81 </span>                :            :  *
+<span class="lineNum">      82 </span>                :            :  * It is possible to make all ABDs linear by setting zfs_abd_scatter_enabled to
+<span class="lineNum">      83 </span>                :            :  * B_FALSE. However, it is not possible to use scattered ABDs if segkpm is not
+<span class="lineNum">      84 </span>                :            :  * available, which is the case on all 32-bit systems and any 64-bit systems
+<span class="lineNum">      85 </span>                :            :  * where kpm_enable is turned off.
+<span class="lineNum">      86 </span>                :            :  *
+<span class="lineNum">      87 </span>                :            :  * In addition to directly allocating a linear or scattered ABD, it is also
+<span class="lineNum">      88 </span>                :            :  * possible to create an ABD by requesting the &quot;sub-ABD&quot; starting at an offset
+<span class="lineNum">      89 </span>                :            :  * within an existing ABD. In linear buffers this is simple (set abd_buf of
+<span class="lineNum">      90 </span>                :            :  * the new ABD to the starting point within the original raw buffer), but
+<span class="lineNum">      91 </span>                :            :  * scattered ABDs are a little more complex. The new ABD makes a copy of the
+<span class="lineNum">      92 </span>                :            :  * relevant abd_chunks pointers (but not the underlying data). However, to
+<span class="lineNum">      93 </span>                :            :  * provide arbitrary rather than only chunk-aligned starting offsets, it also
+<span class="lineNum">      94 </span>                :            :  * tracks an abd_offset field which represents the starting point of the data
+<span class="lineNum">      95 </span>                :            :  * within the first chunk in abd_chunks. For both linear and scattered ABDs,
+<span class="lineNum">      96 </span>                :            :  * creating an offset ABD marks the original ABD as the offset's parent, and the
+<span class="lineNum">      97 </span>                :            :  * original ABD's abd_children refcount is incremented. This data allows us to
+<span class="lineNum">      98 </span>                :            :  * ensure the root ABD isn't deleted before its children.
+<span class="lineNum">      99 </span>                :            :  *
+<span class="lineNum">     100 </span>                :            :  * Most consumers should never need to know what type of ABD they're using --
+<span class="lineNum">     101 </span>                :            :  * the ABD public API ensures that it's possible to transparently switch from
+<span class="lineNum">     102 </span>                :            :  * using a linear ABD to a scattered one when doing so would be beneficial.
+<span class="lineNum">     103 </span>                :            :  *
+<span class="lineNum">     104 </span>                :            :  * If you need to use the data within an ABD directly, if you know it's linear
+<span class="lineNum">     105 </span>                :            :  * (because you allocated it) you can use abd_to_buf() to access the underlying
+<span class="lineNum">     106 </span>                :            :  * raw buffer. Otherwise, you should use one of the abd_borrow_buf* functions
+<span class="lineNum">     107 </span>                :            :  * which will allocate a raw buffer if necessary. Use the abd_return_buf*
+<span class="lineNum">     108 </span>                :            :  * functions to return any raw buffers that are no longer necessary when you're
+<span class="lineNum">     109 </span>                :            :  * done using them.
+<span class="lineNum">     110 </span>                :            :  *
+<span class="lineNum">     111 </span>                :            :  * There are a variety of ABD APIs that implement basic buffer operations:
+<span class="lineNum">     112 </span>                :            :  * compare, copy, read, write, and fill with zeroes. If you need a custom
+<span class="lineNum">     113 </span>                :            :  * function which progressively accesses the whole ABD, use the abd_iterate_*
+<span class="lineNum">     114 </span>                :            :  * functions.
+<span class="lineNum">     115 </span>                :            :  */
+<span class="lineNum">     116 </span>                :            : 
+<span class="lineNum">     117 </span>                :            : #include &lt;sys/abd.h&gt;
+<span class="lineNum">     118 </span>                :            : #include &lt;sys/param.h&gt;
+<span class="lineNum">     119 </span>                :            : #include &lt;sys/zio.h&gt;
+<span class="lineNum">     120 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">     121 </span>                :            : #include &lt;sys/zfs_znode.h&gt;
+<span class="lineNum">     122 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">     123 </span>                :            : #include &lt;linux/scatterlist.h&gt;
+<span class="lineNum">     124 </span>                :            : #include &lt;linux/kmap_compat.h&gt;
+<span class="lineNum">     125 </span>                :            : #else
+<span class="lineNum">     126 </span>                :            : #define MAX_ORDER       1
+<span class="lineNum">     127 </span>                :            : #endif
+<span class="lineNum">     128 </span>                :            : 
+<span class="lineNum">     129 </span>                :            : typedef struct abd_stats {
+<span class="lineNum">     130 </span>                :            :         kstat_named_t abdstat_struct_size;
+<span class="lineNum">     131 </span>                :            :         kstat_named_t abdstat_linear_cnt;
+<span class="lineNum">     132 </span>                :            :         kstat_named_t abdstat_linear_data_size;
+<span class="lineNum">     133 </span>                :            :         kstat_named_t abdstat_scatter_cnt;
+<span class="lineNum">     134 </span>                :            :         kstat_named_t abdstat_scatter_data_size;
+<span class="lineNum">     135 </span>                :            :         kstat_named_t abdstat_scatter_chunk_waste;
+<span class="lineNum">     136 </span>                :            :         kstat_named_t abdstat_scatter_orders[MAX_ORDER];
+<span class="lineNum">     137 </span>                :            :         kstat_named_t abdstat_scatter_page_multi_chunk;
+<span class="lineNum">     138 </span>                :            :         kstat_named_t abdstat_scatter_page_multi_zone;
+<span class="lineNum">     139 </span>                :            :         kstat_named_t abdstat_scatter_page_alloc_retry;
+<span class="lineNum">     140 </span>                :            :         kstat_named_t abdstat_scatter_sg_table_retry;
+<span class="lineNum">     141 </span>                :            : } abd_stats_t;
+<span class="lineNum">     142 </span>                :            : 
+<span class="lineNum">     143 </span>                :            : static abd_stats_t abd_stats = {
+<span class="lineNum">     144 </span>                :            :         /* Amount of memory occupied by all of the abd_t struct allocations */
+<span class="lineNum">     145 </span>                :            :         { &quot;struct_size&quot;,                      KSTAT_DATA_UINT64 },
+<span class="lineNum">     146 </span>                :            :         /*
+<span class="lineNum">     147 </span>                :            :          * The number of linear ABDs which are currently allocated, excluding
+<span class="lineNum">     148 </span>                :            :          * ABDs which don't own their data (for instance the ones which were
+<span class="lineNum">     149 </span>                :            :          * allocated through abd_get_offset() and abd_get_from_buf()). If an
+<span class="lineNum">     150 </span>                :            :          * ABD takes ownership of its buf then it will become tracked.
+<span class="lineNum">     151 </span>                :            :          */
+<span class="lineNum">     152 </span>                :            :         { &quot;linear_cnt&quot;,                               KSTAT_DATA_UINT64 },
+<span class="lineNum">     153 </span>                :            :         /* Amount of data stored in all linear ABDs tracked by linear_cnt */
+<span class="lineNum">     154 </span>                :            :         { &quot;linear_data_size&quot;,                 KSTAT_DATA_UINT64 },
+<span class="lineNum">     155 </span>                :            :         /*
+<span class="lineNum">     156 </span>                :            :          * The number of scatter ABDs which are currently allocated, excluding
+<span class="lineNum">     157 </span>                :            :          * ABDs which don't own their data (for instance the ones which were
+<span class="lineNum">     158 </span>                :            :          * allocated through abd_get_offset()).
+<span class="lineNum">     159 </span>                :            :          */
+<span class="lineNum">     160 </span>                :            :         { &quot;scatter_cnt&quot;,                      KSTAT_DATA_UINT64 },
+<span class="lineNum">     161 </span>                :            :         /* Amount of data stored in all scatter ABDs tracked by scatter_cnt */
+<span class="lineNum">     162 </span>                :            :         { &quot;scatter_data_size&quot;,                        KSTAT_DATA_UINT64 },
+<span class="lineNum">     163 </span>                :            :         /*
+<span class="lineNum">     164 </span>                :            :          * The amount of space wasted at the end of the last chunk across all
+<span class="lineNum">     165 </span>                :            :          * scatter ABDs tracked by scatter_cnt.
+<span class="lineNum">     166 </span>                :            :          */
+<span class="lineNum">     167 </span>                :            :         { &quot;scatter_chunk_waste&quot;,              KSTAT_DATA_UINT64 },
+<span class="lineNum">     168 </span>                :            :         /*
+<span class="lineNum">     169 </span>                :            :          * The number of compound allocations of a given order.  These
+<span class="lineNum">     170 </span>                :            :          * allocations are spread over all currently allocated ABDs, and
+<span class="lineNum">     171 </span>                :            :          * act as a measure of memory fragmentation.
+<span class="lineNum">     172 </span>                :            :          */
+<span class="lineNum">     173 </span>                :            :         { { &quot;scatter_order_N&quot;,                        KSTAT_DATA_UINT64 } },
+<span class="lineNum">     174 </span>                :            :         /*
+<span class="lineNum">     175 </span>                :            :          * The number of scatter ABDs which contain multiple chunks.
+<span class="lineNum">     176 </span>                :            :          * ABDs are preferentially allocated from the minimum number of
+<span class="lineNum">     177 </span>                :            :          * contiguous multi-page chunks, a single chunk is optimal.
+<span class="lineNum">     178 </span>                :            :          */
+<span class="lineNum">     179 </span>                :            :         { &quot;scatter_page_multi_chunk&quot;,         KSTAT_DATA_UINT64 },
+<span class="lineNum">     180 </span>                :            :         /*
+<span class="lineNum">     181 </span>                :            :          * The number of scatter ABDs which are split across memory zones.
+<span class="lineNum">     182 </span>                :            :          * ABDs are preferentially allocated using pages from a single zone.
+<span class="lineNum">     183 </span>                :            :          */
+<span class="lineNum">     184 </span>                :            :         { &quot;scatter_page_multi_zone&quot;,          KSTAT_DATA_UINT64 },
+<span class="lineNum">     185 </span>                :            :         /*
+<span class="lineNum">     186 </span>                :            :          *  The total number of retries encountered when attempting to
+<span class="lineNum">     187 </span>                :            :          *  allocate the pages to populate the scatter ABD.
+<span class="lineNum">     188 </span>                :            :          */
+<span class="lineNum">     189 </span>                :            :         { &quot;scatter_page_alloc_retry&quot;,         KSTAT_DATA_UINT64 },
+<span class="lineNum">     190 </span>                :            :         /*
+<span class="lineNum">     191 </span>                :            :          *  The total number of retries encountered when attempting to
+<span class="lineNum">     192 </span>                :            :          *  allocate the sg table for an ABD.
+<span class="lineNum">     193 </span>                :            :          */
+<span class="lineNum">     194 </span>                :            :         { &quot;scatter_sg_table_retry&quot;,           KSTAT_DATA_UINT64 },
+<span class="lineNum">     195 </span>                :            : };
+<span class="lineNum">     196 </span>                :            : 
+<span class="lineNum">     197 </span>                :            : #define ABDSTAT(stat)           (abd_stats.stat.value.ui64)
+<span class="lineNum">     198 </span>                :            : #define ABDSTAT_INCR(stat, val) \
+<span class="lineNum">     199 </span>                :            :         atomic_add_64(&amp;abd_stats.stat.value.ui64, (val))
+<span class="lineNum">     200 </span>                :            : #define ABDSTAT_BUMP(stat)      ABDSTAT_INCR(stat, 1)
+<span class="lineNum">     201 </span>                :            : #define ABDSTAT_BUMPDOWN(stat)  ABDSTAT_INCR(stat, -1)
+<span class="lineNum">     202 </span>                :            : 
+<span class="lineNum">     203 </span>                :            : #define ABD_SCATTER(abd)        (abd-&gt;abd_u.abd_scatter)
+<span class="lineNum">     204 </span>                :            : #define ABD_BUF(abd)            (abd-&gt;abd_u.abd_linear.abd_buf)
+<span class="lineNum">     205 </span>                :            : #define abd_for_each_sg(abd, sg, n, i)  \
+<span class="lineNum">     206 </span>                :            :         for_each_sg(ABD_SCATTER(abd).abd_sgl, sg, n, i)
+<span class="lineNum">     207 </span>                :            : 
+<span class="lineNum">     208 </span>                :            : /* see block comment above for description */
+<span class="lineNum">     209 </span>                :            : int zfs_abd_scatter_enabled = B_TRUE;
+<span class="lineNum">     210 </span>                :            : unsigned zfs_abd_scatter_max_order = MAX_ORDER - 1;
+<span class="lineNum">     211 </span>                :            : 
+<span class="lineNum">     212 </span>                :            : static kmem_cache_t *abd_cache = NULL;
+<span class="lineNum">     213 </span>                :            : static kstat_t *abd_ksp;
+<a name="214"><span class="lineNum">     214 </span>                :            : </a>
+<span class="lineNum">     215 </span>                :            : static inline size_t
+<span class="lineNum">     216 </span>                :<span class="lineCov">     605750 : abd_chunkcnt_for_bytes(size_t size)</span>
+<span class="lineNum">     217 </span>                :            : {
+<span class="lineNum">     218 </span>                :<span class="lineCov">     605750 :         return (P2ROUNDUP(size, PAGESIZE) / PAGESIZE);</span>
+<span class="lineNum">     219 </span>                :            : }
+<span class="lineNum">     220 </span>                :            : 
+<span class="lineNum">     221 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">     222 </span>                :            : #ifndef CONFIG_HIGHMEM
+<span class="lineNum">     223 </span>                :            : 
+<span class="lineNum">     224 </span>                :            : #ifndef __GFP_RECLAIM
+<span class="lineNum">     225 </span>                :            : #define __GFP_RECLAIM           __GFP_WAIT
+<span class="lineNum">     226 </span>                :            : #endif
+<span class="lineNum">     227 </span>                :            : 
+<span class="lineNum">     228 </span>                :            : static unsigned long
+<span class="lineNum">     229 </span>                :            : abd_alloc_chunk(int nid, gfp_t gfp, unsigned int order)
+<span class="lineNum">     230 </span>                :            : {
+<span class="lineNum">     231 </span>                :            :         struct page *page;
+<span class="lineNum">     232 </span>                :            : 
+<span class="lineNum">     233 </span>                :            :         page = alloc_pages_node(nid, gfp, order);
+<span class="lineNum">     234 </span>                :            :         if (!page)
+<span class="lineNum">     235 </span>                :            :                 return (0);
+<span class="lineNum">     236 </span>                :            : 
+<span class="lineNum">     237 </span>                :            :         return ((unsigned long) page_address(page));
+<span class="lineNum">     238 </span>                :            : }
+<span class="lineNum">     239 </span>                :            : 
+<span class="lineNum">     240 </span>                :            : /*
+<span class="lineNum">     241 </span>                :            :  * The goal is to minimize fragmentation by preferentially populating ABDs
+<span class="lineNum">     242 </span>                :            :  * with higher order compound pages from a single zone.  Allocation size is
+<span class="lineNum">     243 </span>                :            :  * progressively decreased until it can be satisfied without performing
+<span class="lineNum">     244 </span>                :            :  * reclaim or compaction.  When necessary this function will degenerate to
+<span class="lineNum">     245 </span>                :            :  * allocating individual pages and allowing reclaim to satisfy allocations.
+<span class="lineNum">     246 </span>                :            :  */
+<span class="lineNum">     247 </span>                :            : static void
+<span class="lineNum">     248 </span>                :            : abd_alloc_pages(abd_t *abd, size_t size)
+<span class="lineNum">     249 </span>                :            : {
+<span class="lineNum">     250 </span>                :            :         struct list_head pages;
+<span class="lineNum">     251 </span>                :            :         struct sg_table table;
+<span class="lineNum">     252 </span>                :            :         struct scatterlist *sg;
+<span class="lineNum">     253 </span>                :            :         struct page *page, *tmp_page;
+<span class="lineNum">     254 </span>                :            :         gfp_t gfp = __GFP_NOWARN | GFP_NOIO;
+<span class="lineNum">     255 </span>                :            :         gfp_t gfp_comp = (gfp | __GFP_NORETRY | __GFP_COMP) &amp; ~__GFP_RECLAIM;
+<span class="lineNum">     256 </span>                :            :         int max_order = MIN(zfs_abd_scatter_max_order, MAX_ORDER - 1);
+<span class="lineNum">     257 </span>                :            :         int nr_pages = abd_chunkcnt_for_bytes(size);
+<span class="lineNum">     258 </span>                :            :         int chunks = 0, zones = 0;
+<span class="lineNum">     259 </span>                :            :         size_t remaining_size;
+<span class="lineNum">     260 </span>                :            :         int nid = NUMA_NO_NODE;
+<span class="lineNum">     261 </span>                :            :         int alloc_pages = 0;
+<span class="lineNum">     262 </span>                :            :         int order;
+<span class="lineNum">     263 </span>                :            : 
+<span class="lineNum">     264 </span>                :            :         INIT_LIST_HEAD(&amp;pages);
+<span class="lineNum">     265 </span>                :            : 
+<span class="lineNum">     266 </span>                :            :         while (alloc_pages &lt; nr_pages) {
+<span class="lineNum">     267 </span>                :            :                 unsigned long paddr;
+<span class="lineNum">     268 </span>                :            :                 unsigned chunk_pages;
+<span class="lineNum">     269 </span>                :            : 
+<span class="lineNum">     270 </span>                :            :                 order = MIN(highbit64(nr_pages - alloc_pages) - 1, max_order);
+<span class="lineNum">     271 </span>                :            :                 chunk_pages = (1U &lt;&lt; order);
+<span class="lineNum">     272 </span>                :            : 
+<span class="lineNum">     273 </span>                :            :                 paddr = abd_alloc_chunk(nid, order ? gfp_comp : gfp, order);
+<span class="lineNum">     274 </span>                :            :                 if (paddr == 0) {
+<span class="lineNum">     275 </span>                :            :                         if (order == 0) {
+<span class="lineNum">     276 </span>                :            :                                 ABDSTAT_BUMP(abdstat_scatter_page_alloc_retry);
+<span class="lineNum">     277 </span>                :            :                                 schedule_timeout_interruptible(1);
+<span class="lineNum">     278 </span>                :            :                         } else {
+<span class="lineNum">     279 </span>                :            :                                 max_order = MAX(0, order - 1);
+<span class="lineNum">     280 </span>                :            :                         }
+<span class="lineNum">     281 </span>                :            :                         continue;
+<span class="lineNum">     282 </span>                :            :                 }
+<span class="lineNum">     283 </span>                :            : 
+<span class="lineNum">     284 </span>                :            :                 page = virt_to_page(paddr);
+<span class="lineNum">     285 </span>                :            :                 list_add_tail(&amp;page-&gt;lru, &amp;pages);
+<span class="lineNum">     286 </span>                :            : 
+<span class="lineNum">     287 </span>                :            :                 if ((nid != NUMA_NO_NODE) &amp;&amp; (page_to_nid(page) != nid))
+<span class="lineNum">     288 </span>                :            :                         zones++;
+<span class="lineNum">     289 </span>                :            : 
+<span class="lineNum">     290 </span>                :            :                 nid = page_to_nid(page);
+<span class="lineNum">     291 </span>                :            :                 ABDSTAT_BUMP(abdstat_scatter_orders[order]);
+<span class="lineNum">     292 </span>                :            :                 chunks++;
+<span class="lineNum">     293 </span>                :            :                 alloc_pages += chunk_pages;
+<span class="lineNum">     294 </span>                :            :         }
+<span class="lineNum">     295 </span>                :            : 
+<span class="lineNum">     296 </span>                :            :         ASSERT3S(alloc_pages, ==, nr_pages);
+<span class="lineNum">     297 </span>                :            : 
+<span class="lineNum">     298 </span>                :            :         while (sg_alloc_table(&amp;table, chunks, gfp)) {
+<span class="lineNum">     299 </span>                :            :                 ABDSTAT_BUMP(abdstat_scatter_sg_table_retry);
+<span class="lineNum">     300 </span>                :            :                 schedule_timeout_interruptible(1);
+<span class="lineNum">     301 </span>                :            :         }
+<span class="lineNum">     302 </span>                :            : 
+<span class="lineNum">     303 </span>                :            :         sg = table.sgl;
+<span class="lineNum">     304 </span>                :            :         remaining_size = size;
+<span class="lineNum">     305 </span>                :            :         list_for_each_entry_safe(page, tmp_page, &amp;pages, lru) {
+<span class="lineNum">     306 </span>                :            :                 size_t sg_size = MIN(PAGESIZE &lt;&lt; compound_order(page),
+<span class="lineNum">     307 </span>                :            :                     remaining_size);
+<span class="lineNum">     308 </span>                :            :                 sg_set_page(sg, page, sg_size, 0);
+<span class="lineNum">     309 </span>                :            :                 remaining_size -= sg_size;
+<span class="lineNum">     310 </span>                :            : 
+<span class="lineNum">     311 </span>                :            :                 sg = sg_next(sg);
+<span class="lineNum">     312 </span>                :            :                 list_del(&amp;page-&gt;lru);
+<span class="lineNum">     313 </span>                :            :         }
+<span class="lineNum">     314 </span>                :            : 
+<span class="lineNum">     315 </span>                :            :         if (chunks &gt; 1) {
+<span class="lineNum">     316 </span>                :            :                 ABDSTAT_BUMP(abdstat_scatter_page_multi_chunk);
+<span class="lineNum">     317 </span>                :            :                 abd-&gt;abd_flags |= ABD_FLAG_MULTI_CHUNK;
+<span class="lineNum">     318 </span>                :            : 
+<span class="lineNum">     319 </span>                :            :                 if (zones) {
+<span class="lineNum">     320 </span>                :            :                         ABDSTAT_BUMP(abdstat_scatter_page_multi_zone);
+<span class="lineNum">     321 </span>                :            :                         abd-&gt;abd_flags |= ABD_FLAG_MULTI_ZONE;
+<span class="lineNum">     322 </span>                :            :                 }
+<span class="lineNum">     323 </span>                :            :         }
+<span class="lineNum">     324 </span>                :            : 
+<span class="lineNum">     325 </span>                :            :         ABD_SCATTER(abd).abd_sgl = table.sgl;
+<span class="lineNum">     326 </span>                :            :         ABD_SCATTER(abd).abd_nents = table.nents;
+<span class="lineNum">     327 </span>                :            : }
+<span class="lineNum">     328 </span>                :            : #else
+<span class="lineNum">     329 </span>                :            : /*
+<span class="lineNum">     330 </span>                :            :  * Allocate N individual pages to construct a scatter ABD.  This function
+<span class="lineNum">     331 </span>                :            :  * makes no attempt to request contiguous pages and requires the minimal
+<span class="lineNum">     332 </span>                :            :  * number of kernel interfaces.  It's designed for maximum compatibility.
+<span class="lineNum">     333 </span>                :            :  */
+<span class="lineNum">     334 </span>                :            : static void
+<span class="lineNum">     335 </span>                :            : abd_alloc_pages(abd_t *abd, size_t size)
+<span class="lineNum">     336 </span>                :            : {
+<span class="lineNum">     337 </span>                :            :         struct scatterlist *sg;
+<span class="lineNum">     338 </span>                :            :         struct sg_table table;
+<span class="lineNum">     339 </span>                :            :         struct page *page;
+<span class="lineNum">     340 </span>                :            :         gfp_t gfp = __GFP_NOWARN | GFP_NOIO;
+<span class="lineNum">     341 </span>                :            :         int nr_pages = abd_chunkcnt_for_bytes(size);
+<span class="lineNum">     342 </span>                :            :         int i;
+<span class="lineNum">     343 </span>                :            : 
+<span class="lineNum">     344 </span>                :            :         while (sg_alloc_table(&amp;table, nr_pages, gfp)) {
+<span class="lineNum">     345 </span>                :            :                 ABDSTAT_BUMP(abdstat_scatter_sg_table_retry);
+<span class="lineNum">     346 </span>                :            :                 schedule_timeout_interruptible(1);
+<span class="lineNum">     347 </span>                :            :         }
+<span class="lineNum">     348 </span>                :            : 
+<span class="lineNum">     349 </span>                :            :         ASSERT3U(table.nents, ==, nr_pages);
+<span class="lineNum">     350 </span>                :            :         ABD_SCATTER(abd).abd_sgl = table.sgl;
+<span class="lineNum">     351 </span>                :            :         ABD_SCATTER(abd).abd_nents = nr_pages;
+<span class="lineNum">     352 </span>                :            : 
+<span class="lineNum">     353 </span>                :            :         abd_for_each_sg(abd, sg, nr_pages, i) {
+<span class="lineNum">     354 </span>                :            :                 while ((page = __page_cache_alloc(gfp)) == NULL) {
+<span class="lineNum">     355 </span>                :            :                         ABDSTAT_BUMP(abdstat_scatter_page_alloc_retry);
+<span class="lineNum">     356 </span>                :            :                         schedule_timeout_interruptible(1);
+<span class="lineNum">     357 </span>                :            :                 }
+<span class="lineNum">     358 </span>                :            : 
+<span class="lineNum">     359 </span>                :            :                 ABDSTAT_BUMP(abdstat_scatter_orders[0]);
+<span class="lineNum">     360 </span>                :            :                 sg_set_page(sg, page, PAGESIZE, 0);
+<span class="lineNum">     361 </span>                :            :         }
+<span class="lineNum">     362 </span>                :            : 
+<span class="lineNum">     363 </span>                :            :         if (nr_pages &gt; 1) {
+<span class="lineNum">     364 </span>                :            :                 ABDSTAT_BUMP(abdstat_scatter_page_multi_chunk);
+<span class="lineNum">     365 </span>                :            :                 abd-&gt;abd_flags |= ABD_FLAG_MULTI_CHUNK;
+<span class="lineNum">     366 </span>                :            :         }
+<span class="lineNum">     367 </span>                :            : }
+<span class="lineNum">     368 </span>                :            : #endif /* !CONFIG_HIGHMEM */
+<span class="lineNum">     369 </span>                :            : 
+<span class="lineNum">     370 </span>                :            : static void
+<span class="lineNum">     371 </span>                :            : abd_free_pages(abd_t *abd)
+<span class="lineNum">     372 </span>                :            : {
+<span class="lineNum">     373 </span>                :            :         struct scatterlist *sg;
+<span class="lineNum">     374 </span>                :            :         struct sg_table table;
+<span class="lineNum">     375 </span>                :            :         struct page *page;
+<span class="lineNum">     376 </span>                :            :         int nr_pages = ABD_SCATTER(abd).abd_nents;
+<span class="lineNum">     377 </span>                :            :         int order, i;
+<span class="lineNum">     378 </span>                :            : 
+<span class="lineNum">     379 </span>                :            :         if (abd-&gt;abd_flags &amp; ABD_FLAG_MULTI_ZONE)
+<span class="lineNum">     380 </span>                :            :                 ABDSTAT_BUMPDOWN(abdstat_scatter_page_multi_zone);
+<span class="lineNum">     381 </span>                :            : 
+<span class="lineNum">     382 </span>                :            :         if (abd-&gt;abd_flags &amp; ABD_FLAG_MULTI_CHUNK)
+<span class="lineNum">     383 </span>                :            :                 ABDSTAT_BUMPDOWN(abdstat_scatter_page_multi_chunk);
+<span class="lineNum">     384 </span>                :            : 
+<span class="lineNum">     385 </span>                :            :         abd_for_each_sg(abd, sg, nr_pages, i) {
+<span class="lineNum">     386 </span>                :            :                 page = sg_page(sg);
+<span class="lineNum">     387 </span>                :            :                 order = compound_order(page);
+<span class="lineNum">     388 </span>                :            :                 __free_pages(page, order);
+<span class="lineNum">     389 </span>                :            :                 ASSERT3U(sg-&gt;length, &lt;=, PAGE_SIZE &lt;&lt; order);
+<span class="lineNum">     390 </span>                :            :                 ABDSTAT_BUMPDOWN(abdstat_scatter_orders[order]);
+<span class="lineNum">     391 </span>                :            :         }
+<span class="lineNum">     392 </span>                :            : 
+<span class="lineNum">     393 </span>                :            :         table.sgl = ABD_SCATTER(abd).abd_sgl;
+<span class="lineNum">     394 </span>                :            :         table.nents = table.orig_nents = nr_pages;
+<span class="lineNum">     395 </span>                :            :         sg_free_table(&amp;table);
+<span class="lineNum">     396 </span>                :            : }
+<span class="lineNum">     397 </span>                :            : 
+<span class="lineNum">     398 </span>                :            : #else /* _KERNEL */
+<span class="lineNum">     399 </span>                :            : 
+<span class="lineNum">     400 </span>                :            : #ifndef PAGE_SHIFT
+<span class="lineNum">     401 </span>                :            : #define PAGE_SHIFT (highbit64(PAGESIZE)-1)
+<span class="lineNum">     402 </span>                :            : #endif
+<span class="lineNum">     403 </span>                :            : 
+<span class="lineNum">     404 </span>                :            : struct page;
+<span class="lineNum">     405 </span>                :            : 
+<span class="lineNum">     406 </span>                :            : #define kpm_enable                      1
+<span class="lineNum">     407 </span>                :            : #define abd_alloc_chunk(o) \
+<span class="lineNum">     408 </span>                :            :         ((struct page *)umem_alloc_aligned(PAGESIZE &lt;&lt; (o), 64, KM_SLEEP))
+<span class="lineNum">     409 </span>                :            : #define abd_free_chunk(chunk, o)        umem_free(chunk, PAGESIZE &lt;&lt; (o))
+<span class="lineNum">     410 </span>                :            : #define zfs_kmap_atomic(chunk, km)      ((void *)chunk)
+<span class="lineNum">     411 </span>                :            : #define zfs_kunmap_atomic(addr, km)     do { (void)(addr); } while (0)
+<span class="lineNum">     412 </span>                :            : #define local_irq_save(flags)           do { (void)(flags); } while (0)
+<span class="lineNum">     413 </span>                :            : #define local_irq_restore(flags)        do { (void)(flags); } while (0)
+<span class="lineNum">     414 </span>                :            : #define nth_page(pg, i) \
+<span class="lineNum">     415 </span>                :            :         ((struct page *)((void *)(pg) + (i) * PAGESIZE))
+<span class="lineNum">     416 </span>                :            : 
+<span class="lineNum">     417 </span>                :            : struct scatterlist {
+<span class="lineNum">     418 </span>                :            :         struct page *page;
+<span class="lineNum">     419 </span>                :            :         int length;
+<span class="lineNum">     420 </span>                :            :         int end;
+<span class="lineNum">     421 </span>                :            : };
+<a name="422"><span class="lineNum">     422 </span>                :            : </a>
+<span class="lineNum">     423 </span>                :            : static void
+<span class="lineNum">     424 </span>                :<span class="lineCov">     605780 : sg_init_table(struct scatterlist *sg, int nr)</span>
+<span class="lineNum">     425 </span>                :            : {
+<span class="lineNum">     426 </span>                :<span class="lineCov">    1211560 :         memset(sg, 0, nr * sizeof (struct scatterlist));</span>
+<span class="lineNum">     427 </span>                :<span class="lineCov">     605780 :         sg[nr - 1].end = 1;</span>
+<span class="lineNum">     428 </span>                :<span class="lineCov">     605780 : }</span>
+<span class="lineNum">     429 </span>                :            : 
+<span class="lineNum">     430 </span>                :            : #define for_each_sg(sgl, sg, nr, i)     \
+<span class="lineNum">     431 </span>                :            :         for ((i) = 0, (sg) = (sgl); (i) &lt; (nr); (i)++, (sg) = sg_next(sg))
+<a name="432"><span class="lineNum">     432 </span>                :            : </a>
+<span class="lineNum">     433 </span>                :            : static inline void
+<span class="lineNum">     434 </span>                :<span class="lineCov">   12073369 : sg_set_page(struct scatterlist *sg, struct page *page, unsigned int len,</span>
+<span class="lineNum">     435 </span>                :            :     unsigned int offset)
+<span class="lineNum">     436 </span>                :            : {
+<span class="lineNum">     437 </span>                :            :         /* currently we don't use offset */
+<span class="lineNum">     438 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 12073369 times"> + </span>]:<span class="lineCov">   12073369 :         ASSERT(offset == 0);</span>
+<span class="lineNum">     439 </span>                :<span class="lineCov">   12073369 :         sg-&gt;page = page;</span>
+<span class="lineNum">     440 </span>                :<span class="lineCov">   12073369 :         sg-&gt;length = len;</span>
+<span class="lineNum">     441 </span>                :<span class="lineCov">   12073369 : }</span>
+<a name="442"><span class="lineNum">     442 </span>                :            : </a>
+<span class="lineNum">     443 </span>                :            : static inline struct page *
+<span class="lineNum">     444 </span>                :<span class="lineCov">12605747082 : sg_page(struct scatterlist *sg)</span>
+<span class="lineNum">     445 </span>                :            : {
+<span class="lineNum">     446 </span>                :<span class="lineCov"> 6302873541 :         return (sg-&gt;page);</span>
+<span class="lineNum">     447 </span>                :            : }
+<a name="448"><span class="lineNum">     448 </span>                :            : </a>
+<span class="lineNum">     449 </span>                :            : static inline struct scatterlist *
+<span class="lineNum">     450 </span>                :<span class="lineCov"> 6292172724 : sg_next(struct scatterlist *sg)</span>
+<span class="lineNum">     451 </span>                :            : {
+<span class="lineNum">     452 </span>        [<span class="branchCov" title="Branch 0 was taken 1979623436 times"> + </span><span class="branchCov" title="Branch 1 was taken 17581992 times"> + </span>]:<span class="lineCov"> 6292172724 :         if (sg-&gt;end)</span>
+<span class="lineNum">     453 </span>                :            :                 return (NULL);
+<span class="lineNum">     454 </span>                :            : 
+<span class="lineNum">     455 </span>                :<span class="lineCov"> 6274590732 :         return (sg + 1);</span>
+<span class="lineNum">     456 </span>                :            : }
+<a name="457"><span class="lineNum">     457 </span>                :            : </a>
+<span class="lineNum">     458 </span>                :            : static void
+<span class="lineNum">     459 </span>                :<span class="lineCov">     605750 : abd_alloc_pages(abd_t *abd, size_t size)</span>
+<span class="lineNum">     460 </span>                :            : {
+<span class="lineNum">     461 </span>                :<span class="lineCov">     605750 :         unsigned nr_pages = abd_chunkcnt_for_bytes(size);</span>
+<span class="lineNum">     462 </span>                :            :         struct scatterlist *sg;
+<span class="lineNum">     463 </span>                :            :         int i;
+<span class="lineNum">     464 </span>                :            : 
+<span class="lineNum">     465 </span>                :<span class="lineCov">     605762 :         ABD_SCATTER(abd).abd_sgl = vmem_alloc(nr_pages *</span>
+<span class="lineNum">     466 </span>                :            :             sizeof (struct scatterlist), KM_SLEEP);
+<span class="lineNum">     467 </span>                :<span class="lineCov">     605781 :         sg_init_table(ABD_SCATTER(abd).abd_sgl, nr_pages);</span>
+<span class="lineNum">     468 </span>                :            : 
+<span class="lineNum">     469 </span>        [<span class="branchCov" title="Branch 1 was taken 12070984 times"> + </span><span class="branchCov" title="Branch 2 was taken 605745 times"> + </span>]:<span class="lineCov">   12677347 :         abd_for_each_sg(abd, sg, nr_pages, i) {</span>
+<span class="lineNum">     470 </span>                :<span class="lineCov">   12070984 :                 struct page *p = abd_alloc_chunk(0);</span>
+<span class="lineNum">     471 </span>                :<span class="lineCov">   12073499 :                 sg_set_page(sg, p, PAGESIZE, 0);</span>
+<span class="lineNum">     472 </span>                :            :         }
+<span class="lineNum">     473 </span>                :<span class="lineCov">     605745 :         ABD_SCATTER(abd).abd_nents = nr_pages;</span>
+<span class="lineNum">     474 </span>                :<span class="lineCov">     605745 : }</span>
+<a name="475"><span class="lineNum">     475 </span>                :            : </a>
+<span class="lineNum">     476 </span>                :            : static void
+<span class="lineNum">     477 </span>                :<span class="lineCov">     605749 : abd_free_pages(abd_t *abd)</span>
+<span class="lineNum">     478 </span>                :            : {
+<span class="lineNum">     479 </span>                :<span class="lineCov">     605749 :         int i, n = ABD_SCATTER(abd).abd_nents;</span>
+<span class="lineNum">     480 </span>                :            :         struct scatterlist *sg;
+<span class="lineNum">     481 </span>                :            :         int j;
+<span class="lineNum">     482 </span>                :            : 
+<span class="lineNum">     483 </span>        [<span class="branchCov" title="Branch 1 was taken 12073434 times"> + </span><span class="branchCov" title="Branch 2 was taken 605791 times"> + </span>]:<span class="lineCov">   12679869 :         abd_for_each_sg(abd, sg, n, i) {</span>
+<span class="lineNum">     484 </span>        [<span class="branchCov" title="Branch 1 was taken 12073063 times"> + </span><span class="branchCov" title="Branch 2 was taken 12074120 times"> + </span>]:<span class="lineCov">   24147969 :                 for (j = 0; j &lt; sg-&gt;length; j += PAGESIZE) {</span>
+<span class="lineNum">     485 </span>                :<span class="lineCov">   12073063 :                         struct page *p = nth_page(sg_page(sg), j&gt;&gt;PAGE_SHIFT);</span>
+<span class="lineNum">     486 </span>                :<span class="lineCov">   12071948 :                         abd_free_chunk(p, 0);</span>
+<span class="lineNum">     487 </span>                :            :                 }
+<span class="lineNum">     488 </span>                :            :         }
+<span class="lineNum">     489 </span>                :            : 
+<span class="lineNum">     490 </span>                :<span class="lineCov">     605791 :         vmem_free(ABD_SCATTER(abd).abd_sgl, n * sizeof (struct scatterlist));</span>
+<span class="lineNum">     491 </span>                :<span class="lineCov">     605811 : }</span>
+<span class="lineNum">     492 </span>                :            : 
+<span class="lineNum">     493 </span>                :            : #endif /* _KERNEL */
+<a name="494"><span class="lineNum">     494 </span>                :            : </a>
+<span class="lineNum">     495 </span>                :            : void
+<span class="lineNum">     496 </span>                :<span class="lineCov">       1234 : abd_init(void)</span>
+<span class="lineNum">     497 </span>                :            : {
+<span class="lineNum">     498 </span>                :            :         int i;
+<span class="lineNum">     499 </span>                :            : 
+<span class="lineNum">     500 </span>                :<span class="lineCov">       1234 :         abd_cache = kmem_cache_create(&quot;abd_t&quot;, sizeof (abd_t),</span>
+<span class="lineNum">     501 </span>                :            :             0, NULL, NULL, NULL, NULL, NULL, 0);
+<span class="lineNum">     502 </span>                :            : 
+<span class="lineNum">     503 </span>                :<span class="lineCov">       1234 :         abd_ksp = kstat_create(&quot;zfs&quot;, 0, &quot;abdstats&quot;, &quot;misc&quot;, KSTAT_TYPE_NAMED,</span>
+<span class="lineNum">     504 </span>                :            :             sizeof (abd_stats) / sizeof (kstat_named_t), KSTAT_FLAG_VIRTUAL);
+<span class="lineNum">     505 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         if (abd_ksp != NULL) {</span>
+<span class="lineNum">     506 </span>                :<span class="lineNoCov">          0 :                 abd_ksp-&gt;ks_data = &amp;abd_stats;</span>
+<span class="lineNum">     507 </span>                :<span class="lineNoCov">          0 :                 kstat_install(abd_ksp);</span>
+<span class="lineNum">     508 </span>                :            : 
+<span class="lineNum">     509 </span>        [<span class="branchNoExec" title="Branch 1 was not executed"> # </span><span class="branchNoExec" title="Branch 2 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 for (i = 0; i &lt; MAX_ORDER; i++) {</span>
+<span class="lineNum">     510 </span>                :<span class="lineNoCov">          0 :                         snprintf(abd_stats.abdstat_scatter_orders[i].name,</span>
+<span class="lineNum">     511 </span>                :            :                             KSTAT_STRLEN, &quot;scatter_order_%d&quot;, i);
+<span class="lineNum">     512 </span>                :<span class="lineNoCov">          0 :                         abd_stats.abdstat_scatter_orders[i].data_type =</span>
+<span class="lineNum">     513 </span>                :            :                             KSTAT_DATA_UINT64;
+<span class="lineNum">     514 </span>                :            :                 }
+<span class="lineNum">     515 </span>                :            :         }
+<span class="lineNum">     516 </span>                :<span class="lineCov">       1234 : }</span>
+<a name="517"><span class="lineNum">     517 </span>                :            : </a>
+<span class="lineNum">     518 </span>                :            : void
+<span class="lineNum">     519 </span>                :<span class="lineCov">        785 : abd_fini(void)</span>
+<span class="lineNum">     520 </span>                :            : {
+<span class="lineNum">     521 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 785 times"> + </span>]:<span class="lineCov">        785 :         if (abd_ksp != NULL) {</span>
+<span class="lineNum">     522 </span>                :<span class="lineNoCov">          0 :                 kstat_delete(abd_ksp);</span>
+<span class="lineNum">     523 </span>                :<span class="lineNoCov">          0 :                 abd_ksp = NULL;</span>
+<span class="lineNum">     524 </span>                :            :         }
+<span class="lineNum">     525 </span>                :            : 
+<span class="lineNum">     526 </span>        [<span class="branchCov" title="Branch 0 was taken 785 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        785 :         if (abd_cache) {</span>
+<span class="lineNum">     527 </span>                :<span class="lineCov">        785 :                 kmem_cache_destroy(abd_cache);</span>
+<span class="lineNum">     528 </span>                :<span class="lineCov">        785 :                 abd_cache = NULL;</span>
+<span class="lineNum">     529 </span>                :            :         }
+<span class="lineNum">     530 </span>                :<span class="lineCov">        785 : }</span>
+<a name="531"><span class="lineNum">     531 </span>                :            : </a>
+<span class="lineNum">     532 </span>                :            : static inline void
+<span class="lineNum">     533 </span>                :<span class="lineCov">  123137115 : abd_verify(abd_t *abd)</span>
+<span class="lineNum">     534 </span>                :            : {
+<span class="lineNum">     535 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 123137115 times"> + </span>]:<span class="lineCov">  123137115 :         ASSERT3U(abd-&gt;abd_size, &gt;, 0);</span>
+<span class="lineNum">     536 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 123137115 times"> + </span>]:<span class="lineCov">  123137115 :         ASSERT3U(abd-&gt;abd_size, &lt;=, SPA_MAXBLOCKSIZE);</span>
+<span class="lineNum">     537 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 123137115 times"> + </span>]:<span class="lineCov">  123137115 :         ASSERT3U(abd-&gt;abd_flags, ==, abd-&gt;abd_flags &amp; (ABD_FLAG_LINEAR |</span>
+<span class="lineNum">     538 </span>                :            :             ABD_FLAG_OWNER | ABD_FLAG_META | ABD_FLAG_MULTI_ZONE |
+<span class="lineNum">     539 </span>                :            :             ABD_FLAG_MULTI_CHUNK));
+<span class="lineNum">     540 </span>[<span class="branchCov" title="Branch 0 was taken 16818271 times"> + </span><span class="branchCov" title="Branch 1 was taken 106318844 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 16818271 times"> + </span>]:<span class="lineCov">  123137115 :         IMPLY(abd-&gt;abd_parent != NULL, !(abd-&gt;abd_flags &amp; ABD_FLAG_OWNER));</span>
+<span class="lineNum">     541 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 123137115 times"> + </span>]:<span class="lineCov">  123137115 :         IMPLY(abd-&gt;abd_flags &amp; ABD_FLAG_META, abd-&gt;abd_flags &amp; ABD_FLAG_OWNER);</span>
+<span class="lineNum">     542 </span>        [<span class="branchCov" title="Branch 1 was taken 103974685 times"> + </span><span class="branchCov" title="Branch 2 was taken 19248961 times"> + </span>]:<span class="lineCov">  123137115 :         if (abd_is_linear(abd)) {</span>
+<span class="lineNum">     543 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 103974685 times"> + </span>]:<span class="lineCov">  103974685 :                 ASSERT3P(abd-&gt;abd_u.abd_linear.abd_buf, !=, NULL);</span>
+<span class="lineNum">     544 </span>                :            :         } else {
+<span class="lineNum">     545 </span>                :            :                 size_t n;
+<span class="lineNum">     546 </span>                :            :                 int i;
+<span class="lineNum">     547 </span>                :            :                 struct scatterlist *sg;
+<span class="lineNum">     548 </span>                :            : 
+<span class="lineNum">     549 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 19248961 times"> + </span>]:<span class="lineCov">   19248961 :                 ASSERT3U(ABD_SCATTER(abd).abd_nents, &gt;, 0);</span>
+<span class="lineNum">     550 </span>        [<span class="branchCov" title="Branch 0 was taken 19248961 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">   19248961 :                 ASSERT3U(ABD_SCATTER(abd).abd_offset, &lt;,</span>
+<span class="lineNum">     551 </span>                :            :                     ABD_SCATTER(abd).abd_sgl-&gt;length);
+<span class="lineNum">     552 </span>                :            :                 n = ABD_SCATTER(abd).abd_nents;
+<span class="lineNum">     553 </span>        [<span class="branchCov" title="Branch 1 was taken 1487825216 times"> + </span><span class="branchCov" title="Branch 2 was taken 19207848 times"> + </span>]:<span class="lineCov"> 5801541189 :                 abd_for_each_sg(abd, sg, n, i) {</span>
+<span class="lineNum">     554 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 1487324932 times"> + </span>]:<span class="lineCov"> 5782792512 :                         ASSERT3P(sg_page(sg), !=, NULL);</span>
+<span class="lineNum">     555 </span>                :            :                 }
+<span class="lineNum">     556 </span>                :            :         }
+<span class="lineNum">     557 </span>                :<span class="lineCov">  123182533 : }</span>
+<a name="558"><span class="lineNum">     558 </span>                :            : </a>
+<span class="lineNum">     559 </span>                :            : static inline abd_t *
+<span class="lineNum">     560 </span>                :<span class="lineCov">   11875520 : abd_alloc_struct(void)</span>
+<span class="lineNum">     561 </span>                :            : {
+<span class="lineNum">     562 </span>                :<span class="lineCov">   11875520 :         abd_t *abd = kmem_cache_alloc(abd_cache, KM_PUSHPAGE);</span>
+<span class="lineNum">     563 </span>                :            : 
+<span class="lineNum">     564 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 11881257 times"> + </span>]:<span class="lineCov">   11881257 :         ASSERT3P(abd, !=, NULL);</span>
+<span class="lineNum">     565 </span>                :<span class="lineCov">   11881257 :         ABDSTAT_INCR(abdstat_struct_size, sizeof (abd_t));</span>
+<span class="lineNum">     566 </span>                :            : 
+<span class="lineNum">     567 </span>                :<span class="lineCov">   11882271 :         return (abd);</span>
+<span class="lineNum">     568 </span>                :            : }
+<a name="569"><span class="lineNum">     569 </span>                :            : </a>
+<span class="lineNum">     570 </span>                :            : static inline void
+<span class="lineNum">     571 </span>                :<span class="lineCov">   11879437 : abd_free_struct(abd_t *abd)</span>
+<span class="lineNum">     572 </span>                :            : {
+<span class="lineNum">     573 </span>                :<span class="lineCov">   11879437 :         kmem_cache_free(abd_cache, abd);</span>
+<span class="lineNum">     574 </span>                :<span class="lineCov">   11881897 :         ABDSTAT_INCR(abdstat_struct_size, -sizeof (abd_t));</span>
+<span class="lineNum">     575 </span>                :<span class="lineCov">   11883108 : }</span>
+<span class="lineNum">     576 </span>                :            : 
+<span class="lineNum">     577 </span>                :            : /*
+<span class="lineNum">     578 </span>                :            :  * Allocate an ABD, along with its own underlying data buffers. Use this if you
+<span class="lineNum">     579 </span>                :            :  * don't care whether the ABD is linear or not.
+<a name="580"><span class="lineNum">     580 </span>                :            :  */</a>
+<span class="lineNum">     581 </span>                :            : abd_t *
+<span class="lineNum">     582 </span>                :<span class="lineCov">    3132769 : abd_alloc(size_t size, boolean_t is_metadata)</span>
+<span class="lineNum">     583 </span>                :            : {
+<span class="lineNum">     584 </span>                :            :         abd_t *abd;
+<span class="lineNum">     585 </span>                :            : 
+<span class="lineNum">     586 </span>[<span class="branchCov" title="Branch 0 was taken 2384289 times"> + </span><span class="branchCov" title="Branch 1 was taken 748480 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 1778563 times"> + </span><span class="branchCov" title="Branch 4 was taken 605744 times"> + </span>]:<span class="lineCov">    3132769 :         if (!zfs_abd_scatter_enabled || size &lt;= PAGESIZE)</span>
+<span class="lineNum">     587 </span>                :<span class="lineCov">    2527043 :                 return (abd_alloc_linear(size, is_metadata));</span>
+<span class="lineNum">     588 </span>                :            : 
+<span class="lineNum">     589 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 605744 times"> + </span>]:<span class="lineCov">     605744 :         VERIFY3U(size, &lt;=, SPA_MAXBLOCKSIZE);</span>
+<span class="lineNum">     590 </span>                :            : 
+<span class="lineNum">     591 </span>                :<span class="lineCov">     605744 :         abd = abd_alloc_struct();</span>
+<span class="lineNum">     592 </span>                :<span class="lineCov">     605756 :         abd-&gt;abd_flags = ABD_FLAG_OWNER;</span>
+<span class="lineNum">     593 </span>                :<span class="lineCov">     605756 :         abd_alloc_pages(abd, size);</span>
+<span class="lineNum">     594 </span>                :            : 
+<span class="lineNum">     595 </span>        [<span class="branchCov" title="Branch 0 was taken 442016 times"> + </span><span class="branchCov" title="Branch 1 was taken 163726 times"> + </span>]:<span class="lineCov">     605742 :         if (is_metadata) {</span>
+<span class="lineNum">     596 </span>                :<span class="lineCov">     442016 :                 abd-&gt;abd_flags |= ABD_FLAG_META;</span>
+<span class="lineNum">     597 </span>                :            :         }
+<span class="lineNum">     598 </span>                :<span class="lineCov">     605742 :         abd-&gt;abd_size = size;</span>
+<span class="lineNum">     599 </span>                :<span class="lineCov">     605742 :         abd-&gt;abd_parent = NULL;</span>
+<span class="lineNum">     600 </span>                :<span class="lineCov">     605742 :         refcount_create(&amp;abd-&gt;abd_children);</span>
+<span class="lineNum">     601 </span>                :            : 
+<span class="lineNum">     602 </span>                :<span class="lineCov">     605705 :         abd-&gt;abd_u.abd_scatter.abd_offset = 0;</span>
+<span class="lineNum">     603 </span>                :            : 
+<span class="lineNum">     604 </span>                :<span class="lineCov">     605705 :         ABDSTAT_BUMP(abdstat_scatter_cnt);</span>
+<span class="lineNum">     605 </span>                :<span class="lineCov">     605783 :         ABDSTAT_INCR(abdstat_scatter_data_size, size);</span>
+<span class="lineNum">     606 </span>                :<span class="lineCov">     605781 :         ABDSTAT_INCR(abdstat_scatter_chunk_waste,</span>
+<span class="lineNum">     607 </span>                :            :             P2ROUNDUP(size, PAGESIZE) - size);
+<span class="lineNum">     608 </span>                :            : 
+<span class="lineNum">     609 </span>                :<span class="lineCov">     605790 :         return (abd);</span>
+<span class="lineNum">     610 </span>                :            : }
+<a name="611"><span class="lineNum">     611 </span>                :            : </a>
+<span class="lineNum">     612 </span>                :            : static void
+<span class="lineNum">     613 </span>                :<span class="lineCov">     605736 : abd_free_scatter(abd_t *abd)</span>
+<span class="lineNum">     614 </span>                :            : {
+<span class="lineNum">     615 </span>                :<span class="lineCov">     605736 :         abd_free_pages(abd);</span>
+<span class="lineNum">     616 </span>                :            : 
+<span class="lineNum">     617 </span>                :<span class="lineCov">     605812 :         refcount_destroy(&amp;abd-&gt;abd_children);</span>
+<span class="lineNum">     618 </span>                :<span class="lineCov">     605765 :         ABDSTAT_BUMPDOWN(abdstat_scatter_cnt);</span>
+<span class="lineNum">     619 </span>                :<span class="lineCov">     605798 :         ABDSTAT_INCR(abdstat_scatter_data_size, -(int)abd-&gt;abd_size);</span>
+<span class="lineNum">     620 </span>                :<span class="lineCov">     605821 :         ABDSTAT_INCR(abdstat_scatter_chunk_waste,</span>
+<span class="lineNum">     621 </span>                :            :             abd-&gt;abd_size - P2ROUNDUP(abd-&gt;abd_size, PAGESIZE));
+<span class="lineNum">     622 </span>                :            : 
+<span class="lineNum">     623 </span>                :<span class="lineCov">     605806 :         abd_free_struct(abd);</span>
+<span class="lineNum">     624 </span>                :<span class="lineCov">     605810 : }</span>
+<span class="lineNum">     625 </span>                :            : 
+<span class="lineNum">     626 </span>                :            : /*
+<span class="lineNum">     627 </span>                :            :  * Allocate an ABD that must be linear, along with its own underlying data
+<span class="lineNum">     628 </span>                :            :  * buffer. Only use this when it would be very annoying to write your ABD
+<span class="lineNum">     629 </span>                :            :  * consumer with a scattered ABD.
+<a name="630"><span class="lineNum">     630 </span>                :            :  */</a>
+<span class="lineNum">     631 </span>                :            : abd_t *
+<span class="lineNum">     632 </span>                :<span class="lineCov">    8753168 : abd_alloc_linear(size_t size, boolean_t is_metadata)</span>
+<span class="lineNum">     633 </span>                :            : {
+<span class="lineNum">     634 </span>                :<span class="lineCov">    8753168 :         abd_t *abd = abd_alloc_struct();</span>
+<span class="lineNum">     635 </span>                :            : 
+<span class="lineNum">     636 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8756803 times"> + </span>]:<span class="lineCov">    8756803 :         VERIFY3U(size, &lt;=, SPA_MAXBLOCKSIZE);</span>
+<span class="lineNum">     637 </span>                :            : 
+<span class="lineNum">     638 </span>                :<span class="lineCov">    8756803 :         abd-&gt;abd_flags = ABD_FLAG_LINEAR | ABD_FLAG_OWNER;</span>
+<span class="lineNum">     639 </span>        [<span class="branchCov" title="Branch 0 was taken 5361056 times"> + </span><span class="branchCov" title="Branch 1 was taken 3395747 times"> + </span>]:<span class="lineCov">    8756803 :         if (is_metadata) {</span>
+<span class="lineNum">     640 </span>                :<span class="lineCov">    5361056 :                 abd-&gt;abd_flags |= ABD_FLAG_META;</span>
+<span class="lineNum">     641 </span>                :            :         }
+<span class="lineNum">     642 </span>                :<span class="lineCov">    8756803 :         abd-&gt;abd_size = size;</span>
+<span class="lineNum">     643 </span>                :<span class="lineCov">    8756803 :         abd-&gt;abd_parent = NULL;</span>
+<span class="lineNum">     644 </span>                :<span class="lineCov">    8756803 :         refcount_create(&amp;abd-&gt;abd_children);</span>
+<span class="lineNum">     645 </span>                :            : 
+<span class="lineNum">     646 </span>        [<span class="branchCov" title="Branch 0 was taken 5358889 times"> + </span><span class="branchCov" title="Branch 1 was taken 3393302 times"> + </span>]:<span class="lineCov">    8752191 :         if (is_metadata) {</span>
+<span class="lineNum">     647 </span>                :<span class="lineCov">    5358889 :                 abd-&gt;abd_u.abd_linear.abd_buf = zio_buf_alloc(size);</span>
+<span class="lineNum">     648 </span>                :            :         } else {
+<span class="lineNum">     649 </span>                :<span class="lineCov">    3393302 :                 abd-&gt;abd_u.abd_linear.abd_buf = zio_data_buf_alloc(size);</span>
+<span class="lineNum">     650 </span>                :            :         }
+<span class="lineNum">     651 </span>                :            : 
+<span class="lineNum">     652 </span>                :<span class="lineCov">    8756136 :         ABDSTAT_BUMP(abdstat_linear_cnt);</span>
+<span class="lineNum">     653 </span>                :<span class="lineCov">    8756703 :         ABDSTAT_INCR(abdstat_linear_data_size, size);</span>
+<span class="lineNum">     654 </span>                :            : 
+<span class="lineNum">     655 </span>                :<span class="lineCov">    8756041 :         return (abd);</span>
+<span class="lineNum">     656 </span>                :            : }
+<a name="657"><span class="lineNum">     657 </span>                :            : </a>
+<span class="lineNum">     658 </span>                :            : static void
+<span class="lineNum">     659 </span>                :<span class="lineCov">    9231569 : abd_free_linear(abd_t *abd)</span>
+<span class="lineNum">     660 </span>                :            : {
+<span class="lineNum">     661 </span>        [<span class="branchCov" title="Branch 0 was taken 5858136 times"> + </span><span class="branchCov" title="Branch 1 was taken 3373433 times"> + </span>]:<span class="lineCov">    9231569 :         if (abd-&gt;abd_flags &amp; ABD_FLAG_META) {</span>
+<span class="lineNum">     662 </span>                :<span class="lineCov">    5858136 :                 zio_buf_free(abd-&gt;abd_u.abd_linear.abd_buf, abd-&gt;abd_size);</span>
+<span class="lineNum">     663 </span>                :            :         } else {
+<span class="lineNum">     664 </span>                :<span class="lineCov">    3373433 :                 zio_data_buf_free(abd-&gt;abd_u.abd_linear.abd_buf, abd-&gt;abd_size);</span>
+<span class="lineNum">     665 </span>                :            :         }
+<span class="lineNum">     666 </span>                :            : 
+<span class="lineNum">     667 </span>                :<span class="lineCov">    9233631 :         refcount_destroy(&amp;abd-&gt;abd_children);</span>
+<span class="lineNum">     668 </span>                :<span class="lineCov">    9230189 :         ABDSTAT_BUMPDOWN(abdstat_linear_cnt);</span>
+<span class="lineNum">     669 </span>                :<span class="lineCov">    9234315 :         ABDSTAT_INCR(abdstat_linear_data_size, -(int)abd-&gt;abd_size);</span>
+<span class="lineNum">     670 </span>                :            : 
+<span class="lineNum">     671 </span>                :<span class="lineCov">    9233707 :         abd_free_struct(abd);</span>
+<span class="lineNum">     672 </span>                :<span class="lineCov">    9234898 : }</span>
+<span class="lineNum">     673 </span>                :            : 
+<span class="lineNum">     674 </span>                :            : /*
+<span class="lineNum">     675 </span>                :            :  * Free an ABD. Only use this on ABDs allocated with abd_alloc() or
+<span class="lineNum">     676 </span>                :            :  * abd_alloc_linear().
+<a name="677"><span class="lineNum">     677 </span>                :            :  */</a>
+<span class="lineNum">     678 </span>                :            : void
+<span class="lineNum">     679 </span>                :<span class="lineCov">    9837294 : abd_free(abd_t *abd)</span>
+<span class="lineNum">     680 </span>                :            : {
+<span class="lineNum">     681 </span>                :<span class="lineCov">    9837294 :         abd_verify(abd);</span>
+<span class="lineNum">     682 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9836880 times"> + </span>]:<span class="lineCov">    9836880 :         ASSERT3P(abd-&gt;abd_parent, ==, NULL);</span>
+<span class="lineNum">     683 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9836880 times"> + </span>]:<span class="lineCov">    9836880 :         ASSERT(abd-&gt;abd_flags &amp; ABD_FLAG_OWNER);</span>
+<span class="lineNum">     684 </span>        [<span class="branchCov" title="Branch 1 was taken 9231002 times"> + </span><span class="branchCov" title="Branch 2 was taken 605737 times"> + </span>]:<span class="lineCov">    9836880 :         if (abd_is_linear(abd))</span>
+<span class="lineNum">     685 </span>                :<span class="lineCov">    9231002 :                 abd_free_linear(abd);</span>
+<span class="lineNum">     686 </span>                :            :         else
+<span class="lineNum">     687 </span>                :<span class="lineCov">     605737 :                 abd_free_scatter(abd);</span>
+<span class="lineNum">     688 </span>                :<span class="lineCov">    9840688 : }</span>
+<span class="lineNum">     689 </span>                :            : 
+<span class="lineNum">     690 </span>                :            : /*
+<span class="lineNum">     691 </span>                :            :  * Allocate an ABD of the same format (same metadata flag, same scatterize
+<span class="lineNum">     692 </span>                :            :  * setting) as another ABD.
+<a name="693"><span class="lineNum">     693 </span>                :            :  */</a>
+<span class="lineNum">     694 </span>                :            : abd_t *
+<span class="lineNum">     695 </span>                :<span class="lineCov">    3195879 : abd_alloc_sametype(abd_t *sabd, size_t size)</span>
+<span class="lineNum">     696 </span>                :            : {
+<span class="lineNum">     697 </span>                :<span class="lineCov">    3195879 :         boolean_t is_metadata = (sabd-&gt;abd_flags &amp; ABD_FLAG_META) != 0;</span>
+<span class="lineNum">     698 </span>        [<span class="branchCov" title="Branch 1 was taken 3098535 times"> + </span><span class="branchCov" title="Branch 2 was taken 97195 times"> + </span>]:<span class="lineCov">    3195879 :         if (abd_is_linear(sabd)) {</span>
+<span class="lineNum">     699 </span>                :<span class="lineCov">    3098535 :                 return (abd_alloc_linear(size, is_metadata));</span>
+<span class="lineNum">     700 </span>                :            :         } else {
+<span class="lineNum">     701 </span>                :<span class="lineCov">      97195 :                 return (abd_alloc(size, is_metadata));</span>
+<span class="lineNum">     702 </span>                :            :         }
+<span class="lineNum">     703 </span>                :            : }
+<span class="lineNum">     704 </span>                :            : 
+<span class="lineNum">     705 </span>                :            : /*
+<span class="lineNum">     706 </span>                :            :  * If we're going to use this ABD for doing I/O using the block layer, the
+<span class="lineNum">     707 </span>                :            :  * consumer of the ABD data doesn't care if it's scattered or not, and we don't
+<span class="lineNum">     708 </span>                :            :  * plan to store this ABD in memory for a long period of time, we should
+<span class="lineNum">     709 </span>                :            :  * allocate the ABD type that requires the least data copying to do the I/O.
+<span class="lineNum">     710 </span>                :            :  *
+<span class="lineNum">     711 </span>                :            :  * On Illumos this is linear ABDs, however if ldi_strategy() can ever issue I/Os
+<span class="lineNum">     712 </span>                :            :  * using a scatter/gather list we should switch to that and replace this call
+<span class="lineNum">     713 </span>                :            :  * with vanilla abd_alloc().
+<span class="lineNum">     714 </span>                :            :  *
+<span class="lineNum">     715 </span>                :            :  * On Linux the optimal thing to do would be to use abd_get_offset() and
+<span class="lineNum">     716 </span>                :            :  * construct a new ABD which shares the original pages thereby eliminating
+<span class="lineNum">     717 </span>                :            :  * the copy.  But for the moment a new linear ABD is allocated until this
+<span class="lineNum">     718 </span>                :            :  * performance optimization can be implemented.
+<a name="719"><span class="lineNum">     719 </span>                :            :  */</a>
+<span class="lineNum">     720 </span>                :            : abd_t *
+<span class="lineNum">     721 </span>                :<span class="lineCov">     719301 : abd_alloc_for_io(size_t size, boolean_t is_metadata)</span>
+<span class="lineNum">     722 </span>                :            : {
+<span class="lineNum">     723 </span>                :<span class="lineCov">     719301 :         return (abd_alloc(size, is_metadata));</span>
+<span class="lineNum">     724 </span>                :            : }
+<span class="lineNum">     725 </span>                :            : 
+<span class="lineNum">     726 </span>                :            : /*
+<span class="lineNum">     727 </span>                :            :  * Allocate a new ABD to point to offset off of sabd. It shares the underlying
+<span class="lineNum">     728 </span>                :            :  * buffer data with sabd. Use abd_put() to free. sabd must not be freed while
+<span class="lineNum">     729 </span>                :            :  * any derived ABDs exist.
+<a name="730"><span class="lineNum">     730 </span>                :            :  */</a>
+<span class="lineNum">     731 </span>                :            : static inline abd_t *
+<span class="lineNum">     732 </span>                :<span class="lineCov">    1032484 : abd_get_offset_impl(abd_t *sabd, size_t off, size_t size)</span>
+<span class="lineNum">     733 </span>                :            : {
+<span class="lineNum">     734 </span>                :            :         abd_t *abd;
+<span class="lineNum">     735 </span>                :            : 
+<span class="lineNum">     736 </span>                :<span class="lineCov">    1032484 :         abd_verify(sabd);</span>
+<span class="lineNum">     737 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1032393 times"> + </span>]:<span class="lineCov">    1032393 :         ASSERT3U(off, &lt;=, sabd-&gt;abd_size);</span>
+<span class="lineNum">     738 </span>                :            : 
+<span class="lineNum">     739 </span>        [<span class="branchCov" title="Branch 1 was taken 928351 times"> + </span><span class="branchCov" title="Branch 2 was taken 103925 times"> + </span>]:<span class="lineCov">    1032393 :         if (abd_is_linear(sabd)) {</span>
+<span class="lineNum">     740 </span>                :<span class="lineCov">     928351 :                 abd = abd_alloc_struct();</span>
+<span class="lineNum">     741 </span>                :            : 
+<span class="lineNum">     742 </span>                :            :                 /*
+<span class="lineNum">     743 </span>                :            :                  * Even if this buf is filesystem metadata, we only track that
+<span class="lineNum">     744 </span>                :            :                  * if we own the underlying data buffer, which is not true in
+<span class="lineNum">     745 </span>                :            :                  * this case. Therefore, we don't ever use ABD_FLAG_META here.
+<span class="lineNum">     746 </span>                :            :                  */
+<span class="lineNum">     747 </span>                :<span class="lineCov">     928720 :                 abd-&gt;abd_flags = ABD_FLAG_LINEAR;</span>
+<span class="lineNum">     748 </span>                :            : 
+<span class="lineNum">     749 </span>                :<span class="lineCov">     928720 :                 abd-&gt;abd_u.abd_linear.abd_buf =</span>
+<span class="lineNum">     750 </span>                :<span class="lineCov">     928720 :                     (char *)sabd-&gt;abd_u.abd_linear.abd_buf + off;</span>
+<span class="lineNum">     751 </span>                :            :         } else {
+<span class="lineNum">     752 </span>                :            :                 int i;
+<span class="lineNum">     753 </span>                :            :                 struct scatterlist *sg;
+<span class="lineNum">     754 </span>                :<span class="lineCov">     103925 :                 size_t new_offset = sabd-&gt;abd_u.abd_scatter.abd_offset + off;</span>
+<span class="lineNum">     755 </span>                :            : 
+<span class="lineNum">     756 </span>                :<span class="lineCov">     103925 :                 abd = abd_alloc_struct();</span>
+<span class="lineNum">     757 </span>                :            : 
+<span class="lineNum">     758 </span>                :            :                 /*
+<span class="lineNum">     759 </span>                :            :                  * Even if this buf is filesystem metadata, we only track that
+<span class="lineNum">     760 </span>                :            :                  * if we own the underlying data buffer, which is not true in
+<span class="lineNum">     761 </span>                :            :                  * this case. Therefore, we don't ever use ABD_FLAG_META here.
+<span class="lineNum">     762 </span>                :            :                  */
+<span class="lineNum">     763 </span>                :<span class="lineCov">     103936 :                 abd-&gt;abd_flags = 0;</span>
+<span class="lineNum">     764 </span>                :            : 
+<span class="lineNum">     765 </span>        [<span class="branchCov" title="Branch 1 was taken 8920523 times"> + </span><span class="branchCov" title="Branch 2 was taken 12 times"> + </span>]:<span class="lineCov">    8920537 :                 abd_for_each_sg(sabd, sg, ABD_SCATTER(sabd).abd_nents, i) {</span>
+<span class="lineNum">     766 </span>        [<span class="branchCov" title="Branch 0 was taken 8816601 times"> + </span><span class="branchCov" title="Branch 1 was taken 103922 times"> + </span>]:<span class="lineCov">    8920523 :                         if (new_offset &lt; sg-&gt;length)</span>
+<span class="lineNum">     767 </span>                :            :                                 break;
+<span class="lineNum">     768 </span>                :<span class="lineCov">    8816601 :                         new_offset -= sg-&gt;length;</span>
+<span class="lineNum">     769 </span>                :            :                 }
+<span class="lineNum">     770 </span>                :            : 
+<span class="lineNum">     771 </span>                :<span class="lineCov">     103934 :                 ABD_SCATTER(abd).abd_sgl = sg;</span>
+<span class="lineNum">     772 </span>                :<span class="lineCov">     103934 :                 ABD_SCATTER(abd).abd_offset = new_offset;</span>
+<span class="lineNum">     773 </span>                :<span class="lineCov">     103934 :                 ABD_SCATTER(abd).abd_nents = ABD_SCATTER(sabd).abd_nents - i;</span>
+<span class="lineNum">     774 </span>                :            :         }
+<span class="lineNum">     775 </span>                :            : 
+<span class="lineNum">     776 </span>                :<span class="lineCov">    1032654 :         abd-&gt;abd_size = size;</span>
+<span class="lineNum">     777 </span>                :<span class="lineCov">    1032654 :         abd-&gt;abd_parent = sabd;</span>
+<span class="lineNum">     778 </span>                :<span class="lineCov">    1032654 :         refcount_create(&amp;abd-&gt;abd_children);</span>
+<span class="lineNum">     779 </span>                :<span class="lineCov">    1031988 :         (void) refcount_add_many(&amp;sabd-&gt;abd_children, abd-&gt;abd_size, abd);</span>
+<span class="lineNum">     780 </span>                :            : 
+<span class="lineNum">     781 </span>                :<span class="lineCov">    1032695 :         return (abd);</span>
+<span class="lineNum">     782 </span>                :            : }
+<a name="783"><span class="lineNum">     783 </span>                :            : </a>
+<span class="lineNum">     784 </span>                :            : abd_t *
+<span class="lineNum">     785 </span>                :<span class="lineCov">      35896 : abd_get_offset(abd_t *sabd, size_t off)</span>
+<span class="lineNum">     786 </span>                :            : {
+<span class="lineNum">     787 </span>        [<span class="branchCov" title="Branch 0 was taken 35896 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      35896 :         size_t size = sabd-&gt;abd_size &gt; off ? sabd-&gt;abd_size - off : 0;</span>
+<span class="lineNum">     788 </span>                :            : 
+<span class="lineNum">     789 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 35896 times"> + </span>]:<span class="lineCov">      35896 :         VERIFY3U(size, &gt;, 0);</span>
+<span class="lineNum">     790 </span>                :            : 
+<span class="lineNum">     791 </span>                :<span class="lineCov">      35896 :         return (abd_get_offset_impl(sabd, off, size));</span>
+<span class="lineNum">     792 </span>                :            : }
+<a name="793"><span class="lineNum">     793 </span>                :            : </a>
+<span class="lineNum">     794 </span>                :            : abd_t *
+<span class="lineNum">     795 </span>                :<span class="lineCov">     996627 : abd_get_offset_size(abd_t *sabd, size_t off, size_t size)</span>
+<span class="lineNum">     796 </span>                :            : {
+<span class="lineNum">     797 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 996627 times"> + </span>]:<span class="lineCov">     996627 :         ASSERT3U(off + size, &lt;=, sabd-&gt;abd_size);</span>
+<span class="lineNum">     798 </span>                :            : 
+<span class="lineNum">     799 </span>                :<span class="lineCov">     996627 :         return (abd_get_offset_impl(sabd, off, size));</span>
+<span class="lineNum">     800 </span>                :            : }
+<span class="lineNum">     801 </span>                :            : 
+<span class="lineNum">     802 </span>                :            : /*
+<span class="lineNum">     803 </span>                :            :  * Allocate a linear ABD structure for buf. You must free this with abd_put()
+<span class="lineNum">     804 </span>                :            :  * since the resulting ABD doesn't own its own buffer.
+<a name="805"><span class="lineNum">     805 </span>                :            :  */</a>
+<span class="lineNum">     806 </span>                :            : abd_t *
+<span class="lineNum">     807 </span>                :<span class="lineCov">    1488057 : abd_get_from_buf(void *buf, size_t size)</span>
+<span class="lineNum">     808 </span>                :            : {
+<span class="lineNum">     809 </span>                :<span class="lineCov">    1488057 :         abd_t *abd = abd_alloc_struct();</span>
+<span class="lineNum">     810 </span>                :            : 
+<span class="lineNum">     811 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1488252 times"> + </span>]:<span class="lineCov">    1488252 :         VERIFY3U(size, &lt;=, SPA_MAXBLOCKSIZE);</span>
+<span class="lineNum">     812 </span>                :            : 
+<span class="lineNum">     813 </span>                :            :         /*
+<span class="lineNum">     814 </span>                :            :          * Even if this buf is filesystem metadata, we only track that if we
+<span class="lineNum">     815 </span>                :            :          * own the underlying data buffer, which is not true in this case.
+<span class="lineNum">     816 </span>                :            :          * Therefore, we don't ever use ABD_FLAG_META here.
+<span class="lineNum">     817 </span>                :            :          */
+<span class="lineNum">     818 </span>                :<span class="lineCov">    1488252 :         abd-&gt;abd_flags = ABD_FLAG_LINEAR;</span>
+<span class="lineNum">     819 </span>                :<span class="lineCov">    1488252 :         abd-&gt;abd_size = size;</span>
+<span class="lineNum">     820 </span>                :<span class="lineCov">    1488252 :         abd-&gt;abd_parent = NULL;</span>
+<span class="lineNum">     821 </span>                :<span class="lineCov">    1488252 :         refcount_create(&amp;abd-&gt;abd_children);</span>
+<span class="lineNum">     822 </span>                :            : 
+<span class="lineNum">     823 </span>                :<span class="lineCov">    1487324 :         abd-&gt;abd_u.abd_linear.abd_buf = buf;</span>
+<span class="lineNum">     824 </span>                :            : 
+<span class="lineNum">     825 </span>                :<span class="lineCov">    1487324 :         return (abd);</span>
+<span class="lineNum">     826 </span>                :            : }
+<span class="lineNum">     827 </span>                :            : 
+<span class="lineNum">     828 </span>                :            : /*
+<span class="lineNum">     829 </span>                :            :  * Free an ABD allocated from abd_get_offset() or abd_get_from_buf(). Will not
+<span class="lineNum">     830 </span>                :            :  * free the underlying scatterlist or buffer.
+<a name="831"><span class="lineNum">     831 </span>                :            :  */</a>
+<span class="lineNum">     832 </span>                :            : void
+<span class="lineNum">     833 </span>                :<span class="lineCov">    2042819 : abd_put(abd_t *abd)</span>
+<span class="lineNum">     834 </span>                :            : {
+<span class="lineNum">     835 </span>                :<span class="lineCov">    2042819 :         abd_verify(abd);</span>
+<span class="lineNum">     836 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 2042741 times"> + </span>]:<span class="lineCov">    2042741 :         ASSERT(!(abd-&gt;abd_flags &amp; ABD_FLAG_OWNER));</span>
+<span class="lineNum">     837 </span>                :            : 
+<span class="lineNum">     838 </span>        [<span class="branchCov" title="Branch 0 was taken 1032392 times"> + </span><span class="branchCov" title="Branch 1 was taken 1010349 times"> + </span>]:<span class="lineCov">    2042741 :         if (abd-&gt;abd_parent != NULL) {</span>
+<span class="lineNum">     839 </span>                :<span class="lineCov">    1032392 :                 (void) refcount_remove_many(&amp;abd-&gt;abd_parent-&gt;abd_children,</span>
+<span class="lineNum">     840 </span>                :<span class="lineCov">    1032392 :                     abd-&gt;abd_size, abd);</span>
+<span class="lineNum">     841 </span>                :            :         }
+<span class="lineNum">     842 </span>                :            : 
+<span class="lineNum">     843 </span>                :<span class="lineCov">    2043051 :         refcount_destroy(&amp;abd-&gt;abd_children);</span>
+<span class="lineNum">     844 </span>                :<span class="lineCov">    2042494 :         abd_free_struct(abd);</span>
+<span class="lineNum">     845 </span>                :<span class="lineCov">    2043152 : }</span>
+<span class="lineNum">     846 </span>                :            : 
+<span class="lineNum">     847 </span>                :            : /*
+<span class="lineNum">     848 </span>                :            :  * Get the raw buffer associated with a linear ABD.
+<a name="849"><span class="lineNum">     849 </span>                :            :  */</a>
+<span class="lineNum">     850 </span>                :            : void *
+<span class="lineNum">     851 </span>                :<span class="lineCov">   25312462 : abd_to_buf(abd_t *abd)</span>
+<span class="lineNum">     852 </span>                :            : {
+<span class="lineNum">     853 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 25308566 times"> + </span>]:<span class="lineCov">   25312462 :         ASSERT(abd_is_linear(abd));</span>
+<span class="lineNum">     854 </span>                :<span class="lineCov">   25308566 :         abd_verify(abd);</span>
+<span class="lineNum">     855 </span>                :<span class="lineCov">   25302901 :         return (abd-&gt;abd_u.abd_linear.abd_buf);</span>
+<span class="lineNum">     856 </span>                :            : }
+<span class="lineNum">     857 </span>                :            : 
+<span class="lineNum">     858 </span>                :            : /*
+<span class="lineNum">     859 </span>                :            :  * Borrow a raw buffer from an ABD without copying the contents of the ABD
+<span class="lineNum">     860 </span>                :            :  * into the buffer. If the ABD is scattered, this will allocate a raw buffer
+<span class="lineNum">     861 </span>                :            :  * whose contents are undefined. To copy over the existing data in the ABD, use
+<span class="lineNum">     862 </span>                :            :  * abd_borrow_buf_copy() instead.
+<a name="863"><span class="lineNum">     863 </span>                :            :  */</a>
+<span class="lineNum">     864 </span>                :            : void *
+<span class="lineNum">     865 </span>                :<span class="lineCov">    8027169 : abd_borrow_buf(abd_t *abd, size_t n)</span>
+<span class="lineNum">     866 </span>                :            : {
+<span class="lineNum">     867 </span>                :            :         void *buf;
+<span class="lineNum">     868 </span>                :<span class="lineCov">    8027169 :         abd_verify(abd);</span>
+<span class="lineNum">     869 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8027399 times"> + </span>]:<span class="lineCov">    8027399 :         ASSERT3U(abd-&gt;abd_size, &gt;=, n);</span>
+<span class="lineNum">     870 </span>        [<span class="branchCov" title="Branch 1 was taken 7656047 times"> + </span><span class="branchCov" title="Branch 2 was taken 371079 times"> + </span>]:<span class="lineCov">    8027399 :         if (abd_is_linear(abd)) {</span>
+<span class="lineNum">     871 </span>                :<span class="lineCov">    7656047 :                 buf = abd_to_buf(abd);</span>
+<span class="lineNum">     872 </span>                :            :         } else {
+<span class="lineNum">     873 </span>                :<span class="lineCov">     371079 :                 buf = zio_buf_alloc(n);</span>
+<span class="lineNum">     874 </span>                :            :         }
+<span class="lineNum">     875 </span>                :<span class="lineCov">    8026245 :         (void) refcount_add_many(&amp;abd-&gt;abd_children, n, buf);</span>
+<span class="lineNum">     876 </span>                :            : 
+<span class="lineNum">     877 </span>                :<span class="lineCov">    8031917 :         return (buf);</span>
+<span class="lineNum">     878 </span>                :            : }
+<a name="879"><span class="lineNum">     879 </span>                :            : </a>
+<span class="lineNum">     880 </span>                :            : void *
+<span class="lineNum">     881 </span>                :<span class="lineCov">    4189766 : abd_borrow_buf_copy(abd_t *abd, size_t n)</span>
+<span class="lineNum">     882 </span>                :            : {
+<span class="lineNum">     883 </span>                :<span class="lineCov">    4189766 :         void *buf = abd_borrow_buf(abd, n);</span>
+<span class="lineNum">     884 </span>        [<span class="branchCov" title="Branch 1 was taken 176983 times"> + </span><span class="branchCov" title="Branch 2 was taken 4014327 times"> + </span>]:<span class="lineCov">    4191345 :         if (!abd_is_linear(abd)) {</span>
+<span class="lineNum">     885 </span>                :<span class="lineCov">     176983 :                 abd_copy_to_buf(buf, abd, n);</span>
+<span class="lineNum">     886 </span>                :            :         }
+<span class="lineNum">     887 </span>                :<span class="lineCov">    4191297 :         return (buf);</span>
+<span class="lineNum">     888 </span>                :            : }
+<span class="lineNum">     889 </span>                :            : 
+<span class="lineNum">     890 </span>                :            : /*
+<span class="lineNum">     891 </span>                :            :  * Return a borrowed raw buffer to an ABD. If the ABD is scattered, this will
+<span class="lineNum">     892 </span>                :            :  * not change the contents of the ABD and will ASSERT that you didn't modify
+<span class="lineNum">     893 </span>                :            :  * the buffer since it was borrowed. If you want any changes you made to buf to
+<span class="lineNum">     894 </span>                :            :  * be copied back to abd, use abd_return_buf_copy() instead.
+<a name="895"><span class="lineNum">     895 </span>                :            :  */</a>
+<span class="lineNum">     896 </span>                :            : void
+<span class="lineNum">     897 </span>                :<span class="lineCov">    8027807 : abd_return_buf(abd_t *abd, void *buf, size_t n)</span>
+<span class="lineNum">     898 </span>                :            : {
+<span class="lineNum">     899 </span>                :<span class="lineCov">    8027807 :         abd_verify(abd);</span>
+<span class="lineNum">     900 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8027445 times"> + </span>]:<span class="lineCov">    8027445 :         ASSERT3U(abd-&gt;abd_size, &gt;=, n);</span>
+<span class="lineNum">     901 </span>        [<span class="branchCov" title="Branch 1 was taken 7656063 times"> + </span><span class="branchCov" title="Branch 2 was taken 370963 times"> + </span>]:<span class="lineCov">    8027445 :         if (abd_is_linear(abd)) {</span>
+<span class="lineNum">     902 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 7653217 times"> + </span>]:<span class="lineCov">    7656063 :                 ASSERT3P(buf, ==, abd_to_buf(abd));</span>
+<span class="lineNum">     903 </span>                :            :         } else {
+<span class="lineNum">     904 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 371090 times"> + </span>]:<span class="lineCov">     370963 :                 ASSERT0(abd_cmp_buf(abd, buf, n));</span>
+<span class="lineNum">     905 </span>                :<span class="lineCov">     371090 :                 zio_buf_free(buf, n);</span>
+<span class="lineNum">     906 </span>                :            :         }
+<span class="lineNum">     907 </span>                :<span class="lineCov">    8024293 :         (void) refcount_remove_many(&amp;abd-&gt;abd_children, n, buf);</span>
+<span class="lineNum">     908 </span>                :<span class="lineCov">    8032347 : }</span>
+<a name="909"><span class="lineNum">     909 </span>                :            : </a>
+<span class="lineNum">     910 </span>                :            : void
+<span class="lineNum">     911 </span>                :<span class="lineCov">    3839115 : abd_return_buf_copy(abd_t *abd, void *buf, size_t n)</span>
+<span class="lineNum">     912 </span>                :            : {
+<span class="lineNum">     913 </span>        [<span class="branchCov" title="Branch 1 was taken 194086 times"> + </span><span class="branchCov" title="Branch 2 was taken 3644902 times"> + </span>]:<span class="lineCov">    3839115 :         if (!abd_is_linear(abd)) {</span>
+<span class="lineNum">     914 </span>                :<span class="lineCov">     194086 :                 abd_copy_from_buf(abd, buf, n);</span>
+<span class="lineNum">     915 </span>                :            :         }
+<span class="lineNum">     916 </span>                :<span class="lineCov">    3839006 :         abd_return_buf(abd, buf, n);</span>
+<span class="lineNum">     917 </span>                :<span class="lineCov">    3841045 : }</span>
+<span class="lineNum">     918 </span>                :            : 
+<span class="lineNum">     919 </span>                :            : /*
+<span class="lineNum">     920 </span>                :            :  * Give this ABD ownership of the buffer that it's storing. Can only be used on
+<span class="lineNum">     921 </span>                :            :  * linear ABDs which were allocated via abd_get_from_buf(), or ones allocated
+<span class="lineNum">     922 </span>                :            :  * with abd_alloc_linear() which subsequently released ownership of their buf
+<span class="lineNum">     923 </span>                :            :  * with abd_release_ownership_of_buf().
+<a name="924"><span class="lineNum">     924 </span>                :            :  */</a>
+<span class="lineNum">     925 </span>                :            : void
+<span class="lineNum">     926 </span>                :<span class="lineCov">     737677 : abd_take_ownership_of_buf(abd_t *abd, boolean_t is_metadata)</span>
+<span class="lineNum">     927 </span>                :            : {
+<span class="lineNum">     928 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 737695 times"> + </span>]:<span class="lineCov">     737677 :         ASSERT(abd_is_linear(abd));</span>
+<span class="lineNum">     929 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 737695 times"> + </span>]:<span class="lineCov">     737695 :         ASSERT(!(abd-&gt;abd_flags &amp; ABD_FLAG_OWNER));</span>
+<span class="lineNum">     930 </span>                :<span class="lineCov">     737695 :         abd_verify(abd);</span>
+<span class="lineNum">     931 </span>                :            : 
+<span class="lineNum">     932 </span>                :<span class="lineCov">     737701 :         abd-&gt;abd_flags |= ABD_FLAG_OWNER;</span>
+<span class="lineNum">     933 </span>        [<span class="branchCov" title="Branch 0 was taken 713680 times"> + </span><span class="branchCov" title="Branch 1 was taken 24021 times"> + </span>]:<span class="lineCov">     737701 :         if (is_metadata) {</span>
+<span class="lineNum">     934 </span>                :<span class="lineCov">     713680 :                 abd-&gt;abd_flags |= ABD_FLAG_META;</span>
+<span class="lineNum">     935 </span>                :            :         }
+<span class="lineNum">     936 </span>                :            : 
+<span class="lineNum">     937 </span>                :<span class="lineCov">     737701 :         ABDSTAT_BUMP(abdstat_linear_cnt);</span>
+<span class="lineNum">     938 </span>                :<span class="lineCov">     737826 :         ABDSTAT_INCR(abdstat_linear_data_size, abd-&gt;abd_size);</span>
+<span class="lineNum">     939 </span>                :<span class="lineCov">     737873 : }</span>
+<a name="940"><span class="lineNum">     940 </span>                :            : </a>
+<span class="lineNum">     941 </span>                :            : void
+<span class="lineNum">     942 </span>                :<span class="lineCov">     260100 : abd_release_ownership_of_buf(abd_t *abd)</span>
+<span class="lineNum">     943 </span>                :            : {
+<span class="lineNum">     944 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 260100 times"> + </span>]:<span class="lineCov">     260100 :         ASSERT(abd_is_linear(abd));</span>
+<span class="lineNum">     945 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 260100 times"> + </span>]:<span class="lineCov">     260100 :         ASSERT(abd-&gt;abd_flags &amp; ABD_FLAG_OWNER);</span>
+<span class="lineNum">     946 </span>                :<span class="lineCov">     260100 :         abd_verify(abd);</span>
+<span class="lineNum">     947 </span>                :            : 
+<span class="lineNum">     948 </span>                :<span class="lineCov">     260097 :         abd-&gt;abd_flags &amp;= ~ABD_FLAG_OWNER;</span>
+<span class="lineNum">     949 </span>                :            :         /* Disable this flag since we no longer own the data buffer */
+<span class="lineNum">     950 </span>                :<span class="lineCov">     260097 :         abd-&gt;abd_flags &amp;= ~ABD_FLAG_META;</span>
+<span class="lineNum">     951 </span>                :            : 
+<span class="lineNum">     952 </span>                :<span class="lineCov">     260097 :         ABDSTAT_BUMPDOWN(abdstat_linear_cnt);</span>
+<span class="lineNum">     953 </span>                :<span class="lineCov">     260103 :         ABDSTAT_INCR(abdstat_linear_data_size, -(int)abd-&gt;abd_size);</span>
+<span class="lineNum">     954 </span>                :<span class="lineCov">     260100 : }</span>
+<span class="lineNum">     955 </span>                :            : 
+<span class="lineNum">     956 </span>                :            : #ifndef HAVE_1ARG_KMAP_ATOMIC
+<span class="lineNum">     957 </span>                :            : #define NR_KM_TYPE (6)
+<span class="lineNum">     958 </span>                :            : #ifdef _KERNEL
+<span class="lineNum">     959 </span>                :            : int km_table[NR_KM_TYPE] = {
+<span class="lineNum">     960 </span>                :            :         KM_USER0,
+<span class="lineNum">     961 </span>                :            :         KM_USER1,
+<span class="lineNum">     962 </span>                :            :         KM_BIO_SRC_IRQ,
+<span class="lineNum">     963 </span>                :            :         KM_BIO_DST_IRQ,
+<span class="lineNum">     964 </span>                :            :         KM_PTE0,
+<span class="lineNum">     965 </span>                :            :         KM_PTE1,
+<span class="lineNum">     966 </span>                :            : };
+<span class="lineNum">     967 </span>                :            : #endif
+<span class="lineNum">     968 </span>                :            : #endif
+<span class="lineNum">     969 </span>                :            : 
+<span class="lineNum">     970 </span>                :            : struct abd_iter {
+<span class="lineNum">     971 </span>                :            :         /* public interface */
+<span class="lineNum">     972 </span>                :            :         void            *iter_mapaddr;  /* addr corresponding to iter_pos */
+<span class="lineNum">     973 </span>                :            :         size_t          iter_mapsize;   /* length of data valid at mapaddr */
+<span class="lineNum">     974 </span>                :            : 
+<span class="lineNum">     975 </span>                :            :         /* private */
+<span class="lineNum">     976 </span>                :            :         abd_t           *iter_abd;      /* ABD being iterated through */
+<span class="lineNum">     977 </span>                :            :         size_t          iter_pos;
+<span class="lineNum">     978 </span>                :            :         size_t          iter_offset;    /* offset in current sg/abd_buf, */
+<span class="lineNum">     979 </span>                :            :                                         /* abd_offset included */
+<span class="lineNum">     980 </span>                :            :         struct scatterlist *iter_sg;    /* current sg */
+<span class="lineNum">     981 </span>                :            : #ifndef HAVE_1ARG_KMAP_ATOMIC
+<span class="lineNum">     982 </span>                :            :         int             iter_km;        /* KM_* for kmap_atomic */
+<span class="lineNum">     983 </span>                :            : #endif
+<span class="lineNum">     984 </span>                :            : };
+<span class="lineNum">     985 </span>                :            : 
+<span class="lineNum">     986 </span>                :            : /*
+<span class="lineNum">     987 </span>                :            :  * Initialize the abd_iter.
+<a name="988"><span class="lineNum">     988 </span>                :            :  */</a>
+<span class="lineNum">     989 </span>                :            : static void
+<span class="lineNum">     990 </span>                :<span class="lineCov">   36246675 : abd_iter_init(struct abd_iter *aiter, abd_t *abd, int km_type)</span>
+<span class="lineNum">     991 </span>                :            : {
+<span class="lineNum">     992 </span>                :<span class="lineCov">   36246675 :         abd_verify(abd);</span>
+<span class="lineNum">     993 </span>                :<span class="lineCov">   36230545 :         aiter-&gt;iter_abd = abd;</span>
+<span class="lineNum">     994 </span>                :<span class="lineCov">   36230545 :         aiter-&gt;iter_mapaddr = NULL;</span>
+<span class="lineNum">     995 </span>                :<span class="lineCov">   36230545 :         aiter-&gt;iter_mapsize = 0;</span>
+<span class="lineNum">     996 </span>                :<span class="lineCov">   36230545 :         aiter-&gt;iter_pos = 0;</span>
+<span class="lineNum">     997 </span>        [<span class="branchCov" title="Branch 1 was taken 25567467 times"> + </span><span class="branchCov" title="Branch 2 was taken 10696270 times"> + </span>]:<span class="lineCov">   36230545 :         if (abd_is_linear(abd)) {</span>
+<span class="lineNum">     998 </span>                :<span class="lineCov">   25567467 :                 aiter-&gt;iter_offset = 0;</span>
+<span class="lineNum">     999 </span>                :<span class="lineCov">   25567467 :                 aiter-&gt;iter_sg = NULL;</span>
+<span class="lineNum">    1000 </span>                :            :         } else {
+<span class="lineNum">    1001 </span>                :<span class="lineCov">   10696270 :                 aiter-&gt;iter_offset = ABD_SCATTER(abd).abd_offset;</span>
+<span class="lineNum">    1002 </span>                :<span class="lineCov">   10696270 :                 aiter-&gt;iter_sg = ABD_SCATTER(abd).abd_sgl;</span>
+<span class="lineNum">    1003 </span>                :            :         }
+<span class="lineNum">    1004 </span>                :            : #ifndef HAVE_1ARG_KMAP_ATOMIC
+<span class="lineNum">    1005 </span>                :            :         ASSERT3U(km_type, &lt;, NR_KM_TYPE);
+<span class="lineNum">    1006 </span>                :            :         aiter-&gt;iter_km = km_type;
+<span class="lineNum">    1007 </span>                :            : #endif
+<span class="lineNum">    1008 </span>                :<span class="lineCov">   36263737 : }</span>
+<span class="lineNum">    1009 </span>                :            : 
+<span class="lineNum">    1010 </span>                :            : /*
+<span class="lineNum">    1011 </span>                :            :  * Advance the iterator by a certain amount. Cannot be called when a chunk is
+<span class="lineNum">    1012 </span>                :            :  * in use. This can be safely called when the aiter has already exhausted, in
+<span class="lineNum">    1013 </span>                :            :  * which case this does nothing.
+<a name="1014"><span class="lineNum">    1014 </span>                :            :  */</a>
+<span class="lineNum">    1015 </span>                :            : static void
+<span class="lineNum">    1016 </span>                :<span class="lineCov">  782458490 : abd_iter_advance(struct abd_iter *aiter, size_t amount)</span>
+<span class="lineNum">    1017 </span>                :            : {
+<span class="lineNum">    1018 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 782458490 times"> + </span>]:<span class="lineCov">  782458490 :         ASSERT3P(aiter-&gt;iter_mapaddr, ==, NULL);</span>
+<span class="lineNum">    1019 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 782458490 times"> + </span>]:<span class="lineCov">  782458490 :         ASSERT0(aiter-&gt;iter_mapsize);</span>
+<span class="lineNum">    1020 </span>                :            : 
+<span class="lineNum">    1021 </span>                :            :         /* There's nothing left to advance to, so do nothing */
+<span class="lineNum">    1022 </span>           [<span class="branchCov" title="Branch 0 was taken 786019840 times"> + </span>]:<span class="lineCov">  782458490 :         if (aiter-&gt;iter_pos == aiter-&gt;iter_abd-&gt;abd_size)</span>
+<span class="lineNum">    1023 </span>                :            :                 return;
+<span class="lineNum">    1024 </span>                :            : 
+<span class="lineNum">    1025 </span>                :<span class="lineCov">  786019840 :         aiter-&gt;iter_pos += amount;</span>
+<span class="lineNum">    1026 </span>                :<span class="lineCov">  786019840 :         aiter-&gt;iter_offset += amount;</span>
+<span class="lineNum">    1027 </span>        [<span class="branchCov" title="Branch 1 was taken 712761187 times"> + </span><span class="branchCov" title="Branch 2 was taken 76177862 times"> + </span>]:<span class="lineCov">  786019840 :         if (!abd_is_linear(aiter-&gt;iter_abd)) {</span>
+<span class="lineNum">    1028 </span>        [<span class="branchCov" title="Branch 0 was taken 632520163 times"> + </span><span class="branchCov" title="Branch 1 was taken 711410344 times"> + </span>]:<span class="lineCov"> 1343930507 :                 while (aiter-&gt;iter_offset &gt;= aiter-&gt;iter_sg-&gt;length) {</span>
+<span class="lineNum">    1029 </span>                :<span class="lineCov">  632520163 :                         aiter-&gt;iter_offset -= aiter-&gt;iter_sg-&gt;length;</span>
+<span class="lineNum">    1030 </span>                :<span class="lineCov">  632520163 :                         aiter-&gt;iter_sg = sg_next(aiter-&gt;iter_sg);</span>
+<span class="lineNum">    1031 </span>        [<span class="branchCov" title="Branch 0 was taken 1626472 times"> + </span><span class="branchCov" title="Branch 1 was taken 631169320 times"> + </span>]:<span class="lineCov">  632795792 :                         if (aiter-&gt;iter_sg == NULL) {</span>
+<span class="lineNum">    1032 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1626472 times"> + </span>]:<span class="lineCov">  714387659 :                                 ASSERT0(aiter-&gt;iter_offset);</span>
+<span class="lineNum">    1033 </span>                :            :                                 break;
+<span class="lineNum">    1034 </span>                :            :                         }
+<span class="lineNum">    1035 </span>                :            :                 }
+<span class="lineNum">    1036 </span>                :            :         }
+<span class="lineNum">    1037 </span>                :            : }
+<span class="lineNum">    1038 </span>                :            : 
+<span class="lineNum">    1039 </span>                :            : /*
+<span class="lineNum">    1040 </span>                :            :  * Map the current chunk into aiter. This can be safely called when the aiter
+<span class="lineNum">    1041 </span>                :            :  * has already exhausted, in which case this does nothing.
+<a name="1042"><span class="lineNum">    1042 </span>                :            :  */</a>
+<span class="lineNum">    1043 </span>                :            : static void
+<span class="lineNum">    1044 </span>                :<span class="lineCov">  758388836 : abd_iter_map(struct abd_iter *aiter)</span>
+<span class="lineNum">    1045 </span>                :            : {
+<span class="lineNum">    1046 </span>                :            :         void *paddr;
+<span class="lineNum">    1047 </span>                :<span class="lineCov">  758388836 :         size_t offset = 0;</span>
+<span class="lineNum">    1048 </span>                :            : 
+<span class="lineNum">    1049 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 758388836 times"> + </span>]:<span class="lineCov">  758388836 :         ASSERT3P(aiter-&gt;iter_mapaddr, ==, NULL);</span>
+<span class="lineNum">    1050 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 758388836 times"> + </span>]:<span class="lineCov">  758388836 :         ASSERT0(aiter-&gt;iter_mapsize);</span>
+<span class="lineNum">    1051 </span>                :            : 
+<span class="lineNum">    1052 </span>                :            :         /* There's nothing left to iterate over, so do nothing */
+<span class="lineNum">    1053 </span>           [<span class="branchCov" title="Branch 0 was taken 758883136 times"> + </span>]:<span class="lineCov">  758388836 :         if (aiter-&gt;iter_pos == aiter-&gt;iter_abd-&gt;abd_size)</span>
+<span class="lineNum">    1054 </span>                :            :                 return;
+<span class="lineNum">    1055 </span>                :            : 
+<span class="lineNum">    1056 </span>        [<span class="branchCov" title="Branch 1 was taken 56103821 times"> + </span><span class="branchCov" title="Branch 2 was taken 703207947 times"> + </span>]:<span class="lineCov">  758883136 :         if (abd_is_linear(aiter-&gt;iter_abd)) {</span>
+<span class="lineNum">    1057 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 56103821 times"> + </span>]:<span class="lineCov">   56103821 :                 ASSERT3U(aiter-&gt;iter_pos, ==, aiter-&gt;iter_offset);</span>
+<span class="lineNum">    1058 </span>                :<span class="lineCov">   56103821 :                 offset = aiter-&gt;iter_offset;</span>
+<span class="lineNum">    1059 </span>                :<span class="lineCov">   56103821 :                 aiter-&gt;iter_mapsize = aiter-&gt;iter_abd-&gt;abd_size - offset;</span>
+<span class="lineNum">    1060 </span>                :<span class="lineCov">   56103821 :                 paddr = aiter-&gt;iter_abd-&gt;abd_u.abd_linear.abd_buf;</span>
+<span class="lineNum">    1061 </span>                :            :         } else {
+<span class="lineNum">    1062 </span>                :<span class="lineCov">  703207947 :                 offset = aiter-&gt;iter_offset;</span>
+<span class="lineNum">    1063 </span>                :<span class="lineCov">  703207947 :                 aiter-&gt;iter_mapsize = MIN(aiter-&gt;iter_sg-&gt;length - offset,</span>
+<span class="lineNum">    1064 </span>                :            :                     aiter-&gt;iter_abd-&gt;abd_size - aiter-&gt;iter_pos);
+<span class="lineNum">    1065 </span>                :            : 
+<span class="lineNum">    1066 </span>                :<span class="lineCov">  703207947 :                 paddr = zfs_kmap_atomic(sg_page(aiter-&gt;iter_sg),</span>
+<span class="lineNum">    1067 </span>                :            :                     km_table[aiter-&gt;iter_km]);
+<span class="lineNum">    1068 </span>                :            :         }
+<span class="lineNum">    1069 </span>                :            : 
+<span class="lineNum">    1070 </span>                :<span class="lineCov">  758555231 :         aiter-&gt;iter_mapaddr = (char *)paddr + offset;</span>
+<span class="lineNum">    1071 </span>                :            : }
+<span class="lineNum">    1072 </span>                :            : 
+<span class="lineNum">    1073 </span>                :            : /*
+<span class="lineNum">    1074 </span>                :            :  * Unmap the current chunk from aiter. This can be safely called when the aiter
+<span class="lineNum">    1075 </span>                :            :  * has already exhausted, in which case this does nothing.
+<a name="1076"><span class="lineNum">    1076 </span>                :            :  */</a>
+<span class="lineNum">    1077 </span>                :            : static void
+<span class="lineNum">    1078 </span>                :<span class="lineCov">  759020614 : abd_iter_unmap(struct abd_iter *aiter)</span>
+<span class="lineNum">    1079 </span>                :            : {
+<span class="lineNum">    1080 </span>                :            :         /* There's nothing left to unmap, so do nothing */
+<span class="lineNum">    1081 </span>           [<span class="branchCov" title="Branch 0 was taken 760386574 times"> + </span>]:<span class="lineCov">  759020614 :         if (aiter-&gt;iter_pos == aiter-&gt;iter_abd-&gt;abd_size)</span>
+<span class="lineNum">    1082 </span>                :            :                 return;
+<span class="lineNum">    1083 </span>                :            : 
+<span class="lineNum">    1084 </span>                :<span class="lineCov">  760386574 :         if (!abd_is_linear(aiter-&gt;iter_abd)) {</span>
+<span class="lineNum">    1085 </span>                :            :                 /* LINTED E_FUNC_SET_NOT_USED */
+<span class="lineNum">    1086 </span>                :            :                 zfs_kunmap_atomic(aiter-&gt;iter_mapaddr - aiter-&gt;iter_offset,
+<span class="lineNum">    1087 </span>                :            :                     km_table[aiter-&gt;iter_km]);
+<span class="lineNum">    1088 </span>                :            :         }
+<span class="lineNum">    1089 </span>                :            : 
+<span class="lineNum">    1090 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 760386574 times"> + </span>]:<span class="lineCov">  760386574 :         ASSERT3P(aiter-&gt;iter_mapaddr, !=, NULL);</span>
+<span class="lineNum">    1091 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 760386574 times"> + </span>]:<span class="lineCov">  760386574 :         ASSERT3U(aiter-&gt;iter_mapsize, &gt;, 0);</span>
+<span class="lineNum">    1092 </span>                :            : 
+<span class="lineNum">    1093 </span>                :<span class="lineCov">  760386574 :         aiter-&gt;iter_mapaddr = NULL;</span>
+<span class="lineNum">    1094 </span>                :<span class="lineCov">  760386574 :         aiter-&gt;iter_mapsize = 0;</span>
+<span class="lineNum">    1095 </span>                :            : }
+<a name="1096"><span class="lineNum">    1096 </span>                :            : </a>
+<span class="lineNum">    1097 </span>                :            : int
+<span class="lineNum">    1098 </span>                :<span class="lineCov">   14056673 : abd_iterate_func(abd_t *abd, size_t off, size_t size,</span>
+<span class="lineNum">    1099 </span>                :            :     abd_iter_func_t *func, void *private)
+<span class="lineNum">    1100 </span>                :            : {
+<span class="lineNum">    1101 </span>                :<span class="lineCov">   14056673 :         int ret = 0;</span>
+<span class="lineNum">    1102 </span>                :            :         struct abd_iter aiter;
+<span class="lineNum">    1103 </span>                :            : 
+<span class="lineNum">    1104 </span>                :<span class="lineCov">   14056673 :         abd_verify(abd);</span>
+<span class="lineNum">    1105 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 14055864 times"> + </span>]:<span class="lineCov">   14055864 :         ASSERT3U(off + size, &lt;=, abd-&gt;abd_size);</span>
+<span class="lineNum">    1106 </span>                :            : 
+<span class="lineNum">    1107 </span>                :<span class="lineCov">   14055864 :         abd_iter_init(&amp;aiter, abd, 0);</span>
+<span class="lineNum">    1108 </span>                :<span class="lineCov">   14054658 :         abd_iter_advance(&amp;aiter, off);</span>
+<span class="lineNum">    1109 </span>                :            : 
+<span class="lineNum">    1110 </span>        [<span class="branchCov" title="Branch 0 was taken 52335104 times"> + </span><span class="branchCov" title="Branch 1 was taken 13386928 times"> + </span>]:<span class="lineCov">   65722032 :         while (size &gt; 0) {</span>
+<span class="lineNum">    1111 </span>                :            :                 size_t len;
+<span class="lineNum">    1112 </span>                :<span class="lineCov">   52335104 :                 abd_iter_map(&amp;aiter);</span>
+<span class="lineNum">    1113 </span>                :            : 
+<span class="lineNum">    1114 </span>                :<span class="lineCov">   52336711 :                 len = MIN(aiter.iter_mapsize, size);</span>
+<span class="lineNum">    1115 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 52336711 times"> + </span>]:<span class="lineCov">   52336711 :                 ASSERT3U(len, &gt;, 0);</span>
+<span class="lineNum">    1116 </span>                :            : 
+<span class="lineNum">    1117 </span>                :<span class="lineCov">   52336711 :                 ret = func(aiter.iter_mapaddr, len, private);</span>
+<span class="lineNum">    1118 </span>                :            : 
+<span class="lineNum">    1119 </span>                :<span class="lineCov">   52186646 :                 abd_iter_unmap(&amp;aiter);</span>
+<span class="lineNum">    1120 </span>                :            : 
+<span class="lineNum">    1121 </span>        [<span class="branchCov" title="Branch 0 was taken 51528451 times"> + </span><span class="branchCov" title="Branch 1 was taken 669401 times"> + </span>]:<span class="lineCov">   52197852 :                 if (ret != 0)</span>
+<span class="lineNum">    1122 </span>                :            :                         break;
+<span class="lineNum">    1123 </span>                :            : 
+<span class="lineNum">    1124 </span>                :<span class="lineCov">   51528451 :                 size -= len;</span>
+<span class="lineNum">    1125 </span>                :<span class="lineCov">   51528451 :                 abd_iter_advance(&amp;aiter, len);</span>
+<span class="lineNum">    1126 </span>                :            :         }
+<span class="lineNum">    1127 </span>                :            : 
+<span class="lineNum">    1128 </span>                :<span class="lineCov">   14056329 :         return (ret);</span>
+<span class="lineNum">    1129 </span>                :            : }
+<span class="lineNum">    1130 </span>                :            : 
+<span class="lineNum">    1131 </span>                :            : struct buf_arg {
+<span class="lineNum">    1132 </span>                :            :         void *arg_buf;
+<span class="lineNum">    1133 </span>                :            : };
+<a name="1134"><span class="lineNum">    1134 </span>                :            : </a>
+<span class="lineNum">    1135 </span>                :            : static int
+<span class="lineNum">    1136 </span>                :<span class="lineCov">    3489393 : abd_copy_to_buf_off_cb(void *buf, size_t size, void *private)</span>
+<span class="lineNum">    1137 </span>                :            : {
+<span class="lineNum">    1138 </span>                :<span class="lineCov">    3489393 :         struct buf_arg *ba_ptr = private;</span>
+<span class="lineNum">    1139 </span>                :            : 
+<span class="lineNum">    1140 </span>                :<span class="lineCov">    6978786 :         (void) memcpy(ba_ptr-&gt;arg_buf, buf, size);</span>
+<span class="lineNum">    1141 </span>                :<span class="lineCov">    3489393 :         ba_ptr-&gt;arg_buf = (char *)ba_ptr-&gt;arg_buf + size;</span>
+<span class="lineNum">    1142 </span>                :            : 
+<span class="lineNum">    1143 </span>                :<span class="lineCov">    3489393 :         return (0);</span>
+<span class="lineNum">    1144 </span>                :            : }
+<span class="lineNum">    1145 </span>                :            : 
+<span class="lineNum">    1146 </span>                :            : /*
+<span class="lineNum">    1147 </span>                :            :  * Copy abd to buf. (off is the offset in abd.)
+<a name="1148"><span class="lineNum">    1148 </span>                :            :  */</a>
+<span class="lineNum">    1149 </span>                :            : void
+<span class="lineNum">    1150 </span>                :<span class="lineCov">    2609965 : abd_copy_to_buf_off(void *buf, abd_t *abd, size_t off, size_t size)</span>
+<span class="lineNum">    1151 </span>                :            : {
+<span class="lineNum">    1152 </span>                :<span class="lineCov">    2609965 :         struct buf_arg ba_ptr = { buf };</span>
+<span class="lineNum">    1153 </span>                :            : 
+<span class="lineNum">    1154 </span>                :<span class="lineCov">    2609965 :         (void) abd_iterate_func(abd, off, size, abd_copy_to_buf_off_cb,</span>
+<span class="lineNum">    1155 </span>                :            :             &amp;ba_ptr);
+<span class="lineNum">    1156 </span>                :<span class="lineCov">    2609969 : }</span>
+<a name="1157"><span class="lineNum">    1157 </span>                :            : </a>
+<span class="lineNum">    1158 </span>                :            : static int
+<span class="lineNum">    1159 </span>                :<span class="lineCov">    2596368 : abd_cmp_buf_off_cb(void *buf, size_t size, void *private)</span>
+<span class="lineNum">    1160 </span>                :            : {
+<span class="lineNum">    1161 </span>                :            :         int ret;
+<span class="lineNum">    1162 </span>                :<span class="lineCov">    2596368 :         struct buf_arg *ba_ptr = private;</span>
+<span class="lineNum">    1163 </span>                :            : 
+<span class="lineNum">    1164 </span>                :<span class="lineCov">    2596368 :         ret = memcmp(buf, ba_ptr-&gt;arg_buf, size);</span>
+<span class="lineNum">    1165 </span>                :<span class="lineCov">    2596368 :         ba_ptr-&gt;arg_buf = (char *)ba_ptr-&gt;arg_buf + size;</span>
+<span class="lineNum">    1166 </span>                :            : 
+<span class="lineNum">    1167 </span>                :<span class="lineCov">    2596368 :         return (ret);</span>
+<span class="lineNum">    1168 </span>                :            : }
+<span class="lineNum">    1169 </span>                :            : 
+<span class="lineNum">    1170 </span>                :            : /*
+<span class="lineNum">    1171 </span>                :            :  * Compare the contents of abd to buf. (off is the offset in abd.)
+<a name="1172"><span class="lineNum">    1172 </span>                :            :  */</a>
+<span class="lineNum">    1173 </span>                :            : int
+<span class="lineNum">    1174 </span>                :<span class="lineCov">     370993 : abd_cmp_buf_off(abd_t *abd, const void *buf, size_t off, size_t size)</span>
+<span class="lineNum">    1175 </span>                :            : {
+<span class="lineNum">    1176 </span>                :<span class="lineCov">     370993 :         struct buf_arg ba_ptr = { (void *) buf };</span>
+<span class="lineNum">    1177 </span>                :            : 
+<span class="lineNum">    1178 </span>                :<span class="lineCov">     370993 :         return (abd_iterate_func(abd, off, size, abd_cmp_buf_off_cb, &amp;ba_ptr));</span>
+<span class="lineNum">    1179 </span>                :            : }
+<a name="1180"><span class="lineNum">    1180 </span>                :            : </a>
+<span class="lineNum">    1181 </span>                :            : static int
+<span class="lineNum">    1182 </span>                :<span class="lineCov">    8787616 : abd_copy_from_buf_off_cb(void *buf, size_t size, void *private)</span>
+<span class="lineNum">    1183 </span>                :            : {
+<span class="lineNum">    1184 </span>                :<span class="lineCov">    8787616 :         struct buf_arg *ba_ptr = private;</span>
+<span class="lineNum">    1185 </span>                :            : 
+<span class="lineNum">    1186 </span>                :<span class="lineCov">   17575232 :         (void) memcpy(buf, ba_ptr-&gt;arg_buf, size);</span>
+<span class="lineNum">    1187 </span>                :<span class="lineCov">    8787616 :         ba_ptr-&gt;arg_buf = (char *)ba_ptr-&gt;arg_buf + size;</span>
+<span class="lineNum">    1188 </span>                :            : 
+<span class="lineNum">    1189 </span>                :<span class="lineCov">    8787616 :         return (0);</span>
+<span class="lineNum">    1190 </span>                :            : }
+<span class="lineNum">    1191 </span>                :            : 
+<span class="lineNum">    1192 </span>                :            : /*
+<span class="lineNum">    1193 </span>                :            :  * Copy from buf to abd. (off is the offset in abd.)
+<a name="1194"><span class="lineNum">    1194 </span>                :            :  */</a>
+<span class="lineNum">    1195 </span>                :            : void
+<span class="lineNum">    1196 </span>                :<span class="lineCov">    5051133 : abd_copy_from_buf_off(abd_t *abd, const void *buf, size_t off, size_t size)</span>
+<span class="lineNum">    1197 </span>                :            : {
+<span class="lineNum">    1198 </span>                :<span class="lineCov">    5051133 :         struct buf_arg ba_ptr = { (void *) buf };</span>
+<span class="lineNum">    1199 </span>                :            : 
+<span class="lineNum">    1200 </span>                :<span class="lineCov">    5051133 :         (void) abd_iterate_func(abd, off, size, abd_copy_from_buf_off_cb,</span>
+<span class="lineNum">    1201 </span>                :            :             &amp;ba_ptr);
+<span class="lineNum">    1202 </span>                :<span class="lineCov">    5051146 : }</span>
+<span class="lineNum">    1203 </span>                :            : 
+<a name="1204"><span class="lineNum">    1204 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">    1205 </span>                :            : static int
+<span class="lineNum">    1206 </span>                :<span class="lineCov">     795995 : abd_zero_off_cb(void *buf, size_t size, void *private)</span>
+<span class="lineNum">    1207 </span>                :            : {
+<span class="lineNum">    1208 </span>                :<span class="lineCov">     795995 :         (void) memset(buf, 0, size);</span>
+<span class="lineNum">    1209 </span>                :<span class="lineCov">     795995 :         return (0);</span>
+<span class="lineNum">    1210 </span>                :            : }
+<span class="lineNum">    1211 </span>                :            : 
+<span class="lineNum">    1212 </span>                :            : /*
+<span class="lineNum">    1213 </span>                :            :  * Zero out the abd from a particular offset to the end.
+<a name="1214"><span class="lineNum">    1214 </span>                :            :  */</a>
+<span class="lineNum">    1215 </span>                :            : void
+<span class="lineNum">    1216 </span>                :<span class="lineCov">     795253 : abd_zero_off(abd_t *abd, size_t off, size_t size)</span>
+<span class="lineNum">    1217 </span>                :            : {
+<span class="lineNum">    1218 </span>                :<span class="lineCov">     795253 :         (void) abd_iterate_func(abd, off, size, abd_zero_off_cb, NULL);</span>
+<span class="lineNum">    1219 </span>                :<span class="lineCov">     795214 : }</span>
+<span class="lineNum">    1220 </span>                :            : 
+<span class="lineNum">    1221 </span>                :            : /*
+<span class="lineNum">    1222 </span>                :            :  * Iterate over two ABDs and call func incrementally on the two ABDs' data in
+<span class="lineNum">    1223 </span>                :            :  * equal-sized chunks (passed to func as raw buffers). func could be called many
+<span class="lineNum">    1224 </span>                :            :  * times during this iteration.
+<a name="1225"><span class="lineNum">    1225 </span>                :            :  */</a>
+<span class="lineNum">    1226 </span>                :            : int
+<span class="lineNum">    1227 </span>                :<span class="lineCov">    8983181 : abd_iterate_func2(abd_t *dabd, abd_t *sabd, size_t doff, size_t soff,</span>
+<span class="lineNum">    1228 </span>                :            :     size_t size, abd_iter_func2_t *func, void *private)
+<span class="lineNum">    1229 </span>                :            : {
+<span class="lineNum">    1230 </span>                :<span class="lineCov">    8983181 :         int ret = 0;</span>
+<span class="lineNum">    1231 </span>                :            :         struct abd_iter daiter, saiter;
+<span class="lineNum">    1232 </span>                :            : 
+<span class="lineNum">    1233 </span>                :<span class="lineCov">    8983181 :         abd_verify(dabd);</span>
+<span class="lineNum">    1234 </span>                :<span class="lineCov">    8984812 :         abd_verify(sabd);</span>
+<span class="lineNum">    1235 </span>                :            : 
+<span class="lineNum">    1236 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8969024 times"> + </span>]:<span class="lineCov">    8969024 :         ASSERT3U(doff + size, &lt;=, dabd-&gt;abd_size);</span>
+<span class="lineNum">    1237 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 8969024 times"> + </span>]:<span class="lineCov">    8969024 :         ASSERT3U(soff + size, &lt;=, sabd-&gt;abd_size);</span>
+<span class="lineNum">    1238 </span>                :            : 
+<span class="lineNum">    1239 </span>                :<span class="lineCov">    8969024 :         abd_iter_init(&amp;daiter, dabd, 0);</span>
+<span class="lineNum">    1240 </span>                :<span class="lineCov">    8972087 :         abd_iter_init(&amp;saiter, sabd, 1);</span>
+<span class="lineNum">    1241 </span>                :<span class="lineCov">    8970242 :         abd_iter_advance(&amp;daiter, doff);</span>
+<span class="lineNum">    1242 </span>                :<span class="lineCov">    8971595 :         abd_iter_advance(&amp;saiter, soff);</span>
+<span class="lineNum">    1243 </span>                :            : 
+<span class="lineNum">    1244 </span>        [<span class="branchCov" title="Branch 0 was taken 143160817 times"> + </span><span class="branchCov" title="Branch 1 was taken 8979360 times"> + </span>]:<span class="lineCov">  152140177 :         while (size &gt; 0) {</span>
+<span class="lineNum">    1245 </span>                :            :                 size_t dlen, slen, len;
+<span class="lineNum">    1246 </span>                :<span class="lineCov">  143160817 :                 abd_iter_map(&amp;daiter);</span>
+<span class="lineNum">    1247 </span>                :<span class="lineCov">  142872097 :                 abd_iter_map(&amp;saiter);</span>
+<span class="lineNum">    1248 </span>                :            : 
+<span class="lineNum">    1249 </span>                :<span class="lineCov">  142443939 :                 dlen = MIN(daiter.iter_mapsize, size);</span>
+<span class="lineNum">    1250 </span>                :<span class="lineCov">  142443939 :                 slen = MIN(saiter.iter_mapsize, size);</span>
+<span class="lineNum">    1251 </span>                :<span class="lineCov">  142443939 :                 len = MIN(dlen, slen);</span>
+<span class="lineNum">    1252 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 142443939 times"> + </span>]:<span class="lineCov">  142443939 :                 ASSERT(dlen &gt; 0 || slen &gt; 0);</span>
+<span class="lineNum">    1253 </span>                :            : 
+<span class="lineNum">    1254 </span>                :<span class="lineCov">  142443939 :                 ret = func(daiter.iter_mapaddr, saiter.iter_mapaddr, len,</span>
+<span class="lineNum">    1255 </span>                :            :                     private);
+<span class="lineNum">    1256 </span>                :            : 
+<span class="lineNum">    1257 </span>                :<span class="lineCov">  143739965 :                 abd_iter_unmap(&amp;saiter);</span>
+<span class="lineNum">    1258 </span>                :<span class="lineCov">  143580687 :                 abd_iter_unmap(&amp;daiter);</span>
+<span class="lineNum">    1259 </span>                :            : 
+<span class="lineNum">    1260 </span>           [<span class="branchCov" title="Branch 0 was taken 143846616 times"> + </span>]:<span class="lineCov">  143830247 :                 if (ret != 0)</span>
+<span class="lineNum">    1261 </span>                :            :                         break;
+<span class="lineNum">    1262 </span>                :            : 
+<span class="lineNum">    1263 </span>                :<span class="lineCov">  143846616 :                 size -= len;</span>
+<span class="lineNum">    1264 </span>                :<span class="lineCov">  143846616 :                 abd_iter_advance(&amp;daiter, len);</span>
+<span class="lineNum">    1265 </span>                :<span class="lineCov">  143780712 :                 abd_iter_advance(&amp;saiter, len);</span>
+<span class="lineNum">    1266 </span>                :            :         }
+<span class="lineNum">    1267 </span>                :            : 
+<span class="lineNum">    1268 </span>                :<span class="lineCov">    8962991 :         return (ret);</span>
+<span class="lineNum">    1269 </span>                :            : }
+<span class="lineNum">    1270 </span>                :            : 
+<a name="1271"><span class="lineNum">    1271 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">    1272 </span>                :            : static int
+<span class="lineNum">    1273 </span>                :<span class="lineCov">    8248351 : abd_copy_off_cb(void *dbuf, void *sbuf, size_t size, void *private)</span>
+<span class="lineNum">    1274 </span>                :            : {
+<span class="lineNum">    1275 </span>                :<span class="lineCov">    8248351 :         (void) memcpy(dbuf, sbuf, size);</span>
+<span class="lineNum">    1276 </span>                :<span class="lineCov">    8248351 :         return (0);</span>
+<span class="lineNum">    1277 </span>                :            : }
+<span class="lineNum">    1278 </span>                :            : 
+<span class="lineNum">    1279 </span>                :            : /*
+<span class="lineNum">    1280 </span>                :            :  * Copy from sabd to dabd starting from soff and doff.
+<a name="1281"><span class="lineNum">    1281 </span>                :            :  */</a>
+<span class="lineNum">    1282 </span>                :            : void
+<span class="lineNum">    1283 </span>                :<span class="lineCov">    6322990 : abd_copy_off(abd_t *dabd, abd_t *sabd, size_t doff, size_t soff, size_t size)</span>
+<span class="lineNum">    1284 </span>                :            : {
+<span class="lineNum">    1285 </span>                :<span class="lineCov">    6322990 :         (void) abd_iterate_func2(dabd, sabd, doff, soff, size,</span>
+<span class="lineNum">    1286 </span>                :            :             abd_copy_off_cb, NULL);
+<span class="lineNum">    1287 </span>                :<span class="lineCov">    6319863 : }</span>
+<span class="lineNum">    1288 </span>                :            : 
+<a name="1289"><span class="lineNum">    1289 </span>                :            : /*ARGSUSED*/</a>
+<span class="lineNum">    1290 </span>                :            : static int
+<span class="lineNum">    1291 </span>                :<span class="lineCov">  106742185 : abd_cmp_cb(void *bufa, void *bufb, size_t size, void *private)</span>
+<span class="lineNum">    1292 </span>                :            : {
+<span class="lineNum">    1293 </span>                :<span class="lineCov">  106742185 :         return (memcmp(bufa, bufb, size));</span>
+<span class="lineNum">    1294 </span>                :            : }
+<span class="lineNum">    1295 </span>                :            : 
+<span class="lineNum">    1296 </span>                :            : /*
+<span class="lineNum">    1297 </span>                :            :  * Compares the contents of two ABDs.
+<a name="1298"><span class="lineNum">    1298 </span>                :            :  */</a>
+<span class="lineNum">    1299 </span>                :            : int
+<span class="lineNum">    1300 </span>                :<span class="lineCov">    1546965 : abd_cmp(abd_t *dabd, abd_t *sabd)</span>
+<span class="lineNum">    1301 </span>                :            : {
+<span class="lineNum">    1302 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1546965 times"> + </span>]:<span class="lineCov">    1546965 :         ASSERT3U(dabd-&gt;abd_size, ==, sabd-&gt;abd_size);</span>
+<span class="lineNum">    1303 </span>                :<span class="lineCov">    1546965 :         return (abd_iterate_func2(dabd, sabd, 0, 0, dabd-&gt;abd_size,</span>
+<span class="lineNum">    1304 </span>                :            :             abd_cmp_cb, NULL));
+<span class="lineNum">    1305 </span>                :            : }
+<span class="lineNum">    1306 </span>                :            : 
+<span class="lineNum">    1307 </span>                :            : /*
+<span class="lineNum">    1308 </span>                :            :  * Iterate over code ABDs and a data ABD and call @func_raidz_gen.
+<span class="lineNum">    1309 </span>                :            :  *
+<span class="lineNum">    1310 </span>                :            :  * @cabds          parity ABDs, must have equal size
+<span class="lineNum">    1311 </span>                :            :  * @dabd           data ABD. Can be NULL (in this case @dsize = 0)
+<span class="lineNum">    1312 </span>                :            :  * @func_raidz_gen should be implemented so that its behaviour
+<span class="lineNum">    1313 </span>                :            :  *                 is the same when taking linear and when taking scatter
+<a name="1314"><span class="lineNum">    1314 </span>                :            :  */</a>
+<span class="lineNum">    1315 </span>                :            : void
+<span class="lineNum">    1316 </span>                :<span class="lineCov">    1183235 : abd_raidz_gen_iterate(abd_t **cabds, abd_t *dabd,</span>
+<span class="lineNum">    1317 </span>                :            :     ssize_t csize, ssize_t dsize, const unsigned parity,
+<span class="lineNum">    1318 </span>                :            :     void (*func_raidz_gen)(void **, const void *, size_t, size_t))
+<span class="lineNum">    1319 </span>                :            : {
+<span class="lineNum">    1320 </span>                :            :         int i;
+<span class="lineNum">    1321 </span>                :            :         ssize_t len, dlen;
+<span class="lineNum">    1322 </span>                :            :         struct abd_iter caiters[3];
+<span class="lineNum">    1323 </span>                :<span class="lineCov">    1183235 :         struct abd_iter daiter = {0};</span>
+<span class="lineNum">    1324 </span>                :            :         void *caddrs[3];
+<span class="lineNum">    1325 </span>                :            :         unsigned long flags;
+<span class="lineNum">    1326 </span>                :            : 
+<span class="lineNum">    1327 </span>        [<span class="branchCov" title="Branch 0 was taken 1183235 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">    1183235 :         ASSERT3U(parity, &lt;=, 3);</span>
+<span class="lineNum">    1328 </span>                :            : 
+<span class="lineNum">    1329 </span>        [<span class="branchCov" title="Branch 0 was taken 2891143 times"> + </span><span class="branchCov" title="Branch 1 was taken 1183092 times"> + </span>]:<span class="lineCov">    4074235 :         for (i = 0; i &lt; parity; i++)</span>
+<span class="lineNum">    1330 </span>                :<span class="lineCov">    2891143 :                 abd_iter_init(&amp;caiters[i], cabds[i], i);</span>
+<span class="lineNum">    1331 </span>                :            : 
+<span class="lineNum">    1332 </span>        [<span class="branchCov" title="Branch 0 was taken 973416 times"> + </span><span class="branchCov" title="Branch 1 was taken 209676 times"> + </span>]:<span class="lineCov">    1183092 :         if (dabd)</span>
+<span class="lineNum">    1333 </span>                :<span class="lineCov">     973416 :                 abd_iter_init(&amp;daiter, dabd, i);</span>
+<span class="lineNum">    1334 </span>                :            : 
+<span class="lineNum">    1335 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1183104 times"> + </span>]:<span class="lineCov">    1183104 :         ASSERT3S(dsize, &gt;=, 0);</span>
+<span class="lineNum">    1336 </span>                :            : 
+<span class="lineNum">    1337 </span>                :            :         local_irq_save(flags);
+<span class="lineNum">    1338 </span>        [<span class="branchCov" title="Branch 0 was taken 122886253 times"> + </span><span class="branchCov" title="Branch 1 was taken 1183017 times"> + </span>]:<span class="lineCov">  124069270 :         while (csize &gt; 0) {</span>
+<span class="lineNum">    1339 </span>                :<span class="lineCov">  122886253 :                 len = csize;</span>
+<span class="lineNum">    1340 </span>                :            : 
+<span class="lineNum">    1341 </span>        [<span class="branchCov" title="Branch 0 was taken 100315009 times"> + </span><span class="branchCov" title="Branch 1 was taken 22571244 times"> + </span>]:<span class="lineCov">  122886253 :                 if (dabd &amp;&amp; dsize &gt; 0)</span>
+<span class="lineNum">    1342 </span>                :<span class="lineCov">  122886253 :                         abd_iter_map(&amp;daiter);</span>
+<span class="lineNum">    1343 </span>                :            : 
+<span class="lineNum">    1344 </span>        [<span class="branchCov" title="Branch 0 was taken 301525625 times"> + </span><span class="branchCov" title="Branch 1 was taken 122876067 times"> + </span>]:<span class="lineCov">  424401692 :                 for (i = 0; i &lt; parity; i++) {</span>
+<span class="lineNum">    1345 </span>                :<span class="lineCov">  301525625 :                         abd_iter_map(&amp;caiters[i]);</span>
+<span class="lineNum">    1346 </span>                :<span class="lineCov">  301330024 :                         caddrs[i] = caiters[i].iter_mapaddr;</span>
+<span class="lineNum">    1347 </span>                :            :                 }
+<span class="lineNum">    1348 </span>                :            : 
+<span class="lineNum">    1349 </span>  [<span class="branchCov" title="Branch 0 was taken 66332944 times"> + </span><span class="branchCov" title="Branch 1 was taken 50377408 times"> + </span><span class="branchCov" title="Branch 2 was taken 6113517 times"> + </span><span class="branchCov" title="Branch 3 was taken 52198 times"> + </span>]:<span class="lineCov">  122876067 :                 switch (parity) {</span>
+<span class="lineNum">    1350 </span>                :            :                         case 3:
+<span class="lineNum">    1351 </span>                :<span class="lineCov">   66332944 :                                 len = MIN(caiters[2].iter_mapsize, len);</span>
+<span class="lineNum">    1352 </span>                :            :                         case 2:
+<span class="lineNum">    1353 </span>                :<span class="lineCov">  116710352 :                                 len = MIN(caiters[1].iter_mapsize, len);</span>
+<span class="lineNum">    1354 </span>                :            :                         case 1:
+<span class="lineNum">    1355 </span>                :<span class="lineCov">  122823869 :                                 len = MIN(caiters[0].iter_mapsize, len);</span>
+<span class="lineNum">    1356 </span>                :            :                 }
+<span class="lineNum">    1357 </span>                :            : 
+<span class="lineNum">    1358 </span>                :            :                 /* must be progressive */
+<span class="lineNum">    1359 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 122876067 times"> + </span>]:<span class="lineCov">  122876067 :                 ASSERT3S(len, &gt;, 0);</span>
+<span class="lineNum">    1360 </span>                :            : 
+<span class="lineNum">    1361 </span>        [<span class="branchCov" title="Branch 0 was taken 100258265 times"> + </span><span class="branchCov" title="Branch 1 was taken 22617802 times"> + </span>]:<span class="lineCov">  122876067 :                 if (dabd &amp;&amp; dsize &gt; 0) {</span>
+<span class="lineNum">    1362 </span>                :            :                         /* this needs precise iter.length */
+<span class="lineNum">    1363 </span>                :<span class="lineCov">  100258265 :                         len = MIN(daiter.iter_mapsize, len);</span>
+<span class="lineNum">    1364 </span>                :<span class="lineCov">  100258265 :                         dlen = len;</span>
+<span class="lineNum">    1365 </span>                :            :                 } else
+<span class="lineNum">    1366 </span>                :            :                         dlen = 0;
+<span class="lineNum">    1367 </span>                :            : 
+<span class="lineNum">    1368 </span>                :            :                 /* must be progressive */
+<span class="lineNum">    1369 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 122876067 times"> + </span>]:<span class="lineCov">  122876067 :                 ASSERT3S(len, &gt;, 0);</span>
+<span class="lineNum">    1370 </span>                :            :                 /*
+<span class="lineNum">    1371 </span>                :            :                  * The iterated function likely will not do well if each
+<span class="lineNum">    1372 </span>                :            :                  * segment except the last one is not multiple of 512 (raidz).
+<span class="lineNum">    1373 </span>                :            :                  */
+<span class="lineNum">    1374 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 122876067 times"> + </span>]:<span class="lineCov">  122876067 :                 ASSERT3U(((uint64_t)len &amp; 511ULL), ==, 0);</span>
+<span class="lineNum">    1375 </span>                :            : 
+<span class="lineNum">    1376 </span>                :<span class="lineCov">  122876067 :                 func_raidz_gen(caddrs, daiter.iter_mapaddr, len, dlen);</span>
+<span class="lineNum">    1377 </span>                :            : 
+<span class="lineNum">    1378 </span>        [<span class="branchCov" title="Branch 0 was taken 302792984 times"> + </span><span class="branchCov" title="Branch 1 was taken 122920777 times"> + </span>]:<span class="lineCov">  425713761 :                 for (i = parity-1; i &gt;= 0; i--) {</span>
+<span class="lineNum">    1379 </span>                :<span class="lineCov">  302792984 :                         abd_iter_unmap(&amp;caiters[i]);</span>
+<span class="lineNum">    1380 </span>                :<span class="lineCov">  302546904 :                         abd_iter_advance(&amp;caiters[i], len);</span>
+<span class="lineNum">    1381 </span>                :            :                 }
+<span class="lineNum">    1382 </span>                :            : 
+<span class="lineNum">    1383 </span>        [<span class="branchCov" title="Branch 0 was taken 100300975 times"> + </span><span class="branchCov" title="Branch 1 was taken 22619802 times"> + </span>]:<span class="lineCov">  122920777 :                 if (dabd &amp;&amp; dsize &gt; 0) {</span>
+<span class="lineNum">    1384 </span>                :<span class="lineCov">  100300975 :                         abd_iter_unmap(&amp;daiter);</span>
+<span class="lineNum">    1385 </span>                :<span class="lineCov">  100320310 :                         abd_iter_advance(&amp;daiter, dlen);</span>
+<span class="lineNum">    1386 </span>                :<span class="lineCov">  100266364 :                         dsize -= dlen;</span>
+<span class="lineNum">    1387 </span>                :            :                 }
+<span class="lineNum">    1388 </span>                :            : 
+<span class="lineNum">    1389 </span>                :<span class="lineCov">  122886166 :                 csize -= len;</span>
+<span class="lineNum">    1390 </span>                :            : 
+<span class="lineNum">    1391 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 122886166 times"> + </span>]:<span class="lineCov">  122886166 :                 ASSERT3S(dsize, &gt;=, 0);</span>
+<span class="lineNum">    1392 </span>        [<span class="branchCov" title="Branch 0 was taken 122886166 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">  124069270 :                 ASSERT3S(csize, &gt;=, 0);</span>
+<span class="lineNum">    1393 </span>                :            :         }
+<span class="lineNum">    1394 </span>                :            :         local_irq_restore(flags);
+<span class="lineNum">    1395 </span>                :<span class="lineCov">    1183017 : }</span>
+<span class="lineNum">    1396 </span>                :            : 
+<span class="lineNum">    1397 </span>                :            : /*
+<span class="lineNum">    1398 </span>                :            :  * Iterate over code ABDs and data reconstruction target ABDs and call
+<span class="lineNum">    1399 </span>                :            :  * @func_raidz_rec. Function maps at most 6 pages atomically.
+<span class="lineNum">    1400 </span>                :            :  *
+<span class="lineNum">    1401 </span>                :            :  * @cabds           parity ABDs, must have equal size
+<span class="lineNum">    1402 </span>                :            :  * @tabds           rec target ABDs, at most 3
+<span class="lineNum">    1403 </span>                :            :  * @tsize           size of data target columns
+<span class="lineNum">    1404 </span>                :            :  * @func_raidz_rec  expects syndrome data in target columns. Function
+<span class="lineNum">    1405 </span>                :            :  *                  reconstructs data and overwrites target columns.
+<a name="1406"><span class="lineNum">    1406 </span>                :            :  */</a>
+<span class="lineNum">    1407 </span>                :            : void
+<span class="lineNum">    1408 </span>                :<span class="lineCov">      88931 : abd_raidz_rec_iterate(abd_t **cabds, abd_t **tabds,</span>
+<span class="lineNum">    1409 </span>                :            :     ssize_t tsize, const unsigned parity,
+<span class="lineNum">    1410 </span>                :            :     void (*func_raidz_rec)(void **t, const size_t tsize, void **c,
+<span class="lineNum">    1411 </span>                :            :     const unsigned *mul),
+<span class="lineNum">    1412 </span>                :            :     const unsigned *mul)
+<span class="lineNum">    1413 </span>                :            : {
+<span class="lineNum">    1414 </span>                :            :         int i;
+<span class="lineNum">    1415 </span>                :            :         ssize_t len;
+<span class="lineNum">    1416 </span>                :            :         struct abd_iter citers[3];
+<span class="lineNum">    1417 </span>                :            :         struct abd_iter xiters[3];
+<span class="lineNum">    1418 </span>                :            :         void *caddrs[3], *xaddrs[3];
+<span class="lineNum">    1419 </span>                :            :         unsigned long flags;
+<span class="lineNum">    1420 </span>                :            : 
+<span class="lineNum">    1421 </span>        [<span class="branchCov" title="Branch 0 was taken 88931 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      88931 :         ASSERT3U(parity, &lt;=, 3);</span>
+<span class="lineNum">    1422 </span>                :            : 
+<span class="lineNum">    1423 </span>        [<span class="branchCov" title="Branch 0 was taken 223158 times"> + </span><span class="branchCov" title="Branch 1 was taken 88927 times"> + </span>]:<span class="lineCov">     312085 :         for (i = 0; i &lt; parity; i++) {</span>
+<span class="lineNum">    1424 </span>                :<span class="lineCov">     223158 :                 abd_iter_init(&amp;citers[i], cabds[i], 2*i);</span>
+<span class="lineNum">    1425 </span>                :<span class="lineCov">     223154 :                 abd_iter_init(&amp;xiters[i], tabds[i], 2*i+1);</span>
+<span class="lineNum">    1426 </span>                :            :         }
+<span class="lineNum">    1427 </span>                :            : 
+<span class="lineNum">    1428 </span>                :            :         local_irq_save(flags);
+<span class="lineNum">    1429 </span>        [<span class="branchCov" title="Branch 0 was taken 9707921 times"> + </span><span class="branchCov" title="Branch 1 was taken 88928 times"> + </span>]:<span class="lineCov">    9796849 :         while (tsize &gt; 0) {</span>
+<span class="lineNum">    1430 </span>                :            : 
+<span class="lineNum">    1431 </span>        [<span class="branchCov" title="Branch 0 was taken 24432716 times"> + </span><span class="branchCov" title="Branch 1 was taken 9709915 times"> + </span>]:<span class="lineCov">   34142631 :                 for (i = 0; i &lt; parity; i++) {</span>
+<span class="lineNum">    1432 </span>                :<span class="lineCov">   24432716 :                         abd_iter_map(&amp;citers[i]);</span>
+<span class="lineNum">    1433 </span>                :<span class="lineCov">   24430732 :                         abd_iter_map(&amp;xiters[i]);</span>
+<span class="lineNum">    1434 </span>                :<span class="lineCov">   24434710 :                         caddrs[i] = citers[i].iter_mapaddr;</span>
+<span class="lineNum">    1435 </span>                :<span class="lineCov">   24434710 :                         xaddrs[i] = xiters[i].iter_mapaddr;</span>
+<span class="lineNum">    1436 </span>                :            :                 }
+<span class="lineNum">    1437 </span>                :            : 
+<span class="lineNum">    1438 </span>                :<span class="lineCov">    9709915 :                 len = tsize;</span>
+<span class="lineNum">    1439 </span>  [<span class="branchCov" title="Branch 0 was taken 5068768 times"> + </span><span class="branchCov" title="Branch 1 was taken 4639312 times"> + </span><span class="branchCov" title="Branch 2 was taken 1632 times"> + </span><span class="branchCov" title="Branch 3 was taken 203 times"> + </span>]:<span class="lineCov">    9709915 :                 switch (parity) {</span>
+<span class="lineNum">    1440 </span>                :            :                         case 3:
+<span class="lineNum">    1441 </span>                :<span class="lineCov">    5068768 :                                 len = MIN(xiters[2].iter_mapsize, len);</span>
+<span class="lineNum">    1442 </span>                :<span class="lineCov">    5068768 :                                 len = MIN(citers[2].iter_mapsize, len);</span>
+<span class="lineNum">    1443 </span>                :            :                         case 2:
+<span class="lineNum">    1444 </span>                :<span class="lineCov">    9708080 :                                 len = MIN(xiters[1].iter_mapsize, len);</span>
+<span class="lineNum">    1445 </span>                :<span class="lineCov">    9708080 :                                 len = MIN(citers[1].iter_mapsize, len);</span>
+<span class="lineNum">    1446 </span>                :            :                         case 1:
+<span class="lineNum">    1447 </span>                :<span class="lineCov">    9709712 :                                 len = MIN(xiters[0].iter_mapsize, len);</span>
+<span class="lineNum">    1448 </span>                :<span class="lineCov">    9709712 :                                 len = MIN(citers[0].iter_mapsize, len);</span>
+<span class="lineNum">    1449 </span>                :            :                 }
+<span class="lineNum">    1450 </span>                :            :                 /* must be progressive */
+<span class="lineNum">    1451 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9709915 times"> + </span>]:<span class="lineCov">    9709915 :                 ASSERT3S(len, &gt;, 0);</span>
+<span class="lineNum">    1452 </span>                :            :                 /*
+<span class="lineNum">    1453 </span>                :            :                  * The iterated function likely will not do well if each
+<span class="lineNum">    1454 </span>                :            :                  * segment except the last one is not multiple of 512 (raidz).
+<span class="lineNum">    1455 </span>                :            :                  */
+<span class="lineNum">    1456 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 9709915 times"> + </span>]:<span class="lineCov">    9709915 :                 ASSERT3U(((uint64_t)len &amp; 511ULL), ==, 0);</span>
+<span class="lineNum">    1457 </span>                :            : 
+<span class="lineNum">    1458 </span>                :<span class="lineCov">    9709915 :                 func_raidz_rec(xaddrs, len, caddrs, mul);</span>
+<span class="lineNum">    1459 </span>                :            : 
+<span class="lineNum">    1460 </span>        [<span class="branchCov" title="Branch 0 was taken 24454490 times"> + </span><span class="branchCov" title="Branch 1 was taken 9707922 times"> + </span>]:<span class="lineCov">   34162412 :                 for (i = parity-1; i &gt;= 0; i--) {</span>
+<span class="lineNum">    1461 </span>                :<span class="lineCov">   24454490 :                         abd_iter_unmap(&amp;xiters[i]);</span>
+<span class="lineNum">    1462 </span>                :<span class="lineCov">   24459305 :                         abd_iter_unmap(&amp;citers[i]);</span>
+<span class="lineNum">    1463 </span>                :<span class="lineCov">   24455963 :                         abd_iter_advance(&amp;xiters[i], len);</span>
+<span class="lineNum">    1464 </span>                :<span class="lineCov">   24457090 :                         abd_iter_advance(&amp;citers[i], len);</span>
+<span class="lineNum">    1465 </span>                :            :                 }
+<span class="lineNum">    1466 </span>                :            : 
+<span class="lineNum">    1467 </span>                :<span class="lineCov">    9707922 :                 tsize -= len;</span>
+<span class="lineNum">    1468 </span>        [<span class="branchCov" title="Branch 0 was taken 9707922 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">    9796849 :                 ASSERT3S(tsize, &gt;=, 0);</span>
+<span class="lineNum">    1469 </span>                :            :         }
+<span class="lineNum">    1470 </span>                :            :         local_irq_restore(flags);
+<span class="lineNum">    1471 </span>                :<span class="lineCov">      88928 : }</span>
+<span class="lineNum">    1472 </span>                :            : 
+<span class="lineNum">    1473 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">    1474 </span>                :            : /*
+<span class="lineNum">    1475 </span>                :            :  * bio_nr_pages for ABD.
+<span class="lineNum">    1476 </span>                :            :  * @off is the offset in @abd
+<span class="lineNum">    1477 </span>                :            :  */
+<span class="lineNum">    1478 </span>                :            : unsigned long
+<span class="lineNum">    1479 </span>                :            : abd_nr_pages_off(abd_t *abd, unsigned int size, size_t off)
+<span class="lineNum">    1480 </span>                :            : {
+<span class="lineNum">    1481 </span>                :            :         unsigned long pos;
+<span class="lineNum">    1482 </span>                :            : 
+<span class="lineNum">    1483 </span>                :            :         if (abd_is_linear(abd))
+<span class="lineNum">    1484 </span>                :            :                 pos = (unsigned long)abd_to_buf(abd) + off;
+<span class="lineNum">    1485 </span>                :            :         else
+<span class="lineNum">    1486 </span>                :            :                 pos = abd-&gt;abd_u.abd_scatter.abd_offset + off;
+<span class="lineNum">    1487 </span>                :            : 
+<span class="lineNum">    1488 </span>                :            :         return ((pos + size + PAGESIZE - 1) &gt;&gt; PAGE_SHIFT) -
+<span class="lineNum">    1489 </span>                :            :             (pos &gt;&gt; PAGE_SHIFT);
+<span class="lineNum">    1490 </span>                :            : }
+<span class="lineNum">    1491 </span>                :            : 
+<span class="lineNum">    1492 </span>                :            : /*
+<span class="lineNum">    1493 </span>                :            :  * bio_map for scatter ABD.
+<span class="lineNum">    1494 </span>                :            :  * @off is the offset in @abd
+<span class="lineNum">    1495 </span>                :            :  * Remaining IO size is returned
+<span class="lineNum">    1496 </span>                :            :  */
+<span class="lineNum">    1497 </span>                :            : unsigned int
+<span class="lineNum">    1498 </span>                :            : abd_scatter_bio_map_off(struct bio *bio, abd_t *abd,
+<span class="lineNum">    1499 </span>                :            :     unsigned int io_size, size_t off)
+<span class="lineNum">    1500 </span>                :            : {
+<span class="lineNum">    1501 </span>                :            :         int i;
+<span class="lineNum">    1502 </span>                :            :         struct abd_iter aiter;
+<span class="lineNum">    1503 </span>                :            : 
+<span class="lineNum">    1504 </span>                :            :         ASSERT(!abd_is_linear(abd));
+<span class="lineNum">    1505 </span>                :            :         ASSERT3U(io_size, &lt;=, abd-&gt;abd_size - off);
+<span class="lineNum">    1506 </span>                :            : 
+<span class="lineNum">    1507 </span>                :            :         abd_iter_init(&amp;aiter, abd, 0);
+<span class="lineNum">    1508 </span>                :            :         abd_iter_advance(&amp;aiter, off);
+<span class="lineNum">    1509 </span>                :            : 
+<span class="lineNum">    1510 </span>                :            :         for (i = 0; i &lt; bio-&gt;bi_max_vecs; i++) {
+<span class="lineNum">    1511 </span>                :            :                 struct page *pg;
+<span class="lineNum">    1512 </span>                :            :                 size_t len, sgoff, pgoff;
+<span class="lineNum">    1513 </span>                :            :                 struct scatterlist *sg;
+<span class="lineNum">    1514 </span>                :            : 
+<span class="lineNum">    1515 </span>                :            :                 if (io_size &lt;= 0)
+<span class="lineNum">    1516 </span>                :            :                         break;
+<span class="lineNum">    1517 </span>                :            : 
+<span class="lineNum">    1518 </span>                :            :                 sg = aiter.iter_sg;
+<span class="lineNum">    1519 </span>                :            :                 sgoff = aiter.iter_offset;
+<span class="lineNum">    1520 </span>                :            :                 pgoff = sgoff &amp; (PAGESIZE - 1);
+<span class="lineNum">    1521 </span>                :            :                 len = MIN(io_size, PAGESIZE - pgoff);
+<span class="lineNum">    1522 </span>                :            :                 ASSERT(len &gt; 0);
+<span class="lineNum">    1523 </span>                :            : 
+<span class="lineNum">    1524 </span>                :            :                 pg = nth_page(sg_page(sg), sgoff &gt;&gt; PAGE_SHIFT);
+<span class="lineNum">    1525 </span>                :            :                 if (bio_add_page(bio, pg, len, pgoff) != len)
+<span class="lineNum">    1526 </span>                :            :                         break;
+<span class="lineNum">    1527 </span>                :            : 
+<span class="lineNum">    1528 </span>                :            :                 io_size -= len;
+<span class="lineNum">    1529 </span>                :            :                 abd_iter_advance(&amp;aiter, len);
+<span class="lineNum">    1530 </span>                :            :         }
+<span class="lineNum">    1531 </span>                :            : 
+<span class="lineNum">    1532 </span>                :            :         return (io_size);
+<span class="lineNum">    1533 </span>                :            : }
+<span class="lineNum">    1534 </span>                :            : 
+<span class="lineNum">    1535 </span>                :            : /* Tunable Parameters */
+<span class="lineNum">    1536 </span>                :            : module_param(zfs_abd_scatter_enabled, int, 0644);
+<span class="lineNum">    1537 </span>                :            : MODULE_PARM_DESC(zfs_abd_scatter_enabled,
+<span class="lineNum">    1538 </span>                :            :         &quot;Toggle whether ABD allocations must be linear.&quot;);
+<span class="lineNum">    1539 </span>                :            : /* CSTYLED */
+<span class="lineNum">    1540 </span>                :            : module_param(zfs_abd_scatter_max_order, uint, 0644);
+<span class="lineNum">    1541 </span>                :            : MODULE_PARM_DESC(zfs_abd_scatter_max_order,
+<span class="lineNum">    1542 </span>                :            :         &quot;Maximum order allocation used for a scatter ABD.&quot;);
+<span class="lineNum">    1543 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

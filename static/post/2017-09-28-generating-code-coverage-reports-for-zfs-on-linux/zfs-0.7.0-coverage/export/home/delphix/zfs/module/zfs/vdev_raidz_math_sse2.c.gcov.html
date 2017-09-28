@@ -1,0 +1,714 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/vdev_raidz_math_sse2.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - vdev_raidz_math_sse2.c<span style="font-size: 80%;"> (source / <a href="vdev_raidz_math_sse2.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">131</td>
+            <td class="headerCovTableEntry">132</td>
+            <td class="headerCovTableEntryHi">99.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">458</td>
+            <td class="headerCovTableEntry">523</td>
+            <td class="headerCovTableEntryMed">87.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (C) 2016 Gvozden Nešković. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  */
+<span class="lineNum">      24 </span>                :            : 
+<span class="lineNum">      25 </span>                :            : #include &lt;sys/isa_defs.h&gt;
+<span class="lineNum">      26 </span>                :            : 
+<span class="lineNum">      27 </span>                :            : #if defined(__x86_64) &amp;&amp; defined(HAVE_SSE2)
+<span class="lineNum">      28 </span>                :            : 
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/types.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;linux/simd_x86.h&gt;
+<span class="lineNum">      31 </span>                :            : 
+<span class="lineNum">      32 </span>                :            : #define __asm __asm__ __volatile__
+<span class="lineNum">      33 </span>                :            : 
+<span class="lineNum">      34 </span>                :            : #define _REG_CNT(_0, _1, _2, _3, _4, _5, _6, _7, N, ...) N
+<span class="lineNum">      35 </span>                :            : #define REG_CNT(r...) _REG_CNT(r, 8, 7, 6, 5, 4, 3, 2, 1)
+<span class="lineNum">      36 </span>                :            : 
+<span class="lineNum">      37 </span>                :            : #define VR0_(REG, ...) &quot;xmm&quot;#REG
+<span class="lineNum">      38 </span>                :            : #define VR1_(_1, REG, ...) &quot;xmm&quot;#REG
+<span class="lineNum">      39 </span>                :            : #define VR2_(_1, _2, REG, ...) &quot;xmm&quot;#REG
+<span class="lineNum">      40 </span>                :            : #define VR3_(_1, _2, _3, REG, ...) &quot;xmm&quot;#REG
+<span class="lineNum">      41 </span>                :            : #define VR4_(_1, _2, _3, _4, REG, ...) &quot;xmm&quot;#REG
+<span class="lineNum">      42 </span>                :            : #define VR5_(_1, _2, _3, _4, _5, REG, ...) &quot;xmm&quot;#REG
+<span class="lineNum">      43 </span>                :            : #define VR6_(_1, _2, _3, _4, _5, _6, REG, ...) &quot;xmm&quot;#REG
+<span class="lineNum">      44 </span>                :            : #define VR7_(_1, _2, _3, _4, _5, _6, _7, REG, ...) &quot;xmm&quot;#REG
+<span class="lineNum">      45 </span>                :            : 
+<span class="lineNum">      46 </span>                :            : #define VR0(r...) VR0_(r, 1, 2, 3, 4, 5, 6)
+<span class="lineNum">      47 </span>                :            : #define VR1(r...) VR1_(r, 1, 2, 3, 4, 5, 6)
+<span class="lineNum">      48 </span>                :            : #define VR2(r...) VR2_(r, 1, 2, 3, 4, 5, 6)
+<span class="lineNum">      49 </span>                :            : #define VR3(r...) VR3_(r, 1, 2, 3, 4, 5, 6)
+<span class="lineNum">      50 </span>                :            : #define VR4(r...) VR4_(r, 1, 2, 3, 4, 5, 6)
+<span class="lineNum">      51 </span>                :            : #define VR5(r...) VR5_(r, 1, 2, 3, 4, 5, 6)
+<span class="lineNum">      52 </span>                :            : #define VR6(r...) VR6_(r, 1, 2, 3, 4, 5, 6)
+<span class="lineNum">      53 </span>                :            : #define VR7(r...) VR7_(r, 1, 2, 3, 4, 5, 6)
+<span class="lineNum">      54 </span>                :            : 
+<span class="lineNum">      55 </span>                :            : #define ELEM_SIZE 16
+<span class="lineNum">      56 </span>                :            : 
+<span class="lineNum">      57 </span>                :            : typedef struct v {
+<span class="lineNum">      58 </span>                :            :         uint8_t b[ELEM_SIZE] __attribute__((aligned(ELEM_SIZE)));
+<span class="lineNum">      59 </span>                :            : } v_t;
+<span class="lineNum">      60 </span>                :            : 
+<span class="lineNum">      61 </span>                :            : #define XOR_ACC(src, r...)                                              \
+<span class="lineNum">      62 </span>                :            : {                                                                       \
+<span class="lineNum">      63 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">      64 </span>                :            :         case 4:                                                         \
+<span class="lineNum">      65 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">      66 </span>                :            :                     &quot;pxor 0x00(%[SRC]), %%&quot; VR0(r) &quot;\n&quot;                     \
+<span class="lineNum">      67 </span>                :            :                     &quot;pxor 0x10(%[SRC]), %%&quot; VR1(r) &quot;\n&quot;                     \
+<span class="lineNum">      68 </span>                :            :                     &quot;pxor 0x20(%[SRC]), %%&quot; VR2(r) &quot;\n&quot;                     \
+<span class="lineNum">      69 </span>                :            :                     &quot;pxor 0x30(%[SRC]), %%&quot; VR3(r) &quot;\n&quot;                     \
+<span class="lineNum">      70 </span>                :            :                     : : [SRC] &quot;r&quot; (src));                             \
+<span class="lineNum">      71 </span>                :            :                 break;                                                  \
+<span class="lineNum">      72 </span>                :            :         case 2:                                                         \
+<span class="lineNum">      73 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">      74 </span>                :            :                     &quot;pxor 0x00(%[SRC]), %%&quot; VR0(r) &quot;\n&quot;                     \
+<span class="lineNum">      75 </span>                :            :                     &quot;pxor 0x10(%[SRC]), %%&quot; VR1(r) &quot;\n&quot;                     \
+<span class="lineNum">      76 </span>                :            :                     : : [SRC] &quot;r&quot; (src));                             \
+<span class="lineNum">      77 </span>                :            :                 break;                                                  \
+<span class="lineNum">      78 </span>                :            :         case 1:                                                         \
+<span class="lineNum">      79 </span>                :            :                 __asm(&quot;pxor 0x00(%[SRC]), %%&quot; VR0(r) &quot;\n&quot;           \
+<span class="lineNum">      80 </span>                :            :                     : : [SRC] &quot;r&quot; (src));                             \
+<span class="lineNum">      81 </span>                :            :                 break;                                                  \
+<span class="lineNum">      82 </span>                :            :         }                                                               \
+<span class="lineNum">      83 </span>                :            : }
+<span class="lineNum">      84 </span>                :            : 
+<span class="lineNum">      85 </span>                :            : #define XOR(r...)                                                       \
+<span class="lineNum">      86 </span>                :            : {                                                                       \
+<span class="lineNum">      87 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">      88 </span>                :            :         case 8:                                                         \
+<span class="lineNum">      89 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">      90 </span>                :            :                     &quot;pxor %&quot; VR0(r) &quot;, %&quot; VR4(r) &quot;\n&quot;                     \
+<span class="lineNum">      91 </span>                :            :                     &quot;pxor %&quot; VR1(r) &quot;, %&quot; VR5(r) &quot;\n&quot;                     \
+<span class="lineNum">      92 </span>                :            :                     &quot;pxor %&quot; VR2(r) &quot;, %&quot; VR6(r) &quot;\n&quot;                     \
+<span class="lineNum">      93 </span>                :            :                     &quot;pxor %&quot; VR3(r) &quot;, %&quot; VR7(r));                  \
+<span class="lineNum">      94 </span>                :            :                 break;                                                  \
+<span class="lineNum">      95 </span>                :            :         case 4:                                                         \
+<span class="lineNum">      96 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">      97 </span>                :            :                     &quot;pxor %&quot; VR0(r) &quot;, %&quot; VR2(r) &quot;\n&quot;                     \
+<span class="lineNum">      98 </span>                :            :                     &quot;pxor %&quot; VR1(r) &quot;, %&quot; VR3(r));                  \
+<span class="lineNum">      99 </span>                :            :                 break;                                                  \
+<span class="lineNum">     100 </span>                :            :         case 2:                                                         \
+<span class="lineNum">     101 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     102 </span>                :            :                     &quot;pxor %&quot; VR0(r) &quot;, %&quot; VR1(r));                  \
+<span class="lineNum">     103 </span>                :            :                 break;                                                  \
+<span class="lineNum">     104 </span>                :            :         }                                                               \
+<span class="lineNum">     105 </span>                :            : }
+<span class="lineNum">     106 </span>                :            : 
+<span class="lineNum">     107 </span>                :            : #define ZERO(r...)      XOR(r, r)
+<span class="lineNum">     108 </span>                :            : 
+<span class="lineNum">     109 </span>                :            : #define COPY(r...)                                                      \
+<span class="lineNum">     110 </span>                :            : {                                                                       \
+<span class="lineNum">     111 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">     112 </span>                :            :         case 8:                                                         \
+<span class="lineNum">     113 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     114 </span>                :            :                     &quot;movdqa %&quot; VR0(r) &quot;, %&quot; VR4(r) &quot;\n&quot;                   \
+<span class="lineNum">     115 </span>                :            :                     &quot;movdqa %&quot; VR1(r) &quot;, %&quot; VR5(r) &quot;\n&quot;                   \
+<span class="lineNum">     116 </span>                :            :                     &quot;movdqa %&quot; VR2(r) &quot;, %&quot; VR6(r) &quot;\n&quot;                   \
+<span class="lineNum">     117 </span>                :            :                     &quot;movdqa %&quot; VR3(r) &quot;, %&quot; VR7(r));                        \
+<span class="lineNum">     118 </span>                :            :                 break;                                                  \
+<span class="lineNum">     119 </span>                :            :         case 4:                                                         \
+<span class="lineNum">     120 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     121 </span>                :            :                     &quot;movdqa %&quot; VR0(r) &quot;, %&quot; VR2(r) &quot;\n&quot;                   \
+<span class="lineNum">     122 </span>                :            :                     &quot;movdqa %&quot; VR1(r) &quot;, %&quot; VR3(r));                        \
+<span class="lineNum">     123 </span>                :            :                 break;                                                  \
+<span class="lineNum">     124 </span>                :            :         case 2:                                                         \
+<span class="lineNum">     125 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     126 </span>                :            :                     &quot;movdqa %&quot; VR0(r) &quot;, %&quot; VR1(r));                        \
+<span class="lineNum">     127 </span>                :            :                 break;                                                  \
+<span class="lineNum">     128 </span>                :            :         }                                                               \
+<span class="lineNum">     129 </span>                :            : }
+<span class="lineNum">     130 </span>                :            : 
+<span class="lineNum">     131 </span>                :            : #define LOAD(src, r...)                                                 \
+<span class="lineNum">     132 </span>                :            : {                                                                       \
+<span class="lineNum">     133 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">     134 </span>                :            :         case 4:                                                         \
+<span class="lineNum">     135 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     136 </span>                :            :                     &quot;movdqa 0x00(%[SRC]), %%&quot; VR0(r) &quot;\n&quot;           \
+<span class="lineNum">     137 </span>                :            :                     &quot;movdqa 0x10(%[SRC]), %%&quot; VR1(r) &quot;\n&quot;           \
+<span class="lineNum">     138 </span>                :            :                     &quot;movdqa 0x20(%[SRC]), %%&quot; VR2(r) &quot;\n&quot;           \
+<span class="lineNum">     139 </span>                :            :                     &quot;movdqa 0x30(%[SRC]), %%&quot; VR3(r) &quot;\n&quot;           \
+<span class="lineNum">     140 </span>                :            :                     : : [SRC] &quot;r&quot; (src));                             \
+<span class="lineNum">     141 </span>                :            :                 break;                                                  \
+<span class="lineNum">     142 </span>                :            :         case 2:                                                         \
+<span class="lineNum">     143 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     144 </span>                :            :                     &quot;movdqa 0x00(%[SRC]), %%&quot; VR0(r) &quot;\n&quot;           \
+<span class="lineNum">     145 </span>                :            :                     &quot;movdqa 0x10(%[SRC]), %%&quot; VR1(r) &quot;\n&quot;           \
+<span class="lineNum">     146 </span>                :            :                     : : [SRC] &quot;r&quot; (src));                             \
+<span class="lineNum">     147 </span>                :            :                 break;                                                  \
+<span class="lineNum">     148 </span>                :            :         case 1:                                                         \
+<span class="lineNum">     149 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     150 </span>                :            :                     &quot;movdqa 0x00(%[SRC]), %%&quot; VR0(r) &quot;\n&quot;           \
+<span class="lineNum">     151 </span>                :            :                     : : [SRC] &quot;r&quot; (src));                             \
+<span class="lineNum">     152 </span>                :            :                 break;                                                  \
+<span class="lineNum">     153 </span>                :            :         }                                                               \
+<span class="lineNum">     154 </span>                :            : }
+<span class="lineNum">     155 </span>                :            : 
+<span class="lineNum">     156 </span>                :            : #define STORE(dst, r...)                                                \
+<span class="lineNum">     157 </span>                :            : {                                                                       \
+<span class="lineNum">     158 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">     159 </span>                :            :         case 4:                                                         \
+<span class="lineNum">     160 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     161 </span>                :            :                     &quot;movdqa %%&quot; VR0(r)&quot;, 0x00(%[DST])\n&quot;            \
+<span class="lineNum">     162 </span>                :            :                     &quot;movdqa %%&quot; VR1(r)&quot;, 0x10(%[DST])\n&quot;            \
+<span class="lineNum">     163 </span>                :            :                     &quot;movdqa %%&quot; VR2(r)&quot;, 0x20(%[DST])\n&quot;            \
+<span class="lineNum">     164 </span>                :            :                     &quot;movdqa %%&quot; VR3(r)&quot;, 0x30(%[DST])\n&quot;            \
+<span class="lineNum">     165 </span>                :            :                     : : [DST] &quot;r&quot; (dst));                             \
+<span class="lineNum">     166 </span>                :            :                 break;                                                  \
+<span class="lineNum">     167 </span>                :            :         case 2:                                                         \
+<span class="lineNum">     168 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     169 </span>                :            :                     &quot;movdqa %%&quot; VR0(r)&quot;, 0x00(%[DST])\n&quot;            \
+<span class="lineNum">     170 </span>                :            :                     &quot;movdqa %%&quot; VR1(r)&quot;, 0x10(%[DST])\n&quot;            \
+<span class="lineNum">     171 </span>                :            :                     : : [DST] &quot;r&quot; (dst));                             \
+<span class="lineNum">     172 </span>                :            :                 break;                                                  \
+<span class="lineNum">     173 </span>                :            :         case 1:                                                         \
+<span class="lineNum">     174 </span>                :            :                 __asm(                                                  \
+<span class="lineNum">     175 </span>                :            :                     &quot;movdqa %%&quot; VR0(r)&quot;, 0x00(%[DST])\n&quot;            \
+<span class="lineNum">     176 </span>                :            :                     : : [DST] &quot;r&quot; (dst));                             \
+<span class="lineNum">     177 </span>                :            :                 break;                                                  \
+<span class="lineNum">     178 </span>                :            :         }                                                               \
+<span class="lineNum">     179 </span>                :            : }
+<span class="lineNum">     180 </span>                :            : 
+<span class="lineNum">     181 </span>                :            : #define MUL2_SETUP()                                                    \
+<span class="lineNum">     182 </span>                :            : {                                                                       \
+<span class="lineNum">     183 </span>                :            :         __asm(                                                          \
+<span class="lineNum">     184 </span>                :            :             &quot;movd %[mask], %%xmm15\n&quot;                                 \
+<span class="lineNum">     185 </span>                :            :             &quot;pshufd $0x0, %%xmm15, %%xmm15\n&quot;                         \
+<span class="lineNum">     186 </span>                :            :             : : [mask] &quot;r&quot; (0x1d1d1d1d));                             \
+<span class="lineNum">     187 </span>                :            : }
+<span class="lineNum">     188 </span>                :            : 
+<span class="lineNum">     189 </span>                :            : #define _MUL2_x1(a0)                                                    \
+<span class="lineNum">     190 </span>                :            : {                                                                       \
+<span class="lineNum">     191 </span>                :            :         __asm(                                                          \
+<span class="lineNum">     192 </span>                :            :             &quot;pxor    %xmm14,      %xmm14\n&quot;                           \
+<span class="lineNum">     193 </span>                :            :             &quot;pcmpgtb %&quot; a0&quot;,  %xmm14\n&quot;                                     \
+<span class="lineNum">     194 </span>                :            :             &quot;pand    %xmm15,      %xmm14\n&quot;                           \
+<span class="lineNum">     195 </span>                :            :             &quot;paddb   %&quot; a0&quot;,  %&quot; a0 &quot;\n&quot;                          \
+<span class="lineNum">     196 </span>                :            :             &quot;pxor    %xmm14,      %&quot; a0);                             \
+<span class="lineNum">     197 </span>                :            : }
+<span class="lineNum">     198 </span>                :            : 
+<span class="lineNum">     199 </span>                :            : #define _MUL2_x2(a0, a1)                                                \
+<span class="lineNum">     200 </span>                :            : {                                                                       \
+<span class="lineNum">     201 </span>                :            :         __asm(                                                          \
+<span class="lineNum">     202 </span>                :            :             &quot;pxor    %xmm14,      %xmm14\n&quot;                           \
+<span class="lineNum">     203 </span>                :            :             &quot;pxor    %xmm13,      %xmm13\n&quot;                           \
+<span class="lineNum">     204 </span>                :            :             &quot;pcmpgtb %&quot; a0&quot;,  %xmm14\n&quot;                                     \
+<span class="lineNum">     205 </span>                :            :             &quot;pcmpgtb %&quot; a1&quot;,  %xmm13\n&quot;                                     \
+<span class="lineNum">     206 </span>                :            :             &quot;pand    %xmm15,      %xmm14\n&quot;                           \
+<span class="lineNum">     207 </span>                :            :             &quot;pand    %xmm15,      %xmm13\n&quot;                           \
+<span class="lineNum">     208 </span>                :            :             &quot;paddb   %&quot; a0&quot;,  %&quot; a0 &quot;\n&quot;                          \
+<span class="lineNum">     209 </span>                :            :             &quot;paddb   %&quot; a1&quot;,  %&quot; a1 &quot;\n&quot;                          \
+<span class="lineNum">     210 </span>                :            :             &quot;pxor    %xmm14,      %&quot; a0 &quot;\n&quot;                                \
+<span class="lineNum">     211 </span>                :            :             &quot;pxor    %xmm13,      %&quot; a1);                             \
+<span class="lineNum">     212 </span>                :            : }
+<span class="lineNum">     213 </span>                :            : 
+<span class="lineNum">     214 </span>                :            : #define MUL2(r...)                                                      \
+<span class="lineNum">     215 </span>                :            : {                                                                       \
+<span class="lineNum">     216 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">     217 </span>                :            :         case 4:                                                         \
+<span class="lineNum">     218 </span>                :            :                 _MUL2_x2(VR0(r), VR1(r));                               \
+<span class="lineNum">     219 </span>                :            :                 _MUL2_x2(VR2(r), VR3(r));                               \
+<span class="lineNum">     220 </span>                :            :                 break;                                                  \
+<span class="lineNum">     221 </span>                :            :         case 2:                                                         \
+<span class="lineNum">     222 </span>                :            :                 _MUL2_x2(VR0(r), VR1(r));                               \
+<span class="lineNum">     223 </span>                :            :                 break;                                                  \
+<span class="lineNum">     224 </span>                :            :         case 1:                                                         \
+<span class="lineNum">     225 </span>                :            :                 _MUL2_x1(VR0(r));                                       \
+<span class="lineNum">     226 </span>                :            :                 break;                                                  \
+<span class="lineNum">     227 </span>                :            :         }                                                               \
+<span class="lineNum">     228 </span>                :            : }
+<span class="lineNum">     229 </span>                :            : 
+<span class="lineNum">     230 </span>                :            : #define MUL4(r...)                                                      \
+<span class="lineNum">     231 </span>                :            : {                                                                       \
+<span class="lineNum">     232 </span>                :            :         MUL2(r);                                                        \
+<span class="lineNum">     233 </span>                :            :         MUL2(r);                                                        \
+<span class="lineNum">     234 </span>                :            : }
+<span class="lineNum">     235 </span>                :            : 
+<span class="lineNum">     236 </span>                :            : /* General multiplication by adding powers of two */
+<span class="lineNum">     237 </span>                :            : 
+<span class="lineNum">     238 </span>                :            : #define _MUL_PARAM(x, in, acc)                                          \
+<span class="lineNum">     239 </span>                :            : {                                                                       \
+<span class="lineNum">     240 </span>                :            :         if (x &amp; 0x01) {     COPY(in, acc); } else { ZERO(acc); }    \
+<span class="lineNum">     241 </span>                :            :         if (x &amp; 0xfe) { MUL2(in); }                                 \
+<span class="lineNum">     242 </span>                :            :         if (x &amp; 0x02) { XOR(in, acc); }                                     \
+<span class="lineNum">     243 </span>                :            :         if (x &amp; 0xfc) { MUL2(in); }                                 \
+<span class="lineNum">     244 </span>                :            :         if (x &amp; 0x04) { XOR(in, acc); }                                     \
+<span class="lineNum">     245 </span>                :            :         if (x &amp; 0xf8) { MUL2(in); }                                 \
+<span class="lineNum">     246 </span>                :            :         if (x &amp; 0x08) { XOR(in, acc); }                                     \
+<span class="lineNum">     247 </span>                :            :         if (x &amp; 0xf0) { MUL2(in); }                                 \
+<span class="lineNum">     248 </span>                :            :         if (x &amp; 0x10) { XOR(in, acc); }                                     \
+<span class="lineNum">     249 </span>                :            :         if (x &amp; 0xe0) { MUL2(in); }                                 \
+<span class="lineNum">     250 </span>                :            :         if (x &amp; 0x20) { XOR(in, acc); }                                     \
+<span class="lineNum">     251 </span>                :            :         if (x &amp; 0xc0) { MUL2(in); }                                 \
+<span class="lineNum">     252 </span>                :            :         if (x &amp; 0x40) { XOR(in, acc); }                                     \
+<span class="lineNum">     253 </span>                :            :         if (x &amp; 0x80) { MUL2(in); XOR(in, acc); }                   \
+<span class="lineNum">     254 </span>                :            : }
+<span class="lineNum">     255 </span>                :            : 
+<span class="lineNum">     256 </span>                :            : #define _mul_x1_in      11
+<span class="lineNum">     257 </span>                :            : #define _mul_x1_acc     12
+<span class="lineNum">     258 </span>                :            : 
+<span class="lineNum">     259 </span>                :            : #define MUL_x1_DEFINE(x)                                                \
+<span class="lineNum">     260 </span>                :            : static void                                                             \
+<span class="lineNum">     261 </span>                :            : mul_x1_ ## x(void) { _MUL_PARAM(x, _mul_x1_in, _mul_x1_acc); }
+<span class="lineNum">     262 </span>                :            : 
+<span class="lineNum">     263 </span>                :            : #define _mul_x2_in      9, 10
+<span class="lineNum">     264 </span>                :            : #define _mul_x2_acc     11, 12
+<span class="lineNum">     265 </span>                :            : 
+<span class="lineNum">     266 </span>                :            : #define MUL_x2_DEFINE(x)                                                \
+<span class="lineNum">     267 </span>                :            : static void                                                             \
+<a name="268"><span class="lineNum">     268 </span>                :            : mul_x2_ ## x(void) { _MUL_PARAM(x, _mul_x2_in, _mul_x2_acc); }</a>
+<a name="269"><span class="lineNum">     269 </span>                :            : </a>
+<a name="270"><span class="lineNum">     270 </span>                :<span class="lineCov">   18564288 : MUL_x1_DEFINE(0); MUL_x1_DEFINE(1); MUL_x1_DEFINE(2); MUL_x1_DEFINE(3);</span></a>
+<a name="271"><span class="lineNum">     271 </span>                :<span class="lineCov">   55450944 : MUL_x1_DEFINE(4); MUL_x1_DEFINE(5); MUL_x1_DEFINE(6); MUL_x1_DEFINE(7);</span></a>
+<a name="272"><span class="lineNum">     272 </span>                :<span class="lineCov">   54995922 : MUL_x1_DEFINE(8); MUL_x1_DEFINE(9); MUL_x1_DEFINE(10); MUL_x1_DEFINE(11);</span></a>
+<a name="273"><span class="lineNum">     273 </span>                :<span class="lineCov">   29149444 : MUL_x1_DEFINE(12); MUL_x1_DEFINE(13); MUL_x1_DEFINE(14); MUL_x1_DEFINE(15);</span></a>
+<a name="274"><span class="lineNum">     274 </span>                :<span class="lineCov">  161774512 : MUL_x1_DEFINE(16); MUL_x1_DEFINE(17); MUL_x1_DEFINE(18); MUL_x1_DEFINE(19);</span></a>
+<a name="275"><span class="lineNum">     275 </span>                :<span class="lineCov">   21334016 : MUL_x1_DEFINE(20); MUL_x1_DEFINE(21); MUL_x1_DEFINE(22); MUL_x1_DEFINE(23);</span></a>
+<a name="276"><span class="lineNum">     276 </span>                :<span class="lineCov">   60063487 : MUL_x1_DEFINE(24); MUL_x1_DEFINE(25); MUL_x1_DEFINE(26); MUL_x1_DEFINE(27);</span></a>
+<a name="277"><span class="lineNum">     277 </span>                :<span class="lineCov">   80537051 : MUL_x1_DEFINE(28); MUL_x1_DEFINE(29); MUL_x1_DEFINE(30); MUL_x1_DEFINE(31);</span></a>
+<a name="278"><span class="lineNum">     278 </span>                :<span class="lineCov">  101796991 : MUL_x1_DEFINE(32); MUL_x1_DEFINE(33); MUL_x1_DEFINE(34); MUL_x1_DEFINE(35);</span></a>
+<a name="279"><span class="lineNum">     279 </span>                :<span class="lineCov">   70333427 : MUL_x1_DEFINE(36); MUL_x1_DEFINE(37); MUL_x1_DEFINE(38); MUL_x1_DEFINE(39);</span></a>
+<a name="280"><span class="lineNum">     280 </span>                :<span class="lineCov">   36742848 : MUL_x1_DEFINE(40); MUL_x1_DEFINE(41); MUL_x1_DEFINE(42); MUL_x1_DEFINE(43);</span></a>
+<a name="281"><span class="lineNum">     281 </span>                :<span class="lineCov">   41537004 : MUL_x1_DEFINE(44); MUL_x1_DEFINE(45); MUL_x1_DEFINE(46); MUL_x1_DEFINE(47);</span></a>
+<a name="282"><span class="lineNum">     282 </span>                :<span class="lineCov">   41461696 : MUL_x1_DEFINE(48); MUL_x1_DEFINE(49); MUL_x1_DEFINE(50); MUL_x1_DEFINE(51);</span></a>
+<a name="283"><span class="lineNum">     283 </span>                :<span class="lineCov">   30910720 : MUL_x1_DEFINE(52); MUL_x1_DEFINE(53); MUL_x1_DEFINE(54); MUL_x1_DEFINE(55);</span></a>
+<a name="284"><span class="lineNum">     284 </span>                :<span class="lineCov">   87289024 : MUL_x1_DEFINE(56); MUL_x1_DEFINE(57); MUL_x1_DEFINE(58); MUL_x1_DEFINE(59);</span></a>
+<a name="285"><span class="lineNum">     285 </span>                :<span class="lineCov">   55874304 : MUL_x1_DEFINE(60); MUL_x1_DEFINE(61); MUL_x1_DEFINE(62); MUL_x1_DEFINE(63);</span></a>
+<a name="286"><span class="lineNum">     286 </span>                :<span class="lineCov">   75060611 : MUL_x1_DEFINE(64); MUL_x1_DEFINE(65); MUL_x1_DEFINE(66); MUL_x1_DEFINE(67);</span></a>
+<a name="287"><span class="lineNum">     287 </span>                :<span class="lineCov">   20759104 : MUL_x1_DEFINE(68); MUL_x1_DEFINE(69); MUL_x1_DEFINE(70); MUL_x1_DEFINE(71);</span></a>
+<a name="288"><span class="lineNum">     288 </span>                :<span class="lineCov">   49201140 : MUL_x1_DEFINE(72); MUL_x1_DEFINE(73); MUL_x1_DEFINE(74); MUL_x1_DEFINE(75);</span></a>
+<a name="289"><span class="lineNum">     289 </span>                :<span class="lineCov">   38295168 : MUL_x1_DEFINE(76); MUL_x1_DEFINE(77); MUL_x1_DEFINE(78); MUL_x1_DEFINE(79);</span></a>
+<a name="290"><span class="lineNum">     290 </span>                :<span class="lineCov">   32123776 : MUL_x1_DEFINE(80); MUL_x1_DEFINE(81); MUL_x1_DEFINE(82); MUL_x1_DEFINE(83);</span></a>
+<a name="291"><span class="lineNum">     291 </span>                :<span class="lineCov">   77881362 : MUL_x1_DEFINE(84); MUL_x1_DEFINE(85); MUL_x1_DEFINE(86); MUL_x1_DEFINE(87);</span></a>
+<a name="292"><span class="lineNum">     292 </span>                :<span class="lineCov">   43444655 : MUL_x1_DEFINE(88); MUL_x1_DEFINE(89); MUL_x1_DEFINE(90); MUL_x1_DEFINE(91);</span></a>
+<a name="293"><span class="lineNum">     293 </span>                :<span class="lineCov">   79118584 : MUL_x1_DEFINE(92); MUL_x1_DEFINE(93); MUL_x1_DEFINE(94); MUL_x1_DEFINE(95);</span></a>
+<a name="294"><span class="lineNum">     294 </span>                :<span class="lineCov">   45323968 : MUL_x1_DEFINE(96); MUL_x1_DEFINE(97); MUL_x1_DEFINE(98); MUL_x1_DEFINE(99);</span></a>
+<a name="295"><span class="lineNum">     295 </span>                :<span class="lineCov">   25028096 : MUL_x1_DEFINE(100); MUL_x1_DEFINE(101); MUL_x1_DEFINE(102); MUL_x1_DEFINE(103);</span></a>
+<a name="296"><span class="lineNum">     296 </span>                :<span class="lineCov">   23817408 : MUL_x1_DEFINE(104); MUL_x1_DEFINE(105); MUL_x1_DEFINE(106); MUL_x1_DEFINE(107);</span></a>
+<a name="297"><span class="lineNum">     297 </span>                :<span class="lineCov">   37069760 : MUL_x1_DEFINE(108); MUL_x1_DEFINE(109); MUL_x1_DEFINE(110); MUL_x1_DEFINE(111);</span></a>
+<a name="298"><span class="lineNum">     298 </span>                :<span class="lineCov">  133696556 : MUL_x1_DEFINE(112); MUL_x1_DEFINE(113); MUL_x1_DEFINE(114); MUL_x1_DEFINE(115);</span></a>
+<a name="299"><span class="lineNum">     299 </span>                :<span class="lineCov">  103270216 : MUL_x1_DEFINE(116); MUL_x1_DEFINE(117); MUL_x1_DEFINE(118); MUL_x1_DEFINE(119);</span></a>
+<a name="300"><span class="lineNum">     300 </span>                :<span class="lineCov">   60446306 : MUL_x1_DEFINE(120); MUL_x1_DEFINE(121); MUL_x1_DEFINE(122); MUL_x1_DEFINE(123);</span></a>
+<a name="301"><span class="lineNum">     301 </span>                :<span class="lineCov">   46779762 : MUL_x1_DEFINE(124); MUL_x1_DEFINE(125); MUL_x1_DEFINE(126); MUL_x1_DEFINE(127);</span></a>
+<a name="302"><span class="lineNum">     302 </span>                :<span class="lineCov">   97303123 : MUL_x1_DEFINE(128); MUL_x1_DEFINE(129); MUL_x1_DEFINE(130); MUL_x1_DEFINE(131);</span></a>
+<a name="303"><span class="lineNum">     303 </span>                :<span class="lineCov">   89539537 : MUL_x1_DEFINE(132); MUL_x1_DEFINE(133); MUL_x1_DEFINE(134); MUL_x1_DEFINE(135);</span></a>
+<a name="304"><span class="lineNum">     304 </span>                :<span class="lineCov">   62205656 : MUL_x1_DEFINE(136); MUL_x1_DEFINE(137); MUL_x1_DEFINE(138); MUL_x1_DEFINE(139);</span></a>
+<a name="305"><span class="lineNum">     305 </span>                :<span class="lineCov">   35084164 : MUL_x1_DEFINE(140); MUL_x1_DEFINE(141); MUL_x1_DEFINE(142); MUL_x1_DEFINE(143);</span></a>
+<a name="306"><span class="lineNum">     306 </span>                :<span class="lineCov">   68864443 : MUL_x1_DEFINE(144); MUL_x1_DEFINE(145); MUL_x1_DEFINE(146); MUL_x1_DEFINE(147);</span></a>
+<a name="307"><span class="lineNum">     307 </span>                :<span class="lineCov">   66952459 : MUL_x1_DEFINE(148); MUL_x1_DEFINE(149); MUL_x1_DEFINE(150); MUL_x1_DEFINE(151);</span></a>
+<a name="308"><span class="lineNum">     308 </span>                :<span class="lineCov">   33871379 : MUL_x1_DEFINE(152); MUL_x1_DEFINE(153); MUL_x1_DEFINE(154); MUL_x1_DEFINE(155);</span></a>
+<a name="309"><span class="lineNum">     309 </span>                :<span class="lineCov">  155474825 : MUL_x1_DEFINE(156); MUL_x1_DEFINE(157); MUL_x1_DEFINE(158); MUL_x1_DEFINE(159);</span></a>
+<a name="310"><span class="lineNum">     310 </span>                :<span class="lineCov">   72000488 : MUL_x1_DEFINE(160); MUL_x1_DEFINE(161); MUL_x1_DEFINE(162); MUL_x1_DEFINE(163);</span></a>
+<a name="311"><span class="lineNum">     311 </span>                :<span class="lineCov">  216738086 : MUL_x1_DEFINE(164); MUL_x1_DEFINE(165); MUL_x1_DEFINE(166); MUL_x1_DEFINE(167);</span></a>
+<a name="312"><span class="lineNum">     312 </span>                :<span class="lineCov">   48035200 : MUL_x1_DEFINE(168); MUL_x1_DEFINE(169); MUL_x1_DEFINE(170); MUL_x1_DEFINE(171);</span></a>
+<a name="313"><span class="lineNum">     313 </span>                :<span class="lineCov">   39270464 : MUL_x1_DEFINE(172); MUL_x1_DEFINE(173); MUL_x1_DEFINE(174); MUL_x1_DEFINE(175);</span></a>
+<a name="314"><span class="lineNum">     314 </span>                :<span class="lineCov">   31518875 : MUL_x1_DEFINE(176); MUL_x1_DEFINE(177); MUL_x1_DEFINE(178); MUL_x1_DEFINE(179);</span></a>
+<a name="315"><span class="lineNum">     315 </span>                :<span class="lineCov">   32426004 : MUL_x1_DEFINE(180); MUL_x1_DEFINE(181); MUL_x1_DEFINE(182); MUL_x1_DEFINE(183);</span></a>
+<a name="316"><span class="lineNum">     316 </span>                :<span class="lineCov">   25024000 : MUL_x1_DEFINE(184); MUL_x1_DEFINE(185); MUL_x1_DEFINE(186); MUL_x1_DEFINE(187);</span></a>
+<a name="317"><span class="lineNum">     317 </span>                :<span class="lineCov">   20333184 : MUL_x1_DEFINE(188); MUL_x1_DEFINE(189); MUL_x1_DEFINE(190); MUL_x1_DEFINE(191);</span></a>
+<a name="318"><span class="lineNum">     318 </span>                :<span class="lineCov">   51705664 : MUL_x1_DEFINE(192); MUL_x1_DEFINE(193); MUL_x1_DEFINE(194); MUL_x1_DEFINE(195);</span></a>
+<a name="319"><span class="lineNum">     319 </span>                :<span class="lineCov">   27579008 : MUL_x1_DEFINE(196); MUL_x1_DEFINE(197); MUL_x1_DEFINE(198); MUL_x1_DEFINE(199);</span></a>
+<a name="320"><span class="lineNum">     320 </span>                :<span class="lineCov">   35649534 : MUL_x1_DEFINE(200); MUL_x1_DEFINE(201); MUL_x1_DEFINE(202); MUL_x1_DEFINE(203);</span></a>
+<a name="321"><span class="lineNum">     321 </span>                :<span class="lineCov">   91913920 : MUL_x1_DEFINE(204); MUL_x1_DEFINE(205); MUL_x1_DEFINE(206); MUL_x1_DEFINE(207);</span></a>
+<a name="322"><span class="lineNum">     322 </span>                :<span class="lineCov">   21534016 : MUL_x1_DEFINE(208); MUL_x1_DEFINE(209); MUL_x1_DEFINE(210); MUL_x1_DEFINE(211);</span></a>
+<a name="323"><span class="lineNum">     323 </span>                :<span class="lineCov">   29220224 : MUL_x1_DEFINE(212); MUL_x1_DEFINE(213); MUL_x1_DEFINE(214); MUL_x1_DEFINE(215);</span></a>
+<a name="324"><span class="lineNum">     324 </span>                :<span class="lineCov">   49153216 : MUL_x1_DEFINE(216); MUL_x1_DEFINE(217); MUL_x1_DEFINE(218); MUL_x1_DEFINE(219);</span></a>
+<a name="325"><span class="lineNum">     325 </span>                :<span class="lineCov">   91207016 : MUL_x1_DEFINE(220); MUL_x1_DEFINE(221); MUL_x1_DEFINE(222); MUL_x1_DEFINE(223);</span></a>
+<a name="326"><span class="lineNum">     326 </span>                :<span class="lineCov">   54464640 : MUL_x1_DEFINE(224); MUL_x1_DEFINE(225); MUL_x1_DEFINE(226); MUL_x1_DEFINE(227);</span></a>
+<a name="327"><span class="lineNum">     327 </span>                :<span class="lineCov">   19033344 : MUL_x1_DEFINE(228); MUL_x1_DEFINE(229); MUL_x1_DEFINE(230); MUL_x1_DEFINE(231);</span></a>
+<a name="328"><span class="lineNum">     328 </span>                :<span class="lineCov">   91845402 : MUL_x1_DEFINE(232); MUL_x1_DEFINE(233); MUL_x1_DEFINE(234); MUL_x1_DEFINE(235);</span></a>
+<a name="329"><span class="lineNum">     329 </span>                :<span class="lineCov">   96212111 : MUL_x1_DEFINE(236); MUL_x1_DEFINE(237); MUL_x1_DEFINE(238); MUL_x1_DEFINE(239);</span></a>
+<a name="330"><span class="lineNum">     330 </span>                :<span class="lineCov">   16913600 : MUL_x1_DEFINE(240); MUL_x1_DEFINE(241); MUL_x1_DEFINE(242); MUL_x1_DEFINE(243);</span></a>
+<a name="331"><span class="lineNum">     331 </span>                :<span class="lineCov">  233501859 : MUL_x1_DEFINE(244); MUL_x1_DEFINE(245); MUL_x1_DEFINE(246); MUL_x1_DEFINE(247);</span></a>
+<span class="lineNum">     332 </span>                :<span class="lineCov">   47900083 : MUL_x1_DEFINE(248); MUL_x1_DEFINE(249); MUL_x1_DEFINE(250); MUL_x1_DEFINE(251);</span>
+<a name="333"><span class="lineNum">     333 </span>                :<span class="lineCov">   39708224 : MUL_x1_DEFINE(252); MUL_x1_DEFINE(253); MUL_x1_DEFINE(254); MUL_x1_DEFINE(255);</span></a>
+<a name="334"><span class="lineNum">     334 </span>                :            : </a>
+<a name="335"><span class="lineNum">     335 </span>                :<span class="lineCov">   80464582 : MUL_x2_DEFINE(0); MUL_x2_DEFINE(1); MUL_x2_DEFINE(2); MUL_x2_DEFINE(3);</span></a>
+<a name="336"><span class="lineNum">     336 </span>                :<span class="lineCov">   30602865 : MUL_x2_DEFINE(4); MUL_x2_DEFINE(5); MUL_x2_DEFINE(6); MUL_x2_DEFINE(7);</span></a>
+<a name="337"><span class="lineNum">     337 </span>                :<span class="lineCov">   29614560 : MUL_x2_DEFINE(8); MUL_x2_DEFINE(9); MUL_x2_DEFINE(10); MUL_x2_DEFINE(11);</span></a>
+<a name="338"><span class="lineNum">     338 </span>                :<span class="lineCov">   14298368 : MUL_x2_DEFINE(12); MUL_x2_DEFINE(13); MUL_x2_DEFINE(14); MUL_x2_DEFINE(15);</span></a>
+<a name="339"><span class="lineNum">     339 </span>                :<span class="lineCov">   34797856 : MUL_x2_DEFINE(16); MUL_x2_DEFINE(17); MUL_x2_DEFINE(18); MUL_x2_DEFINE(19);</span></a>
+<a name="340"><span class="lineNum">     340 </span>                :<span class="lineCov">    7971776 : MUL_x2_DEFINE(20); MUL_x2_DEFINE(21); MUL_x2_DEFINE(22); MUL_x2_DEFINE(23);</span></a>
+<a name="341"><span class="lineNum">     341 </span>                :<span class="lineCov">    8591904 : MUL_x2_DEFINE(24); MUL_x2_DEFINE(25); MUL_x2_DEFINE(26); MUL_x2_DEFINE(27);</span></a>
+<a name="342"><span class="lineNum">     342 </span>                :<span class="lineCov">   12157888 : MUL_x2_DEFINE(28); MUL_x2_DEFINE(29); MUL_x2_DEFINE(30); MUL_x2_DEFINE(31);</span></a>
+<a name="343"><span class="lineNum">     343 </span>                :<span class="lineCov">   21201632 : MUL_x2_DEFINE(32); MUL_x2_DEFINE(33); MUL_x2_DEFINE(34); MUL_x2_DEFINE(35);</span></a>
+<a name="344"><span class="lineNum">     344 </span>                :<span class="lineCov">   14096064 : MUL_x2_DEFINE(36); MUL_x2_DEFINE(37); MUL_x2_DEFINE(38); MUL_x2_DEFINE(39);</span></a>
+<a name="345"><span class="lineNum">     345 </span>                :<span class="lineCov">   10829408 : MUL_x2_DEFINE(40); MUL_x2_DEFINE(41); MUL_x2_DEFINE(42); MUL_x2_DEFINE(43);</span></a>
+<a name="346"><span class="lineNum">     346 </span>                :<span class="lineCov">    2320512 : MUL_x2_DEFINE(44); MUL_x2_DEFINE(45); MUL_x2_DEFINE(46); MUL_x2_DEFINE(47);</span></a>
+<a name="347"><span class="lineNum">     347 </span>                :<span class="lineCov">    8541632 : MUL_x2_DEFINE(48); MUL_x2_DEFINE(49); MUL_x2_DEFINE(50); MUL_x2_DEFINE(51);</span></a>
+<a name="348"><span class="lineNum">     348 </span>                :<span class="lineCov">    9143008 : MUL_x2_DEFINE(52); MUL_x2_DEFINE(53); MUL_x2_DEFINE(54); MUL_x2_DEFINE(55);</span></a>
+<a name="349"><span class="lineNum">     349 </span>                :<span class="lineCov">   26209696 : MUL_x2_DEFINE(56); MUL_x2_DEFINE(57); MUL_x2_DEFINE(58); MUL_x2_DEFINE(59);</span></a>
+<a name="350"><span class="lineNum">     350 </span>                :<span class="lineCov">   11503993 : MUL_x2_DEFINE(60); MUL_x2_DEFINE(61); MUL_x2_DEFINE(62); MUL_x2_DEFINE(63);</span></a>
+<a name="351"><span class="lineNum">     351 </span>                :<span class="lineCov">   20752576 : MUL_x2_DEFINE(64); MUL_x2_DEFINE(65); MUL_x2_DEFINE(66); MUL_x2_DEFINE(67);</span></a>
+<a name="352"><span class="lineNum">     352 </span>                :<span class="lineCov">   17460032 : MUL_x2_DEFINE(68); MUL_x2_DEFINE(69); MUL_x2_DEFINE(70); MUL_x2_DEFINE(71);</span></a>
+<a name="353"><span class="lineNum">     353 </span>                :<span class="lineCov">   10364992 : MUL_x2_DEFINE(72); MUL_x2_DEFINE(73); MUL_x2_DEFINE(74); MUL_x2_DEFINE(75);</span></a>
+<a name="354"><span class="lineNum">     354 </span>                :<span class="lineCov">    5690112 : MUL_x2_DEFINE(76); MUL_x2_DEFINE(77); MUL_x2_DEFINE(78); MUL_x2_DEFINE(79);</span></a>
+<a name="355"><span class="lineNum">     355 </span>                :<span class="lineCov">    3988896 : MUL_x2_DEFINE(80); MUL_x2_DEFINE(81); MUL_x2_DEFINE(82); MUL_x2_DEFINE(83);</span></a>
+<a name="356"><span class="lineNum">     356 </span>                :<span class="lineCov">   14324512 : MUL_x2_DEFINE(84); MUL_x2_DEFINE(85); MUL_x2_DEFINE(86); MUL_x2_DEFINE(87);</span></a>
+<a name="357"><span class="lineNum">     357 </span>                :<span class="lineCov">    3367712 : MUL_x2_DEFINE(88); MUL_x2_DEFINE(89); MUL_x2_DEFINE(90); MUL_x2_DEFINE(91);</span></a>
+<a name="358"><span class="lineNum">     358 </span>                :<span class="lineCov">   34609984 : MUL_x2_DEFINE(92); MUL_x2_DEFINE(93); MUL_x2_DEFINE(94); MUL_x2_DEFINE(95);</span></a>
+<a name="359"><span class="lineNum">     359 </span>                :<span class="lineCov">    5487296 : MUL_x2_DEFINE(96); MUL_x2_DEFINE(97); MUL_x2_DEFINE(98); MUL_x2_DEFINE(99);</span></a>
+<a name="360"><span class="lineNum">     360 </span>                :<span class="lineCov">   14513376 : MUL_x2_DEFINE(100); MUL_x2_DEFINE(101); MUL_x2_DEFINE(102); MUL_x2_DEFINE(103);</span></a>
+<a name="361"><span class="lineNum">     361 </span>                :<span class="lineCov">    5363296 : MUL_x2_DEFINE(104); MUL_x2_DEFINE(105); MUL_x2_DEFINE(106); MUL_x2_DEFINE(107);</span></a>
+<a name="362"><span class="lineNum">     362 </span>                :<span class="lineCov">    6335296 : MUL_x2_DEFINE(108); MUL_x2_DEFINE(109); MUL_x2_DEFINE(110); MUL_x2_DEFINE(111);</span></a>
+<a name="363"><span class="lineNum">     363 </span>                :<span class="lineCov">   46751904 : MUL_x2_DEFINE(112); MUL_x2_DEFINE(113); MUL_x2_DEFINE(114); MUL_x2_DEFINE(115);</span></a>
+<a name="364"><span class="lineNum">     364 </span>                :<span class="lineCov">   15785984 : MUL_x2_DEFINE(116); MUL_x2_DEFINE(117); MUL_x2_DEFINE(118); MUL_x2_DEFINE(119);</span></a>
+<a name="365"><span class="lineNum">     365 </span>                :<span class="lineCov">   12826785 : MUL_x2_DEFINE(120); MUL_x2_DEFINE(121); MUL_x2_DEFINE(122); MUL_x2_DEFINE(123);</span></a>
+<a name="366"><span class="lineNum">     366 </span>                :<span class="lineCov">    4542560 : MUL_x2_DEFINE(124); MUL_x2_DEFINE(125); MUL_x2_DEFINE(126); MUL_x2_DEFINE(127);</span></a>
+<a name="367"><span class="lineNum">     367 </span>                :<span class="lineCov">   20198348 : MUL_x2_DEFINE(128); MUL_x2_DEFINE(129); MUL_x2_DEFINE(130); MUL_x2_DEFINE(131);</span></a>
+<a name="368"><span class="lineNum">     368 </span>                :<span class="lineCov">   19668864 : MUL_x2_DEFINE(132); MUL_x2_DEFINE(133); MUL_x2_DEFINE(134); MUL_x2_DEFINE(135);</span></a>
+<a name="369"><span class="lineNum">     369 </span>                :<span class="lineCov">    5840576 : MUL_x2_DEFINE(136); MUL_x2_DEFINE(137); MUL_x2_DEFINE(138); MUL_x2_DEFINE(139);</span></a>
+<a name="370"><span class="lineNum">     370 </span>                :<span class="lineCov">   18230848 : MUL_x2_DEFINE(140); MUL_x2_DEFINE(141); MUL_x2_DEFINE(142); MUL_x2_DEFINE(143);</span></a>
+<a name="371"><span class="lineNum">     371 </span>                :<span class="lineCov">   15987186 : MUL_x2_DEFINE(144); MUL_x2_DEFINE(145); MUL_x2_DEFINE(146); MUL_x2_DEFINE(147);</span></a>
+<a name="372"><span class="lineNum">     372 </span>                :<span class="lineCov">    2112832 : MUL_x2_DEFINE(148); MUL_x2_DEFINE(149); MUL_x2_DEFINE(150); MUL_x2_DEFINE(151);</span></a>
+<a name="373"><span class="lineNum">     373 </span>                :<span class="lineCov">    3401248 : MUL_x2_DEFINE(152); MUL_x2_DEFINE(153); MUL_x2_DEFINE(154); MUL_x2_DEFINE(155);</span></a>
+<a name="374"><span class="lineNum">     374 </span>                :<span class="lineCov">   28031136 : MUL_x2_DEFINE(156); MUL_x2_DEFINE(157); MUL_x2_DEFINE(158); MUL_x2_DEFINE(159);</span></a>
+<a name="375"><span class="lineNum">     375 </span>                :<span class="lineCov">   22787776 : MUL_x2_DEFINE(160); MUL_x2_DEFINE(161); MUL_x2_DEFINE(162); MUL_x2_DEFINE(163);</span></a>
+<a name="376"><span class="lineNum">     376 </span>                :<span class="lineCov">   72591648 : MUL_x2_DEFINE(164); MUL_x2_DEFINE(165); MUL_x2_DEFINE(166); MUL_x2_DEFINE(167);</span></a>
+<a name="377"><span class="lineNum">     377 </span>                :<span class="lineCov">   15043840 : MUL_x2_DEFINE(168); MUL_x2_DEFINE(169); MUL_x2_DEFINE(170); MUL_x2_DEFINE(171);</span></a>
+<a name="378"><span class="lineNum">     378 </span>                :<span class="lineCov">    7918176 : MUL_x2_DEFINE(172); MUL_x2_DEFINE(173); MUL_x2_DEFINE(174); MUL_x2_DEFINE(175);</span></a>
+<a name="379"><span class="lineNum">     379 </span>                :<span class="lineCov">    1683168 : MUL_x2_DEFINE(176); MUL_x2_DEFINE(177); MUL_x2_DEFINE(178); MUL_x2_DEFINE(179);</span></a>
+<a name="380"><span class="lineNum">     380 </span>                :<span class="lineCov">    4450752 : MUL_x2_DEFINE(180); MUL_x2_DEFINE(181); MUL_x2_DEFINE(182); MUL_x2_DEFINE(183);</span></a>
+<a name="381"><span class="lineNum">     381 </span>                :<span class="lineCov">    6733888 : MUL_x2_DEFINE(184); MUL_x2_DEFINE(185); MUL_x2_DEFINE(186); MUL_x2_DEFINE(187);</span></a>
+<a name="382"><span class="lineNum">     382 </span>                :<span class="lineCov">    1056928 : MUL_x2_DEFINE(188); MUL_x2_DEFINE(189); MUL_x2_DEFINE(190); MUL_x2_DEFINE(191);</span></a>
+<a name="383"><span class="lineNum">     383 </span>                :<span class="lineCov">   13966071 : MUL_x2_DEFINE(192); MUL_x2_DEFINE(193); MUL_x2_DEFINE(194); MUL_x2_DEFINE(195);</span></a>
+<a name="384"><span class="lineNum">     384 </span>                :<span class="lineCov">    2560864 : MUL_x2_DEFINE(196); MUL_x2_DEFINE(197); MUL_x2_DEFINE(198); MUL_x2_DEFINE(199);</span></a>
+<a name="385"><span class="lineNum">     385 </span>                :<span class="lineCov">    3216160 : MUL_x2_DEFINE(200); MUL_x2_DEFINE(201); MUL_x2_DEFINE(202); MUL_x2_DEFINE(203);</span></a>
+<a name="386"><span class="lineNum">     386 </span>                :<span class="lineCov">   10046592 : MUL_x2_DEFINE(204); MUL_x2_DEFINE(205); MUL_x2_DEFINE(206); MUL_x2_DEFINE(207);</span></a>
+<a name="387"><span class="lineNum">     387 </span>                :<span class="lineCov">    2730912 : MUL_x2_DEFINE(208); MUL_x2_DEFINE(209); MUL_x2_DEFINE(210); MUL_x2_DEFINE(211);</span></a>
+<a name="388"><span class="lineNum">     388 </span>                :<span class="lineCov">    1458592 : MUL_x2_DEFINE(212); MUL_x2_DEFINE(213); MUL_x2_DEFINE(214); MUL_x2_DEFINE(215);</span></a>
+<a name="389"><span class="lineNum">     389 </span>                :<span class="lineCov">   10226336 : MUL_x2_DEFINE(216); MUL_x2_DEFINE(217); MUL_x2_DEFINE(218); MUL_x2_DEFINE(219);</span></a>
+<a name="390"><span class="lineNum">     390 </span>                :<span class="lineCov">   11837952 : MUL_x2_DEFINE(220); MUL_x2_DEFINE(221); MUL_x2_DEFINE(222); MUL_x2_DEFINE(223);</span></a>
+<a name="391"><span class="lineNum">     391 </span>                :<span class="lineCov">   17304032 : MUL_x2_DEFINE(224); MUL_x2_DEFINE(225); MUL_x2_DEFINE(226); MUL_x2_DEFINE(227);</span></a>
+<a name="392"><span class="lineNum">     392 </span>                :<span class="lineCov">    1934400 : MUL_x2_DEFINE(228); MUL_x2_DEFINE(229); MUL_x2_DEFINE(230); MUL_x2_DEFINE(231);</span></a>
+<a name="393"><span class="lineNum">     393 </span>                :<span class="lineCov">   14042912 : MUL_x2_DEFINE(232); MUL_x2_DEFINE(233); MUL_x2_DEFINE(234); MUL_x2_DEFINE(235);</span></a>
+<a name="394"><span class="lineNum">     394 </span>                :<span class="lineCov">   16896512 : MUL_x2_DEFINE(236); MUL_x2_DEFINE(237); MUL_x2_DEFINE(238); MUL_x2_DEFINE(239);</span></a>
+<a name="395"><span class="lineNum">     395 </span>                :<span class="lineCov">    5256160 : MUL_x2_DEFINE(240); MUL_x2_DEFINE(241); MUL_x2_DEFINE(242); MUL_x2_DEFINE(243);</span></a>
+<a name="396"><span class="lineNum">     396 </span>                :<span class="lineCov">   45990594 : MUL_x2_DEFINE(244); MUL_x2_DEFINE(245); MUL_x2_DEFINE(246); MUL_x2_DEFINE(247);</span></a>
+<span class="lineNum">     397 </span>                :<span class="lineCov">   19664832 : MUL_x2_DEFINE(248); MUL_x2_DEFINE(249); MUL_x2_DEFINE(250); MUL_x2_DEFINE(251);</span>
+<span class="lineNum">     398 </span>                :<span class="lineNoCov">          0 : MUL_x2_DEFINE(252); MUL_x2_DEFINE(253); MUL_x2_DEFINE(254); MUL_x2_DEFINE(255);</span>
+<span class="lineNum">     399 </span>                :            : 
+<span class="lineNum">     400 </span>                :            : 
+<span class="lineNum">     401 </span>                :            : 
+<span class="lineNum">     402 </span>                :            : typedef void (*mul_fn_ptr_t)(void);
+<span class="lineNum">     403 </span>                :            : 
+<span class="lineNum">     404 </span>                :            : static const mul_fn_ptr_t __attribute__((aligned(256)))
+<span class="lineNum">     405 </span>                :            : gf_x1_mul_fns[256] = {
+<span class="lineNum">     406 </span>                :            :         mul_x1_0, mul_x1_1, mul_x1_2, mul_x1_3, mul_x1_4, mul_x1_5,
+<span class="lineNum">     407 </span>                :            :         mul_x1_6, mul_x1_7, mul_x1_8, mul_x1_9, mul_x1_10, mul_x1_11,
+<span class="lineNum">     408 </span>                :            :         mul_x1_12, mul_x1_13, mul_x1_14, mul_x1_15, mul_x1_16, mul_x1_17,
+<span class="lineNum">     409 </span>                :            :         mul_x1_18, mul_x1_19, mul_x1_20, mul_x1_21, mul_x1_22, mul_x1_23,
+<span class="lineNum">     410 </span>                :            :         mul_x1_24, mul_x1_25, mul_x1_26, mul_x1_27, mul_x1_28, mul_x1_29,
+<span class="lineNum">     411 </span>                :            :         mul_x1_30, mul_x1_31, mul_x1_32, mul_x1_33, mul_x1_34, mul_x1_35,
+<span class="lineNum">     412 </span>                :            :         mul_x1_36, mul_x1_37, mul_x1_38, mul_x1_39, mul_x1_40, mul_x1_41,
+<span class="lineNum">     413 </span>                :            :         mul_x1_42, mul_x1_43, mul_x1_44, mul_x1_45, mul_x1_46, mul_x1_47,
+<span class="lineNum">     414 </span>                :            :         mul_x1_48, mul_x1_49, mul_x1_50, mul_x1_51, mul_x1_52, mul_x1_53,
+<span class="lineNum">     415 </span>                :            :         mul_x1_54, mul_x1_55, mul_x1_56, mul_x1_57, mul_x1_58, mul_x1_59,
+<span class="lineNum">     416 </span>                :            :         mul_x1_60, mul_x1_61, mul_x1_62, mul_x1_63, mul_x1_64, mul_x1_65,
+<span class="lineNum">     417 </span>                :            :         mul_x1_66, mul_x1_67, mul_x1_68, mul_x1_69, mul_x1_70, mul_x1_71,
+<span class="lineNum">     418 </span>                :            :         mul_x1_72, mul_x1_73, mul_x1_74, mul_x1_75, mul_x1_76, mul_x1_77,
+<span class="lineNum">     419 </span>                :            :         mul_x1_78, mul_x1_79, mul_x1_80, mul_x1_81, mul_x1_82, mul_x1_83,
+<span class="lineNum">     420 </span>                :            :         mul_x1_84, mul_x1_85, mul_x1_86, mul_x1_87, mul_x1_88, mul_x1_89,
+<span class="lineNum">     421 </span>                :            :         mul_x1_90, mul_x1_91, mul_x1_92, mul_x1_93, mul_x1_94, mul_x1_95,
+<span class="lineNum">     422 </span>                :            :         mul_x1_96, mul_x1_97, mul_x1_98, mul_x1_99, mul_x1_100, mul_x1_101,
+<span class="lineNum">     423 </span>                :            :         mul_x1_102, mul_x1_103, mul_x1_104, mul_x1_105, mul_x1_106, mul_x1_107,
+<span class="lineNum">     424 </span>                :            :         mul_x1_108, mul_x1_109, mul_x1_110, mul_x1_111, mul_x1_112, mul_x1_113,
+<span class="lineNum">     425 </span>                :            :         mul_x1_114, mul_x1_115, mul_x1_116, mul_x1_117, mul_x1_118, mul_x1_119,
+<span class="lineNum">     426 </span>                :            :         mul_x1_120, mul_x1_121, mul_x1_122, mul_x1_123, mul_x1_124, mul_x1_125,
+<span class="lineNum">     427 </span>                :            :         mul_x1_126, mul_x1_127, mul_x1_128, mul_x1_129, mul_x1_130, mul_x1_131,
+<span class="lineNum">     428 </span>                :            :         mul_x1_132, mul_x1_133, mul_x1_134, mul_x1_135, mul_x1_136, mul_x1_137,
+<span class="lineNum">     429 </span>                :            :         mul_x1_138, mul_x1_139, mul_x1_140, mul_x1_141, mul_x1_142, mul_x1_143,
+<span class="lineNum">     430 </span>                :            :         mul_x1_144, mul_x1_145, mul_x1_146, mul_x1_147, mul_x1_148, mul_x1_149,
+<span class="lineNum">     431 </span>                :            :         mul_x1_150, mul_x1_151, mul_x1_152, mul_x1_153, mul_x1_154, mul_x1_155,
+<span class="lineNum">     432 </span>                :            :         mul_x1_156, mul_x1_157, mul_x1_158, mul_x1_159, mul_x1_160, mul_x1_161,
+<span class="lineNum">     433 </span>                :            :         mul_x1_162, mul_x1_163, mul_x1_164, mul_x1_165, mul_x1_166, mul_x1_167,
+<span class="lineNum">     434 </span>                :            :         mul_x1_168, mul_x1_169, mul_x1_170, mul_x1_171, mul_x1_172, mul_x1_173,
+<span class="lineNum">     435 </span>                :            :         mul_x1_174, mul_x1_175, mul_x1_176, mul_x1_177, mul_x1_178, mul_x1_179,
+<span class="lineNum">     436 </span>                :            :         mul_x1_180, mul_x1_181, mul_x1_182, mul_x1_183, mul_x1_184, mul_x1_185,
+<span class="lineNum">     437 </span>                :            :         mul_x1_186, mul_x1_187, mul_x1_188, mul_x1_189, mul_x1_190, mul_x1_191,
+<span class="lineNum">     438 </span>                :            :         mul_x1_192, mul_x1_193, mul_x1_194, mul_x1_195, mul_x1_196, mul_x1_197,
+<span class="lineNum">     439 </span>                :            :         mul_x1_198, mul_x1_199, mul_x1_200, mul_x1_201, mul_x1_202, mul_x1_203,
+<span class="lineNum">     440 </span>                :            :         mul_x1_204, mul_x1_205, mul_x1_206, mul_x1_207, mul_x1_208, mul_x1_209,
+<span class="lineNum">     441 </span>                :            :         mul_x1_210, mul_x1_211, mul_x1_212, mul_x1_213, mul_x1_214, mul_x1_215,
+<span class="lineNum">     442 </span>                :            :         mul_x1_216, mul_x1_217, mul_x1_218, mul_x1_219, mul_x1_220, mul_x1_221,
+<span class="lineNum">     443 </span>                :            :         mul_x1_222, mul_x1_223, mul_x1_224, mul_x1_225, mul_x1_226, mul_x1_227,
+<span class="lineNum">     444 </span>                :            :         mul_x1_228, mul_x1_229, mul_x1_230, mul_x1_231, mul_x1_232, mul_x1_233,
+<span class="lineNum">     445 </span>                :            :         mul_x1_234, mul_x1_235, mul_x1_236, mul_x1_237, mul_x1_238, mul_x1_239,
+<span class="lineNum">     446 </span>                :            :         mul_x1_240, mul_x1_241, mul_x1_242, mul_x1_243, mul_x1_244, mul_x1_245,
+<span class="lineNum">     447 </span>                :            :         mul_x1_246, mul_x1_247, mul_x1_248, mul_x1_249, mul_x1_250, mul_x1_251,
+<span class="lineNum">     448 </span>                :            :         mul_x1_252, mul_x1_253, mul_x1_254, mul_x1_255
+<span class="lineNum">     449 </span>                :            : };
+<span class="lineNum">     450 </span>                :            : 
+<span class="lineNum">     451 </span>                :            : static const mul_fn_ptr_t __attribute__((aligned(256)))
+<span class="lineNum">     452 </span>                :            : gf_x2_mul_fns[256] = {
+<span class="lineNum">     453 </span>                :            :         mul_x2_0, mul_x2_1, mul_x2_2, mul_x2_3, mul_x2_4, mul_x2_5,
+<span class="lineNum">     454 </span>                :            :         mul_x2_6, mul_x2_7, mul_x2_8, mul_x2_9, mul_x2_10, mul_x2_11,
+<span class="lineNum">     455 </span>                :            :         mul_x2_12, mul_x2_13, mul_x2_14, mul_x2_15, mul_x2_16, mul_x2_17,
+<span class="lineNum">     456 </span>                :            :         mul_x2_18, mul_x2_19, mul_x2_20, mul_x2_21, mul_x2_22, mul_x2_23,
+<span class="lineNum">     457 </span>                :            :         mul_x2_24, mul_x2_25, mul_x2_26, mul_x2_27, mul_x2_28, mul_x2_29,
+<span class="lineNum">     458 </span>                :            :         mul_x2_30, mul_x2_31, mul_x2_32, mul_x2_33, mul_x2_34, mul_x2_35,
+<span class="lineNum">     459 </span>                :            :         mul_x2_36, mul_x2_37, mul_x2_38, mul_x2_39, mul_x2_40, mul_x2_41,
+<span class="lineNum">     460 </span>                :            :         mul_x2_42, mul_x2_43, mul_x2_44, mul_x2_45, mul_x2_46, mul_x2_47,
+<span class="lineNum">     461 </span>                :            :         mul_x2_48, mul_x2_49, mul_x2_50, mul_x2_51, mul_x2_52, mul_x2_53,
+<span class="lineNum">     462 </span>                :            :         mul_x2_54, mul_x2_55, mul_x2_56, mul_x2_57, mul_x2_58, mul_x2_59,
+<span class="lineNum">     463 </span>                :            :         mul_x2_60, mul_x2_61, mul_x2_62, mul_x2_63, mul_x2_64, mul_x2_65,
+<span class="lineNum">     464 </span>                :            :         mul_x2_66, mul_x2_67, mul_x2_68, mul_x2_69, mul_x2_70, mul_x2_71,
+<span class="lineNum">     465 </span>                :            :         mul_x2_72, mul_x2_73, mul_x2_74, mul_x2_75, mul_x2_76, mul_x2_77,
+<span class="lineNum">     466 </span>                :            :         mul_x2_78, mul_x2_79, mul_x2_80, mul_x2_81, mul_x2_82, mul_x2_83,
+<span class="lineNum">     467 </span>                :            :         mul_x2_84, mul_x2_85, mul_x2_86, mul_x2_87, mul_x2_88, mul_x2_89,
+<span class="lineNum">     468 </span>                :            :         mul_x2_90, mul_x2_91, mul_x2_92, mul_x2_93, mul_x2_94, mul_x2_95,
+<span class="lineNum">     469 </span>                :            :         mul_x2_96, mul_x2_97, mul_x2_98, mul_x2_99, mul_x2_100, mul_x2_101,
+<span class="lineNum">     470 </span>                :            :         mul_x2_102, mul_x2_103, mul_x2_104, mul_x2_105, mul_x2_106, mul_x2_107,
+<span class="lineNum">     471 </span>                :            :         mul_x2_108, mul_x2_109, mul_x2_110, mul_x2_111, mul_x2_112, mul_x2_113,
+<span class="lineNum">     472 </span>                :            :         mul_x2_114, mul_x2_115, mul_x2_116, mul_x2_117, mul_x2_118, mul_x2_119,
+<span class="lineNum">     473 </span>                :            :         mul_x2_120, mul_x2_121, mul_x2_122, mul_x2_123, mul_x2_124, mul_x2_125,
+<span class="lineNum">     474 </span>                :            :         mul_x2_126, mul_x2_127, mul_x2_128, mul_x2_129, mul_x2_130, mul_x2_131,
+<span class="lineNum">     475 </span>                :            :         mul_x2_132, mul_x2_133, mul_x2_134, mul_x2_135, mul_x2_136, mul_x2_137,
+<span class="lineNum">     476 </span>                :            :         mul_x2_138, mul_x2_139, mul_x2_140, mul_x2_141, mul_x2_142, mul_x2_143,
+<span class="lineNum">     477 </span>                :            :         mul_x2_144, mul_x2_145, mul_x2_146, mul_x2_147, mul_x2_148, mul_x2_149,
+<span class="lineNum">     478 </span>                :            :         mul_x2_150, mul_x2_151, mul_x2_152, mul_x2_153, mul_x2_154, mul_x2_155,
+<span class="lineNum">     479 </span>                :            :         mul_x2_156, mul_x2_157, mul_x2_158, mul_x2_159, mul_x2_160, mul_x2_161,
+<span class="lineNum">     480 </span>                :            :         mul_x2_162, mul_x2_163, mul_x2_164, mul_x2_165, mul_x2_166, mul_x2_167,
+<span class="lineNum">     481 </span>                :            :         mul_x2_168, mul_x2_169, mul_x2_170, mul_x2_171, mul_x2_172, mul_x2_173,
+<span class="lineNum">     482 </span>                :            :         mul_x2_174, mul_x2_175, mul_x2_176, mul_x2_177, mul_x2_178, mul_x2_179,
+<span class="lineNum">     483 </span>                :            :         mul_x2_180, mul_x2_181, mul_x2_182, mul_x2_183, mul_x2_184, mul_x2_185,
+<span class="lineNum">     484 </span>                :            :         mul_x2_186, mul_x2_187, mul_x2_188, mul_x2_189, mul_x2_190, mul_x2_191,
+<span class="lineNum">     485 </span>                :            :         mul_x2_192, mul_x2_193, mul_x2_194, mul_x2_195, mul_x2_196, mul_x2_197,
+<span class="lineNum">     486 </span>                :            :         mul_x2_198, mul_x2_199, mul_x2_200, mul_x2_201, mul_x2_202, mul_x2_203,
+<span class="lineNum">     487 </span>                :            :         mul_x2_204, mul_x2_205, mul_x2_206, mul_x2_207, mul_x2_208, mul_x2_209,
+<span class="lineNum">     488 </span>                :            :         mul_x2_210, mul_x2_211, mul_x2_212, mul_x2_213, mul_x2_214, mul_x2_215,
+<span class="lineNum">     489 </span>                :            :         mul_x2_216, mul_x2_217, mul_x2_218, mul_x2_219, mul_x2_220, mul_x2_221,
+<span class="lineNum">     490 </span>                :            :         mul_x2_222, mul_x2_223, mul_x2_224, mul_x2_225, mul_x2_226, mul_x2_227,
+<span class="lineNum">     491 </span>                :            :         mul_x2_228, mul_x2_229, mul_x2_230, mul_x2_231, mul_x2_232, mul_x2_233,
+<span class="lineNum">     492 </span>                :            :         mul_x2_234, mul_x2_235, mul_x2_236, mul_x2_237, mul_x2_238, mul_x2_239,
+<span class="lineNum">     493 </span>                :            :         mul_x2_240, mul_x2_241, mul_x2_242, mul_x2_243, mul_x2_244, mul_x2_245,
+<span class="lineNum">     494 </span>                :            :         mul_x2_246, mul_x2_247, mul_x2_248, mul_x2_249, mul_x2_250, mul_x2_251,
+<span class="lineNum">     495 </span>                :            :         mul_x2_252, mul_x2_253, mul_x2_254, mul_x2_255
+<span class="lineNum">     496 </span>                :            : };
+<span class="lineNum">     497 </span>                :            : 
+<span class="lineNum">     498 </span>                :            : #define MUL(c, r...)                                                    \
+<span class="lineNum">     499 </span>                :            : {                                                                       \
+<span class="lineNum">     500 </span>                :            :         switch (REG_CNT(r)) {                                           \
+<span class="lineNum">     501 </span>                :            :         case 2:                                                         \
+<span class="lineNum">     502 </span>                :            :                 COPY(r, _mul_x2_in);                                    \
+<span class="lineNum">     503 </span>                :            :                 gf_x2_mul_fns[c]();                                     \
+<span class="lineNum">     504 </span>                :            :                 COPY(_mul_x2_acc, r);                                   \
+<span class="lineNum">     505 </span>                :            :                 break;                                                  \
+<span class="lineNum">     506 </span>                :            :         case 1:                                                         \
+<span class="lineNum">     507 </span>                :            :                 COPY(r, _mul_x1_in);                                    \
+<span class="lineNum">     508 </span>                :            :                 gf_x1_mul_fns[c]();                                     \
+<span class="lineNum">     509 </span>                :            :                 COPY(_mul_x1_acc, r);                                   \
+<span class="lineNum">     510 </span>                :            :                 break;                                                  \
+<span class="lineNum">     511 </span>                :            :         }                                                               \
+<span class="lineNum">     512 </span>                :            : }
+<span class="lineNum">     513 </span>                :            : 
+<span class="lineNum">     514 </span>                :            : 
+<span class="lineNum">     515 </span>                :            : #define raidz_math_begin()      kfpu_begin()
+<span class="lineNum">     516 </span>                :            : #define raidz_math_end()        kfpu_end()
+<span class="lineNum">     517 </span>                :            : 
+<span class="lineNum">     518 </span>                :            : #define SYN_STRIDE              4
+<span class="lineNum">     519 </span>                :            : 
+<span class="lineNum">     520 </span>                :            : #define ZERO_STRIDE             4
+<span class="lineNum">     521 </span>                :            : #define ZERO_DEFINE()           {}
+<span class="lineNum">     522 </span>                :            : #define ZERO_D                  0, 1, 2, 3
+<span class="lineNum">     523 </span>                :            : 
+<span class="lineNum">     524 </span>                :            : #define COPY_STRIDE             4
+<span class="lineNum">     525 </span>                :            : #define COPY_DEFINE()           {}
+<span class="lineNum">     526 </span>                :            : #define COPY_D                  0, 1, 2, 3
+<span class="lineNum">     527 </span>                :            : 
+<span class="lineNum">     528 </span>                :            : #define ADD_STRIDE              4
+<span class="lineNum">     529 </span>                :            : #define ADD_DEFINE()            {}
+<span class="lineNum">     530 </span>                :            : #define ADD_D                   0, 1, 2, 3
+<span class="lineNum">     531 </span>                :            : 
+<span class="lineNum">     532 </span>                :            : #define MUL_STRIDE              2
+<span class="lineNum">     533 </span>                :            : #define MUL_DEFINE()            MUL2_SETUP()
+<span class="lineNum">     534 </span>                :            : #define MUL_D                   0, 1
+<span class="lineNum">     535 </span>                :            : 
+<span class="lineNum">     536 </span>                :            : #define GEN_P_STRIDE            4
+<span class="lineNum">     537 </span>                :            : #define GEN_P_DEFINE()          {}
+<span class="lineNum">     538 </span>                :            : #define GEN_P_P                 0, 1, 2, 3
+<span class="lineNum">     539 </span>                :            : 
+<span class="lineNum">     540 </span>                :            : #define GEN_PQ_STRIDE           4
+<span class="lineNum">     541 </span>                :            : #define GEN_PQ_DEFINE()         {}
+<span class="lineNum">     542 </span>                :            : #define GEN_PQ_D                0, 1, 2, 3
+<span class="lineNum">     543 </span>                :            : #define GEN_PQ_C                4, 5, 6, 7
+<span class="lineNum">     544 </span>                :            : 
+<span class="lineNum">     545 </span>                :            : #define GEN_PQR_STRIDE          4
+<span class="lineNum">     546 </span>                :            : #define GEN_PQR_DEFINE()        {}
+<span class="lineNum">     547 </span>                :            : #define GEN_PQR_D               0, 1, 2, 3
+<span class="lineNum">     548 </span>                :            : #define GEN_PQR_C               4, 5, 6, 7
+<span class="lineNum">     549 </span>                :            : 
+<span class="lineNum">     550 </span>                :            : #define SYN_Q_DEFINE()          {}
+<span class="lineNum">     551 </span>                :            : #define SYN_Q_D                 0, 1, 2, 3
+<span class="lineNum">     552 </span>                :            : #define SYN_Q_X                 4, 5, 6, 7
+<span class="lineNum">     553 </span>                :            : 
+<span class="lineNum">     554 </span>                :            : #define SYN_R_DEFINE()          {}
+<span class="lineNum">     555 </span>                :            : #define SYN_R_D                 0, 1, 2, 3
+<span class="lineNum">     556 </span>                :            : #define SYN_R_X                 4, 5, 6, 7
+<span class="lineNum">     557 </span>                :            : 
+<span class="lineNum">     558 </span>                :            : #define SYN_PQ_DEFINE()         {}
+<span class="lineNum">     559 </span>                :            : #define SYN_PQ_D                0, 1, 2, 3
+<span class="lineNum">     560 </span>                :            : #define SYN_PQ_X                4, 5, 6, 7
+<span class="lineNum">     561 </span>                :            : 
+<span class="lineNum">     562 </span>                :            : #define REC_PQ_STRIDE           2
+<span class="lineNum">     563 </span>                :            : #define REC_PQ_DEFINE()         MUL2_SETUP()
+<span class="lineNum">     564 </span>                :            : #define REC_PQ_X                0, 1
+<span class="lineNum">     565 </span>                :            : #define REC_PQ_Y                2, 3
+<span class="lineNum">     566 </span>                :            : #define REC_PQ_T                4, 5
+<span class="lineNum">     567 </span>                :            : 
+<span class="lineNum">     568 </span>                :            : #define SYN_PR_DEFINE()         {}
+<span class="lineNum">     569 </span>                :            : #define SYN_PR_D                0, 1, 2, 3
+<span class="lineNum">     570 </span>                :            : #define SYN_PR_X                4, 5, 6, 7
+<span class="lineNum">     571 </span>                :            : 
+<span class="lineNum">     572 </span>                :            : #define REC_PR_STRIDE           2
+<span class="lineNum">     573 </span>                :            : #define REC_PR_DEFINE()         MUL2_SETUP()
+<span class="lineNum">     574 </span>                :            : #define REC_PR_X                0, 1
+<span class="lineNum">     575 </span>                :            : #define REC_PR_Y                2, 3
+<span class="lineNum">     576 </span>                :            : #define REC_PR_T                4, 5
+<span class="lineNum">     577 </span>                :            : 
+<span class="lineNum">     578 </span>                :            : #define SYN_QR_DEFINE()         {}
+<span class="lineNum">     579 </span>                :            : #define SYN_QR_D                0, 1, 2, 3
+<span class="lineNum">     580 </span>                :            : #define SYN_QR_X                4, 5, 6, 7
+<span class="lineNum">     581 </span>                :            : 
+<span class="lineNum">     582 </span>                :            : #define REC_QR_STRIDE           2
+<span class="lineNum">     583 </span>                :            : #define REC_QR_DEFINE()         MUL2_SETUP()
+<span class="lineNum">     584 </span>                :            : #define REC_QR_X                0, 1
+<span class="lineNum">     585 </span>                :            : #define REC_QR_Y                2, 3
+<span class="lineNum">     586 </span>                :            : #define REC_QR_T                4, 5
+<span class="lineNum">     587 </span>                :            : 
+<span class="lineNum">     588 </span>                :            : #define SYN_PQR_DEFINE()        {}
+<span class="lineNum">     589 </span>                :            : #define SYN_PQR_D               0, 1, 2, 3
+<span class="lineNum">     590 </span>                :            : #define SYN_PQR_X               4, 5, 6, 7
+<span class="lineNum">     591 </span>                :            : 
+<span class="lineNum">     592 </span>                :            : #define REC_PQR_STRIDE          1
+<span class="lineNum">     593 </span>                :            : #define REC_PQR_DEFINE()        MUL2_SETUP()
+<span class="lineNum">     594 </span>                :            : #define REC_PQR_X               0
+<span class="lineNum">     595 </span>                :            : #define REC_PQR_Y               1
+<span class="lineNum">     596 </span>                :            : #define REC_PQR_Z               2
+<span class="lineNum">     597 </span>                :            : #define REC_PQR_XS              3
+<span class="lineNum">     598 </span>                :            : #define REC_PQR_YS              4
+<span class="lineNum">     599 </span>                :            : 
+<span class="lineNum">     600 </span>                :            : 
+<span class="lineNum">     601 </span>                :            : #include &lt;sys/vdev_raidz_impl.h&gt;
+<a name="602"><span class="lineNum">     602 </span>                :            : #include &quot;vdev_raidz_math_impl.h&quot;</a>
+<a name="603"><span class="lineNum">     603 </span>                :            : </a>
+<span class="lineNum">     604 </span>                :<span class="lineCov">     145877 : DEFINE_GEN_METHODS(sse2);</span>
+<span class="lineNum">     605 </span>                :<span class="lineCov">      48280 : DEFINE_REC_METHODS(sse2);</span>
+<a name="606"><span class="lineNum">     606 </span>                :            : </a>
+<span class="lineNum">     607 </span>                :            : static boolean_t
+<span class="lineNum">     608 </span>                :<span class="lineCov">       1234 : raidz_will_sse2_work(void)</span>
+<span class="lineNum">     609 </span>                :            : {
+<span class="lineNum">     610 </span>[<span class="branchCov" title="Branch 1 was taken 1234 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>][<span class="branchNoCov" title="Branch 4 was not taken"> - </span><span class="branchCov" title="Branch 5 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         return (zfs_sse_available() &amp;&amp; zfs_sse2_available());</span>
+<span class="lineNum">     611 </span>                :            : }
+<span class="lineNum">     612 </span>                :            : 
+<span class="lineNum">     613 </span>                :            : const raidz_impl_ops_t vdev_raidz_sse2_impl = {
+<span class="lineNum">     614 </span>                :            :         .init = NULL,
+<span class="lineNum">     615 </span>                :            :         .fini = NULL,
+<span class="lineNum">     616 </span>                :            :         .gen = RAIDZ_GEN_METHODS(sse2),
+<span class="lineNum">     617 </span>                :            :         .rec = RAIDZ_REC_METHODS(sse2),
+<span class="lineNum">     618 </span>                :            :         .is_supported = &amp;raidz_will_sse2_work,
+<span class="lineNum">     619 </span>                :            :         .name = &quot;sse2&quot;
+<span class="lineNum">     620 </span>                :            : };
+<span class="lineNum">     621 </span>                :            : 
+<span class="lineNum">     622 </span>                :            : #endif /* defined(__x86_64) &amp;&amp; defined(HAVE_SSE2) */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

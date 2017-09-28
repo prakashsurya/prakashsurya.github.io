@@ -1,0 +1,1474 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - zfs-0.7.0 Code Coverage - /export/home/delphix/zfs/module/zfs/dmu_tx.c</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../../../index.html">top level</a> - <a href="index.html">export/home/delphix/zfs/module/zfs</a> - dmu_tx.c<span style="font-size: 80%;"> (source / <a href="dmu_tx.c.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">zfs-0.7.0 Code Coverage</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">373</td>
+            <td class="headerCovTableEntry">523</td>
+            <td class="headerCovTableEntryLo">71.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2017-09-28 14:23:58</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">31</td>
+            <td class="headerCovTableEntry">42</td>
+            <td class="headerCovTableEntryLo">73.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Legend:</td>
+            <td class="headerValueLeg">            Lines:
+            <span class="coverLegendCov">hit</span>
+            <span class="coverLegendNoCov">not hit</span>
+            | Branches:
+            <span class="coverLegendCov">+</span> taken
+            <span class="coverLegendNoCov">-</span> not taken
+            <span class="coverLegendNoCov">#</span> not executed
+</td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntry">216</td>
+            <td class="headerCovTableEntry">361</td>
+            <td class="headerCovTableEntryLo">59.8 %</td>
+          </tr>
+          <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">           Branch data     Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>                :            : /*</a>
+<span class="lineNum">       2 </span>                :            :  * CDDL HEADER START
+<span class="lineNum">       3 </span>                :            :  *
+<span class="lineNum">       4 </span>                :            :  * The contents of this file are subject to the terms of the
+<span class="lineNum">       5 </span>                :            :  * Common Development and Distribution License (the &quot;License&quot;).
+<span class="lineNum">       6 </span>                :            :  * You may not use this file except in compliance with the License.
+<span class="lineNum">       7 </span>                :            :  *
+<span class="lineNum">       8 </span>                :            :  * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+<span class="lineNum">       9 </span>                :            :  * or http://www.opensolaris.org/os/licensing.
+<span class="lineNum">      10 </span>                :            :  * See the License for the specific language governing permissions
+<span class="lineNum">      11 </span>                :            :  * and limitations under the License.
+<span class="lineNum">      12 </span>                :            :  *
+<span class="lineNum">      13 </span>                :            :  * When distributing Covered Code, include this CDDL HEADER in each
+<span class="lineNum">      14 </span>                :            :  * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+<span class="lineNum">      15 </span>                :            :  * If applicable, add the following below this CDDL HEADER, with the
+<span class="lineNum">      16 </span>                :            :  * fields enclosed by brackets &quot;[]&quot; replaced with your own identifying
+<span class="lineNum">      17 </span>                :            :  * information: Portions Copyright [yyyy] [name of copyright owner]
+<span class="lineNum">      18 </span>                :            :  *
+<span class="lineNum">      19 </span>                :            :  * CDDL HEADER END
+<span class="lineNum">      20 </span>                :            :  */
+<span class="lineNum">      21 </span>                :            : /*
+<span class="lineNum">      22 </span>                :            :  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+<span class="lineNum">      23 </span>                :            :  * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+<span class="lineNum">      24 </span>                :            :  * Copyright (c) 2012, 2017 by Delphix. All rights reserved.
+<span class="lineNum">      25 </span>                :            :  */
+<span class="lineNum">      26 </span>                :            : 
+<span class="lineNum">      27 </span>                :            : #include &lt;sys/dmu.h&gt;
+<span class="lineNum">      28 </span>                :            : #include &lt;sys/dmu_impl.h&gt;
+<span class="lineNum">      29 </span>                :            : #include &lt;sys/dbuf.h&gt;
+<span class="lineNum">      30 </span>                :            : #include &lt;sys/dmu_tx.h&gt;
+<span class="lineNum">      31 </span>                :            : #include &lt;sys/dmu_objset.h&gt;
+<span class="lineNum">      32 </span>                :            : #include &lt;sys/dsl_dataset.h&gt;
+<span class="lineNum">      33 </span>                :            : #include &lt;sys/dsl_dir.h&gt;
+<span class="lineNum">      34 </span>                :            : #include &lt;sys/dsl_pool.h&gt;
+<span class="lineNum">      35 </span>                :            : #include &lt;sys/zap_impl.h&gt;
+<span class="lineNum">      36 </span>                :            : #include &lt;sys/spa.h&gt;
+<span class="lineNum">      37 </span>                :            : #include &lt;sys/sa.h&gt;
+<span class="lineNum">      38 </span>                :            : #include &lt;sys/sa_impl.h&gt;
+<span class="lineNum">      39 </span>                :            : #include &lt;sys/zfs_context.h&gt;
+<span class="lineNum">      40 </span>                :            : #include &lt;sys/varargs.h&gt;
+<span class="lineNum">      41 </span>                :            : #include &lt;sys/trace_dmu.h&gt;
+<span class="lineNum">      42 </span>                :            : 
+<span class="lineNum">      43 </span>                :            : typedef void (*dmu_tx_hold_func_t)(dmu_tx_t *tx, struct dnode *dn,
+<span class="lineNum">      44 </span>                :            :     uint64_t arg1, uint64_t arg2);
+<span class="lineNum">      45 </span>                :            : 
+<span class="lineNum">      46 </span>                :            : dmu_tx_stats_t dmu_tx_stats = {
+<span class="lineNum">      47 </span>                :            :         { &quot;dmu_tx_assigned&quot;,          KSTAT_DATA_UINT64 },
+<span class="lineNum">      48 </span>                :            :         { &quot;dmu_tx_delay&quot;,             KSTAT_DATA_UINT64 },
+<span class="lineNum">      49 </span>                :            :         { &quot;dmu_tx_error&quot;,             KSTAT_DATA_UINT64 },
+<span class="lineNum">      50 </span>                :            :         { &quot;dmu_tx_suspended&quot;,         KSTAT_DATA_UINT64 },
+<span class="lineNum">      51 </span>                :            :         { &quot;dmu_tx_group&quot;,             KSTAT_DATA_UINT64 },
+<span class="lineNum">      52 </span>                :            :         { &quot;dmu_tx_memory_reserve&quot;,    KSTAT_DATA_UINT64 },
+<span class="lineNum">      53 </span>                :            :         { &quot;dmu_tx_memory_reclaim&quot;,    KSTAT_DATA_UINT64 },
+<span class="lineNum">      54 </span>                :            :         { &quot;dmu_tx_dirty_throttle&quot;,    KSTAT_DATA_UINT64 },
+<span class="lineNum">      55 </span>                :            :         { &quot;dmu_tx_dirty_delay&quot;,               KSTAT_DATA_UINT64 },
+<span class="lineNum">      56 </span>                :            :         { &quot;dmu_tx_dirty_over_max&quot;,    KSTAT_DATA_UINT64 },
+<span class="lineNum">      57 </span>                :            :         { &quot;dmu_tx_quota&quot;,             KSTAT_DATA_UINT64 },
+<span class="lineNum">      58 </span>                :            : };
+<span class="lineNum">      59 </span>                :            : 
+<span class="lineNum">      60 </span>                :            : static kstat_t *dmu_tx_ksp;
+<a name="61"><span class="lineNum">      61 </span>                :            : </a>
+<span class="lineNum">      62 </span>                :            : dmu_tx_t *
+<span class="lineNum">      63 </span>                :<span class="lineCov">     318359 : dmu_tx_create_dd(dsl_dir_t *dd)</span>
+<span class="lineNum">      64 </span>                :            : {
+<span class="lineNum">      65 </span>                :<span class="lineCov">     318359 :         dmu_tx_t *tx = kmem_zalloc(sizeof (dmu_tx_t), KM_SLEEP);</span>
+<span class="lineNum">      66 </span>                :<span class="lineCov">     318341 :         tx-&gt;tx_dir = dd;</span>
+<span class="lineNum">      67 </span>        [<span class="branchCov" title="Branch 0 was taken 110435 times"> + </span><span class="branchCov" title="Branch 1 was taken 207906 times"> + </span>]:<span class="lineCov">     318341 :         if (dd != NULL)</span>
+<span class="lineNum">      68 </span>                :<span class="lineCov">     110435 :                 tx-&gt;tx_pool = dd-&gt;dd_pool;</span>
+<span class="lineNum">      69 </span>                :<span class="lineCov">     318341 :         list_create(&amp;tx-&gt;tx_holds, sizeof (dmu_tx_hold_t),</span>
+<span class="lineNum">      70 </span>                :            :             offsetof(dmu_tx_hold_t, txh_node));
+<span class="lineNum">      71 </span>                :<span class="lineCov">     318352 :         list_create(&amp;tx-&gt;tx_callbacks, sizeof (dmu_tx_callback_t),</span>
+<span class="lineNum">      72 </span>                :            :             offsetof(dmu_tx_callback_t, dcb_node));
+<span class="lineNum">      73 </span>                :<span class="lineCov">     318350 :         tx-&gt;tx_start = gethrtime();</span>
+<span class="lineNum">      74 </span>                :<span class="lineCov">     318359 :         return (tx);</span>
+<span class="lineNum">      75 </span>                :            : }
+<a name="76"><span class="lineNum">      76 </span>                :            : </a>
+<span class="lineNum">      77 </span>                :            : dmu_tx_t *
+<span class="lineNum">      78 </span>                :<span class="lineCov">     101580 : dmu_tx_create(objset_t *os)</span>
+<span class="lineNum">      79 </span>                :            : {
+<span class="lineNum">      80 </span>                :<span class="lineCov">     101580 :         dmu_tx_t *tx = dmu_tx_create_dd(os-&gt;os_dsl_dataset-&gt;ds_dir);</span>
+<span class="lineNum">      81 </span>                :<span class="lineCov">     101583 :         tx-&gt;tx_objset = os;</span>
+<span class="lineNum">      82 </span>                :<span class="lineCov">     101583 :         return (tx);</span>
+<span class="lineNum">      83 </span>                :            : }
+<a name="84"><span class="lineNum">      84 </span>                :            : </a>
+<span class="lineNum">      85 </span>                :            : dmu_tx_t *
+<span class="lineNum">      86 </span>                :<span class="lineCov">     207919 : dmu_tx_create_assigned(struct dsl_pool *dp, uint64_t txg)</span>
+<span class="lineNum">      87 </span>                :            : {
+<span class="lineNum">      88 </span>                :<span class="lineCov">     207919 :         dmu_tx_t *tx = dmu_tx_create_dd(NULL);</span>
+<span class="lineNum">      89 </span>                :            : 
+<span class="lineNum">      90 </span>                :<span class="lineCov">     207919 :         txg_verify(dp-&gt;dp_spa, txg);</span>
+<span class="lineNum">      91 </span>                :<span class="lineCov">     207919 :         tx-&gt;tx_pool = dp;</span>
+<span class="lineNum">      92 </span>                :<span class="lineCov">     207919 :         tx-&gt;tx_txg = txg;</span>
+<span class="lineNum">      93 </span>                :<span class="lineCov">     207919 :         tx-&gt;tx_anyobj = TRUE;</span>
+<span class="lineNum">      94 </span>                :            : 
+<span class="lineNum">      95 </span>                :<span class="lineCov">     207919 :         return (tx);</span>
+<span class="lineNum">      96 </span>                :            : }
+<a name="97"><span class="lineNum">      97 </span>                :            : </a>
+<span class="lineNum">      98 </span>                :            : int
+<span class="lineNum">      99 </span>                :<span class="lineCov">    9267409 : dmu_tx_is_syncing(dmu_tx_t *tx)</span>
+<span class="lineNum">     100 </span>                :            : {
+<span class="lineNum">     101 </span>                :<span class="lineCov">    9267409 :         return (tx-&gt;tx_anyobj);</span>
+<span class="lineNum">     102 </span>                :            : }
+<a name="103"><span class="lineNum">     103 </span>                :            : </a>
+<span class="lineNum">     104 </span>                :            : int
+<span class="lineNum">     105 </span>                :<span class="lineNoCov">          0 : dmu_tx_private_ok(dmu_tx_t *tx)</span>
+<span class="lineNum">     106 </span>                :            : {
+<span class="lineNum">     107 </span>                :<span class="lineNoCov">          0 :         return (tx-&gt;tx_anyobj);</span>
+<span class="lineNum">     108 </span>                :            : }
+<a name="109"><span class="lineNum">     109 </span>                :            : </a>
+<span class="lineNum">     110 </span>                :            : static dmu_tx_hold_t *
+<span class="lineNum">     111 </span>                :<span class="lineCov">     122777 : dmu_tx_hold_dnode_impl(dmu_tx_t *tx, dnode_t *dn, enum dmu_tx_hold_type type,</span>
+<span class="lineNum">     112 </span>                :            :     uint64_t arg1, uint64_t arg2)
+<span class="lineNum">     113 </span>                :            : {
+<span class="lineNum">     114 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">     115 </span>                :            : 
+<span class="lineNum">     116 </span>        [<span class="branchCov" title="Branch 0 was taken 114936 times"> + </span><span class="branchCov" title="Branch 1 was taken 7841 times"> + </span>]:<span class="lineCov">     122777 :         if (dn != NULL) {</span>
+<span class="lineNum">     117 </span>                :<span class="lineCov">     114936 :                 (void) refcount_add(&amp;dn-&gt;dn_holds, tx);</span>
+<span class="lineNum">     118 </span>        [<span class="branchCov" title="Branch 0 was taken 7719 times"> + </span><span class="branchCov" title="Branch 1 was taken 107225 times"> + </span>]:<span class="lineCov">     114944 :                 if (tx-&gt;tx_txg != 0) {</span>
+<span class="lineNum">     119 </span>                :<span class="lineCov">       7719 :                         mutex_enter(&amp;dn-&gt;dn_mtx);</span>
+<span class="lineNum">     120 </span>                :            :                         /*
+<span class="lineNum">     121 </span>                :            :                          * dn-&gt;dn_assigned_txg == tx-&gt;tx_txg doesn't pose a
+<span class="lineNum">     122 </span>                :            :                          * problem, but there's no way for it to happen (for
+<span class="lineNum">     123 </span>                :            :                          * now, at least).
+<span class="lineNum">     124 </span>                :            :                          */
+<span class="lineNum">     125 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 7720 times"> + </span>]:<span class="lineCov">       7720 :                         ASSERT(dn-&gt;dn_assigned_txg == 0);</span>
+<span class="lineNum">     126 </span>                :<span class="lineCov">       7720 :                         dn-&gt;dn_assigned_txg = tx-&gt;tx_txg;</span>
+<span class="lineNum">     127 </span>                :<span class="lineCov">       7720 :                         (void) refcount_add(&amp;dn-&gt;dn_tx_holds, tx);</span>
+<span class="lineNum">     128 </span>                :<span class="lineCov">       7720 :                         mutex_exit(&amp;dn-&gt;dn_mtx);</span>
+<span class="lineNum">     129 </span>                :            :                 }
+<span class="lineNum">     130 </span>                :            :         }
+<span class="lineNum">     131 </span>                :            : 
+<span class="lineNum">     132 </span>                :<span class="lineCov">     122785 :         txh = kmem_zalloc(sizeof (dmu_tx_hold_t), KM_SLEEP);</span>
+<span class="lineNum">     133 </span>                :<span class="lineCov">     122757 :         txh-&gt;txh_tx = tx;</span>
+<span class="lineNum">     134 </span>                :<span class="lineCov">     122757 :         txh-&gt;txh_dnode = dn;</span>
+<span class="lineNum">     135 </span>                :<span class="lineCov">     122757 :         refcount_create(&amp;txh-&gt;txh_space_towrite);</span>
+<span class="lineNum">     136 </span>                :<span class="lineCov">     122766 :         refcount_create(&amp;txh-&gt;txh_memory_tohold);</span>
+<span class="lineNum">     137 </span>                :<span class="lineCov">     122770 :         txh-&gt;txh_type = type;</span>
+<span class="lineNum">     138 </span>                :<span class="lineCov">     122770 :         txh-&gt;txh_arg1 = arg1;</span>
+<span class="lineNum">     139 </span>                :<span class="lineCov">     122770 :         txh-&gt;txh_arg2 = arg2;</span>
+<span class="lineNum">     140 </span>                :<span class="lineCov">     122770 :         list_insert_tail(&amp;tx-&gt;tx_holds, txh);</span>
+<span class="lineNum">     141 </span>                :            : 
+<span class="lineNum">     142 </span>                :<span class="lineCov">     122768 :         return (txh);</span>
+<span class="lineNum">     143 </span>                :            : }
+<a name="144"><span class="lineNum">     144 </span>                :            : </a>
+<span class="lineNum">     145 </span>                :            : static dmu_tx_hold_t *
+<span class="lineNum">     146 </span>                :<span class="lineCov">     115057 : dmu_tx_hold_object_impl(dmu_tx_t *tx, objset_t *os, uint64_t object,</span>
+<span class="lineNum">     147 </span>                :            :     enum dmu_tx_hold_type type, uint64_t arg1, uint64_t arg2)
+<span class="lineNum">     148 </span>                :            : {
+<span class="lineNum">     149 </span>                :<span class="lineCov">     115057 :         dnode_t *dn = NULL;</span>
+<span class="lineNum">     150 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">     151 </span>                :            :         int err;
+<span class="lineNum">     152 </span>                :            : 
+<span class="lineNum">     153 </span>        [<span class="branchCov" title="Branch 0 was taken 107212 times"> + </span><span class="branchCov" title="Branch 1 was taken 7845 times"> + </span>]:<span class="lineCov">     115057 :         if (object != DMU_NEW_OBJECT) {</span>
+<span class="lineNum">     154 </span>                :<span class="lineCov">     107212 :                 err = dnode_hold(os, object, FTAG, &amp;dn);</span>
+<span class="lineNum">     155 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 107216 times"> + </span>]:<span class="lineCov">     107216 :                 if (err != 0) {</span>
+<span class="lineNum">     156 </span>                :<span class="lineNoCov">          0 :                         tx-&gt;tx_err = err;</span>
+<span class="lineNum">     157 </span>                :<span class="lineNoCov">          0 :                         return (NULL);</span>
+<span class="lineNum">     158 </span>                :            :                 }
+<span class="lineNum">     159 </span>                :            :         }
+<span class="lineNum">     160 </span>                :<span class="lineCov">     115061 :         txh = dmu_tx_hold_dnode_impl(tx, dn, type, arg1, arg2);</span>
+<span class="lineNum">     161 </span>        [<span class="branchCov" title="Branch 0 was taken 107202 times"> + </span><span class="branchCov" title="Branch 1 was taken 7844 times"> + </span>]:<span class="lineCov">     115046 :         if (dn != NULL)</span>
+<span class="lineNum">     162 </span>                :<span class="lineCov">     107202 :                 dnode_rele(dn, FTAG);</span>
+<span class="lineNum">     163 </span>                :            :         return (txh);
+<span class="lineNum">     164 </span>                :            : }
+<a name="165"><span class="lineNum">     165 </span>                :            : </a>
+<span class="lineNum">     166 </span>                :            : void
+<span class="lineNum">     167 </span>                :<span class="lineCov">      15306 : dmu_tx_add_new_object(dmu_tx_t *tx, dnode_t *dn)</span>
+<span class="lineNum">     168 </span>                :            : {
+<span class="lineNum">     169 </span>                :            :         /*
+<span class="lineNum">     170 </span>                :            :          * If we're syncing, they can manipulate any object anyhow, and
+<span class="lineNum">     171 </span>                :            :          * the hold on the dnode_t can cause problems.
+<span class="lineNum">     172 </span>                :            :          */
+<span class="lineNum">     173 </span>        [<span class="branchCov" title="Branch 1 was taken 7720 times"> + </span><span class="branchCov" title="Branch 2 was taken 7586 times"> + </span>]:<span class="lineCov">      15306 :         if (!dmu_tx_is_syncing(tx))</span>
+<span class="lineNum">     174 </span>                :<span class="lineCov">       7720 :                 (void) dmu_tx_hold_dnode_impl(tx, dn, THT_NEWOBJECT, 0, 0);</span>
+<span class="lineNum">     175 </span>                :<span class="lineCov">      15306 : }</span>
+<span class="lineNum">     176 </span>                :            : 
+<span class="lineNum">     177 </span>                :            : /*
+<span class="lineNum">     178 </span>                :            :  * This function reads specified data from disk.  The specified data will
+<span class="lineNum">     179 </span>                :            :  * be needed to perform the transaction -- i.e, it will be read after
+<span class="lineNum">     180 </span>                :            :  * we do dmu_tx_assign().  There are two reasons that we read the data now
+<span class="lineNum">     181 </span>                :            :  * (before dmu_tx_assign()):
+<span class="lineNum">     182 </span>                :            :  *
+<span class="lineNum">     183 </span>                :            :  * 1. Reading it now has potentially better performance.  The transaction
+<span class="lineNum">     184 </span>                :            :  * has not yet been assigned, so the TXG is not held open, and also the
+<span class="lineNum">     185 </span>                :            :  * caller typically has less locks held when calling dmu_tx_hold_*() than
+<span class="lineNum">     186 </span>                :            :  * after the transaction has been assigned.  This reduces the lock (and txg)
+<span class="lineNum">     187 </span>                :            :  * hold times, thus reducing lock contention.
+<span class="lineNum">     188 </span>                :            :  *
+<span class="lineNum">     189 </span>                :            :  * 2. It is easier for callers (primarily the ZPL) to handle i/o errors
+<span class="lineNum">     190 </span>                :            :  * that are detected before they start making changes to the DMU state
+<span class="lineNum">     191 </span>                :            :  * (i.e. now).  Once the transaction has been assigned, and some DMU
+<span class="lineNum">     192 </span>                :            :  * state has been changed, it can be difficult to recover from an i/o
+<span class="lineNum">     193 </span>                :            :  * error (e.g. to undo the changes already made in memory at the DMU
+<span class="lineNum">     194 </span>                :            :  * layer).  Typically code to do so does not exist in the caller -- it
+<span class="lineNum">     195 </span>                :            :  * assumes that the data has already been cached and thus i/o errors are
+<span class="lineNum">     196 </span>                :            :  * not possible.
+<span class="lineNum">     197 </span>                :            :  *
+<span class="lineNum">     198 </span>                :            :  * It has been observed that the i/o initiated here can be a performance
+<span class="lineNum">     199 </span>                :            :  * problem, and it appears to be optional, because we don't look at the
+<span class="lineNum">     200 </span>                :            :  * data which is read.  However, removing this read would only serve to
+<span class="lineNum">     201 </span>                :            :  * move the work elsewhere (after the dmu_tx_assign()), where it may
+<span class="lineNum">     202 </span>                :            :  * have a greater impact on performance (in addition to the impact on
+<span class="lineNum">     203 </span>                :            :  * fault tolerance noted above).
+<a name="204"><span class="lineNum">     204 </span>                :            :  */</a>
+<span class="lineNum">     205 </span>                :            : static int
+<span class="lineNum">     206 </span>                :<span class="lineCov">     120959 : dmu_tx_check_ioerr(zio_t *zio, dnode_t *dn, int level, uint64_t blkid)</span>
+<span class="lineNum">     207 </span>                :            : {
+<span class="lineNum">     208 </span>                :            :         int err;
+<span class="lineNum">     209 </span>                :            :         dmu_buf_impl_t *db;
+<span class="lineNum">     210 </span>                :            : 
+<span class="lineNum">     211 </span>                :<span class="lineCov">     120959 :         rw_enter(&amp;dn-&gt;dn_struct_rwlock, RW_READER);</span>
+<span class="lineNum">     212 </span>                :<span class="lineCov">     120968 :         db = dbuf_hold_level(dn, level, blkid, FTAG);</span>
+<span class="lineNum">     213 </span>                :<span class="lineCov">     120961 :         rw_exit(&amp;dn-&gt;dn_struct_rwlock);</span>
+<span class="lineNum">     214 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 120968 times"> + </span>]:<span class="lineCov">     120968 :         if (db == NULL)</span>
+<span class="lineNum">     215 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(EIO));</span>
+<span class="lineNum">     216 </span>                :<span class="lineCov">     120968 :         err = dbuf_read(db, zio, DB_RF_CANFAIL | DB_RF_NOPREFETCH);</span>
+<span class="lineNum">     217 </span>                :<span class="lineCov">     120965 :         dbuf_rele(db, FTAG);</span>
+<span class="lineNum">     218 </span>                :<span class="lineCov">     120968 :         return (err);</span>
+<span class="lineNum">     219 </span>                :            : }
+<span class="lineNum">     220 </span>                :            : 
+<a name="221"><span class="lineNum">     221 </span>                :            : /* ARGSUSED */</a>
+<span class="lineNum">     222 </span>                :            : static void
+<span class="lineNum">     223 </span>                :<span class="lineCov">      28654 : dmu_tx_count_write(dmu_tx_hold_t *txh, uint64_t off, uint64_t len)</span>
+<span class="lineNum">     224 </span>                :            : {
+<span class="lineNum">     225 </span>                :<span class="lineCov">      28654 :         dnode_t *dn = txh-&gt;txh_dnode;</span>
+<span class="lineNum">     226 </span>                :<span class="lineCov">      28654 :         int err = 0;</span>
+<span class="lineNum">     227 </span>                :            : 
+<span class="lineNum">     228 </span>        [<span class="branchCov" title="Branch 0 was taken 28654 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      28654 :         if (len == 0)</span>
+<span class="lineNum">     229 </span>                :            :                 return;
+<span class="lineNum">     230 </span>                :            : 
+<span class="lineNum">     231 </span>                :<span class="lineCov">      28654 :         (void) refcount_add_many(&amp;txh-&gt;txh_space_towrite, len, FTAG);</span>
+<span class="lineNum">     232 </span>                :            : 
+<span class="lineNum">     233 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 28658 times"> + </span>]:<span class="lineCov">      28658 :         if (refcount_count(&amp;txh-&gt;txh_space_towrite) &gt; 2 * DMU_MAX_ACCESS)</span>
+<span class="lineNum">     234 </span>                :<span class="lineNoCov">          0 :                 err = SET_ERROR(EFBIG);</span>
+<span class="lineNum">     235 </span>                :            : 
+<span class="lineNum">     236 </span>        [<span class="branchCov" title="Branch 0 was taken 28657 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      28657 :         if (dn == NULL)</span>
+<span class="lineNum">     237 </span>                :            :                 return;
+<span class="lineNum">     238 </span>                :            : 
+<span class="lineNum">     239 </span>                :            :         /*
+<span class="lineNum">     240 </span>                :            :          * For i/o error checking, read the blocks that will be needed
+<span class="lineNum">     241 </span>                :            :          * to perform the write: the first and last level-0 blocks (if
+<span class="lineNum">     242 </span>                :            :          * they are not aligned, i.e. if they are partial-block writes),
+<span class="lineNum">     243 </span>                :            :          * and all the level-1 blocks.
+<span class="lineNum">     244 </span>                :            :          */
+<span class="lineNum">     245 </span>        [<span class="branchCov" title="Branch 0 was taken 3261 times"> + </span><span class="branchCov" title="Branch 1 was taken 25396 times"> + </span>]:<span class="lineCov">      28657 :         if (dn-&gt;dn_maxblkid == 0) {</span>
+<span class="lineNum">     246 </span>[<span class="branchCov" title="Branch 0 was taken 335 times"> + </span><span class="branchCov" title="Branch 1 was taken 2926 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 335 times"> + </span><span class="branchNoCov" title="Branch 3 was not taken"> - </span>]:<span class="lineCov">       3261 :                 if (off &lt; dn-&gt;dn_datablksz &amp;&amp;</span>
+<span class="lineNum">     247 </span>        [<span class="branchCov" title="Branch 0 was taken 269 times"> + </span><span class="branchCov" title="Branch 1 was taken 66 times"> + </span>]:<span class="lineCov">        335 :                     (off &gt; 0 || len &lt; dn-&gt;dn_datablksz)) {</span>
+<span class="lineNum">     248 </span>                :<span class="lineCov">        269 :                         err = dmu_tx_check_ioerr(NULL, dn, 0, 0);</span>
+<span class="lineNum">     249 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 269 times"> + </span>]:<span class="lineCov">        269 :                         if (err != 0) {</span>
+<span class="lineNum">     250 </span>                :<span class="lineNoCov">          0 :                                 txh-&gt;txh_tx-&gt;tx_err = err;</span>
+<span class="lineNum">     251 </span>                :            :                         }
+<span class="lineNum">     252 </span>                :            :                 }
+<span class="lineNum">     253 </span>                :            :         } else {
+<span class="lineNum">     254 </span>                :<span class="lineCov">      25396 :                 zio_t *zio = zio_root(dn-&gt;dn_objset-&gt;os_spa,</span>
+<span class="lineNum">     255 </span>                :            :                     NULL, NULL, ZIO_FLAG_CANFAIL);
+<span class="lineNum">     256 </span>                :            : 
+<span class="lineNum">     257 </span>                :            :                 /* first level-0 block */
+<span class="lineNum">     258 </span>                :<span class="lineCov">      25397 :                 uint64_t start = off &gt;&gt; dn-&gt;dn_datablkshift;</span>
+<span class="lineNum">     259 </span>[<span class="branchCov" title="Branch 0 was taken 24367 times"> + </span><span class="branchCov" title="Branch 1 was taken 1030 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 16440 times"> + </span><span class="branchCov" title="Branch 3 was taken 7927 times"> + </span>]:<span class="lineCov">      25397 :                 if (P2PHASE(off, dn-&gt;dn_datablksz) || len &lt; dn-&gt;dn_datablksz) {</span>
+<span class="lineNum">     260 </span>                :<span class="lineCov">      17470 :                         err = dmu_tx_check_ioerr(zio, dn, 0, start);</span>
+<span class="lineNum">     261 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 17471 times"> + </span>]:<span class="lineCov">      17471 :                         if (err != 0) {</span>
+<span class="lineNum">     262 </span>                :<span class="lineNoCov">          0 :                                 txh-&gt;txh_tx-&gt;tx_err = err;</span>
+<span class="lineNum">     263 </span>                :            :                         }
+<span class="lineNum">     264 </span>                :            :                 }
+<span class="lineNum">     265 </span>                :            : 
+<span class="lineNum">     266 </span>                :            :                 /* last level-0 block */
+<span class="lineNum">     267 </span>                :<span class="lineCov">      25398 :                 uint64_t end = (off + len - 1) &gt;&gt; dn-&gt;dn_datablkshift;</span>
+<span class="lineNum">     268 </span>[<span class="branchCov" title="Branch 0 was taken 873 times"> + </span><span class="branchCov" title="Branch 1 was taken 24525 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 813 times"> + </span><span class="branchCov" title="Branch 3 was taken 60 times"> + </span>]:<span class="lineCov">      25398 :                 if (end != start &amp;&amp; end &lt;= dn-&gt;dn_maxblkid &amp;&amp;</span>
+<span class="lineNum">         </span>        [<span class="branchCov" title="Branch 4 was taken 78 times"> + </span><span class="branchCov" title="Branch 5 was taken 735 times"> + </span>]
+<span class="lineNum">     269 </span>                :<span class="lineCov">        813 :                     P2PHASE(off + len, dn-&gt;dn_datablksz)) {</span>
+<span class="lineNum">     270 </span>                :<span class="lineCov">         78 :                         err = dmu_tx_check_ioerr(zio, dn, 0, end);</span>
+<span class="lineNum">     271 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 78 times"> + </span>]:<span class="lineCov">         78 :                         if (err != 0) {</span>
+<span class="lineNum">     272 </span>                :<span class="lineNoCov">          0 :                                 txh-&gt;txh_tx-&gt;tx_err = err;</span>
+<span class="lineNum">     273 </span>                :            :                         }
+<span class="lineNum">     274 </span>                :            :                 }
+<span class="lineNum">     275 </span>                :            : 
+<span class="lineNum">     276 </span>                :            :                 /* level-1 blocks */
+<span class="lineNum">     277 </span>        [<span class="branchCov" title="Branch 0 was taken 25398 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      25398 :                 if (dn-&gt;dn_nlevels &gt; 1) {</span>
+<span class="lineNum">     278 </span>                :<span class="lineCov">      25398 :                         int shft = dn-&gt;dn_indblkshift - SPA_BLKPTRSHIFT;</span>
+<span class="lineNum">     279 </span>        [<span class="branchCov" title="Branch 0 was taken 66 times"> + </span><span class="branchCov" title="Branch 1 was taken 25398 times"> + </span>]:<span class="lineCov">      25464 :                         for (uint64_t i = (start &gt;&gt; shft) + 1;</span>
+<span class="lineNum">     280 </span>                :<span class="lineCov">         66 :                             i &lt; end &gt;&gt; shft; i++) {</span>
+<span class="lineNum">     281 </span>                :<span class="lineCov">         66 :                                 err = dmu_tx_check_ioerr(zio, dn, 1, i);</span>
+<span class="lineNum">     282 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 66 times"> + </span>]:<span class="lineCov">         66 :                                 if (err != 0) {</span>
+<span class="lineNum">     283 </span>                :<span class="lineNoCov">          0 :                                         txh-&gt;txh_tx-&gt;tx_err = err;</span>
+<span class="lineNum">     284 </span>                :            :                                 }
+<span class="lineNum">     285 </span>                :            :                         }
+<span class="lineNum">     286 </span>                :            :                 }
+<span class="lineNum">     287 </span>                :            : 
+<span class="lineNum">     288 </span>                :<span class="lineCov">      25398 :                 err = zio_wait(zio);</span>
+<span class="lineNum">     289 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 25396 times"> + </span>]:<span class="lineCov">      25396 :                 if (err != 0) {</span>
+<span class="lineNum">     290 </span>                :<span class="lineNoCov">          0 :                         txh-&gt;txh_tx-&gt;tx_err = err;</span>
+<span class="lineNum">     291 </span>                :            :                 }
+<span class="lineNum">     292 </span>                :            :         }
+<span class="lineNum">     293 </span>                :            : }
+<a name="294"><span class="lineNum">     294 </span>                :            : </a>
+<span class="lineNum">     295 </span>                :            : static void
+<span class="lineNum">     296 </span>                :<span class="lineCov">     121850 : dmu_tx_count_dnode(dmu_tx_hold_t *txh)</span>
+<span class="lineNum">     297 </span>                :            : {
+<span class="lineNum">     298 </span>                :<span class="lineCov">     121850 :         (void) refcount_add_many(&amp;txh-&gt;txh_space_towrite, DNODE_MIN_SIZE, FTAG);</span>
+<span class="lineNum">     299 </span>                :<span class="lineCov">     121854 : }</span>
+<a name="300"><span class="lineNum">     300 </span>                :            : </a>
+<span class="lineNum">     301 </span>                :            : void
+<span class="lineNum">     302 </span>                :<span class="lineCov">      28646 : dmu_tx_hold_write(dmu_tx_t *tx, uint64_t object, uint64_t off, int len)</span>
+<span class="lineNum">     303 </span>                :            : {
+<span class="lineNum">     304 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">     305 </span>                :            : 
+<span class="lineNum">     306 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 28646 times"> + </span>]:<span class="lineCov">      28646 :         ASSERT0(tx-&gt;tx_txg);</span>
+<span class="lineNum">     307 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 28646 times"> + </span>]:<span class="lineCov">      28646 :         ASSERT3U(len, &lt;=, DMU_MAX_ACCESS);</span>
+<span class="lineNum">     308 </span>   [<span class="branchCov" title="Branch 0 was taken 28649 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 28649 times"> + </span>]:<span class="lineCov">      28646 :         ASSERT(len == 0 || UINT64_MAX - off &gt;= len - 1);</span>
+<span class="lineNum">     309 </span>                :            : 
+<span class="lineNum">     310 </span>                :<span class="lineCov">      28646 :         txh = dmu_tx_hold_object_impl(tx, tx-&gt;tx_objset,</span>
+<span class="lineNum">     311 </span>                :            :             object, THT_WRITE, off, len);
+<span class="lineNum">     312 </span>        [<span class="branchCov" title="Branch 0 was taken 28653 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">      28653 :         if (txh != NULL) {</span>
+<span class="lineNum">     313 </span>                :<span class="lineCov">      28653 :                 dmu_tx_count_write(txh, off, len);</span>
+<span class="lineNum">     314 </span>                :<span class="lineCov">      28653 :                 dmu_tx_count_dnode(txh);</span>
+<span class="lineNum">     315 </span>                :            :         }
+<span class="lineNum">     316 </span>                :<span class="lineCov">      28653 : }</span>
+<a name="317"><span class="lineNum">     317 </span>                :            : </a>
+<span class="lineNum">     318 </span>                :            : void
+<span class="lineNum">     319 </span>                :<span class="lineNoCov">          0 : dmu_tx_hold_write_by_dnode(dmu_tx_t *tx, dnode_t *dn, uint64_t off, int len)</span>
+<span class="lineNum">     320 </span>                :            : {
+<span class="lineNum">     321 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">     322 </span>                :            : 
+<span class="lineNum">     323 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT0(tx-&gt;tx_txg);</span>
+<span class="lineNum">     324 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3U(len, &lt;=, DMU_MAX_ACCESS);</span>
+<span class="lineNum">     325 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(len == 0 || UINT64_MAX - off &gt;= len - 1);</span>
+<span class="lineNum">     326 </span>                :            : 
+<span class="lineNum">     327 </span>                :<span class="lineNoCov">          0 :         txh = dmu_tx_hold_dnode_impl(tx, dn, THT_WRITE, off, len);</span>
+<span class="lineNum">     328 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (txh != NULL) {</span>
+<span class="lineNum">     329 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_count_write(txh, off, len);</span>
+<span class="lineNum">     330 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_count_dnode(txh);</span>
+<span class="lineNum">     331 </span>                :            :         }
+<span class="lineNum">     332 </span>                :<span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     333 </span>                :            : 
+<span class="lineNum">     334 </span>                :            : /*
+<span class="lineNum">     335 </span>                :            :  * This function marks the transaction as being a &quot;net free&quot;.  The end
+<span class="lineNum">     336 </span>                :            :  * result is that refquotas will be disabled for this transaction, and
+<span class="lineNum">     337 </span>                :            :  * this transaction will be able to use half of the pool space overhead
+<span class="lineNum">     338 </span>                :            :  * (see dsl_pool_adjustedsize()).  Therefore this function should only
+<span class="lineNum">     339 </span>                :            :  * be called for transactions that we expect will not cause a net increase
+<span class="lineNum">     340 </span>                :            :  * in the amount of space used (but it's OK if that is occasionally not true).
+<a name="341"><span class="lineNum">     341 </span>                :            :  */</a>
+<span class="lineNum">     342 </span>                :            : void
+<span class="lineNum">     343 </span>                :<span class="lineNoCov">          0 : dmu_tx_mark_netfree(dmu_tx_t *tx)</span>
+<span class="lineNum">     344 </span>                :            : {
+<span class="lineNum">     345 </span>                :<span class="lineNoCov">          0 :         tx-&gt;tx_netfree = B_TRUE;</span>
+<span class="lineNum">     346 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="347"><span class="lineNum">     347 </span>                :            : </a>
+<span class="lineNum">     348 </span>                :            : static void
+<span class="lineNum">     349 </span>                :<span class="lineCov">       7370 : dmu_tx_hold_free_impl(dmu_tx_hold_t *txh, uint64_t off, uint64_t len)</span>
+<span class="lineNum">     350 </span>                :            : {
+<span class="lineNum">     351 </span>                :<span class="lineCov">       7370 :         dmu_tx_t *tx = txh-&gt;txh_tx;</span>
+<span class="lineNum">     352 </span>                :<span class="lineCov">       7370 :         dnode_t *dn = txh-&gt;txh_dnode;</span>
+<span class="lineNum">     353 </span>                :            :         int err;
+<span class="lineNum">     354 </span>                :            : 
+<span class="lineNum">     355 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 7370 times"> + </span>]:<span class="lineCov">       7370 :         ASSERT(tx-&gt;tx_txg == 0);</span>
+<span class="lineNum">     356 </span>                :            : 
+<span class="lineNum">     357 </span>                :<span class="lineCov">       7370 :         dmu_tx_count_dnode(txh);</span>
+<span class="lineNum">     358 </span>                :            : 
+<span class="lineNum">     359 </span>        [<span class="branchCov" title="Branch 0 was taken 6891 times"> + </span><span class="branchCov" title="Branch 1 was taken 479 times"> + </span>]:<span class="lineCov">       7370 :         if (off &gt;= (dn-&gt;dn_maxblkid + 1) * dn-&gt;dn_datablksz)</span>
+<span class="lineNum">     360 </span>                :            :                 return;
+<span class="lineNum">     361 </span>        [<span class="branchCov" title="Branch 0 was taken 4753 times"> + </span><span class="branchCov" title="Branch 1 was taken 2138 times"> + </span>]:<span class="lineCov">       6891 :         if (len == DMU_OBJECT_END)</span>
+<span class="lineNum">     362 </span>                :<span class="lineCov">       4753 :                 len = (dn-&gt;dn_maxblkid + 1) * dn-&gt;dn_datablksz - off;</span>
+<span class="lineNum">     363 </span>                :            : 
+<span class="lineNum">     364 </span>                :<span class="lineCov">       6891 :         dmu_tx_count_dnode(txh);</span>
+<span class="lineNum">     365 </span>                :            : 
+<span class="lineNum">     366 </span>                :            :         /*
+<span class="lineNum">     367 </span>                :            :          * For i/o error checking, we read the first and last level-0
+<span class="lineNum">     368 </span>                :            :          * blocks if they are not aligned, and all the level-1 blocks.
+<span class="lineNum">     369 </span>                :            :          *
+<span class="lineNum">     370 </span>                :            :          * Note:  dbuf_free_range() assumes that we have not instantiated
+<span class="lineNum">     371 </span>                :            :          * any level-0 dbufs that will be completely freed.  Therefore we must
+<span class="lineNum">     372 </span>                :            :          * exercise care to not read or count the first and last blocks
+<span class="lineNum">     373 </span>                :            :          * if they are blocksize-aligned.
+<span class="lineNum">     374 </span>                :            :          */
+<span class="lineNum">     375 </span>        [<span class="branchCov" title="Branch 0 was taken 9 times"> + </span><span class="branchCov" title="Branch 1 was taken 6882 times"> + </span>]:<span class="lineCov">       6891 :         if (dn-&gt;dn_datablkshift == 0) {</span>
+<span class="lineNum">     376 </span>[<span class="branchCov" title="Branch 0 was taken 9 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 9 times"> + </span>]:<span class="lineCov">          9 :                 if (off != 0 || len &lt; dn-&gt;dn_datablksz)</span>
+<span class="lineNum">     377 </span>                :<span class="lineNoCov">          0 :                         dmu_tx_count_write(txh, 0, dn-&gt;dn_datablksz);</span>
+<span class="lineNum">     378 </span>                :            :         } else {
+<span class="lineNum">     379 </span>                :            :                 /* first block will be modified if it is not aligned */
+<span class="lineNum">     380 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 6880 times"> + </span>]:<span class="lineCov">       6882 :                 if (!IS_P2ALIGNED(off, 1 &lt;&lt; dn-&gt;dn_datablkshift))</span>
+<span class="lineNum">     381 </span>                :<span class="lineCov">          2 :                         dmu_tx_count_write(txh, off, 1);</span>
+<span class="lineNum">     382 </span>                :            :                 /* last block will be modified if it is not aligned */
+<span class="lineNum">     383 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 6880 times"> + </span>]:<span class="lineCov">       6882 :                 if (!IS_P2ALIGNED(off + len, 1 &lt;&lt; dn-&gt;dn_datablkshift))</span>
+<span class="lineNum">     384 </span>                :<span class="lineCov">          2 :                         dmu_tx_count_write(txh, off + len, 1);</span>
+<span class="lineNum">     385 </span>                :            :         }
+<span class="lineNum">     386 </span>                :            : 
+<span class="lineNum">     387 </span>                :            :         /*
+<span class="lineNum">     388 </span>                :            :          * Check level-1 blocks.
+<span class="lineNum">     389 </span>                :            :          */
+<span class="lineNum">     390 </span>        [<span class="branchCov" title="Branch 0 was taken 4605 times"> + </span><span class="branchCov" title="Branch 1 was taken 2286 times"> + </span>]:<span class="lineCov">       6891 :         if (dn-&gt;dn_nlevels &gt; 1) {</span>
+<span class="lineNum">     391 </span>                :<span class="lineCov">       4605 :                 int shift = dn-&gt;dn_datablkshift + dn-&gt;dn_indblkshift -</span>
+<span class="lineNum">     392 </span>                :            :                     SPA_BLKPTRSHIFT;
+<span class="lineNum">     393 </span>                :<span class="lineCov">       4605 :                 uint64_t start = off &gt;&gt; shift;</span>
+<span class="lineNum">     394 </span>                :<span class="lineCov">       4605 :                 uint64_t end = (off + len) &gt;&gt; shift;</span>
+<span class="lineNum">     395 </span>                :            :                 uint64_t i;
+<span class="lineNum">     396 </span>                :            : 
+<span class="lineNum">     397 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4605 times"> + </span>]:<span class="lineCov">       4605 :                 ASSERT(dn-&gt;dn_indblkshift != 0);</span>
+<span class="lineNum">     398 </span>                :            : 
+<span class="lineNum">     399 </span>                :            :                 /*
+<span class="lineNum">     400 </span>                :            :                  * dnode_reallocate() can result in an object with indirect
+<span class="lineNum">     401 </span>                :            :                  * blocks having an odd data block size.  In this case,
+<span class="lineNum">     402 </span>                :            :                  * just check the single block.
+<span class="lineNum">     403 </span>                :            :                  */
+<span class="lineNum">     404 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4605 times"> + </span>]:<span class="lineCov">       4605 :                 if (dn-&gt;dn_datablkshift == 0)</span>
+<span class="lineNum">     405 </span>                :<span class="lineNoCov">          0 :                         start = end = 0;</span>
+<span class="lineNum">     406 </span>                :            : 
+<span class="lineNum">     407 </span>                :<span class="lineCov">       4605 :                 zio_t *zio = zio_root(tx-&gt;tx_pool-&gt;dp_spa,</span>
+<span class="lineNum">     408 </span>                :            :                     NULL, NULL, ZIO_FLAG_CANFAIL);
+<span class="lineNum">     409 </span>        [<span class="branchCov" title="Branch 1 was taken 36981 times"> + </span><span class="branchCov" title="Branch 2 was taken 2403 times"> + </span>]:<span class="lineCov">      41586 :                 for (i = start; i &lt;= end; i++) {</span>
+<span class="lineNum">     410 </span>                :<span class="lineCov">      36981 :                         uint64_t ibyte = i &lt;&lt; shift;</span>
+<span class="lineNum">     411 </span>                :<span class="lineCov">      36981 :                         err = dnode_next_offset(dn, 0, &amp;ibyte, 2, 1, 0);</span>
+<span class="lineNum">     412 </span>                :<span class="lineCov">      36981 :                         i = ibyte &gt;&gt; shift;</span>
+<span class="lineNum">     413 </span>        [<span class="branchCov" title="Branch 0 was taken 34779 times"> + </span><span class="branchCov" title="Branch 1 was taken 2202 times"> + </span>]:<span class="lineCov">      36981 :                         if (err == ESRCH || i &gt; end)</span>
+<span class="lineNum">     414 </span>                :            :                                 break;
+<span class="lineNum">     415 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 34779 times"> + </span>]:<span class="lineCov">      34779 :                         if (err != 0) {</span>
+<span class="lineNum">     416 </span>                :<span class="lineNoCov">          0 :                                 tx-&gt;tx_err = err;</span>
+<span class="lineNum">     417 </span>                :<span class="lineNoCov">          0 :                                 (void) zio_wait(zio);</span>
+<span class="lineNum">     418 </span>                :<span class="lineNoCov">          0 :                                 return;</span>
+<span class="lineNum">     419 </span>                :            :                         }
+<span class="lineNum">     420 </span>                :            : 
+<span class="lineNum">     421 </span>                :<span class="lineCov">      34779 :                         (void) refcount_add_many(&amp;txh-&gt;txh_memory_tohold,</span>
+<span class="lineNum">     422 </span>                :<span class="lineCov">      34779 :                             1 &lt;&lt; dn-&gt;dn_indblkshift, FTAG);</span>
+<span class="lineNum">     423 </span>                :            : 
+<span class="lineNum">     424 </span>                :<span class="lineCov">      34778 :                         err = dmu_tx_check_ioerr(zio, dn, 1, i);</span>
+<span class="lineNum">     425 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 34779 times"> + </span>]:<span class="lineCov">      34779 :                         if (err != 0) {</span>
+<span class="lineNum">     426 </span>                :<span class="lineNoCov">          0 :                                 tx-&gt;tx_err = err;</span>
+<span class="lineNum">     427 </span>                :<span class="lineNoCov">          0 :                                 (void) zio_wait(zio);</span>
+<span class="lineNum">     428 </span>                :<span class="lineNoCov">          0 :                                 return;</span>
+<span class="lineNum">     429 </span>                :            :                         }
+<span class="lineNum">     430 </span>                :            :                 }
+<span class="lineNum">     431 </span>                :<span class="lineCov">       4605 :                 err = zio_wait(zio);</span>
+<span class="lineNum">     432 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 4605 times"> + </span>]:<span class="lineCov">       4605 :                 if (err != 0) {</span>
+<span class="lineNum">     433 </span>                :<span class="lineNoCov">          0 :                         tx-&gt;tx_err = err;</span>
+<span class="lineNum">     434 </span>                :<span class="lineNoCov">          0 :                         return;</span>
+<span class="lineNum">     435 </span>                :            :                 }
+<span class="lineNum">     436 </span>                :            :         }
+<span class="lineNum">     437 </span>                :            : }
+<a name="438"><span class="lineNum">     438 </span>                :            : </a>
+<span class="lineNum">     439 </span>                :            : void
+<span class="lineNum">     440 </span>                :<span class="lineCov">       7370 : dmu_tx_hold_free(dmu_tx_t *tx, uint64_t object, uint64_t off, uint64_t len)</span>
+<span class="lineNum">     441 </span>                :            : {
+<span class="lineNum">     442 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">     443 </span>                :            : 
+<span class="lineNum">     444 </span>                :<span class="lineCov">       7370 :         txh = dmu_tx_hold_object_impl(tx, tx-&gt;tx_objset,</span>
+<span class="lineNum">     445 </span>                :            :             object, THT_FREE, off, len);
+<span class="lineNum">     446 </span>        [<span class="branchCov" title="Branch 0 was taken 7370 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       7370 :         if (txh != NULL)</span>
+<span class="lineNum">     447 </span>                :<span class="lineCov">       7370 :                 (void) dmu_tx_hold_free_impl(txh, off, len);</span>
+<span class="lineNum">     448 </span>                :<span class="lineCov">       7370 : }</span>
+<a name="449"><span class="lineNum">     449 </span>                :            : </a>
+<span class="lineNum">     450 </span>                :            : void
+<span class="lineNum">     451 </span>                :<span class="lineNoCov">          0 : dmu_tx_hold_free_by_dnode(dmu_tx_t *tx, dnode_t *dn, uint64_t off, uint64_t len)</span>
+<span class="lineNum">     452 </span>                :            : {
+<span class="lineNum">     453 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">     454 </span>                :            : 
+<span class="lineNum">     455 </span>                :<span class="lineNoCov">          0 :         txh = dmu_tx_hold_dnode_impl(tx, dn, THT_FREE, off, len);</span>
+<span class="lineNum">     456 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (txh != NULL)</span>
+<span class="lineNum">     457 </span>                :<span class="lineNoCov">          0 :                 (void) dmu_tx_hold_free_impl(txh, off, len);</span>
+<span class="lineNum">     458 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="459"><span class="lineNum">     459 </span>                :            : </a>
+<span class="lineNum">     460 </span>                :            : static void
+<span class="lineNum">     461 </span>                :<span class="lineCov">      72310 : dmu_tx_hold_zap_impl(dmu_tx_hold_t *txh, const char *name)</span>
+<span class="lineNum">     462 </span>                :            : {
+<span class="lineNum">     463 </span>                :<span class="lineCov">      72310 :         dmu_tx_t *tx = txh-&gt;txh_tx;</span>
+<span class="lineNum">     464 </span>                :<span class="lineCov">      72310 :         dnode_t *dn = txh-&gt;txh_dnode;</span>
+<span class="lineNum">     465 </span>                :            :         int err;
+<span class="lineNum">     466 </span>                :            : 
+<span class="lineNum">     467 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 72310 times"> + </span>]:<span class="lineCov">      72310 :         ASSERT(tx-&gt;tx_txg == 0);</span>
+<span class="lineNum">     468 </span>                :            : 
+<span class="lineNum">     469 </span>                :<span class="lineCov">      72310 :         dmu_tx_count_dnode(txh);</span>
+<span class="lineNum">     470 </span>                :            : 
+<span class="lineNum">     471 </span>                :            :         /*
+<span class="lineNum">     472 </span>                :            :          * Modifying a almost-full microzap is around the worst case (128KB)
+<span class="lineNum">     473 </span>                :            :          *
+<span class="lineNum">     474 </span>                :            :          * If it is a fat zap, the worst case would be 7*16KB=112KB:
+<span class="lineNum">     475 </span>                :            :          * - 3 blocks overwritten: target leaf, ptrtbl block, header block
+<span class="lineNum">     476 </span>                :            :          * - 4 new blocks written if adding:
+<span class="lineNum">     477 </span>                :            :          *    - 2 blocks for possibly split leaves,
+<span class="lineNum">     478 </span>                :            :          *    - 2 grown ptrtbl blocks
+<span class="lineNum">     479 </span>                :            :          */
+<span class="lineNum">     480 </span>                :<span class="lineCov">      72314 :         (void) refcount_add_many(&amp;txh-&gt;txh_space_towrite,</span>
+<span class="lineNum">     481 </span>                :            :             MZAP_MAX_BLKSZ, FTAG);
+<span class="lineNum">     482 </span>                :            : 
+<span class="lineNum">     483 </span>        [<span class="branchCov" title="Branch 0 was taken 68382 times"> + </span><span class="branchCov" title="Branch 1 was taken 3933 times"> + </span>]:<span class="lineCov">      72315 :         if (dn == NULL)</span>
+<span class="lineNum">     484 </span>                :            :                 return;
+<span class="lineNum">     485 </span>                :            : 
+<span class="lineNum">     486 </span>[<span class="branchCov" title="Branch 0 was taken 1 time"> + </span><span class="branchCov" title="Branch 1 was taken 68381 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 68382 times"> + </span>]:<span class="lineCov">      68382 :         ASSERT3U(DMU_OT_BYTESWAP(dn-&gt;dn_type), ==, DMU_BSWAP_ZAP);</span>
+<span class="lineNum">     487 </span>                :            : 
+<span class="lineNum">     488 </span>[<span class="branchCov" title="Branch 0 was taken 10797 times"> + </span><span class="branchCov" title="Branch 1 was taken 57585 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 10720 times"> + </span><span class="branchCov" title="Branch 3 was taken 77 times"> + </span>]:<span class="lineCov">      68382 :         if (dn-&gt;dn_maxblkid == 0 || name == NULL) {</span>
+<span class="lineNum">     489 </span>                :            :                 /*
+<span class="lineNum">     490 </span>                :            :                  * This is a microzap (only one block), or we don't know
+<span class="lineNum">     491 </span>                :            :                  * the name.  Check the first block for i/o errors.
+<span class="lineNum">     492 </span>                :            :                  */
+<span class="lineNum">     493 </span>                :<span class="lineCov">      68305 :                 err = dmu_tx_check_ioerr(NULL, dn, 0, 0);</span>
+<span class="lineNum">     494 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 68306 times"> + </span>]:<span class="lineCov">      68306 :                 if (err != 0) {</span>
+<span class="lineNum">     495 </span>                :<span class="lineNoCov">          0 :                         tx-&gt;tx_err = err;</span>
+<span class="lineNum">     496 </span>                :            :                 }
+<span class="lineNum">     497 </span>                :            :         } else {
+<span class="lineNum">     498 </span>                :            :                 /*
+<span class="lineNum">     499 </span>                :            :                  * Access the name so that we'll check for i/o errors to
+<span class="lineNum">     500 </span>                :            :                  * the leaf blocks, etc.  We ignore ENOENT, as this name
+<span class="lineNum">     501 </span>                :            :                  * may not yet exist.
+<span class="lineNum">     502 </span>                :            :                  */
+<span class="lineNum">     503 </span>                :<span class="lineCov">         77 :                 err = zap_lookup_by_dnode(dn, name, 8, 0, NULL);</span>
+<span class="lineNum">     504 </span>[<span class="branchCov" title="Branch 0 was taken 77 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 77 times"> + </span>]:<span class="lineCov">         77 :                 if (err == EIO || err == ECKSUM || err == ENXIO) {</span>
+<span class="lineNum">     505 </span>                :<span class="lineNoCov">          0 :                         tx-&gt;tx_err = err;</span>
+<span class="lineNum">     506 </span>                :            :                 }
+<span class="lineNum">     507 </span>                :            :         }
+<span class="lineNum">     508 </span>                :            : }
+<a name="509"><span class="lineNum">     509 </span>                :            : </a>
+<span class="lineNum">     510 </span>                :            : void
+<span class="lineNum">     511 </span>                :<span class="lineCov">      72310 : dmu_tx_hold_zap(dmu_tx_t *tx, uint64_t object, int add, const char *name)</span>
+<span class="lineNum">     512 </span>                :            : {
+<span class="lineNum">     513 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">     514 </span>                :            : 
+<span class="lineNum">     515 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 72310 times"> + </span>]:<span class="lineCov">      72310 :         ASSERT0(tx-&gt;tx_txg);</span>
+<span class="lineNum">     516 </span>                :            : 
+<span class="lineNum">     517 </span>                :<span class="lineCov">      72310 :         txh = dmu_tx_hold_object_impl(tx, tx-&gt;tx_objset,</span>
+<span class="lineNum">     518 </span>                :            :             object, THT_ZAP, add, (uintptr_t)name);
+<span class="lineNum">     519 </span>           [<span class="branchCov" title="Branch 0 was taken 72314 times"> + </span>]:<span class="lineCov">      72313 :         if (txh != NULL)</span>
+<span class="lineNum">     520 </span>                :<span class="lineCov">      72314 :                 dmu_tx_hold_zap_impl(txh, name);</span>
+<span class="lineNum">     521 </span>                :<span class="lineCov">      72313 : }</span>
+<a name="522"><span class="lineNum">     522 </span>                :            : </a>
+<span class="lineNum">     523 </span>                :            : void
+<span class="lineNum">     524 </span>                :<span class="lineNoCov">          0 : dmu_tx_hold_zap_by_dnode(dmu_tx_t *tx, dnode_t *dn, int add, const char *name)</span>
+<span class="lineNum">     525 </span>                :            : {
+<span class="lineNum">     526 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">     527 </span>                :            : 
+<span class="lineNum">     528 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT0(tx-&gt;tx_txg);</span>
+<span class="lineNum">     529 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(dn != NULL);</span>
+<span class="lineNum">     530 </span>                :            : 
+<span class="lineNum">     531 </span>                :<span class="lineNoCov">          0 :         txh = dmu_tx_hold_dnode_impl(tx, dn, THT_ZAP, add, (uintptr_t)name);</span>
+<span class="lineNum">     532 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (txh != NULL)</span>
+<span class="lineNum">     533 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_hold_zap_impl(txh, name);</span>
+<span class="lineNum">     534 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="535"><span class="lineNum">     535 </span>                :            : </a>
+<span class="lineNum">     536 </span>                :            : void
+<span class="lineNum">     537 </span>                :<span class="lineCov">       6627 : dmu_tx_hold_bonus(dmu_tx_t *tx, uint64_t object)</span>
+<span class="lineNum">     538 </span>                :            : {
+<span class="lineNum">     539 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">     540 </span>                :            : 
+<span class="lineNum">     541 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 6627 times"> + </span>]:<span class="lineCov">       6627 :         ASSERT(tx-&gt;tx_txg == 0);</span>
+<span class="lineNum">     542 </span>                :            : 
+<span class="lineNum">     543 </span>                :<span class="lineCov">       6627 :         txh = dmu_tx_hold_object_impl(tx, tx-&gt;tx_objset,</span>
+<span class="lineNum">     544 </span>                :            :             object, THT_BONUS, 0, 0);
+<span class="lineNum">     545 </span>        [<span class="branchCov" title="Branch 0 was taken 6627 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">       6627 :         if (txh)</span>
+<span class="lineNum">     546 </span>                :<span class="lineCov">       6627 :                 dmu_tx_count_dnode(txh);</span>
+<span class="lineNum">     547 </span>                :<span class="lineCov">       6627 : }</span>
+<a name="548"><span class="lineNum">     548 </span>                :            : </a>
+<span class="lineNum">     549 </span>                :            : void
+<span class="lineNum">     550 </span>                :<span class="lineNoCov">          0 : dmu_tx_hold_bonus_by_dnode(dmu_tx_t *tx, dnode_t *dn)</span>
+<span class="lineNum">     551 </span>                :            : {
+<span class="lineNum">     552 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">     553 </span>                :            : 
+<span class="lineNum">     554 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT0(tx-&gt;tx_txg);</span>
+<span class="lineNum">     555 </span>                :            : 
+<span class="lineNum">     556 </span>                :<span class="lineNoCov">          0 :         txh = dmu_tx_hold_dnode_impl(tx, dn, THT_BONUS, 0, 0);</span>
+<span class="lineNum">     557 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (txh)</span>
+<span class="lineNum">     558 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_count_dnode(txh);</span>
+<span class="lineNum">     559 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="560"><span class="lineNum">     560 </span>                :            : </a>
+<span class="lineNum">     561 </span>                :            : void
+<span class="lineNum">     562 </span>                :<span class="lineCov">        105 : dmu_tx_hold_space(dmu_tx_t *tx, uint64_t space)</span>
+<span class="lineNum">     563 </span>                :            : {
+<span class="lineNum">     564 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">     565 </span>                :            : 
+<span class="lineNum">     566 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 105 times"> + </span>]:<span class="lineCov">        105 :         ASSERT(tx-&gt;tx_txg == 0);</span>
+<span class="lineNum">     567 </span>                :            : 
+<span class="lineNum">     568 </span>                :<span class="lineCov">        105 :         txh = dmu_tx_hold_object_impl(tx, tx-&gt;tx_objset,</span>
+<span class="lineNum">     569 </span>                :            :             DMU_NEW_OBJECT, THT_SPACE, space, 0);
+<span class="lineNum">     570 </span>        [<span class="branchCov" title="Branch 0 was taken 105 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>]:<span class="lineCov">        105 :         if (txh)</span>
+<span class="lineNum">     571 </span>                :<span class="lineCov">        105 :                 (void) refcount_add_many(&amp;txh-&gt;txh_space_towrite, space, FTAG);</span>
+<span class="lineNum">     572 </span>                :<span class="lineCov">        105 : }</span>
+<span class="lineNum">     573 </span>                :            : 
+<a name="574"><span class="lineNum">     574 </span>                :            : #ifdef ZFS_DEBUG</a>
+<span class="lineNum">     575 </span>                :            : void
+<span class="lineNum">     576 </span>                :<span class="lineCov">    1187070 : dmu_tx_dirty_buf(dmu_tx_t *tx, dmu_buf_impl_t *db)</span>
+<span class="lineNum">     577 </span>                :            : {
+<span class="lineNum">     578 </span>                :<span class="lineCov">    1187070 :         boolean_t match_object = B_FALSE;</span>
+<span class="lineNum">     579 </span>                :<span class="lineCov">    1187070 :         boolean_t match_offset = B_FALSE;</span>
+<span class="lineNum">     580 </span>                :            : 
+<span class="lineNum">     581 </span>                :<span class="lineCov">    1187070 :         DB_DNODE_ENTER(db);</span>
+<span class="lineNum">     582 </span>                :<span class="lineCov">    1187419 :         dnode_t *dn = DB_DNODE(db);</span>
+<span class="lineNum">     583 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1187419 times"> + </span>]:<span class="lineCov">    1187419 :         ASSERT(tx-&gt;tx_txg != 0);</span>
+<span class="lineNum">     584 </span>[<span class="branchCov" title="Branch 0 was taken 462669 times"> + </span><span class="branchCov" title="Branch 1 was taken 724750 times"> + </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 462669 times"> + </span>]:<span class="lineCov">    1187419 :         ASSERT(tx-&gt;tx_objset == NULL || dn-&gt;dn_objset == tx-&gt;tx_objset);</span>
+<span class="lineNum">     585 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1187419 times"> + </span>]:<span class="lineCov">    1187419 :         ASSERT3U(dn-&gt;dn_object, ==, db-&gt;db.db_object);</span>
+<span class="lineNum">     586 </span>                :            : 
+<span class="lineNum">     587 </span>        [<span class="branchCov" title="Branch 0 was taken 724754 times"> + </span><span class="branchCov" title="Branch 1 was taken 462665 times"> + </span>]:<span class="lineCov">    1187419 :         if (tx-&gt;tx_anyobj) {</span>
+<span class="lineNum">     588 </span>                :<span class="lineCov">     724754 :                 DB_DNODE_EXIT(db);</span>
+<span class="lineNum">     589 </span>                :<span class="lineCov">     724759 :                 return;</span>
+<span class="lineNum">     590 </span>                :            :         }
+<span class="lineNum">     591 </span>                :            : 
+<span class="lineNum">     592 </span>                :            :         /* XXX No checking on the meta dnode for now */
+<span class="lineNum">     593 </span>        [<span class="branchCov" title="Branch 0 was taken 180564 times"> + </span><span class="branchCov" title="Branch 1 was taken 282101 times"> + </span>]:<span class="lineCov">     462665 :         if (db-&gt;db.db_object == DMU_META_DNODE_OBJECT) {</span>
+<span class="lineNum">     594 </span>                :<span class="lineCov">     180564 :                 DB_DNODE_EXIT(db);</span>
+<span class="lineNum">     595 </span>                :<span class="lineCov">     180584 :                 return;</span>
+<span class="lineNum">     596 </span>                :            :         }
+<span class="lineNum">     597 </span>                :            : 
+<span class="lineNum">     598 </span>        [<span class="branchCov" title="Branch 1 was taken 399743 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span>]:<span class="lineCov">     399777 :         for (dmu_tx_hold_t *txh = list_head(&amp;tx-&gt;tx_holds); txh != NULL;</span>
+<span class="lineNum">     599 </span>                :<span class="lineCov">     117677 :             txh = list_next(&amp;tx-&gt;tx_holds, txh)) {</span>
+<span class="lineNum">     600 </span>        [<span class="branchCov" title="Branch 0 was taken 2 times"> + </span><span class="branchCov" title="Branch 1 was taken 399741 times"> + </span>]:<span class="lineCov">     399743 :                 ASSERT3U(dn-&gt;dn_assigned_txg, ==, tx-&gt;tx_txg);</span>
+<span class="lineNum">     601 </span>[<span class="branchCov" title="Branch 0 was taken 282072 times"> + </span><span class="branchCov" title="Branch 1 was taken 117669 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 270454 times"> + </span><span class="branchCov" title="Branch 3 was taken 11618 times"> + </span>]:<span class="lineCov">     399741 :                 if (txh-&gt;txh_dnode == dn &amp;&amp; txh-&gt;txh_type != THT_NEWOBJECT)</span>
+<span class="lineNum">     602 </span>                :<span class="lineCov">     270454 :                         match_object = TRUE;</span>
+<span class="lineNum">     603 </span>[<span class="branchCov" title="Branch 0 was taken 388121 times"> + </span><span class="branchCov" title="Branch 1 was taken 11620 times"> + </span>][<span class="branchCov" title="Branch 2 was taken 282054 times"> + </span><span class="branchCov" title="Branch 3 was taken 106067 times"> + </span>]:<span class="lineCov">     399741 :                 if (txh-&gt;txh_dnode == NULL || txh-&gt;txh_dnode == dn) {</span>
+<span class="lineNum">     604 </span>                :<span class="lineCov">     587348 :                         int datablkshift = dn-&gt;dn_datablkshift ?</span>
+<span class="lineNum">     605 </span>        [<span class="branchCov" title="Branch 0 was taken 291415 times"> + </span><span class="branchCov" title="Branch 1 was taken 2259 times"> + </span>]:<span class="lineCov">     293674 :                             dn-&gt;dn_datablkshift : SPA_MAXBLOCKSHIFT;</span>
+<span class="lineNum">     606 </span>                :<span class="lineCov">     293674 :                         int epbs = dn-&gt;dn_indblkshift - SPA_BLKPTRSHIFT;</span>
+<span class="lineNum">     607 </span>                :<span class="lineCov">     293674 :                         int shift = datablkshift + epbs * db-&gt;db_level;</span>
+<span class="lineNum">     608 </span>        [<span class="branchCov" title="Branch 0 was taken 288491 times"> + </span><span class="branchCov" title="Branch 1 was taken 5183 times"> + </span>]:<span class="lineCov">     293674 :                         uint64_t beginblk = shift &gt;= 64 ? 0 :</span>
+<span class="lineNum">     609 </span>                :<span class="lineCov">     288491 :                             (txh-&gt;txh_arg1 &gt;&gt; shift);</span>
+<span class="lineNum">     610 </span>        [<span class="branchCov" title="Branch 0 was taken 288500 times"> + </span><span class="branchCov" title="Branch 1 was taken 5174 times"> + </span>]:<span class="lineCov">     293674 :                         uint64_t endblk = shift &gt;= 64 ? 0 :</span>
+<span class="lineNum">     611 </span>                :<span class="lineCov">     288500 :                             ((txh-&gt;txh_arg1 + txh-&gt;txh_arg2 - 1) &gt;&gt; shift);</span>
+<span class="lineNum">     612 </span>                :<span class="lineCov">     293674 :                         uint64_t blkid = db-&gt;db_blkid;</span>
+<span class="lineNum">     613 </span>                :            : 
+<span class="lineNum">     614 </span>                :            :                         /* XXX txh_arg2 better not be zero... */
+<span class="lineNum">     615 </span>                :            : 
+<span class="lineNum">     616 </span>                :<span class="lineCov">     293674 :                         dprintf(&quot;found txh type %x beginblk=%llx endblk=%llx\n&quot;,</span>
+<span class="lineNum">     617 </span>                :            :                             txh-&gt;txh_type, beginblk, endblk);
+<span class="lineNum">     618 </span>                :            : 
+<span class="lineNum">     619 </span>  [<span class="branchCov" title="Branch 0 was taken 191558 times"> + </span><span class="branchCov" title="Branch 1 was taken 43589 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 5685 times"> + </span> :<span class="lineCov">     293647 :                         switch (txh-&gt;txh_type) {</span>
+<span class="lineNum">         </span>      <span class="branchCov" title="Branch 4 was taken 11628 times"> + </span><span class="branchNoCov" title="Branch 5 was not taken"> - </span><span class="branchCov" title="Branch 6 was taken 41187 times"> + </span>]
+<span class="lineNum">     620 </span>                :            :                         case THT_WRITE:
+<span class="lineNum">     621 </span>        [<span class="branchCov" title="Branch 0 was taken 185238 times"> + </span><span class="branchCov" title="Branch 1 was taken 6320 times"> + </span>]:<span class="lineCov">     191558 :                                 if (blkid &gt;= beginblk &amp;&amp; blkid &lt;= endblk)</span>
+<span class="lineNum">     622 </span>                :<span class="lineCov">     185238 :                                         match_offset = TRUE;</span>
+<span class="lineNum">     623 </span>                :            :                                 /*
+<span class="lineNum">     624 </span>                :            :                                  * We will let this hold work for the bonus
+<span class="lineNum">     625 </span>                :            :                                  * or spill buffer so that we don't need to
+<span class="lineNum">     626 </span>                :            :                                  * hold it when creating a new object.
+<span class="lineNum">     627 </span>                :            :                                  */
+<span class="lineNum">     628 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 191558 times"> + </span>]:<span class="lineCov">     191558 :                                 if (blkid == DMU_BONUS_BLKID ||</span>
+<span class="lineNum">     629 </span>                :            :                                     blkid == DMU_SPILL_BLKID)
+<span class="lineNum">     630 </span>                :<span class="lineNoCov">          0 :                                         match_offset = TRUE;</span>
+<span class="lineNum">     631 </span>                :            :                                 /*
+<span class="lineNum">     632 </span>                :            :                                  * They might have to increase nlevels,
+<span class="lineNum">     633 </span>                :            :                                  * thus dirtying the new TLIBs.  Or the
+<span class="lineNum">     634 </span>                :            :                                  * might have to change the block size,
+<span class="lineNum">     635 </span>                :            :                                  * thus dirying the new lvl=0 blk=0.
+<span class="lineNum">     636 </span>                :            :                                  */
+<span class="lineNum">     637 </span>        [<span class="branchCov" title="Branch 0 was taken 44286 times"> + </span><span class="branchCov" title="Branch 1 was taken 147272 times"> + </span>]:<span class="lineCov">     191558 :                                 if (blkid == 0)</span>
+<span class="lineNum">     638 </span>                :<span class="lineCov">      44286 :                                         match_offset = TRUE;</span>
+<span class="lineNum">     639 </span>                :            :                                 break;
+<span class="lineNum">     640 </span>                :            :                         case THT_FREE:
+<span class="lineNum">     641 </span>                :            :                                 /*
+<span class="lineNum">     642 </span>                :            :                                  * We will dirty all the level 1 blocks in
+<span class="lineNum">     643 </span>                :            :                                  * the free range and perhaps the first and
+<span class="lineNum">     644 </span>                :            :                                  * last level 0 block.
+<span class="lineNum">     645 </span>                :            :                                  */
+<span class="lineNum">     646 </span>[<span class="branchCov" title="Branch 0 was taken 43589 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 43589 times"> + </span>]:<span class="lineCov">      43589 :                                 if (blkid &gt;= beginblk &amp;&amp; (blkid &lt;= endblk ||</span>
+<span class="lineNum">         </span>        [<span class="branchNoExec" title="Branch 4 was not executed"> # </span><span class="branchNoExec" title="Branch 5 was not executed"> # </span>]
+<span class="lineNum">     647 </span>                :<span class="lineNoCov">          0 :                                     txh-&gt;txh_arg2 == DMU_OBJECT_END))</span>
+<span class="lineNum">     648 </span>                :<span class="lineCov">      43589 :                                         match_offset = TRUE;</span>
+<span class="lineNum">     649 </span>                :            :                                 break;
+<span class="lineNum">     650 </span>                :            :                         case THT_SPILL:
+<span class="lineNum">     651 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                                 if (blkid == DMU_SPILL_BLKID)</span>
+<span class="lineNum">     652 </span>                :<span class="lineNoCov">          0 :                                         match_offset = TRUE;</span>
+<span class="lineNum">     653 </span>                :            :                                 break;
+<span class="lineNum">     654 </span>                :            :                         case THT_BONUS:
+<span class="lineNum">     655 </span>        [<span class="branchCov" title="Branch 0 was taken 5684 times"> + </span><span class="branchCov" title="Branch 1 was taken 1 time"> + </span>]:<span class="lineCov">       5685 :                                 if (blkid == DMU_BONUS_BLKID)</span>
+<span class="lineNum">     656 </span>                :<span class="lineCov">       5684 :                                         match_offset = TRUE;</span>
+<span class="lineNum">     657 </span>                :            :                                 break;
+<span class="lineNum">     658 </span>                :            :                         case THT_ZAP:
+<span class="lineNum">     659 </span>                :            :                                 match_offset = TRUE;
+<span class="lineNum">     660 </span>                :            :                                 break;
+<span class="lineNum">     661 </span>                :            :                         case THT_NEWOBJECT:
+<span class="lineNum">     662 </span>                :<span class="lineCov">      11628 :                                 match_object = TRUE;</span>
+<span class="lineNum">     663 </span>                :<span class="lineCov">      11628 :                                 break;</span>
+<span class="lineNum">     664 </span>                :            :                         default:
+<span class="lineNum">     665 </span>                :<span class="lineNoCov">          0 :                                 cmn_err(CE_PANIC, &quot;bad txh_type %d&quot;,</span>
+<span class="lineNum">     666 </span>                :            :                                     txh-&gt;txh_type);
+<span class="lineNum">     667 </span>                :            :                         }
+<span class="lineNum">     668 </span>                :            :                 }
+<span class="lineNum">     669 </span>        [<span class="branchCov" title="Branch 0 was taken 282037 times"> + </span><span class="branchCov" title="Branch 1 was taken 117677 times"> + </span>]:<span class="lineCov">     399714 :                 if (match_object &amp;&amp; match_offset) {</span>
+<span class="lineNum">     670 </span>                :<span class="lineCov">     282037 :                         DB_DNODE_EXIT(db);</span>
+<span class="lineNum">     671 </span>                :<span class="lineCov">     282083 :                         return;</span>
+<span class="lineNum">     672 </span>                :            :                 }
+<span class="lineNum">     673 </span>                :            :         }
+<span class="lineNum">     674 </span>                :<span class="lineNoCov">          0 :         DB_DNODE_EXIT(db);</span>
+<span class="lineNum">     675 </span>                :<span class="lineNoCov">          0 :         panic(&quot;dirtying dbuf obj=%llx lvl=%u blkid=%llx but not tx_held\n&quot;,</span>
+<span class="lineNum">     676 </span>                :<span class="lineNoCov">          0 :             (u_longlong_t)db-&gt;db.db_object, db-&gt;db_level,</span>
+<span class="lineNum">     677 </span>                :<span class="lineNoCov">          0 :             (u_longlong_t)db-&gt;db_blkid);</span>
+<span class="lineNum">     678 </span>                :            : }
+<span class="lineNum">     679 </span>                :            : #endif
+<span class="lineNum">     680 </span>                :            : 
+<span class="lineNum">     681 </span>                :            : /*
+<span class="lineNum">     682 </span>                :            :  * If we can't do 10 iops, something is wrong.  Let us go ahead
+<span class="lineNum">     683 </span>                :            :  * and hit zfs_dirty_data_max.
+<span class="lineNum">     684 </span>                :            :  */
+<span class="lineNum">     685 </span>                :            : hrtime_t zfs_delay_max_ns = 100 * MICROSEC; /* 100 milliseconds */
+<span class="lineNum">     686 </span>                :            : int zfs_delay_resolution_ns = 100 * 1000; /* 100 microseconds */
+<span class="lineNum">     687 </span>                :            : 
+<span class="lineNum">     688 </span>                :            : /*
+<span class="lineNum">     689 </span>                :            :  * We delay transactions when we've determined that the backend storage
+<span class="lineNum">     690 </span>                :            :  * isn't able to accommodate the rate of incoming writes.
+<span class="lineNum">     691 </span>                :            :  *
+<span class="lineNum">     692 </span>                :            :  * If there is already a transaction waiting, we delay relative to when
+<span class="lineNum">     693 </span>                :            :  * that transaction finishes waiting.  This way the calculated min_time
+<span class="lineNum">     694 </span>                :            :  * is independent of the number of threads concurrently executing
+<span class="lineNum">     695 </span>                :            :  * transactions.
+<span class="lineNum">     696 </span>                :            :  *
+<span class="lineNum">     697 </span>                :            :  * If we are the only waiter, wait relative to when the transaction
+<span class="lineNum">     698 </span>                :            :  * started, rather than the current time.  This credits the transaction for
+<span class="lineNum">     699 </span>                :            :  * &quot;time already served&quot;, e.g. reading indirect blocks.
+<span class="lineNum">     700 </span>                :            :  *
+<span class="lineNum">     701 </span>                :            :  * The minimum time for a transaction to take is calculated as:
+<span class="lineNum">     702 </span>                :            :  *     min_time = scale * (dirty - min) / (max - dirty)
+<span class="lineNum">     703 </span>                :            :  *     min_time is then capped at zfs_delay_max_ns.
+<span class="lineNum">     704 </span>                :            :  *
+<span class="lineNum">     705 </span>                :            :  * The delay has two degrees of freedom that can be adjusted via tunables.
+<span class="lineNum">     706 </span>                :            :  * The percentage of dirty data at which we start to delay is defined by
+<span class="lineNum">     707 </span>                :            :  * zfs_delay_min_dirty_percent. This should typically be at or above
+<span class="lineNum">     708 </span>                :            :  * zfs_vdev_async_write_active_max_dirty_percent so that we only start to
+<span class="lineNum">     709 </span>                :            :  * delay after writing at full speed has failed to keep up with the incoming
+<span class="lineNum">     710 </span>                :            :  * write rate. The scale of the curve is defined by zfs_delay_scale. Roughly
+<span class="lineNum">     711 </span>                :            :  * speaking, this variable determines the amount of delay at the midpoint of
+<span class="lineNum">     712 </span>                :            :  * the curve.
+<span class="lineNum">     713 </span>                :            :  *
+<span class="lineNum">     714 </span>                :            :  * delay
+<span class="lineNum">     715 </span>                :            :  *  10ms +-------------------------------------------------------------*+
+<span class="lineNum">     716 </span>                :            :  *       |                                                             *|
+<span class="lineNum">     717 </span>                :            :  *   9ms +                                                             *+
+<span class="lineNum">     718 </span>                :            :  *       |                                                             *|
+<span class="lineNum">     719 </span>                :            :  *   8ms +                                                             *+
+<span class="lineNum">     720 </span>                :            :  *       |                                                            * |
+<span class="lineNum">     721 </span>                :            :  *   7ms +                                                            * +
+<span class="lineNum">     722 </span>                :            :  *       |                                                            * |
+<span class="lineNum">     723 </span>                :            :  *   6ms +                                                            * +
+<span class="lineNum">     724 </span>                :            :  *       |                                                            * |
+<span class="lineNum">     725 </span>                :            :  *   5ms +                                                           *  +
+<span class="lineNum">     726 </span>                :            :  *       |                                                           *  |
+<span class="lineNum">     727 </span>                :            :  *   4ms +                                                           *  +
+<span class="lineNum">     728 </span>                :            :  *       |                                                           *  |
+<span class="lineNum">     729 </span>                :            :  *   3ms +                                                          *   +
+<span class="lineNum">     730 </span>                :            :  *       |                                                          *   |
+<span class="lineNum">     731 </span>                :            :  *   2ms +                                              (midpoint) *    +
+<span class="lineNum">     732 </span>                :            :  *       |                                                  |    **     |
+<span class="lineNum">     733 </span>                :            :  *   1ms +                                                  v ***       +
+<span class="lineNum">     734 </span>                :            :  *       |             zfs_delay_scale ----------&gt;     ********         |
+<span class="lineNum">     735 </span>                :            :  *     0 +-------------------------------------*********----------------+
+<span class="lineNum">     736 </span>                :            :  *       0%                    &lt;- zfs_dirty_data_max -&gt;               100%
+<span class="lineNum">     737 </span>                :            :  *
+<span class="lineNum">     738 </span>                :            :  * Note that since the delay is added to the outstanding time remaining on the
+<span class="lineNum">     739 </span>                :            :  * most recent transaction, the delay is effectively the inverse of IOPS.
+<span class="lineNum">     740 </span>                :            :  * Here the midpoint of 500us translates to 2000 IOPS. The shape of the curve
+<span class="lineNum">     741 </span>                :            :  * was chosen such that small changes in the amount of accumulated dirty data
+<span class="lineNum">     742 </span>                :            :  * in the first 3/4 of the curve yield relatively small differences in the
+<span class="lineNum">     743 </span>                :            :  * amount of delay.
+<span class="lineNum">     744 </span>                :            :  *
+<span class="lineNum">     745 </span>                :            :  * The effects can be easier to understand when the amount of delay is
+<span class="lineNum">     746 </span>                :            :  * represented on a log scale:
+<span class="lineNum">     747 </span>                :            :  *
+<span class="lineNum">     748 </span>                :            :  * delay
+<span class="lineNum">     749 </span>                :            :  * 100ms +-------------------------------------------------------------++
+<span class="lineNum">     750 </span>                :            :  *       +                                                              +
+<span class="lineNum">     751 </span>                :            :  *       |                                                              |
+<span class="lineNum">     752 </span>                :            :  *       +                                                             *+
+<span class="lineNum">     753 </span>                :            :  *  10ms +                                                             *+
+<span class="lineNum">     754 </span>                :            :  *       +                                                           ** +
+<span class="lineNum">     755 </span>                :            :  *       |                                              (midpoint)  **  |
+<span class="lineNum">     756 </span>                :            :  *       +                                                  |     **    +
+<span class="lineNum">     757 </span>                :            :  *   1ms +                                                  v ****      +
+<span class="lineNum">     758 </span>                :            :  *       +             zfs_delay_scale ----------&gt;        *****         +
+<span class="lineNum">     759 </span>                :            :  *       |                                             ****             |
+<span class="lineNum">     760 </span>                :            :  *       +                                          ****                +
+<span class="lineNum">     761 </span>                :            :  * 100us +                                        **                    +
+<span class="lineNum">     762 </span>                :            :  *       +                                       *                      +
+<span class="lineNum">     763 </span>                :            :  *       |                                      *                       |
+<span class="lineNum">     764 </span>                :            :  *       +                                     *                        +
+<span class="lineNum">     765 </span>                :            :  *  10us +                                     *                        +
+<span class="lineNum">     766 </span>                :            :  *       +                                                              +
+<span class="lineNum">     767 </span>                :            :  *       |                                                              |
+<span class="lineNum">     768 </span>                :            :  *       +                                                              +
+<span class="lineNum">     769 </span>                :            :  *       +--------------------------------------------------------------+
+<span class="lineNum">     770 </span>                :            :  *       0%                    &lt;- zfs_dirty_data_max -&gt;               100%
+<span class="lineNum">     771 </span>                :            :  *
+<span class="lineNum">     772 </span>                :            :  * Note here that only as the amount of dirty data approaches its limit does
+<span class="lineNum">     773 </span>                :            :  * the delay start to increase rapidly. The goal of a properly tuned system
+<span class="lineNum">     774 </span>                :            :  * should be to keep the amount of dirty data out of that range by first
+<span class="lineNum">     775 </span>                :            :  * ensuring that the appropriate limits are set for the I/O scheduler to reach
+<span class="lineNum">     776 </span>                :            :  * optimal throughput on the backend storage, and then by changing the value
+<span class="lineNum">     777 </span>                :            :  * of zfs_delay_scale to increase the steepness of the curve.
+<a name="778"><span class="lineNum">     778 </span>                :            :  */</a>
+<span class="lineNum">     779 </span>                :            : static void
+<span class="lineNum">     780 </span>                :<span class="lineNoCov">          0 : dmu_tx_delay(dmu_tx_t *tx, uint64_t dirty)</span>
+<span class="lineNum">     781 </span>                :            : {
+<span class="lineNum">     782 </span>                :<span class="lineNoCov">          0 :         dsl_pool_t *dp = tx-&gt;tx_pool;</span>
+<span class="lineNum">     783 </span>                :<span class="lineNoCov">          0 :         uint64_t delay_min_bytes =</span>
+<span class="lineNum">     784 </span>                :<span class="lineNoCov">          0 :             zfs_dirty_data_max * zfs_delay_min_dirty_percent / 100;</span>
+<span class="lineNum">     785 </span>                :            :         hrtime_t wakeup, min_tx_time, now;
+<span class="lineNum">     786 </span>                :            : 
+<span class="lineNum">     787 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (dirty &lt;= delay_min_bytes)</span>
+<span class="lineNum">     788 </span>                :            :                 return;
+<span class="lineNum">     789 </span>                :            : 
+<span class="lineNum">     790 </span>                :            :         /*
+<span class="lineNum">     791 </span>                :            :          * The caller has already waited until we are under the max.
+<span class="lineNum">     792 </span>                :            :          * We make them pass us the amount of dirty data so we don't
+<span class="lineNum">     793 </span>                :            :          * have to handle the case of it being &gt;= the max, which could
+<span class="lineNum">     794 </span>                :            :          * cause a divide-by-zero if it's == the max.
+<span class="lineNum">     795 </span>                :            :          */
+<span class="lineNum">     796 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT3U(dirty, &lt;, zfs_dirty_data_max);</span>
+<span class="lineNum">     797 </span>                :            : 
+<span class="lineNum">     798 </span>                :<span class="lineNoCov">          0 :         now = gethrtime();</span>
+<span class="lineNum">     799 </span>                :<span class="lineNoCov">          0 :         min_tx_time = zfs_delay_scale *</span>
+<span class="lineNum">     800 </span>                :<span class="lineNoCov">          0 :             (dirty - delay_min_bytes) / (zfs_dirty_data_max - dirty);</span>
+<span class="lineNum">     801 </span>                :<span class="lineNoCov">          0 :         min_tx_time = MIN(min_tx_time, zfs_delay_max_ns);</span>
+<span class="lineNum">     802 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (now &gt; tx-&gt;tx_start + min_tx_time)</span>
+<span class="lineNum">     803 </span>                :            :                 return;
+<span class="lineNum">     804 </span>                :            : 
+<span class="lineNum">     805 </span>                :            :         DTRACE_PROBE3(delay__mintime, dmu_tx_t *, tx, uint64_t, dirty,
+<span class="lineNum">     806 </span>                :            :             uint64_t, min_tx_time);
+<span class="lineNum">     807 </span>                :            : 
+<span class="lineNum">     808 </span>                :<span class="lineNoCov">          0 :         mutex_enter(&amp;dp-&gt;dp_lock);</span>
+<span class="lineNum">     809 </span>                :<span class="lineNoCov">          0 :         wakeup = MAX(tx-&gt;tx_start + min_tx_time,</span>
+<span class="lineNum">     810 </span>                :            :             dp-&gt;dp_last_wakeup + min_tx_time);
+<span class="lineNum">     811 </span>                :<span class="lineNoCov">          0 :         dp-&gt;dp_last_wakeup = wakeup;</span>
+<span class="lineNum">     812 </span>                :<span class="lineNoCov">          0 :         mutex_exit(&amp;dp-&gt;dp_lock);</span>
+<span class="lineNum">     813 </span>                :            : 
+<span class="lineNum">     814 </span>                :<span class="lineNoCov">          0 :         zfs_sleep_until(wakeup);</span>
+<span class="lineNum">     815 </span>                :            : }
+<span class="lineNum">     816 </span>                :            : 
+<span class="lineNum">     817 </span>                :            : /*
+<span class="lineNum">     818 </span>                :            :  * This routine attempts to assign the transaction to a transaction group.
+<span class="lineNum">     819 </span>                :            :  * To do so, we must determine if there is sufficient free space on disk.
+<span class="lineNum">     820 </span>                :            :  *
+<span class="lineNum">     821 </span>                :            :  * If this is a &quot;netfree&quot; transaction (i.e. we called dmu_tx_mark_netfree()
+<span class="lineNum">     822 </span>                :            :  * on it), then it is assumed that there is sufficient free space,
+<span class="lineNum">     823 </span>                :            :  * unless there's insufficient slop space in the pool (see the comment
+<span class="lineNum">     824 </span>                :            :  * above spa_slop_shift in spa_misc.c).
+<span class="lineNum">     825 </span>                :            :  *
+<span class="lineNum">     826 </span>                :            :  * If it is not a &quot;netfree&quot; transaction, then if the data already on disk
+<span class="lineNum">     827 </span>                :            :  * is over the allowed usage (e.g. quota), this will fail with EDQUOT or
+<span class="lineNum">     828 </span>                :            :  * ENOSPC.  Otherwise, if the current rough estimate of pending changes,
+<span class="lineNum">     829 </span>                :            :  * plus the rough estimate of this transaction's changes, may exceed the
+<span class="lineNum">     830 </span>                :            :  * allowed usage, then this will fail with ERESTART, which will cause the
+<span class="lineNum">     831 </span>                :            :  * caller to wait for the pending changes to be written to disk (by waiting
+<span class="lineNum">     832 </span>                :            :  * for the next TXG to open), and then check the space usage again.
+<span class="lineNum">     833 </span>                :            :  *
+<span class="lineNum">     834 </span>                :            :  * The rough estimate of pending changes is comprised of the sum of:
+<span class="lineNum">     835 </span>                :            :  *
+<span class="lineNum">     836 </span>                :            :  *  - this transaction's holds' txh_space_towrite
+<span class="lineNum">     837 </span>                :            :  *
+<span class="lineNum">     838 </span>                :            :  *  - dd_tempreserved[], which is the sum of in-flight transactions'
+<span class="lineNum">     839 </span>                :            :  *    holds' txh_space_towrite (i.e. those transactions that have called
+<span class="lineNum">     840 </span>                :            :  *    dmu_tx_assign() but not yet called dmu_tx_commit()).
+<span class="lineNum">     841 </span>                :            :  *
+<span class="lineNum">     842 </span>                :            :  *  - dd_space_towrite[], which is the amount of dirtied dbufs.
+<span class="lineNum">     843 </span>                :            :  *
+<span class="lineNum">     844 </span>                :            :  * Note that all of these values are inflated by spa_get_worst_case_asize(),
+<span class="lineNum">     845 </span>                :            :  * which means that we may get ERESTART well before we are actually in danger
+<span class="lineNum">     846 </span>                :            :  * of running out of space, but this also mitigates any small inaccuracies
+<span class="lineNum">     847 </span>                :            :  * in the rough estimate (e.g. txh_space_towrite doesn't take into account
+<span class="lineNum">     848 </span>                :            :  * indirect blocks, and dd_space_towrite[] doesn't take into account changes
+<span class="lineNum">     849 </span>                :            :  * to the MOS).
+<span class="lineNum">     850 </span>                :            :  *
+<span class="lineNum">     851 </span>                :            :  * Note that due to this algorithm, it is possible to exceed the allowed
+<span class="lineNum">     852 </span>                :            :  * usage by one transaction.  Also, as we approach the allowed usage,
+<span class="lineNum">     853 </span>                :            :  * we will allow a very limited amount of changes into each TXG, thus
+<span class="lineNum">     854 </span>                :            :  * decreasing performance.
+<a name="855"><span class="lineNum">     855 </span>                :            :  */</a>
+<span class="lineNum">     856 </span>                :            : static int
+<span class="lineNum">     857 </span>                :<span class="lineCov">     298598 : dmu_tx_try_assign(dmu_tx_t *tx, txg_how_t txg_how)</span>
+<span class="lineNum">     858 </span>                :            : {
+<span class="lineNum">     859 </span>                :<span class="lineCov">     298598 :         spa_t *spa = tx-&gt;tx_pool-&gt;dp_spa;</span>
+<span class="lineNum">     860 </span>                :            : 
+<span class="lineNum">     861 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 298598 times"> + </span>]:<span class="lineCov">     298598 :         ASSERT0(tx-&gt;tx_txg);</span>
+<span class="lineNum">     862 </span>                :            : 
+<span class="lineNum">     863 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 298598 times"> + </span>]:<span class="lineCov">     298598 :         if (tx-&gt;tx_err) {</span>
+<span class="lineNum">     864 </span>                :<span class="lineNoCov">          0 :                 DMU_TX_STAT_BUMP(dmu_tx_error);</span>
+<span class="lineNum">     865 </span>                :<span class="lineNoCov">          0 :                 return (tx-&gt;tx_err);</span>
+<span class="lineNum">     866 </span>                :            :         }
+<span class="lineNum">     867 </span>                :            : 
+<span class="lineNum">     868 </span>        [<span class="branchCov" title="Branch 1 was taken 14 times"> + </span><span class="branchCov" title="Branch 2 was taken 298570 times"> + </span>]:<span class="lineCov">     298598 :         if (spa_suspended(spa)) {</span>
+<span class="lineNum">     869 </span>                :<span class="lineCov">         14 :                 DMU_TX_STAT_BUMP(dmu_tx_suspended);</span>
+<span class="lineNum">     870 </span>                :            : 
+<span class="lineNum">     871 </span>                :            :                 /*
+<span class="lineNum">     872 </span>                :            :                  * If the user has indicated a blocking failure mode
+<span class="lineNum">     873 </span>                :            :                  * then return ERESTART which will block in dmu_tx_wait().
+<span class="lineNum">     874 </span>                :            :                  * Otherwise, return EIO so that an error can get
+<span class="lineNum">     875 </span>                :            :                  * propagated back to the VOP calls.
+<span class="lineNum">     876 </span>                :            :                  *
+<span class="lineNum">     877 </span>                :            :                  * Note that we always honor the txg_how flag regardless
+<span class="lineNum">     878 </span>                :            :                  * of the failuremode setting.
+<span class="lineNum">     879 </span>                :            :                  */
+<span class="lineNum">     880 </span>[<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 14 times"> + </span>][<span class="branchNoExec" title="Branch 3 was not executed"> # </span><span class="branchNoExec" title="Branch 4 was not executed"> # </span>]:<span class="lineCov">         14 :                 if (spa_get_failmode(spa) == ZIO_FAILURE_MODE_CONTINUE &amp;&amp;</span>
+<span class="lineNum">     881 </span>                :            :                     txg_how != TXG_WAIT)
+<span class="lineNum">     882 </span>                :<span class="lineNoCov">          0 :                         return (SET_ERROR(EIO));</span>
+<span class="lineNum">     883 </span>                :            : 
+<span class="lineNum">     884 </span>                :<span class="lineCov">         14 :                 return (SET_ERROR(ERESTART));</span>
+<span class="lineNum">     885 </span>                :            :         }
+<span class="lineNum">     886 </span>                :            : 
+<span class="lineNum">     887 </span>  [<span class="branchCov" title="Branch 0 was taken 298448 times"> + </span><span class="branchCov" title="Branch 1 was taken 122 times"> + </span><span class="branchNoCov" title="Branch 2 was not taken"> - </span><span class="branchCov" title="Branch 3 was taken 298528 times"> + </span>]:<span class="lineCov">     597098 :         if (!tx-&gt;tx_waited &amp;&amp;</span>
+<span class="lineNum">     888 </span>                :<span class="lineCov">     298448 :             dsl_pool_need_dirty_delay(tx-&gt;tx_pool)) {</span>
+<span class="lineNum">     889 </span>                :<span class="lineNoCov">          0 :                 tx-&gt;tx_wait_dirty = B_TRUE;</span>
+<span class="lineNum">     890 </span>                :<span class="lineNoCov">          0 :                 DMU_TX_STAT_BUMP(dmu_tx_dirty_delay);</span>
+<span class="lineNum">     891 </span>                :<span class="lineNoCov">          0 :                 return (SET_ERROR(ERESTART));</span>
+<span class="lineNum">     892 </span>                :            :         }
+<span class="lineNum">     893 </span>                :            : 
+<span class="lineNum">     894 </span>                :<span class="lineCov">     298650 :         tx-&gt;tx_txg = txg_hold_open(tx-&gt;tx_pool, &amp;tx-&gt;tx_txgh);</span>
+<span class="lineNum">     895 </span>                :<span class="lineCov">     298654 :         tx-&gt;tx_needassign_txh = NULL;</span>
+<span class="lineNum">     896 </span>                :            : 
+<span class="lineNum">     897 </span>                :            :         /*
+<span class="lineNum">     898 </span>                :            :          * NB: No error returns are allowed after txg_hold_open, but
+<span class="lineNum">     899 </span>                :            :          * before processing the dnode holds, due to the
+<span class="lineNum">     900 </span>                :            :          * dmu_tx_unassign() logic.
+<span class="lineNum">     901 </span>                :            :          */
+<span class="lineNum">     902 </span>                :            : 
+<span class="lineNum">     903 </span>                :<span class="lineCov">     298654 :         uint64_t towrite = 0;</span>
+<span class="lineNum">     904 </span>                :<span class="lineCov">     298654 :         uint64_t tohold = 0;</span>
+<span class="lineNum">     905 </span>        [<span class="branchCov" title="Branch 1 was taken 344210 times"> + </span><span class="branchCov" title="Branch 2 was taken 298540 times"> + </span>]:<span class="lineCov">     642750 :         for (dmu_tx_hold_t *txh = list_head(&amp;tx-&gt;tx_holds); txh != NULL;</span>
+<span class="lineNum">     906 </span>                :<span class="lineCov">     344096 :             txh = list_next(&amp;tx-&gt;tx_holds, txh)) {</span>
+<span class="lineNum">     907 </span>                :<span class="lineCov">     344210 :                 dnode_t *dn = txh-&gt;txh_dnode;</span>
+<span class="lineNum">     908 </span>        [<span class="branchCov" title="Branch 0 was taken 315690 times"> + </span><span class="branchCov" title="Branch 1 was taken 28520 times"> + </span>]:<span class="lineCov">     344210 :                 if (dn != NULL) {</span>
+<span class="lineNum">     909 </span>                :<span class="lineCov">     315690 :                         mutex_enter(&amp;dn-&gt;dn_mtx);</span>
+<span class="lineNum">     910 </span>        [<span class="branchCov" title="Branch 0 was taken 114 times"> + </span><span class="branchCov" title="Branch 1 was taken 315576 times"> + </span>]:<span class="lineCov">     315690 :                         if (dn-&gt;dn_assigned_txg == tx-&gt;tx_txg - 1) {</span>
+<span class="lineNum">     911 </span>                :<span class="lineCov">        114 :                                 mutex_exit(&amp;dn-&gt;dn_mtx);</span>
+<span class="lineNum">     912 </span>                :<span class="lineCov">        114 :                                 tx-&gt;tx_needassign_txh = txh;</span>
+<span class="lineNum">     913 </span>                :<span class="lineCov">        114 :                                 DMU_TX_STAT_BUMP(dmu_tx_group);</span>
+<span class="lineNum">     914 </span>                :<span class="lineCov">        114 :                                 return (SET_ERROR(ERESTART));</span>
+<span class="lineNum">     915 </span>                :            :                         }
+<span class="lineNum">     916 </span>        [<span class="branchCov" title="Branch 0 was taken 312833 times"> + </span><span class="branchCov" title="Branch 1 was taken 2743 times"> + </span>]:<span class="lineCov">     315576 :                         if (dn-&gt;dn_assigned_txg == 0)</span>
+<span class="lineNum">     917 </span>                :<span class="lineCov">     312833 :                                 dn-&gt;dn_assigned_txg = tx-&gt;tx_txg;</span>
+<span class="lineNum">     918 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 315576 times"> + </span>]:<span class="lineCov">     315576 :                         ASSERT3U(dn-&gt;dn_assigned_txg, ==, tx-&gt;tx_txg);</span>
+<span class="lineNum">     919 </span>                :<span class="lineCov">     315576 :                         (void) refcount_add(&amp;dn-&gt;dn_tx_holds, tx);</span>
+<span class="lineNum">     920 </span>                :<span class="lineCov">     315576 :                         mutex_exit(&amp;dn-&gt;dn_mtx);</span>
+<span class="lineNum">     921 </span>                :            :                 }
+<span class="lineNum">     922 </span>                :<span class="lineCov">     344096 :                 towrite += refcount_count(&amp;txh-&gt;txh_space_towrite);</span>
+<span class="lineNum">     923 </span>                :<span class="lineCov">     344096 :                 tohold += refcount_count(&amp;txh-&gt;txh_memory_tohold);</span>
+<span class="lineNum">     924 </span>                :            :         }
+<span class="lineNum">     925 </span>                :            : 
+<span class="lineNum">     926 </span>                :            :         /* needed allocation: worst-case estimate of write space */
+<span class="lineNum">     927 </span>                :<span class="lineCov">     298540 :         uint64_t asize = spa_get_worst_case_asize(tx-&gt;tx_pool-&gt;dp_spa, towrite);</span>
+<span class="lineNum">     928 </span>                :            :         /* calculate memory footprint estimate */
+<span class="lineNum">     929 </span>                :<span class="lineCov">     298540 :         uint64_t memory = towrite + tohold;</span>
+<span class="lineNum">     930 </span>                :            : 
+<span class="lineNum">     931 </span>[<span class="branchCov" title="Branch 0 was taken 298540 times"> + </span><span class="branchNoCov" title="Branch 1 was not taken"> - </span>][<span class="branchCov" title="Branch 2 was taken 289133 times"> + </span><span class="branchCov" title="Branch 3 was taken 9407 times"> + </span>]:<span class="lineCov">     298540 :         if (tx-&gt;tx_dir != NULL &amp;&amp; asize != 0) {</span>
+<span class="lineNum">     932 </span>                :<span class="lineCov">     289133 :                 int err = dsl_dir_tempreserve_space(tx-&gt;tx_dir, memory,</span>
+<span class="lineNum">     933 </span>                :            :                     asize, tx-&gt;tx_netfree, &amp;tx-&gt;tx_tempreserve_cookie, tx);
+<span class="lineNum">     934 </span>        [<span class="branchCov" title="Branch 0 was taken 99148 times"> + </span><span class="branchCov" title="Branch 1 was taken 189985 times"> + </span>]:<span class="lineCov">     289133 :                 if (err != 0)</span>
+<span class="lineNum">     935 </span>                :            :                         return (err);
+<span class="lineNum">     936 </span>                :            :         }
+<span class="lineNum">     937 </span>                :            : 
+<span class="lineNum">     938 </span>                :<span class="lineCov">     108555 :         DMU_TX_STAT_BUMP(dmu_tx_assigned);</span>
+<span class="lineNum">     939 </span>                :            : 
+<span class="lineNum">     940 </span>                :<span class="lineCov">     108555 :         return (0);</span>
+<span class="lineNum">     941 </span>                :            : }
+<a name="942"><span class="lineNum">     942 </span>                :            : </a>
+<span class="lineNum">     943 </span>                :            : static void
+<span class="lineNum">     944 </span>                :<span class="lineCov">     190113 : dmu_tx_unassign(dmu_tx_t *tx)</span>
+<span class="lineNum">     945 </span>                :            : {
+<span class="lineNum">     946 </span>        [<span class="branchCov" title="Branch 0 was taken 190099 times"> + </span><span class="branchCov" title="Branch 1 was taken 14 times"> + </span>]:<span class="lineCov">     190113 :         if (tx-&gt;tx_txg == 0)</span>
+<span class="lineNum">     947 </span>                :            :                 return;
+<span class="lineNum">     948 </span>                :            : 
+<span class="lineNum">     949 </span>                :<span class="lineCov">     190099 :         txg_rele_to_quiesce(&amp;tx-&gt;tx_txgh);</span>
+<span class="lineNum">     950 </span>                :            : 
+<span class="lineNum">     951 </span>                :            :         /*
+<span class="lineNum">     952 </span>                :            :          * Walk the transaction's hold list, removing the hold on the
+<span class="lineNum">     953 </span>                :            :          * associated dnode, and notifying waiters if the refcount drops to 0.
+<span class="lineNum">     954 </span>                :            :          */
+<span class="lineNum">     955 </span>        [<span class="branchCov" title="Branch 1 was taken 231132 times"> + </span><span class="branchCov" title="Branch 2 was taken 189978 times"> + </span>]:<span class="lineCov">     421112 :         for (dmu_tx_hold_t *txh = list_head(&amp;tx-&gt;tx_holds);</span>
+<span class="lineNum">     956 </span>        [<span class="branchCov" title="Branch 0 was taken 231023 times"> + </span><span class="branchCov" title="Branch 1 was taken 109 times"> + </span>]:<span class="lineCov">     231132 :             txh &amp;&amp; txh != tx-&gt;tx_needassign_txh;</span>
+<span class="lineNum">     957 </span>                :<span class="lineCov">     231044 :             txh = list_next(&amp;tx-&gt;tx_holds, txh)) {</span>
+<span class="lineNum">     958 </span>                :<span class="lineCov">     231023 :                 dnode_t *dn = txh-&gt;txh_dnode;</span>
+<span class="lineNum">     959 </span>                :            : 
+<span class="lineNum">     960 </span>        [<span class="branchCov" title="Branch 0 was taken 20695 times"> + </span><span class="branchCov" title="Branch 1 was taken 210328 times"> + </span>]:<span class="lineCov">     231023 :                 if (dn == NULL)</span>
+<span class="lineNum">     961 </span>                :<span class="lineCov">      20695 :                         continue;</span>
+<span class="lineNum">     962 </span>                :<span class="lineCov">     210328 :                 mutex_enter(&amp;dn-&gt;dn_mtx);</span>
+<span class="lineNum">     963 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 210351 times"> + </span>]:<span class="lineCov">     210351 :                 ASSERT3U(dn-&gt;dn_assigned_txg, ==, tx-&gt;tx_txg);</span>
+<span class="lineNum">     964 </span>                :            : 
+<span class="lineNum">     965 </span>        [<span class="branchCov" title="Branch 1 was taken 208639 times"> + </span><span class="branchCov" title="Branch 2 was taken 1713 times"> + </span>]:<span class="lineCov">     210351 :                 if (refcount_remove(&amp;dn-&gt;dn_tx_holds, tx) == 0) {</span>
+<span class="lineNum">     966 </span>                :<span class="lineCov">     208639 :                         dn-&gt;dn_assigned_txg = 0;</span>
+<span class="lineNum">     967 </span>                :<span class="lineCov">     208639 :                         cv_broadcast(&amp;dn-&gt;dn_notxholds);</span>
+<span class="lineNum">     968 </span>                :            :                 }
+<span class="lineNum">     969 </span>                :<span class="lineCov">     210353 :                 mutex_exit(&amp;dn-&gt;dn_mtx);</span>
+<span class="lineNum">     970 </span>                :            :         }
+<span class="lineNum">     971 </span>                :            : 
+<span class="lineNum">     972 </span>                :<span class="lineCov">     190087 :         txg_rele_to_sync(&amp;tx-&gt;tx_txgh);</span>
+<span class="lineNum">     973 </span>                :            : 
+<span class="lineNum">     974 </span>                :<span class="lineCov">     190098 :         tx-&gt;tx_lasttried_txg = tx-&gt;tx_txg;</span>
+<span class="lineNum">     975 </span>                :<span class="lineCov">     190098 :         tx-&gt;tx_txg = 0;</span>
+<span class="lineNum">     976 </span>                :            : }
+<span class="lineNum">     977 </span>                :            : 
+<span class="lineNum">     978 </span>                :            : /*
+<span class="lineNum">     979 </span>                :            :  * Assign tx to a transaction group.  txg_how can be one of:
+<span class="lineNum">     980 </span>                :            :  *
+<span class="lineNum">     981 </span>                :            :  * (1)  TXG_WAIT.  If the current open txg is full, waits until there's
+<span class="lineNum">     982 </span>                :            :  *      a new one.  This should be used when you're not holding locks.
+<span class="lineNum">     983 </span>                :            :  *      It will only fail if we're truly out of space (or over quota).
+<span class="lineNum">     984 </span>                :            :  *
+<span class="lineNum">     985 </span>                :            :  * (2)  TXG_NOWAIT.  If we can't assign into the current open txg without
+<span class="lineNum">     986 </span>                :            :  *      blocking, returns immediately with ERESTART.  This should be used
+<span class="lineNum">     987 </span>                :            :  *      whenever you're holding locks.  On an ERESTART error, the caller
+<span class="lineNum">     988 </span>                :            :  *      should drop locks, do a dmu_tx_wait(tx), and try again.
+<span class="lineNum">     989 </span>                :            :  *
+<span class="lineNum">     990 </span>                :            :  * (3)  TXG_WAITED.  Like TXG_NOWAIT, but indicates that dmu_tx_wait()
+<span class="lineNum">     991 </span>                :            :  *      has already been called on behalf of this operation (though
+<span class="lineNum">     992 </span>                :            :  *      most likely on a different tx).
+<a name="993"><span class="lineNum">     993 </span>                :            :  */</a>
+<span class="lineNum">     994 </span>                :            : int
+<span class="lineNum">     995 </span>                :<span class="lineCov">     110433 : dmu_tx_assign(dmu_tx_t *tx, txg_how_t txg_how)</span>
+<span class="lineNum">     996 </span>                :            : {
+<span class="lineNum">     997 </span>                :            :         int err;
+<span class="lineNum">     998 </span>                :            : 
+<span class="lineNum">     999 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 110433 times"> + </span>]:<span class="lineCov">     110433 :         ASSERT(tx-&gt;tx_txg == 0);</span>
+<span class="lineNum">    1000 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 110433 times"> + </span>]:<span class="lineCov">     110433 :         ASSERT(txg_how == TXG_WAIT || txg_how == TXG_NOWAIT ||</span>
+<span class="lineNum">    1001 </span>                :            :             txg_how == TXG_WAITED);
+<span class="lineNum">    1002 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 110434 times"> + </span>]:<span class="lineCov">     110433 :         ASSERT(!dsl_pool_sync_context(tx-&gt;tx_pool));</span>
+<span class="lineNum">    1003 </span>                :            : 
+<span class="lineNum">    1004 </span>        [<span class="branchCov" title="Branch 0 was taken 123 times"> + </span><span class="branchCov" title="Branch 1 was taken 110311 times"> + </span>]:<span class="lineCov">     110434 :         if (txg_how == TXG_WAITED)</span>
+<span class="lineNum">    1005 </span>                :<span class="lineCov">        123 :                 tx-&gt;tx_waited = B_TRUE;</span>
+<span class="lineNum">    1006 </span>                :            : 
+<span class="lineNum">    1007 </span>                :            :         /* If we might wait, we must not hold the config lock. */
+<span class="lineNum">    1008 </span>[<span class="branchCov" title="Branch 0 was taken 104361 times"> + </span><span class="branchCov" title="Branch 1 was taken 6073 times"> + </span>][<span class="branchCov" title="Branch 3 was taken 104378 times"> + </span><span class="branchNoCov" title="Branch 4 was not taken"> - </span>]:<span class="lineCov">     110434 :         ASSERT(txg_how != TXG_WAIT || !dsl_pool_config_held(tx-&gt;tx_pool));</span>
+<span class="lineNum">    1009 </span>                :            : 
+<span class="lineNum">    1010 </span>        [<span class="branchCov" title="Branch 1 was taken 190113 times"> + </span><span class="branchCov" title="Branch 2 was taken 108555 times"> + </span>]:<span class="lineCov">     298622 :         while ((err = dmu_tx_try_assign(tx, txg_how)) != 0) {</span>
+<span class="lineNum">    1011 </span>                :<span class="lineCov">     190113 :                 dmu_tx_unassign(tx);</span>
+<span class="lineNum">    1012 </span>                :            : 
+<span class="lineNum">    1013 </span>        [<span class="branchCov" title="Branch 0 was taken 188215 times"> + </span><span class="branchCov" title="Branch 1 was taken 1896 times"> + </span>]:<span class="lineCov">     190111 :                 if (err != ERESTART || txg_how != TXG_WAIT)</span>
+<span class="lineNum">    1014 </span>                :            :                         return (err);
+<span class="lineNum">    1015 </span>                :            : 
+<span class="lineNum">    1016 </span>                :<span class="lineCov">     188215 :                 dmu_tx_wait(tx);</span>
+<span class="lineNum">    1017 </span>                :            :         }
+<span class="lineNum">    1018 </span>                :            : 
+<span class="lineNum">    1019 </span>                :<span class="lineCov">     108555 :         txg_rele_to_quiesce(&amp;tx-&gt;tx_txgh);</span>
+<span class="lineNum">    1020 </span>                :            : 
+<span class="lineNum">    1021 </span>                :<span class="lineCov">     108553 :         return (0);</span>
+<span class="lineNum">    1022 </span>                :            : }
+<a name="1023"><span class="lineNum">    1023 </span>                :            : </a>
+<span class="lineNum">    1024 </span>                :            : void
+<span class="lineNum">    1025 </span>                :<span class="lineCov">     189345 : dmu_tx_wait(dmu_tx_t *tx)</span>
+<span class="lineNum">    1026 </span>                :            : {
+<span class="lineNum">    1027 </span>                :<span class="lineCov">     189345 :         spa_t *spa = tx-&gt;tx_pool-&gt;dp_spa;</span>
+<span class="lineNum">    1028 </span>                :<span class="lineCov">     189345 :         dsl_pool_t *dp = tx-&gt;tx_pool;</span>
+<span class="lineNum">    1029 </span>                :            :         hrtime_t before;
+<span class="lineNum">    1030 </span>                :            : 
+<span class="lineNum">    1031 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 189345 times"> + </span>]:<span class="lineCov">     189345 :         ASSERT(tx-&gt;tx_txg == 0);</span>
+<span class="lineNum">    1032 </span>        [<span class="branchNoCov" title="Branch 1 was not taken"> - </span><span class="branchCov" title="Branch 2 was taken 189348 times"> + </span>]:<span class="lineCov">     189345 :         ASSERT(!dsl_pool_config_held(tx-&gt;tx_pool));</span>
+<span class="lineNum">    1033 </span>                :            : 
+<span class="lineNum">    1034 </span>                :<span class="lineCov">     189348 :         before = gethrtime();</span>
+<span class="lineNum">    1035 </span>                :            : 
+<span class="lineNum">    1036 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 189337 times"> + </span>]:<span class="lineCov">     189337 :         if (tx-&gt;tx_wait_dirty) {</span>
+<span class="lineNum">    1037 </span>                :            :                 uint64_t dirty;
+<span class="lineNum">    1038 </span>                :            : 
+<span class="lineNum">    1039 </span>                :            :                 /*
+<span class="lineNum">    1040 </span>                :            :                  * dmu_tx_try_assign() has determined that we need to wait
+<span class="lineNum">    1041 </span>                :            :                  * because we've consumed much or all of the dirty buffer
+<span class="lineNum">    1042 </span>                :            :                  * space.
+<span class="lineNum">    1043 </span>                :            :                  */
+<span class="lineNum">    1044 </span>                :<span class="lineNoCov">          0 :                 mutex_enter(&amp;dp-&gt;dp_lock);</span>
+<span class="lineNum">    1045 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (dp-&gt;dp_dirty_total &gt;= zfs_dirty_data_max)</span>
+<span class="lineNum">    1046 </span>                :<span class="lineNoCov">          0 :                         DMU_TX_STAT_BUMP(dmu_tx_dirty_over_max);</span>
+<span class="lineNum">    1047 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 while (dp-&gt;dp_dirty_total &gt;= zfs_dirty_data_max)</span>
+<span class="lineNum">    1048 </span>                :<span class="lineNoCov">          0 :                         cv_wait(&amp;dp-&gt;dp_spaceavail_cv, &amp;dp-&gt;dp_lock);</span>
+<span class="lineNum">    1049 </span>                :<span class="lineNoCov">          0 :                 dirty = dp-&gt;dp_dirty_total;</span>
+<span class="lineNum">    1050 </span>                :<span class="lineNoCov">          0 :                 mutex_exit(&amp;dp-&gt;dp_lock);</span>
+<span class="lineNum">    1051 </span>                :            : 
+<span class="lineNum">    1052 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_delay(tx, dirty);</span>
+<span class="lineNum">    1053 </span>                :            : 
+<span class="lineNum">    1054 </span>                :<span class="lineNoCov">          0 :                 tx-&gt;tx_wait_dirty = B_FALSE;</span>
+<span class="lineNum">    1055 </span>                :            : 
+<span class="lineNum">    1056 </span>                :            :                 /*
+<span class="lineNum">    1057 </span>                :            :                  * Note: setting tx_waited only has effect if the caller
+<span class="lineNum">    1058 </span>                :            :                  * used TX_WAIT.  Otherwise they are going to destroy
+<span class="lineNum">    1059 </span>                :            :                  * this tx and try again.  The common case, zfs_write(),
+<span class="lineNum">    1060 </span>                :            :                  * uses TX_WAIT.
+<span class="lineNum">    1061 </span>                :            :                  */
+<span class="lineNum">    1062 </span>                :<span class="lineNoCov">          0 :                 tx-&gt;tx_waited = B_TRUE;</span>
+<span class="lineNum">    1063 </span>[<span class="branchCov" title="Branch 1 was taken 189321 times"> + </span><span class="branchCov" title="Branch 2 was taken 11 times"> + </span>][<span class="branchNoCov" title="Branch 3 was not taken"> - </span><span class="branchCov" title="Branch 4 was taken 189321 times"> + </span>]:<span class="lineCov">     189337 :         } else if (spa_suspended(spa) || tx-&gt;tx_lasttried_txg == 0) {</span>
+<span class="lineNum">    1064 </span>                :            :                 /*
+<span class="lineNum">    1065 </span>                :            :                  * If the pool is suspended we need to wait until it
+<span class="lineNum">    1066 </span>                :            :                  * is resumed.  Note that it's possible that the pool
+<span class="lineNum">    1067 </span>                :            :                  * has become active after this thread has tried to
+<span class="lineNum">    1068 </span>                :            :                  * obtain a tx.  If that's the case then tx_lasttried_txg
+<span class="lineNum">    1069 </span>                :            :                  * would not have been set.
+<span class="lineNum">    1070 </span>                :            :                  */
+<span class="lineNum">    1071 </span>                :<span class="lineCov">         11 :                 txg_wait_synced(dp, spa_last_synced_txg(spa) + 1);</span>
+<span class="lineNum">    1072 </span>        [<span class="branchCov" title="Branch 0 was taken 114 times"> + </span><span class="branchCov" title="Branch 1 was taken 189207 times"> + </span>]:<span class="lineCov">     189321 :         } else if (tx-&gt;tx_needassign_txh) {</span>
+<span class="lineNum">    1073 </span>                :<span class="lineCov">        114 :                 dnode_t *dn = tx-&gt;tx_needassign_txh-&gt;txh_dnode;</span>
+<span class="lineNum">    1074 </span>                :            : 
+<span class="lineNum">    1075 </span>                :<span class="lineCov">        114 :                 mutex_enter(&amp;dn-&gt;dn_mtx);</span>
+<span class="lineNum">    1076 </span>        [<span class="branchCov" title="Branch 0 was taken 112 times"> + </span><span class="branchCov" title="Branch 1 was taken 114 times"> + </span>]:<span class="lineCov">        226 :                 while (dn-&gt;dn_assigned_txg == tx-&gt;tx_lasttried_txg - 1)</span>
+<span class="lineNum">    1077 </span>                :<span class="lineCov">        112 :                         cv_wait(&amp;dn-&gt;dn_notxholds, &amp;dn-&gt;dn_mtx);</span>
+<span class="lineNum">    1078 </span>                :<span class="lineCov">        114 :                 mutex_exit(&amp;dn-&gt;dn_mtx);</span>
+<span class="lineNum">    1079 </span>                :<span class="lineCov">        114 :                 tx-&gt;tx_needassign_txh = NULL;</span>
+<span class="lineNum">    1080 </span>                :            :         } else {
+<span class="lineNum">    1081 </span>                :            :                 /*
+<span class="lineNum">    1082 </span>                :            :                  * A dnode is assigned to the quiescing txg.  Wait for its
+<span class="lineNum">    1083 </span>                :            :                  * transaction to complete.
+<span class="lineNum">    1084 </span>                :            :                  */
+<span class="lineNum">    1085 </span>                :<span class="lineCov">     189207 :                 txg_wait_open(tx-&gt;tx_pool, tx-&gt;tx_lasttried_txg + 1);</span>
+<span class="lineNum">    1086 </span>                :            :         }
+<span class="lineNum">    1087 </span>                :            : 
+<span class="lineNum">    1088 </span>                :<span class="lineCov">     189264 :         spa_tx_assign_add_nsecs(spa, gethrtime() - before);</span>
+<span class="lineNum">    1089 </span>                :<span class="lineCov">     189324 : }</span>
+<a name="1090"><span class="lineNum">    1090 </span>                :            : </a>
+<span class="lineNum">    1091 </span>                :            : static void
+<span class="lineNum">    1092 </span>                :<span class="lineCov">     318364 : dmu_tx_destroy(dmu_tx_t *tx)</span>
+<span class="lineNum">    1093 </span>                :            : {
+<span class="lineNum">    1094 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">    1095 </span>                :            : 
+<span class="lineNum">    1096 </span>        [<span class="branchCov" title="Branch 1 was taken 122787 times"> + </span><span class="branchCov" title="Branch 2 was taken 318361 times"> + </span>]:<span class="lineCov">     759491 :         while ((txh = list_head(&amp;tx-&gt;tx_holds)) != NULL) {</span>
+<span class="lineNum">    1097 </span>                :<span class="lineCov">     122787 :                 dnode_t *dn = txh-&gt;txh_dnode;</span>
+<span class="lineNum">    1098 </span>                :            : 
+<span class="lineNum">    1099 </span>                :<span class="lineCov">     122787 :                 list_remove(&amp;tx-&gt;tx_holds, txh);</span>
+<span class="lineNum">    1100 </span>                :<span class="lineCov">     122786 :                 refcount_destroy_many(&amp;txh-&gt;txh_space_towrite,</span>
+<span class="lineNum">    1101 </span>                :<span class="lineCov">     122786 :                     refcount_count(&amp;txh-&gt;txh_space_towrite));</span>
+<span class="lineNum">    1102 </span>                :<span class="lineCov">     122775 :                 refcount_destroy_many(&amp;txh-&gt;txh_memory_tohold,</span>
+<span class="lineNum">    1103 </span>                :<span class="lineCov">     122774 :                     refcount_count(&amp;txh-&gt;txh_memory_tohold));</span>
+<span class="lineNum">    1104 </span>                :<span class="lineCov">     122773 :                 kmem_free(txh, sizeof (dmu_tx_hold_t));</span>
+<span class="lineNum">    1105 </span>        [<span class="branchCov" title="Branch 0 was taken 7847 times"> + </span><span class="branchCov" title="Branch 1 was taken 114941 times"> + </span>]:<span class="lineCov">     122788 :                 if (dn != NULL)</span>
+<span class="lineNum">    1106 </span>                :<span class="lineCov">     433305 :                         dnode_rele(dn, tx);</span>
+<span class="lineNum">    1107 </span>                :            :         }
+<span class="lineNum">    1108 </span>                :            : 
+<span class="lineNum">    1109 </span>                :<span class="lineCov">     318361 :         list_destroy(&amp;tx-&gt;tx_callbacks);</span>
+<span class="lineNum">    1110 </span>                :<span class="lineCov">     318361 :         list_destroy(&amp;tx-&gt;tx_holds);</span>
+<span class="lineNum">    1111 </span>                :<span class="lineCov">     318357 :         kmem_free(tx, sizeof (dmu_tx_t));</span>
+<span class="lineNum">    1112 </span>                :<span class="lineCov">     318365 : }</span>
+<a name="1113"><span class="lineNum">    1113 </span>                :            : </a>
+<span class="lineNum">    1114 </span>                :            : void
+<span class="lineNum">    1115 </span>                :<span class="lineCov">     316462 : dmu_tx_commit(dmu_tx_t *tx)</span>
+<span class="lineNum">    1116 </span>                :            : {
+<span class="lineNum">    1117 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">    1118 </span>                :            : 
+<span class="lineNum">    1119 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 316462 times"> + </span>]:<span class="lineCov">     316462 :         ASSERT(tx-&gt;tx_txg != 0);</span>
+<span class="lineNum">    1120 </span>                :            : 
+<span class="lineNum">    1121 </span>                :            :         /*
+<span class="lineNum">    1122 </span>                :            :          * Go through the transaction's hold list and remove holds on
+<span class="lineNum">    1123 </span>                :            :          * associated dnodes, notifying waiters if no holds remain.
+<span class="lineNum">    1124 </span>                :            :          */
+<span class="lineNum">    1125 </span>        [<span class="branchCov" title="Branch 1 was taken 120745 times"> + </span><span class="branchCov" title="Branch 2 was taken 316466 times"> + </span>]:<span class="lineCov">     437221 :         for (txh = list_head(&amp;tx-&gt;tx_holds); txh != NULL;</span>
+<span class="lineNum">    1126 </span>                :<span class="lineCov">     120760 :             txh = list_next(&amp;tx-&gt;tx_holds, txh)) {</span>
+<span class="lineNum">    1127 </span>                :<span class="lineCov">     120745 :                 dnode_t *dn = txh-&gt;txh_dnode;</span>
+<span class="lineNum">    1128 </span>                :            : 
+<span class="lineNum">    1129 </span>        [<span class="branchCov" title="Branch 0 was taken 7825 times"> + </span><span class="branchCov" title="Branch 1 was taken 112920 times"> + </span>]:<span class="lineCov">     120745 :                 if (dn == NULL)</span>
+<span class="lineNum">    1130 </span>                :<span class="lineCov">       7825 :                         continue;</span>
+<span class="lineNum">    1131 </span>                :            : 
+<span class="lineNum">    1132 </span>                :<span class="lineCov">     112920 :                 mutex_enter(&amp;dn-&gt;dn_mtx);</span>
+<span class="lineNum">    1133 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 112931 times"> + </span>]:<span class="lineCov">     112931 :                 ASSERT3U(dn-&gt;dn_assigned_txg, ==, tx-&gt;tx_txg);</span>
+<span class="lineNum">    1134 </span>                :            : 
+<span class="lineNum">    1135 </span>        [<span class="branchCov" title="Branch 1 was taken 111904 times"> + </span><span class="branchCov" title="Branch 2 was taken 1031 times"> + </span>]:<span class="lineCov">     112931 :                 if (refcount_remove(&amp;dn-&gt;dn_tx_holds, tx) == 0) {</span>
+<span class="lineNum">    1136 </span>                :<span class="lineCov">     111904 :                         dn-&gt;dn_assigned_txg = 0;</span>
+<span class="lineNum">    1137 </span>                :<span class="lineCov">     111904 :                         cv_broadcast(&amp;dn-&gt;dn_notxholds);</span>
+<span class="lineNum">    1138 </span>                :            :                 }
+<span class="lineNum">    1139 </span>                :<span class="lineCov">     112935 :                 mutex_exit(&amp;dn-&gt;dn_mtx);</span>
+<span class="lineNum">    1140 </span>                :            :         }
+<span class="lineNum">    1141 </span>                :            : 
+<span class="lineNum">    1142 </span>        [<span class="branchCov" title="Branch 0 was taken 99148 times"> + </span><span class="branchCov" title="Branch 1 was taken 217318 times"> + </span>]:<span class="lineCov">     316466 :         if (tx-&gt;tx_tempreserve_cookie)</span>
+<span class="lineNum">    1143 </span>                :<span class="lineCov">      99148 :                 dsl_dir_tempreserve_clear(tx-&gt;tx_tempreserve_cookie, tx);</span>
+<span class="lineNum">    1144 </span>                :            : 
+<span class="lineNum">    1145 </span>        [<span class="branchCov" title="Branch 1 was taken 115 times"> + </span><span class="branchCov" title="Branch 2 was taken 316352 times"> + </span>]:<span class="lineCov">     316465 :         if (!list_is_empty(&amp;tx-&gt;tx_callbacks))</span>
+<span class="lineNum">    1146 </span>                :<span class="lineCov">        115 :                 txg_register_callbacks(&amp;tx-&gt;tx_txgh, &amp;tx-&gt;tx_callbacks);</span>
+<span class="lineNum">    1147 </span>                :            : 
+<span class="lineNum">    1148 </span>        [<span class="branchCov" title="Branch 0 was taken 108552 times"> + </span><span class="branchCov" title="Branch 1 was taken 207918 times"> + </span>]:<span class="lineCov">     316470 :         if (tx-&gt;tx_anyobj == FALSE)</span>
+<span class="lineNum">    1149 </span>                :<span class="lineCov">     108552 :                 txg_rele_to_sync(&amp;tx-&gt;tx_txgh);</span>
+<span class="lineNum">    1150 </span>                :            : 
+<span class="lineNum">    1151 </span>                :<span class="lineCov">     316473 :         dmu_tx_destroy(tx);</span>
+<span class="lineNum">    1152 </span>                :<span class="lineCov">     316466 : }</span>
+<a name="1153"><span class="lineNum">    1153 </span>                :            : </a>
+<span class="lineNum">    1154 </span>                :            : void
+<span class="lineNum">    1155 </span>                :<span class="lineCov">       1896 : dmu_tx_abort(dmu_tx_t *tx)</span>
+<span class="lineNum">    1156 </span>                :            : {
+<span class="lineNum">    1157 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1896 times"> + </span>]:<span class="lineCov">       1896 :         ASSERT(tx-&gt;tx_txg == 0);</span>
+<span class="lineNum">    1158 </span>                :            : 
+<span class="lineNum">    1159 </span>                :            :         /*
+<span class="lineNum">    1160 </span>                :            :          * Call any registered callbacks with an error code.
+<span class="lineNum">    1161 </span>                :            :          */
+<span class="lineNum">    1162 </span>        [<span class="branchCov" title="Branch 1 was taken 130 times"> + </span><span class="branchCov" title="Branch 2 was taken 1766 times"> + </span>]:<span class="lineCov">       1896 :         if (!list_is_empty(&amp;tx-&gt;tx_callbacks))</span>
+<span class="lineNum">    1163 </span>                :<span class="lineCov">        130 :                 dmu_tx_do_callbacks(&amp;tx-&gt;tx_callbacks, ECANCELED);</span>
+<span class="lineNum">    1164 </span>                :            : 
+<span class="lineNum">    1165 </span>                :<span class="lineCov">       1896 :         dmu_tx_destroy(tx);</span>
+<span class="lineNum">    1166 </span>                :<span class="lineCov">       1896 : }</span>
+<a name="1167"><span class="lineNum">    1167 </span>                :            : </a>
+<span class="lineNum">    1168 </span>                :            : uint64_t
+<span class="lineNum">    1169 </span>                :<span class="lineCov">     551565 : dmu_tx_get_txg(dmu_tx_t *tx)</span>
+<span class="lineNum">    1170 </span>                :            : {
+<span class="lineNum">    1171 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 551565 times"> + </span>]:<span class="lineCov">     551565 :         ASSERT(tx-&gt;tx_txg != 0);</span>
+<span class="lineNum">    1172 </span>                :<span class="lineCov">     551565 :         return (tx-&gt;tx_txg);</span>
+<span class="lineNum">    1173 </span>                :            : }
+<a name="1174"><span class="lineNum">    1174 </span>                :            : </a>
+<span class="lineNum">    1175 </span>                :            : dsl_pool_t *
+<span class="lineNum">    1176 </span>                :<span class="lineCov">     413175 : dmu_tx_pool(dmu_tx_t *tx)</span>
+<span class="lineNum">    1177 </span>                :            : {
+<span class="lineNum">    1178 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 413175 times"> + </span>]:<span class="lineCov">     413175 :         ASSERT(tx-&gt;tx_pool != NULL);</span>
+<span class="lineNum">    1179 </span>                :<span class="lineCov">     413175 :         return (tx-&gt;tx_pool);</span>
+<span class="lineNum">    1180 </span>                :            : }
+<a name="1181"><span class="lineNum">    1181 </span>                :            : </a>
+<span class="lineNum">    1182 </span>                :            : void
+<span class="lineNum">    1183 </span>                :<span class="lineCov">        605 : dmu_tx_callback_register(dmu_tx_t *tx, dmu_tx_callback_func_t *func, void *data)</span>
+<span class="lineNum">    1184 </span>                :            : {
+<span class="lineNum">    1185 </span>                :            :         dmu_tx_callback_t *dcb;
+<span class="lineNum">    1186 </span>                :            : 
+<span class="lineNum">    1187 </span>                :<span class="lineCov">        605 :         dcb = kmem_alloc(sizeof (dmu_tx_callback_t), KM_SLEEP);</span>
+<span class="lineNum">    1188 </span>                :            : 
+<span class="lineNum">    1189 </span>                :<span class="lineCov">        605 :         dcb-&gt;dcb_func = func;</span>
+<span class="lineNum">    1190 </span>                :<span class="lineCov">        605 :         dcb-&gt;dcb_data = data;</span>
+<span class="lineNum">    1191 </span>                :            : 
+<span class="lineNum">    1192 </span>                :<span class="lineCov">        605 :         list_insert_tail(&amp;tx-&gt;tx_callbacks, dcb);</span>
+<span class="lineNum">    1193 </span>                :<span class="lineCov">        605 : }</span>
+<span class="lineNum">    1194 </span>                :            : 
+<span class="lineNum">    1195 </span>                :            : /*
+<span class="lineNum">    1196 </span>                :            :  * Call all the commit callbacks on a list, with a given error code.
+<a name="1197"><span class="lineNum">    1197 </span>                :            :  */</a>
+<span class="lineNum">    1198 </span>                :            : void
+<span class="lineNum">    1199 </span>                :<span class="lineCov">        223 : dmu_tx_do_callbacks(list_t *cb_list, int error)</span>
+<span class="lineNum">    1200 </span>                :            : {
+<span class="lineNum">    1201 </span>                :            :         dmu_tx_callback_t *dcb;
+<span class="lineNum">    1202 </span>                :            : 
+<span class="lineNum">    1203 </span>        [<span class="branchCov" title="Branch 1 was taken 605 times"> + </span><span class="branchCov" title="Branch 2 was taken 223 times"> + </span>]:<span class="lineCov">        828 :         while ((dcb = list_head(cb_list)) != NULL) {</span>
+<span class="lineNum">    1204 </span>                :<span class="lineCov">        605 :                 list_remove(cb_list, dcb);</span>
+<span class="lineNum">    1205 </span>                :<span class="lineCov">        605 :                 dcb-&gt;dcb_func(dcb-&gt;dcb_data, error);</span>
+<span class="lineNum">    1206 </span>                :<span class="lineCov">        605 :                 kmem_free(dcb, sizeof (dmu_tx_callback_t));</span>
+<span class="lineNum">    1207 </span>                :            :         }
+<span class="lineNum">    1208 </span>                :<span class="lineCov">        223 : }</span>
+<span class="lineNum">    1209 </span>                :            : 
+<span class="lineNum">    1210 </span>                :            : /*
+<span class="lineNum">    1211 </span>                :            :  * Interface to hold a bunch of attributes.
+<span class="lineNum">    1212 </span>                :            :  * used for creating new files.
+<span class="lineNum">    1213 </span>                :            :  * attrsize is the total size of all attributes
+<span class="lineNum">    1214 </span>                :            :  * to be added during object creation
+<span class="lineNum">    1215 </span>                :            :  *
+<span class="lineNum">    1216 </span>                :            :  * For updating/adding a single attribute dmu_tx_hold_sa() should be used.
+<span class="lineNum">    1217 </span>                :            :  */
+<span class="lineNum">    1218 </span>                :            : 
+<span class="lineNum">    1219 </span>                :            : /*
+<span class="lineNum">    1220 </span>                :            :  * hold necessary attribute name for attribute registration.
+<span class="lineNum">    1221 </span>                :            :  * should be a very rare case where this is needed.  If it does
+<span class="lineNum">    1222 </span>                :            :  * happen it would only happen on the first write to the file system.
+<a name="1223"><span class="lineNum">    1223 </span>                :            :  */</a>
+<span class="lineNum">    1224 </span>                :            : static void
+<span class="lineNum">    1225 </span>                :<span class="lineNoCov">          0 : dmu_tx_sa_registration_hold(sa_os_t *sa, dmu_tx_t *tx)</span>
+<span class="lineNum">    1226 </span>                :            : {
+<span class="lineNum">    1227 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (!sa-&gt;sa_need_attr_registration)</span>
+<span class="lineNum">    1228 </span>                :            :                 return;
+<span class="lineNum">    1229 </span>                :            : 
+<span class="lineNum">    1230 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         for (int i = 0; i != sa-&gt;sa_num_attrs; i++) {</span>
+<span class="lineNum">    1231 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (!sa-&gt;sa_attr_table[i].sa_registered) {</span>
+<span class="lineNum">    1232 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         if (sa-&gt;sa_reg_attr_obj)</span>
+<span class="lineNum">    1233 </span>                :<span class="lineNoCov">          0 :                                 dmu_tx_hold_zap(tx, sa-&gt;sa_reg_attr_obj,</span>
+<span class="lineNum">    1234 </span>                :<span class="lineNoCov">          0 :                                     B_TRUE, sa-&gt;sa_attr_table[i].sa_name);</span>
+<span class="lineNum">    1235 </span>                :            :                         else
+<span class="lineNum">    1236 </span>                :<span class="lineNoCov">          0 :                                 dmu_tx_hold_zap(tx, DMU_NEW_OBJECT,</span>
+<span class="lineNum">    1237 </span>                :<span class="lineNoCov">          0 :                                     B_TRUE, sa-&gt;sa_attr_table[i].sa_name);</span>
+<span class="lineNum">    1238 </span>                :            :                 }
+<span class="lineNum">    1239 </span>                :            :         }
+<span class="lineNum">    1240 </span>                :            : }
+<a name="1241"><span class="lineNum">    1241 </span>                :            : </a>
+<span class="lineNum">    1242 </span>                :            : void
+<span class="lineNum">    1243 </span>                :<span class="lineNoCov">          0 : dmu_tx_hold_spill(dmu_tx_t *tx, uint64_t object)</span>
+<span class="lineNum">    1244 </span>                :            : {
+<span class="lineNum">    1245 </span>                :            :         dmu_tx_hold_t *txh;
+<span class="lineNum">    1246 </span>                :            : 
+<span class="lineNum">    1247 </span>                :<span class="lineNoCov">          0 :         txh = dmu_tx_hold_object_impl(tx, tx-&gt;tx_objset, object,</span>
+<span class="lineNum">    1248 </span>                :            :             THT_SPILL, 0, 0);
+<span class="lineNum">    1249 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (txh != NULL)</span>
+<span class="lineNum">    1250 </span>                :<span class="lineNoCov">          0 :                 (void) refcount_add_many(&amp;txh-&gt;txh_space_towrite,</span>
+<span class="lineNum">    1251 </span>                :            :                     SPA_OLD_MAXBLOCKSIZE, FTAG);
+<span class="lineNum">    1252 </span>                :<span class="lineNoCov">          0 : }</span>
+<a name="1253"><span class="lineNum">    1253 </span>                :            : </a>
+<span class="lineNum">    1254 </span>                :            : void
+<span class="lineNum">    1255 </span>                :<span class="lineNoCov">          0 : dmu_tx_hold_sa_create(dmu_tx_t *tx, int attrsize)</span>
+<span class="lineNum">    1256 </span>                :            : {
+<span class="lineNum">    1257 </span>                :<span class="lineNoCov">          0 :         sa_os_t *sa = tx-&gt;tx_objset-&gt;os_sa;</span>
+<span class="lineNum">    1258 </span>                :            : 
+<span class="lineNum">    1259 </span>                :<span class="lineNoCov">          0 :         dmu_tx_hold_bonus(tx, DMU_NEW_OBJECT);</span>
+<span class="lineNum">    1260 </span>                :            : 
+<span class="lineNum">    1261 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tx-&gt;tx_objset-&gt;os_sa-&gt;sa_master_obj == 0)</span>
+<span class="lineNum">    1262 </span>                :            :                 return;
+<span class="lineNum">    1263 </span>                :            : 
+<span class="lineNum">    1264 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tx-&gt;tx_objset-&gt;os_sa-&gt;sa_layout_attr_obj) {</span>
+<span class="lineNum">    1265 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_hold_zap(tx, sa-&gt;sa_layout_attr_obj, B_TRUE, NULL);</span>
+<span class="lineNum">    1266 </span>                :            :         } else {
+<span class="lineNum">    1267 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_hold_zap(tx, sa-&gt;sa_master_obj, B_TRUE, SA_LAYOUTS);</span>
+<span class="lineNum">    1268 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_hold_zap(tx, sa-&gt;sa_master_obj, B_TRUE, SA_REGISTRY);</span>
+<span class="lineNum">    1269 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_hold_zap(tx, DMU_NEW_OBJECT, B_TRUE, NULL);</span>
+<span class="lineNum">    1270 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_hold_zap(tx, DMU_NEW_OBJECT, B_TRUE, NULL);</span>
+<span class="lineNum">    1271 </span>                :            :         }
+<span class="lineNum">    1272 </span>                :            : 
+<span class="lineNum">    1273 </span>                :<span class="lineNoCov">          0 :         dmu_tx_sa_registration_hold(sa, tx);</span>
+<span class="lineNum">    1274 </span>                :            : 
+<span class="lineNum">    1275 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (attrsize &lt;= DN_OLD_MAX_BONUSLEN &amp;&amp; !sa-&gt;sa_force_spill)</span>
+<span class="lineNum">    1276 </span>                :            :                 return;
+<span class="lineNum">    1277 </span>                :            : 
+<span class="lineNum">    1278 </span>                :<span class="lineNoCov">          0 :         (void) dmu_tx_hold_object_impl(tx, tx-&gt;tx_objset, DMU_NEW_OBJECT,</span>
+<span class="lineNum">    1279 </span>                :            :             THT_SPILL, 0, 0);
+<span class="lineNum">    1280 </span>                :            : }
+<span class="lineNum">    1281 </span>                :            : 
+<span class="lineNum">    1282 </span>                :            : /*
+<span class="lineNum">    1283 </span>                :            :  * Hold SA attribute
+<span class="lineNum">    1284 </span>                :            :  *
+<span class="lineNum">    1285 </span>                :            :  * dmu_tx_hold_sa(dmu_tx_t *tx, sa_handle_t *, attribute, add, size)
+<span class="lineNum">    1286 </span>                :            :  *
+<span class="lineNum">    1287 </span>                :            :  * variable_size is the total size of all variable sized attributes
+<span class="lineNum">    1288 </span>                :            :  * passed to this function.  It is not the total size of all
+<span class="lineNum">    1289 </span>                :            :  * variable size attributes that *may* exist on this object.
+<a name="1290"><span class="lineNum">    1290 </span>                :            :  */</a>
+<span class="lineNum">    1291 </span>                :            : void
+<span class="lineNum">    1292 </span>                :<span class="lineNoCov">          0 : dmu_tx_hold_sa(dmu_tx_t *tx, sa_handle_t *hdl, boolean_t may_grow)</span>
+<span class="lineNum">    1293 </span>                :            : {
+<span class="lineNum">    1294 </span>                :            :         uint64_t object;
+<span class="lineNum">    1295 </span>                :<span class="lineNoCov">          0 :         sa_os_t *sa = tx-&gt;tx_objset-&gt;os_sa;</span>
+<span class="lineNum">    1296 </span>                :            : 
+<span class="lineNum">    1297 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         ASSERT(hdl != NULL);</span>
+<span class="lineNum">    1298 </span>                :            : 
+<span class="lineNum">    1299 </span>                :<span class="lineNoCov">          0 :         object = sa_handle_object(hdl);</span>
+<span class="lineNum">    1300 </span>                :            : 
+<span class="lineNum">    1301 </span>                :<span class="lineNoCov">          0 :         dmu_tx_hold_bonus(tx, object);</span>
+<span class="lineNum">    1302 </span>                :            : 
+<span class="lineNum">    1303 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tx-&gt;tx_objset-&gt;os_sa-&gt;sa_master_obj == 0)</span>
+<span class="lineNum">    1304 </span>                :            :                 return;
+<span class="lineNum">    1305 </span>                :            : 
+<span class="lineNum">    1306 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (tx-&gt;tx_objset-&gt;os_sa-&gt;sa_reg_attr_obj == 0 ||</span>
+<span class="lineNum">    1307 </span>                :<span class="lineNoCov">          0 :             tx-&gt;tx_objset-&gt;os_sa-&gt;sa_layout_attr_obj == 0) {</span>
+<span class="lineNum">    1308 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_hold_zap(tx, sa-&gt;sa_master_obj, B_TRUE, SA_LAYOUTS);</span>
+<span class="lineNum">    1309 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_hold_zap(tx, sa-&gt;sa_master_obj, B_TRUE, SA_REGISTRY);</span>
+<span class="lineNum">    1310 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_hold_zap(tx, DMU_NEW_OBJECT, B_TRUE, NULL);</span>
+<span class="lineNum">    1311 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_hold_zap(tx, DMU_NEW_OBJECT, B_TRUE, NULL);</span>
+<span class="lineNum">    1312 </span>                :            :         }
+<span class="lineNum">    1313 </span>                :            : 
+<span class="lineNum">    1314 </span>                :<span class="lineNoCov">          0 :         dmu_tx_sa_registration_hold(sa, tx);</span>
+<span class="lineNum">    1315 </span>                :            : 
+<span class="lineNum">    1316 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (may_grow &amp;&amp; tx-&gt;tx_objset-&gt;os_sa-&gt;sa_layout_attr_obj)</span>
+<span class="lineNum">    1317 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_hold_zap(tx, sa-&gt;sa_layout_attr_obj, B_TRUE, NULL);</span>
+<span class="lineNum">    1318 </span>                :            : 
+<span class="lineNum">    1319 </span>[<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>][<span class="branchNoExec" title="Branch 2 was not executed"> # </span><span class="branchNoExec" title="Branch 3 was not executed"> # </span>]:<span class="lineNoCov">          0 :         if (sa-&gt;sa_force_spill || may_grow || hdl-&gt;sa_spill) {</span>
+<span class="lineNum">    1320 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 ASSERT(tx-&gt;tx_txg == 0);</span>
+<span class="lineNum">    1321 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_hold_spill(tx, object);</span>
+<span class="lineNum">    1322 </span>                :            :         } else {
+<span class="lineNum">    1323 </span>                :<span class="lineNoCov">          0 :                 dmu_buf_impl_t *db = (dmu_buf_impl_t *)hdl-&gt;sa_bonus;</span>
+<span class="lineNum">    1324 </span>                :            :                 dnode_t *dn;
+<span class="lineNum">    1325 </span>                :            : 
+<span class="lineNum">    1326 </span>                :<span class="lineNoCov">          0 :                 DB_DNODE_ENTER(db);</span>
+<span class="lineNum">    1327 </span>                :<span class="lineNoCov">          0 :                 dn = DB_DNODE(db);</span>
+<span class="lineNum">    1328 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                 if (dn-&gt;dn_have_spill) {</span>
+<span class="lineNum">    1329 </span>        [<span class="branchNoExec" title="Branch 0 was not executed"> # </span><span class="branchNoExec" title="Branch 1 was not executed"> # </span>]:<span class="lineNoCov">          0 :                         ASSERT(tx-&gt;tx_txg == 0);</span>
+<span class="lineNum">    1330 </span>                :<span class="lineNoCov">          0 :                         dmu_tx_hold_spill(tx, object);</span>
+<span class="lineNum">    1331 </span>                :            :                 }
+<span class="lineNum">    1332 </span>                :<span class="lineNoCov">          0 :                 DB_DNODE_EXIT(db);</span>
+<span class="lineNum">    1333 </span>                :            :         }
+<span class="lineNum">    1334 </span>                :            : }
+<a name="1335"><span class="lineNum">    1335 </span>                :            : </a>
+<span class="lineNum">    1336 </span>                :            : void
+<span class="lineNum">    1337 </span>                :<span class="lineCov">       1234 : dmu_tx_init(void)</span>
+<span class="lineNum">    1338 </span>                :            : {
+<span class="lineNum">    1339 </span>                :<span class="lineCov">       1234 :         dmu_tx_ksp = kstat_create(&quot;zfs&quot;, 0, &quot;dmu_tx&quot;, &quot;misc&quot;,</span>
+<span class="lineNum">    1340 </span>                :            :             KSTAT_TYPE_NAMED, sizeof (dmu_tx_stats) / sizeof (kstat_named_t),
+<span class="lineNum">    1341 </span>                :            :             KSTAT_FLAG_VIRTUAL);
+<span class="lineNum">    1342 </span>                :            : 
+<span class="lineNum">    1343 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 1234 times"> + </span>]:<span class="lineCov">       1234 :         if (dmu_tx_ksp != NULL) {</span>
+<span class="lineNum">    1344 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_ksp-&gt;ks_data = &amp;dmu_tx_stats;</span>
+<span class="lineNum">    1345 </span>                :<span class="lineNoCov">          0 :                 kstat_install(dmu_tx_ksp);</span>
+<span class="lineNum">    1346 </span>                :            :         }
+<span class="lineNum">    1347 </span>                :<span class="lineCov">       1234 : }</span>
+<a name="1348"><span class="lineNum">    1348 </span>                :            : </a>
+<span class="lineNum">    1349 </span>                :            : void
+<span class="lineNum">    1350 </span>                :<span class="lineCov">        785 : dmu_tx_fini(void)</span>
+<span class="lineNum">    1351 </span>                :            : {
+<span class="lineNum">    1352 </span>        [<span class="branchNoCov" title="Branch 0 was not taken"> - </span><span class="branchCov" title="Branch 1 was taken 785 times"> + </span>]:<span class="lineCov">        785 :         if (dmu_tx_ksp != NULL) {</span>
+<span class="lineNum">    1353 </span>                :<span class="lineNoCov">          0 :                 kstat_delete(dmu_tx_ksp);</span>
+<span class="lineNum">    1354 </span>                :<span class="lineNoCov">          0 :                 dmu_tx_ksp = NULL;</span>
+<span class="lineNum">    1355 </span>                :            :         }
+<span class="lineNum">    1356 </span>                :<span class="lineCov">        785 : }</span>
+<span class="lineNum">    1357 </span>                :            : 
+<span class="lineNum">    1358 </span>                :            : #if defined(_KERNEL) &amp;&amp; defined(HAVE_SPL)
+<span class="lineNum">    1359 </span>                :            : EXPORT_SYMBOL(dmu_tx_create);
+<span class="lineNum">    1360 </span>                :            : EXPORT_SYMBOL(dmu_tx_hold_write);
+<span class="lineNum">    1361 </span>                :            : EXPORT_SYMBOL(dmu_tx_hold_write_by_dnode);
+<span class="lineNum">    1362 </span>                :            : EXPORT_SYMBOL(dmu_tx_hold_free);
+<span class="lineNum">    1363 </span>                :            : EXPORT_SYMBOL(dmu_tx_hold_free_by_dnode);
+<span class="lineNum">    1364 </span>                :            : EXPORT_SYMBOL(dmu_tx_hold_zap);
+<span class="lineNum">    1365 </span>                :            : EXPORT_SYMBOL(dmu_tx_hold_zap_by_dnode);
+<span class="lineNum">    1366 </span>                :            : EXPORT_SYMBOL(dmu_tx_hold_bonus);
+<span class="lineNum">    1367 </span>                :            : EXPORT_SYMBOL(dmu_tx_hold_bonus_by_dnode);
+<span class="lineNum">    1368 </span>                :            : EXPORT_SYMBOL(dmu_tx_abort);
+<span class="lineNum">    1369 </span>                :            : EXPORT_SYMBOL(dmu_tx_assign);
+<span class="lineNum">    1370 </span>                :            : EXPORT_SYMBOL(dmu_tx_wait);
+<span class="lineNum">    1371 </span>                :            : EXPORT_SYMBOL(dmu_tx_commit);
+<span class="lineNum">    1372 </span>                :            : EXPORT_SYMBOL(dmu_tx_mark_netfree);
+<span class="lineNum">    1373 </span>                :            : EXPORT_SYMBOL(dmu_tx_get_txg);
+<span class="lineNum">    1374 </span>                :            : EXPORT_SYMBOL(dmu_tx_callback_register);
+<span class="lineNum">    1375 </span>                :            : EXPORT_SYMBOL(dmu_tx_do_callbacks);
+<span class="lineNum">    1376 </span>                :            : EXPORT_SYMBOL(dmu_tx_hold_spill);
+<span class="lineNum">    1377 </span>                :            : EXPORT_SYMBOL(dmu_tx_hold_sa_create);
+<span class="lineNum">    1378 </span>                :            : EXPORT_SYMBOL(dmu_tx_hold_sa);
+<span class="lineNum">    1379 </span>                :            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.13</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
