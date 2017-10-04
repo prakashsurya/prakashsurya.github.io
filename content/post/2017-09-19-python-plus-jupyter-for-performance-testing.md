@@ -293,7 +293,7 @@ background-image: url(spreadsheet-iops.png)
 
     - No way to annotate data/visualizations with explanations.
 
-.footnote[<sub><sup>1</sup><sub>http://www.nytimes.com/2013/04/19/opinion/krugman-the-excel-depression.html</sub></sub>]
+.footnote[<sup>1</sup>http://www.nytimes.com/2013/04/19/opinion/krugman-the-excel-depression.html]
 
 ---
 
@@ -342,7 +342,7 @@ background-image: url(spreadsheet-iops.png)
 > ...
 ```
 
-.footnote[<sub><sup>1</sup><sub>https://www.oreilly.com/ideas/what-is-jupyter</sub></sub>]
+.footnote[<sup>1</sup>https://www.oreilly.com/ideas/what-is-jupyter]
 
 ---
 
@@ -362,7 +362,7 @@ background-image: url(spreadsheet-iops.png)
 
 ---
 
-# Real example: My results for OpenZFS #447
+# Real example: Results for OpenZFS #447
 
  - Link to [Max Rate Submit on HDDs][max-rate-submit-hdds]
 
@@ -372,7 +372,7 @@ background-image: url(spreadsheet-iops.png)
 
  - Link to [Fixed Rate Submit on HDDs][fixed-rate-submit-hdds]
 
-.footnote[<sub><sup>\*</sup><sub>https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/</sub></sub>]
+.footnote[<sup>\*</sup>https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/]
 
 ---
 
