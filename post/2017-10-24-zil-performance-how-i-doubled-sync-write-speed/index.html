@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.18.1" />
+<meta charset="utf-8">
+<link rel="canonical" href="https://www.prakashsurya.com/post/2017-10-24-zil-performance-how-i-doubled-sync-write-speed/">
+<script src="/js/mermaid.min.js"></script>
+<link rel="stylesheet" href="/css/mermaid.css">
+<script src="/js/remark.min.js"></script>
+<style type="text/css">
+  @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+  @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+  @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+  body { font-family: 'Droid Serif'; }
+  h1, h2, h3 {
+    font-family: 'Yanone Kaffeesatz';
+    font-weight: 400;
+    margin-bottom: 0;
+  }
+
+  .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+  .remark-slide-content h1 { font-size: 3em; }
+  .remark-slide-content h2 { font-size: 2em; }
+  .remark-slide-content h3 { font-size: 1.6em; }
+  .remark-slide-content a, a > code { text-decoration: none; }
+  .footnote { position: absolute; bottom: 3em; font-size: .6em; }
+  .pull-left { float: left; width: 47%; }
+  .pull-right { float: right; width: 47%; }
+  .pull-right ~ p { clear: both; }
+</style>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-91378771-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+    <title>ZIL Performance: How I Doubled Sync Write Speed &raquo www.prakashsurya.com</title>
+  </head>
+  <body>
+    <main>
+  <textarea id="source">
+class: center, middle
+# ZIL Performance: How I Doubled Sync Write Speed
+---
+# Agenda
+
+ 1. What is the ZIL? Why does it exist?
+
+ 2. How is it used? How does it work?
+
+ 3. The problem to be fixed; the solution.
+
+ 4. Details on the changes I made.
+
+ 5. Performance testing and results.
+
+---
+
+class: middle, center
+
+# 1 &amp;ndash; What is the ZIL?
+
+---
+
+# What is the ZIL?
+
+ - ZIL: Acronym for (Z)FS (I)ntent (L)og
+
+    - Log of all operations ZFS intends to write via `spa_sync()`
+
+    - Both &#34;async&#34; and &#34;sync&#34; operations logged in-memory
+
+    - Only sync (or &#34;promoted&#34; async) operations logged on-disk
+
+---
+
+# What is the SLOG?
+
+ - SLOG: Acronym for (S)eperate (LOG) Device
+
+    - An SLOG is not necessary
+
+       - ZIL writes to main pool by default
+
+    - An SLOG can be used to improve latency of ZIL writes
+
+       - When attached, ZIL writes to SLOG instead of main pool&lt;sup&gt;\*&lt;/sup&gt;
+
+ - SLOG can be used by the ZIL, but it is _not_ the ZIL
+
+.footnote[&lt;sup&gt;\*&lt;/sup&gt;Details of when/how the SLOG is used is complicated and not covered]
+
+---
+
+# When is the ZIL used?
+
+ - Always.
+
+    - in-memory ZIL always used; i.e. log entries always created
+
+    - `sync=always` &amp;rarr; `zil_commit()` always called
+
+       - for both sync and async ops
+
+    - `sync=disabled` &amp;rarr; `zil_commit()` doesn&#39;t do anything
+
+       - but it&#39;s still called for sync ops
+
+    - `zil_commit()` is the mechanism for writing log entries to disk
+
+ - ZIL used even without an SLOG
+
+ - On-disk ZIL only read from during &#34;replay&#34; (i.e. after a crash)&lt;sup&gt;\*&lt;/sup&gt;
+
+.footnote[&lt;sup&gt;\*&lt;/sup&gt;Details w.r.t. replay not covered]
+
+---
+
+# Why does the ZIL exist?
+
+ - Performance optimization; not required for correctness
+
+ - Writes in ZFS are &#34;write-back&#34;
+
+    - Data is first stored in-memory, in DMU layer...
+
+    - Then **all** &#34;dirty&#34; data written to disk via `spa_sync()`
+
+    - `spa_sync()` can tens of seconds (or more) to complete
+
+ - Without ZIL, sync operations inherit latency of `spa_sync()`
+
+    - All ops inherit latency; only sync ops _wait_ for completion
+
+ - ZIL allows sync operations to &#34;bypass&#34; latency of `spa_sync()`
+
+---
+
+class: middle, center
+
+# 2 &amp;ndash; How is the ZIL used?
+
+---
+
+# How is the ZIL used?
+
+ - Consumers generally interact with the ZIL in two phases:
+
+    1. Log the operation(s)
+
+     - Tells ZIL operation occurred
+
+    2. Commit the operation(s)
+
+     - Causes ZIL to write log of operation to disk
+
+---
+
+# Example: `zfs_write`
+
+ - `zfs_write` &amp;rarr; `zfs_log_write`
+
+ - `zfs_log_write`
+
+    &amp;rarr; `zil_itx_create`
+
+    &amp;rarr; `zil_itx_assign`
+
+ - `zfs_write` &amp;rarr; `zil_commit`
+
+ - Most ZPL syscalls have a `zfs_log_*` function
+
+    - `zfs_log_create`
+    - `zfs_log_remove`
+    - `zfs_log_link`
+    - `zfs_log_symlink`
+    - `zfs_log_truncate`
+    - `zfs_log_setattr`
+    - ...
+
+---
+
+# Example: `zfs_fsync`
+
+ - `zfs_fsync` &amp;rarr; `zil_commit`
+
+    - There&#39;s no _new_ operations to log.. thus, no `zfs_log_fysnc`
+
+---
+
+# Contract between ZIL and consumers.
+
+ - `zil_commit` won&#39;t return until all operations are safe
+
+ - What does &#34;all operations&#34; mean?
+
+    - All sync ops for object being committed; i.e. `itx_sync=B_TRUE`
+
+    - All async ops which sync ops depend on
+
+    - In practice:
+
+       - All sync ops for all objects
+
+       - All async ops for specific object being committed
+
+---
+
+# What does &#34;safe&#34; mean?
+
+ - Operation(s) won&#39;t be lost, forgotten, or modified
+
+ - How is this accomplished:
+
+    - Data written to disk &amp;rarr; disk flushed
+
+ - Remember: `spa_sync` takes too long
+
+    - Special &#34;log blocks&#34; written not using `spa_sync`
+
+    - Log blocks written faster than `spa_sync` could handle ops
+
+    - Log blocks track operations not yet applied via `spa_sync`
+
+    - Dataset not actually modified (on-disk) until later&lt;sup&gt;\*&lt;/sup&gt;
+
+ - If a crash occurs before `spa_sync` applies the modifications...
+
+    - log blocks are &#34;replayed&#34; prior to mounting the dataset
+
+ - If no crash, log blocks freed via `spa_sync`
+
+---
+
+class: middle, center
+
+# 2 &amp;ndash; How does the ZIL work?
+
+---
+
+# How does the ZIL work?
+
+ - In memory ZIL contains 4 (per-txg) `itxg_t` structures
+
+ - Each `itxg_t` contains a single `itxs_t`, which contains:
+
+    - List of sync operations
+
+    - AVL tree of lists of async operations
+
+       - Each node in tree contains per-object list of async ops
+
+ - Remember: `zil_itx_create` &amp;rarr; `zil_itx_assign`
+
+    1. `zil_itx_create` &amp;ndash; allocates a new `itx_t`
+
+    2. `zil_itx_assign` &amp;ndash; inserts the `itx_t` into one of these lists
+
+ - Terminology: &#34;itx&#34; refers to a ZIL operation (intent log transaction)
+
+---
+
+# Example: itx lists
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list) --&gt; SLIST-1((itx S1))
+  SLIST-1          --&gt; SLIST-2((itx S2))
+
+  ATREE(async tree) --&gt; OBJ-A(object A)
+  OBJ-A             --&gt; OBJ-B(object B)
+  OBJ-B             --&gt; OBJ-B-1((itx B1))
+  OBJ-B-1           --&gt; OBJ-B-2((itx B2))
+  OBJ-A             --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1           --&gt; OBJ-A-2((itx A2))
+  OBJ-A-2           --&gt; OBJ-A-3((itx A3))
+  OBJ-A             --&gt; OBJ-C(object C)
+  OBJ-C             --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1           --&gt; OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+---
+
+# How are itx&#39;s written to disk?
+
+ - `zil_commit` handles the process of writing `itx_t`&#39;s to disk:
+
+---
+
+# How are itx&#39;s written to disk?
+
+ - `zil_commit` handles the process of writing `itx_t`&#39;s to disk:
+
+     1. Move async itx&#39;s for object being commited, to the sync list
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list) --&gt; SLIST-1((itx S1))
+  SLIST-1          --&gt; SLIST-2((itx S2))
+
+  ATREE(async tree) --&gt; OBJ-A(object A)
+  OBJ-A             --&gt; OBJ-B(object B)
+  OBJ-B             --&gt; OBJ-B-1((itx B1))
+  OBJ-B-1           --&gt; OBJ-B-2((itx B2))
+  OBJ-A             --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1           --&gt; OBJ-A-2((itx A2))
+  OBJ-A-2           --&gt; OBJ-A-3((itx A3))
+  OBJ-A             --&gt; OBJ-C(object C)
+  OBJ-C             --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1           --&gt; OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list) --&gt; SLIST-1((itx S1))
+  SLIST-1          --&gt; SLIST-2((itx S2))
+  SLIST-2          --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1          --&gt; OBJ-C-2((itx C2))
+
+  ATREE(async tree) --&gt; OBJ-A(object A)
+  OBJ-A             --&gt; OBJ-B(object B)
+  OBJ-B             --&gt; OBJ-B-1((itx B1))
+  OBJ-B-1           --&gt; OBJ-B-2((itx B2))
+  OBJ-A             --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1           --&gt; OBJ-A-2((itx A2))
+  OBJ-A-2           --&gt; OBJ-A-3((itx A3))
+  OBJ-A             --&gt; OBJ-C(object C)
+&lt;/div&gt;
+
+---
+
+# How are itx&#39;s written to disk?
+
+ - `zil_commit` handles the process of writing `itx_t`&#39;s to disk:
+
+     1. Move async itx&#39;s for object being commited, to the sync list
+
+     2. Move sync list to &#34;commit list&#34;; sync list now empty
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list)   --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  CLIST(commit list)
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list)
+
+  CLIST(commit list) --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+---
+
+# How are itx&#39;s written to disk?
+
+ - `zil_commit` handles the process of writing `itx_t`&#39;s to disk:
+
+     1. Move async itx&#39;s for object being commited, to the sync list
+
+     2. Move sync list to &#34;commit list&#34;; sync list now empty
+
+     3. For each itx in commit list:
+
+         1. Copy itx data into ZIL block
+
+         2. If space in ZIL block lacking...
+
+           - allocate new (empty) block, write out old block
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+ - Terminology: &#34;lwb&#34; refers to a ZIL block (log write block)
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff
+  style OBJ-C-2 fill:#ffa500,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff
+  style OBJ-C-2 fill:#ffa500,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+  style LWB-2   fill:#ffff00
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list)
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff
+  style OBJ-C-2 fill:#ffa500
+  style LWB-1   fill:#ffff00
+  style LWB-2   fill:#ffff00
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list)
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff
+  style OBJ-C-2 fill:#ffa500
+  style LWB-1   fill:#ffff00
+  style LWB-2   fill:#ffff00
+  style LWB-3   fill:#ffff00
+&lt;/div&gt;
+
+---
+
+# How are itx&#39;s written to disk?
+
+ - `zil_commit` handles the process of writing `itx_t`&#39;s to disk:
+
+     1. Move async itx&#39;s for object being commited, to the sync list
+
+     2. Move sync list to &#34;commit list&#34;; sync list now empty
+
+     3. For each itx in commit list:
+
+         1. Copy itx data into ZIL block
+
+         2. If space in ZIL block lacking...
+
+           - allocate new (empty) block, write out old block
+
+     4. Wait for all ZIL block writes to complete
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-1   fill:#ffff00
+  style LWB-2   fill:#ffff00
+  style LWB-3   fill:#ffff00
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-1   fill:#00ff00
+  style LWB-2   fill:#ffff00
+  style LWB-3   fill:#ffff00
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-1   fill:#00ff00
+  style LWB-2   fill:#ffff00
+  style LWB-3   fill:#00ff00
+&lt;/div&gt;
+
+---
+
+# Example: `zil_commit` Object C
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-1   fill:#00ff00
+  style LWB-2   fill:#00ff00
+  style LWB-3   fill:#00ff00
+&lt;/div&gt;
+
+---
+
+# How are itx&#39;s written to disk?
+
+ - `zil_commit` handles the process of writing `itx_t`&#39;s to disk:
+
+     1. Move async itx&#39;s for object being commited, to the sync list
+
+     2. Move sync list to &#34;commit list&#34;; sync list now empty
+
+     3. For each itx in commit list:
+
+         1. Copy itx data into ZIL block
+
+         2. If space in ZIL block lacking...
+
+           - allocate new (empty) block, write out old block
+
+     4. Wait for all ZIL block writes to complete
+
+     5. Flush all VDEVs written to
+
+---
+
+# How are itx&#39;s written to disk?
+
+ - `zil_commit` handles the process of writing `itx_t`&#39;s to disk:
+
+     1. Move async itx&#39;s for object being commited, to the sync list
+
+     2. Move sync list to &#34;commit list&#34;; sync list now empty
+
+     3. For each itx in commit list:
+
+         1. Copy itx data into ZIL block
+
+         2. If space in ZIL block lacking...
+
+           - allocate new (empty) block, write out old block
+
+     4. Wait for all ZIL block writes to complete
+
+     5. Flush all VDEVs written to
+
+     6. Notify waiting threads
+
+---
+
+class: middle, center
+
+# 2 &amp;ndash; ZIL Blocks
+
+---
+
+# Constraints
+
+ - On disk component of ZIL is a linked list of ZIL blocks (lwb&#39;s)
+
+    - Doesn&#39;t use indirection like &#34;normal&#34; blocks
+
+       - no indirect blocks
+
+    - Each ZIL block contains pointer to next ZIL block on disk
+
+ - ZIL blocks, once written to disk, cannot be overwritten
+
+    - Due to data integrity concerns
+
+ - Thus, &#34;next&#34; ZIL block allocated when &#34;current&#34; block written
+
+    - Required for &#34;current&#34; block to contain pointer to &#34;next&#34;
+
+ - Checksum for &#34;next&#34; block, stored in &#34;previous&#34; block
+
+    - When traversing list, checksum failure means &#34;list end&#34;
+
+---
+
+# Implications w.r.t. Performance
+
+ - ZIL block size chosen at time of allocation
+
+ - ZIL block size can dramatically impact performance:
+
+    - &#34;too big&#34; &amp;ndash; results in &#34;wasted&#34; space
+
+       - Unused portion of block cannot be &#34;filled in&#34; later
+
+       - Can result in small, but fast, SLOG filling to capacity
+
+    - &#34;too small&#34; &amp;ndash; results in &#34;too many&#34; IOPs issued to disk
+
+       - Can needlessly cause disk saturation and poor performance
+
+    - &#34;just right&#34; &amp;ndash; Large (enough) ZIL blocks filled with itx&#39;s
+
+       - ZIL blocks fully utilized with itx&#39;s (no wasted SLOG space)
+
+       - Fewer IOPs for same number of itx&#39;s
+
+          - e.g. 15 8K writes using 1 128K lwb vs. 4 32K lwb&#39;s
+
+---
+
+class: middle, center
+
+# 3 &amp;ndash; Problem
+
+---
+
+# Problem
+
+ 1. itx&#39;s grouped and written in &#34;batches&#34;
+
+    - The commit list constitutes a batch
+
+    - Batch size proportional to sync workload on system
+
+ 2. Waiting threads only notified when _all_ ZIL blocks in batch complete
+
+ 3. Only a single batch processed at a time
+
+---
+
+# Example Batch
+
+ - Example batch taken from prior slides
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+---
+
+
+# Example &#34;itx S1&#34;
+
+ - Thread waiting for &#34;itx S1&#34; (e.g. a single sync write)
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+---
+
+# Example &#34;itx S1&#34;
+
+ - Must wait for **all** lwb&#39;s to be written and completed
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-3   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+---
+
+# Example &#34;itx S2&#34;
+
+ - Thread waiting for &#34;itx S2&#34;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+---
+
+# Example &#34;itx S2&#34;
+
+ - Again, must wait for **all** lwb&#39;s to be written and completed
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-3   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+---
+
+# Implications
+
+ 1. Latency of `zil_commit` proportional to system workload, not disk latency
+
+    - Fast SLOG may not compensate for large workload
+
+ 2. Disk &#34;anomalies&#34; cause larger batches, increased `zil_commit` latency
+
+    - E.g. Temporary network delays when using SAN storage
+
+ 3. New calls to `zil_commit` wait for &#34;current&#34; batch, _and_ &#34;next&#34; batch
+
+    - Average `zil_commit` latency equal to latency of 1.5 batches
+
+---
+
+class: middle, center
+
+# 3 &amp;ndash; Solution
+
+---
+
+
+# Solution
+
+ - Remove concept of &#34;batches&#34;:
+
+    1. New calls to `zil_commit` can issue ZIL block writes immediately ...
+
+       - Rather than waiting for &#34;current&#34; batch to complete
+
+    2. Threads notified immediately when **dependent** blocks complete ...
+
+       - Rather than when **all** writes complete (dependent or not)
+
+---
+
+# Example &#34;Batch&#34;
+
+ - Same example as before
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+---
+
+# Example &#34;itx S1&#34;
+
+ - Thread waiting for &#34;itx S1&#34;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+---
+
+# Example &#34;itx S1&#34;
+
+ - Must wait for _only_ &#34;lwb 1&#34; to complete
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+---
+
+# Example &#34;itx S2&#34;
+
+ - Thread waiting for &#34;itx S2&#34;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+---
+
+# Example &#34;itx S2&#34;
+
+ - Must wait for _only_ &#34;lwb 1&#34; and &#34;lwb 2&#34;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+---
+
+class: middle, center
+
+# 4 &amp;ndash; Changes to VDEV Flush
+
+---
+
+# Details
+
+ - A ZIL block not considered &#34;safe&#34; on disk until VDEV is flushed
+
+ - Prior mechanics:
+
+    1. All ZIL blocks written for entire batch
+
+    2. Single VDEV flush issued to each VDEV written to
+
+    - 1 flush to many lwb&#39;s
+
+ - New mechanics:
+
+    1. Single ZIL block written to single VDEV
+
+    2. Single VDEV flush issued to that specific VDEV
+
+    - 1 flush to 1 lwb
+
+ - `dmu_sync` (indirect writes) complicates this slightly
+
+---
+
+# Example: Before
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+sequenceDiagram
+  zil_commit -&gt;&gt;      VDEV 1: lwb 1 write
+  zil_commit -&gt;&gt;      VDEV 2: lwb 2 write
+  zil_commit -&gt;&gt;      VDEV 1: lwb 3 write
+  VDEV 1     --&gt;&gt; zil_commit: lwb 1 done
+  VDEV 2     --&gt;&gt; zil_commit: lwb 2 done
+  VDEV 1     --&gt;&gt; zil_commit: lwb 3 done
+  zil_commit -&gt;&gt;      VDEV 1: flush
+  zil_commit -&gt;&gt;      VDEV 2: flush
+&lt;/div&gt;
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+sequenceDiagram
+  zil_commit -&gt;&gt;      VDEV 1: lwb 1 write
+  zil_commit -&gt;&gt;      VDEV 2: lwb 2 write
+  zil_commit -&gt;&gt;      VDEV 1: lwb 3 write
+  VDEV 1     --&gt;&gt; zil_commit: lwb 1 done
+  zil_commit -&gt;&gt;      VDEV 1: flush
+  VDEV 2     --&gt;&gt; zil_commit: lwb 2 done
+  zil_commit -&gt;&gt;      VDEV 2: flush
+  VDEV 1     --&gt;&gt; zil_commit: lwb 3 done
+  zil_commit -&gt;&gt;      VDEV 1: flush
+&lt;/div&gt;
+
+---
+
+class: middle, center
+
+# 4 &amp;ndash; Changes to ZIL Block ZIO Tree
+
+---
+
+# Details
+
+ - ZIL Blocks issued to disk using ZIOs
+
+ - ZIOs represented as directed acyclic graph (DAG)
+
+    - Parent ZIOs cannot complete until all children complete
+
+ - Prior mechanics:
+
+    - &#34;root&#34; ZIO created for each batch, lwb ZIOs are children
+
+    - Flush issued after root ZIO completes (seperate ZIO tree)
+
+ - New mechanics:
+
+    - &#34;root&#34; ZIO created for each lwb
+
+    - &#34;write&#34; and &#34;flush&#34; ZIOs are child of root ZIO
+
+    - &#34;next&#34; lwb root ZIO become parent of &#34;current&#34; lwb root ZIO
+
+---
+
+# Example: Before
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root)
+&lt;/div&gt;]
+
+---
+
+# Example: Before
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) --&gt; LWB-1(lwb 1)
+&lt;/div&gt;]
+
+---
+
+# Example: Before
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) --&gt; LWB-1(lwb 1)
+  ROOT             --&gt; LWB-2(lwb 2)
+&lt;/div&gt;]
+
+---
+
+# Example: Before
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) --&gt; LWB-1(lwb 1)
+  ROOT             --&gt; LWB-2(lwb 2)
+  ROOT             --&gt; LWB-3(lwb 3)
+&lt;/div&gt;]
+
+---
+
+# Example: Before
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) --&gt; LWB-1(lwb 1)
+  ROOT             --&gt; LWB-2(lwb 2)
+  ROOT             --&gt; LWB-3(lwb 3)
+&lt;/div&gt;]
+
+.pull-right[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(flush root)
+&lt;/div&gt;]
+
+---
+
+# Example: Before
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) --&gt; LWB-1(lwb 1)
+  ROOT             --&gt; LWB-2(lwb 2)
+  ROOT             --&gt; LWB-3(lwb 3)
+&lt;/div&gt;]
+
+.pull-right[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(flush root) --&gt; VDEV-1(VDEV 1 flush)
+&lt;/div&gt;]
+
+---
+
+# Example: Before
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) --&gt; LWB-1(lwb 1)
+  ROOT             --&gt; LWB-2(lwb 2)
+  ROOT             --&gt; LWB-3(lwb 3)
+&lt;/div&gt;]
+
+.pull-right[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(flush root) --&gt; VDEV-1(VDEV 1 flush)
+  ROOT             --&gt; VDEV-2(VDEV 2 flush)
+&lt;/div&gt;]
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-1-ROOT(lwb 1 root)
+&lt;/div&gt;
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+&lt;/div&gt;
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+  LWB-3-ROOT             --&gt; LWB-3-FLUSH(VDEV 1 flush)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-4-ROOT(lwb 4 root) --&gt; LWB-3-ROOT
+  LWB-4-ROOT             --&gt; LWB-4-WRITE(lwb 4 write)
+  LWB-4-ROOT             --&gt; LWB-4-FLUSH(VDEV flush)
+
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+  LWB-3-ROOT             --&gt; LWB-3-FLUSH(VDEV 1 flush)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-5-ROOT(lwb 5 root) --&gt; LWB-4-ROOT
+  LWB-5-ROOT             --&gt; LWB-5-WRITE(lwb 5 write)
+  LWB-5-ROOT             --&gt; LWB-5-FLUSH(VDEV flush)
+
+  LWB-4-ROOT(lwb 4 root) --&gt; LWB-3-ROOT
+  LWB-4-ROOT             --&gt; LWB-4-WRITE(lwb 4 write)
+  LWB-4-ROOT             --&gt; LWB-4-FLUSH(VDEV flush)
+
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+  LWB-3-ROOT             --&gt; LWB-3-FLUSH(VDEV 1 flush)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+---
+
+class: middle, center
+
+# 4 &amp;ndash; Changes to Waiter Notification
+
+---
+
+# Details: Before
+
+ - 2 condition variables (CV), for &#34;current&#34; and &#34;next&#34; batch
+
+ - Threads call `zil_commit`:
+
+    - Assigned to &#34;next&#34; batch, wait on &#34;next&#34; batch&#39;s CV
+
+ - When &#34;current&#34; batch completes
+
+    - All threads waiting on &#34;current&#34; signalled, they return
+
+    - One thread waiting on &#34;next&#34; signalled, becomes &#34;writer&#34;
+
+    - &#34;next&#34; and &#34;current&#34; CV swapped (e.g. &#34;next&#34; &amp;rarr; &#34;current&#34;)
+
+ - Ultimately, these two CVs are the source of original problem
+
+---
+
+# Example: Before
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+sequenceDiagram
+  participant processes
+  participant CV next
+  participant CV current
+  participant writer
+
+  processes  -&gt;&gt;     writer: process 1 becomes writer
+  processes  -&gt;&gt;    CV next: process 2 waits
+  processes  -&gt;&gt;    CV next: process 3 waits
+  writer     -&gt;&gt;  processes: process 1 done writing
+  writer     -&gt;&gt; CV current: signalled
+  writer     -&gt;&gt;    CV next: process 3 signalled
+  processes  -&gt;&gt;     writer: process 3 becomes writer
+  processes --&gt;&gt; CV current: process 2 still waiting
+  processes  -&gt;&gt;    CV next: process 4 waits
+  writer     -&gt;&gt;  processes: process 3 done writing
+  writer     -&gt;&gt; CV current: process 2 signalled
+  writer     -&gt;&gt;    CV next: process 4 signalled
+&lt;/div&gt;
+
+---
+
+# Details: After
+
+ - Each time a process calls `zil_commit`:
+
+    - A new CV is allocated for this specific process to wait on
+
+    - A new `TX_COMMIT` itx is inserted into the ZIL itx tree
+
+       - The &#34;commit itx&#34; has a pointer to the process&#39;s CV
+
+ - When a commit itx is copied to an lwb:
+
+    - No data copied into the lwb&#39;s buffer
+
+    - Instead, itx&#39;s CV added to lwb&#39;s list of CVs
+
+ - When lwb&#39;s ZIO completes, list of CVs iterated and signalled
+
+    - This is how we map which lwb a process is waiting for
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+sequenceDiagram
+  participant processes
+  participant CV
+  participant writer
+  participant ZIO done
+
+  processes -&gt;&gt;      writer: process 1 becomes writer
+  writer    -&gt;&gt;   processes: process 1 done writing
+  processes -&gt;&gt;          CV: process 1 waits
+  processes -&gt;&gt;      writer: process 2 becomes writer
+  ZIO done  -&gt;&gt;          CV: lwb done &amp;ndash; process 1 signalled
+  writer    -&gt;&gt;   processes: process 2 done writing
+  processes -&gt;&gt;          CV: process 2 waits
+  processes -&gt;&gt;      writer: process 3 becomes writer
+  writer    -&gt;&gt;   processes: process 3 done writing
+  processes -&gt;&gt;          CV: process 3 waits
+  ZIO done  -&gt;&gt;          CV: lwb done &amp;ndash; process 2 signalled
+  ZIO done  -&gt;&gt;          CV: lwb done &amp;ndash; process 3 signalled
+&lt;/div&gt;
+
+---
+
+class: middle, center
+
+# 5 &amp;ndash; Performance testing and results.
+
+---
+
+# Details
+
+ - Two `fio` workloads used to drive a sync write workload
+
+    1. `fio` was trying to perform sync writes as fast as it could
+
+    2. `fio` was trying to perform 64 sync writes per second
+
+ - IOPs and latency measured with and without my changes
+
+    - Other metrics also observed (`iostat`, flamegraphs, lwb info, etc.)
+
+ - 1, 2, 4, and 8 disk zpools; tested both SSD and HDD
+
+ - Full details can be found [here][perf-results]
+
+---
+
+class: middle, center
+
+# 5 &amp;ndash; Max Rate Workload &amp;ndash; HDDs
+
+---
+
+background-image: url(max-rate-hdd-iops-pctchange.png)
+background-size: 100%
+
+# % Change IOPs &amp;ndash; Max Rate &amp;ndash; HDDs
+
+---
+
+background-image: url(max-rate-hdd-lat-pctchange.png)
+background-size: 100%
+
+# % Change Latency &amp;ndash; Max Rate &amp;ndash; HDDs
+
+---
+
+class: middle, center
+
+# 5 &amp;ndash; Max Rate Workload &amp;ndash; SSDs
+
+---
+
+background-image: url(max-rate-ssd-iops-pctchange.png)
+background-size: 100%
+
+# % Change IOPs &amp;ndash; Max Rate &amp;ndash; SSDs
+
+---
+
+background-image: url(max-rate-ssd-lat-pctchange.png)
+background-size: 100%
+
+# % Change Latency &amp;ndash; Max Rate &amp;ndash; SSDs
+
+---
+
+class: middle, center
+
+# 5 &amp;ndash; Fixed Rate Workload &amp;ndash; HDDs
+
+---
+
+background-image: url(fixed-rate-hdd-iops-pctchange.png)
+background-size: 100%
+
+# % Change IOPs &amp;ndash; Fixed Rate &amp;ndash; HDDs
+
+---
+
+background-image: url(fixed-rate-hdd-lat-pctchange.png)
+background-size: 100%
+
+# % Change Latency &amp;ndash; Fixed Rate &amp;ndash; HDDs
+
+---
+
+class: middle, center
+
+# 5 &amp;ndash; Fixed Rate Workload &amp;ndash; SSDs
+
+---
+
+background-image: url(fixed-rate-ssd-iops-pctchange.png)
+background-size: 100%
+
+# % Change IOPs &amp;ndash; Fixed Rate &amp;ndash; SSDs
+
+---
+
+background-image: url(fixed-rate-ssd-lat-pctchange.png)
+background-size: 100%
+
+# % Change Latency &amp;ndash; Fixed Rate &amp;ndash; SSDs
+
+[perf-results]: https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/
+
+---
+class: center, middle
+# End
+  </textarea>
+  <script>
+    
+
+    remark.macros.scale = function (percentage) {
+      var url = this;
+      return '<img src="' + url + '" style="width: ' + percentage + '" />';
+    };
+
+    var slideshow = remark.create({});
+
+    
+
+    mermaid.initialize({ startOnLoad: false, cloneCssStyles: false });
+    slideshow.on('afterShowSlide', function(s) {
+      var diagrams = document.querySelectorAll('.mermaid');
+      var i;
+      for (i=0; i<diagrams.length; i++) {
+        if (diagrams[i].offsetWidth > 0) {
+          mermaid.init(undefined, diagrams[i]);
+        }
+      }
+    });
+  </script>
+</main>
+  </body>
+</html>

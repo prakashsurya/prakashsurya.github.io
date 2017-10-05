@@ -6,8 +6,1929 @@
     <description>Recent content on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 28 Sep 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Tue, 24 Oct 2017 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>ZIL Performance: How I Doubled Sync Write Speed</title>
+      <link>https://www.prakashsurya.com/post/2017-10-24-zil-performance-how-i-doubled-sync-write-speed/</link>
+      <pubDate>Tue, 24 Oct 2017 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2017-10-24-zil-performance-how-i-doubled-sync-write-speed/</guid>
+      <description>
+
+&lt;h1 id=&#34;agenda&#34;&gt;Agenda&lt;/h1&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;What is the ZIL? Why does it exist?&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;How is it used? How does it work?&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The problem to be fixed; the solution.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Details on the changes I made.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Performance testing and results.&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;1-ndash-what-is-the-zil&#34;&gt;1 &amp;ndash; What is the ZIL?&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;what-is-the-zil&#34;&gt;What is the ZIL?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;ZIL: Acronym for (Z)FS (I)ntent (L)og&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Log of all operations ZFS intends to write via &lt;code&gt;spa_sync()&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Both &amp;ldquo;async&amp;rdquo; and &amp;ldquo;sync&amp;rdquo; operations logged in-memory&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Only sync (or &amp;ldquo;promoted&amp;rdquo; async) operations logged on-disk&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;what-is-the-slog&#34;&gt;What is the SLOG?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;SLOG: Acronym for (S)eperate (LOG) Device&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;An SLOG is not necessary&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;ZIL writes to main pool by default&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;An SLOG can be used to improve latency of ZIL writes&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;When attached, ZIL writes to SLOG instead of main pool&lt;sup&gt;*&lt;/sup&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;SLOG can be used by the ZIL, but it is &lt;em&gt;not&lt;/em&gt; the ZIL&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;Details of when/how the SLOG is used is complicated and not covered]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;when-is-the-zil-used&#34;&gt;When is the ZIL used?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Always.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;in-memory ZIL always used; i.e. log entries always created&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;sync=always&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_commit()&lt;/code&gt; always called&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;for both sync and async ops&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;sync=disabled&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_commit()&lt;/code&gt; doesn&amp;rsquo;t do anything&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;but it&amp;rsquo;s still called for sync ops&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit()&lt;/code&gt; is the mechanism for writing log entries to disk&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ZIL used even without an SLOG&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;On-disk ZIL only read from during &amp;ldquo;replay&amp;rdquo; (i.e. after a crash)&lt;sup&gt;*&lt;/sup&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;Details w.r.t. replay not covered]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;why-does-the-zil-exist&#34;&gt;Why does the ZIL exist?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Performance optimization; not required for correctness&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Writes in ZFS are &amp;ldquo;write-back&amp;rdquo;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Data is first stored in-memory, in DMU layer&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Then &lt;strong&gt;all&lt;/strong&gt; &amp;ldquo;dirty&amp;rdquo; data written to disk via &lt;code&gt;spa_sync()&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;spa_sync()&lt;/code&gt; can tens of seconds (or more) to complete&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Without ZIL, sync operations inherit latency of &lt;code&gt;spa_sync()&lt;/code&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;All ops inherit latency; only sync ops &lt;em&gt;wait&lt;/em&gt; for completion&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ZIL allows sync operations to &amp;ldquo;bypass&amp;rdquo; latency of &lt;code&gt;spa_sync()&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;2-ndash-how-is-the-zil-used&#34;&gt;2 &amp;ndash; How is the ZIL used?&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-is-the-zil-used&#34;&gt;How is the ZIL used?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Consumers generally interact with the ZIL in two phases:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Log the operation(s)&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Tells ZIL operation occurred&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Commit the operation(s)&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Causes ZIL to write log of operation to disk&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zfs-write&#34;&gt;Example: &lt;code&gt;zfs_write&lt;/code&gt;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_write&lt;/code&gt; &amp;rarr; &lt;code&gt;zfs_log_write&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_log_write&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&amp;rarr; &lt;code&gt;zil_itx_create&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&amp;rarr; &lt;code&gt;zil_itx_assign&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_write&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_commit&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Most ZPL syscalls have a &lt;code&gt;zfs_log_*&lt;/code&gt; function&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;zfs_log_create&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;zfs_log_remove&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;zfs_log_link&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;zfs_log_symlink&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;zfs_log_truncate&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;zfs_log_setattr&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zfs-fsync&#34;&gt;Example: &lt;code&gt;zfs_fsync&lt;/code&gt;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_fsync&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_commit&lt;/code&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;There&amp;rsquo;s no &lt;em&gt;new&lt;/em&gt; operations to log.. thus, no &lt;code&gt;zfs_log_fysnc&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;contract-between-zil-and-consumers&#34;&gt;Contract between ZIL and consumers.&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; won&amp;rsquo;t return until all operations are safe&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;What does &amp;ldquo;all operations&amp;rdquo; mean?&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;All sync ops for object being committed; i.e. &lt;code&gt;itx_sync=B_TRUE&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;All async ops which sync ops depend on&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;In practice:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;All sync ops for all objects&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;All async ops for specific object being committed&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;what-does-safe-mean&#34;&gt;What does &amp;ldquo;safe&amp;rdquo; mean?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Operation(s) won&amp;rsquo;t be lost, forgotten, or modified&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;How is this accomplished:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Data written to disk &amp;rarr; disk flushed&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Remember: &lt;code&gt;spa_sync&lt;/code&gt; takes too long&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Special &amp;ldquo;log blocks&amp;rdquo; written not using &lt;code&gt;spa_sync&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Log blocks written faster than &lt;code&gt;spa_sync&lt;/code&gt; could handle ops&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Log blocks track operations not yet applied via &lt;code&gt;spa_sync&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Dataset not actually modified (on-disk) until later&lt;sup&gt;*&lt;/sup&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If a crash occurs before &lt;code&gt;spa_sync&lt;/code&gt; applies the modifications&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;log blocks are &amp;ldquo;replayed&amp;rdquo; prior to mounting the dataset&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If no crash, log blocks freed via &lt;code&gt;spa_sync&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;2-ndash-how-does-the-zil-work&#34;&gt;2 &amp;ndash; How does the ZIL work?&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-does-the-zil-work&#34;&gt;How does the ZIL work?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;In memory ZIL contains 4 (per-txg) &lt;code&gt;itxg_t&lt;/code&gt; structures&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Each &lt;code&gt;itxg_t&lt;/code&gt; contains a single &lt;code&gt;itxs_t&lt;/code&gt;, which contains:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;List of sync operations&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;AVL tree of lists of async operations&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Each node in tree contains per-object list of async ops&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Remember: &lt;code&gt;zil_itx_create&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_itx_assign&lt;/code&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_itx_create&lt;/code&gt; &amp;ndash; allocates a new &lt;code&gt;itx_t&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_itx_assign&lt;/code&gt; &amp;ndash; inserts the &lt;code&gt;itx_t&lt;/code&gt; into one of these lists&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Terminology: &amp;ldquo;itx&amp;rdquo; refers to a ZIL operation (intent log transaction)&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-lists&#34;&gt;Example: itx lists&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list) --&gt; SLIST-1((itx S1))
+  SLIST-1          --&gt; SLIST-2((itx S2))
+
+  ATREE(async tree) --&gt; OBJ-A(object A)
+  OBJ-A             --&gt; OBJ-B(object B)
+  OBJ-B             --&gt; OBJ-B-1((itx B1))
+  OBJ-B-1           --&gt; OBJ-B-2((itx B2))
+  OBJ-A             --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1           --&gt; OBJ-A-2((itx A2))
+  OBJ-A-2           --&gt; OBJ-A-3((itx A3))
+  OBJ-A             --&gt; OBJ-C(object C)
+  OBJ-C             --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1           --&gt; OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-1&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list) --&gt; SLIST-1((itx S1))
+  SLIST-1          --&gt; SLIST-2((itx S2))
+
+  ATREE(async tree) --&gt; OBJ-A(object A)
+  OBJ-A             --&gt; OBJ-B(object B)
+  OBJ-B             --&gt; OBJ-B-1((itx B1))
+  OBJ-B-1           --&gt; OBJ-B-2((itx B2))
+  OBJ-A             --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1           --&gt; OBJ-A-2((itx A2))
+  OBJ-A-2           --&gt; OBJ-A-3((itx A3))
+  OBJ-A             --&gt; OBJ-C(object C)
+  OBJ-C             --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1           --&gt; OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-1&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list) --&gt; SLIST-1((itx S1))
+  SLIST-1          --&gt; SLIST-2((itx S2))
+  SLIST-2          --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1          --&gt; OBJ-C-2((itx C2))
+
+  ATREE(async tree) --&gt; OBJ-A(object A)
+  OBJ-A             --&gt; OBJ-B(object B)
+  OBJ-B             --&gt; OBJ-B-1((itx B1))
+  OBJ-B-1           --&gt; OBJ-B-2((itx B2))
+  OBJ-A             --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1           --&gt; OBJ-A-2((itx A2))
+  OBJ-A-2           --&gt; OBJ-A-3((itx A3))
+  OBJ-A             --&gt; OBJ-C(object C)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-2&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Move sync list to &amp;ldquo;commit list&amp;rdquo;; sync list now empty&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-2&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list)   --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  CLIST(commit list)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-3&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list)
+
+  CLIST(commit list) --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-3&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Move sync list to &amp;ldquo;commit list&amp;rdquo;; sync list now empty&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For each itx in commit list:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Copy itx data into ZIL block&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If space in ZIL block lacking&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;allocate new (empty) block, write out old block&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-4&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-5&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-6&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Terminology: &amp;ldquo;lwb&amp;rdquo; refers to a ZIL block (log write block)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-7&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-8&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-9&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-10&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-11&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-12&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-13&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff
+  style OBJ-C-2 fill:#ffa500,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-14&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff
+  style OBJ-C-2 fill:#ffa500,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+  style LWB-2   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-15&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list)
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff
+  style OBJ-C-2 fill:#ffa500
+  style LWB-1   fill:#ffff00
+  style LWB-2   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-16&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list)
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff
+  style OBJ-C-2 fill:#ffa500
+  style LWB-1   fill:#ffff00
+  style LWB-2   fill:#ffff00
+  style LWB-3   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-4&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Move sync list to &amp;ldquo;commit list&amp;rdquo;; sync list now empty&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For each itx in commit list:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Copy itx data into ZIL block&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If space in ZIL block lacking&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;allocate new (empty) block, write out old block&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Wait for all ZIL block writes to complete&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-17&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-1   fill:#ffff00
+  style LWB-2   fill:#ffff00
+  style LWB-3   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-18&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-1   fill:#00ff00
+  style LWB-2   fill:#ffff00
+  style LWB-3   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-19&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-1   fill:#00ff00
+  style LWB-2   fill:#ffff00
+  style LWB-3   fill:#00ff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-20&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-1   fill:#00ff00
+  style LWB-2   fill:#00ff00
+  style LWB-3   fill:#00ff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-5&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Move sync list to &amp;ldquo;commit list&amp;rdquo;; sync list now empty&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For each itx in commit list:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Copy itx data into ZIL block&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If space in ZIL block lacking&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;allocate new (empty) block, write out old block&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Wait for all ZIL block writes to complete&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Flush all VDEVs written to&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-6&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Move sync list to &amp;ldquo;commit list&amp;rdquo;; sync list now empty&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For each itx in commit list:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Copy itx data into ZIL block&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If space in ZIL block lacking&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;allocate new (empty) block, write out old block&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Wait for all ZIL block writes to complete&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Flush all VDEVs written to&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Notify waiting threads&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;2-ndash-zil-blocks&#34;&gt;2 &amp;ndash; ZIL Blocks&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;constraints&#34;&gt;Constraints&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;On disk component of ZIL is a linked list of ZIL blocks (lwb&amp;rsquo;s)&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Doesn&amp;rsquo;t use indirection like &amp;ldquo;normal&amp;rdquo; blocks&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;no indirect blocks&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Each ZIL block contains pointer to next ZIL block on disk&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ZIL blocks, once written to disk, cannot be overwritten&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Due to data integrity concerns&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Thus, &amp;ldquo;next&amp;rdquo; ZIL block allocated when &amp;ldquo;current&amp;rdquo; block written&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Required for &amp;ldquo;current&amp;rdquo; block to contain pointer to &amp;ldquo;next&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Checksum for &amp;ldquo;next&amp;rdquo; block, stored in &amp;ldquo;previous&amp;rdquo; block&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;When traversing list, checksum failure means &amp;ldquo;list end&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;implications-w-r-t-performance&#34;&gt;Implications w.r.t. Performance&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;ZIL block size chosen at time of allocation&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ZIL block size can dramatically impact performance:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&amp;ldquo;too big&amp;rdquo; &amp;ndash; results in &amp;ldquo;wasted&amp;rdquo; space&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Unused portion of block cannot be &amp;ldquo;filled in&amp;rdquo; later&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Can result in small, but fast, SLOG filling to capacity&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&amp;ldquo;too small&amp;rdquo; &amp;ndash; results in &amp;ldquo;too many&amp;rdquo; IOPs issued to disk&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Can needlessly cause disk saturation and poor performance&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&amp;ldquo;just right&amp;rdquo; &amp;ndash; Large (enough) ZIL blocks filled with itx&amp;rsquo;s&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;ZIL blocks fully utilized with itx&amp;rsquo;s (no wasted SLOG space)&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Fewer IOPs for same number of itx&amp;rsquo;s&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;e.g. 15 8K writes using 1 128K lwb vs. 4 32K lwb&amp;rsquo;s&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;3-ndash-problem&#34;&gt;3 &amp;ndash; Problem&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;itx&amp;rsquo;s grouped and written in &amp;ldquo;batches&amp;rdquo;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;The commit list constitutes a batch&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Batch size proportional to sync workload on system&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Waiting threads only notified when &lt;em&gt;all&lt;/em&gt; ZIL blocks in batch complete&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Only a single batch processed at a time&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-batch&#34;&gt;Example Batch&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Example batch taken from prior slides&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s1&#34;&gt;Example &amp;ldquo;itx S1&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Thread waiting for &amp;ldquo;itx S1&amp;rdquo; (e.g. a single sync write)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s1-1&#34;&gt;Example &amp;ldquo;itx S1&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Must wait for &lt;strong&gt;all&lt;/strong&gt; lwb&amp;rsquo;s to be written and completed&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-3   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s2&#34;&gt;Example &amp;ldquo;itx S2&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Thread waiting for &amp;ldquo;itx S2&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s2-1&#34;&gt;Example &amp;ldquo;itx S2&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Again, must wait for &lt;strong&gt;all&lt;/strong&gt; lwb&amp;rsquo;s to be written and completed&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-3   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;implications&#34;&gt;Implications&lt;/h1&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Latency of &lt;code&gt;zil_commit&lt;/code&gt; proportional to system workload, not disk latency&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Fast SLOG may not compensate for large workload&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Disk &amp;ldquo;anomalies&amp;rdquo; cause larger batches, increased &lt;code&gt;zil_commit&lt;/code&gt; latency&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;E.g. Temporary network delays when using SAN storage&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;New calls to &lt;code&gt;zil_commit&lt;/code&gt; wait for &amp;ldquo;current&amp;rdquo; batch, &lt;em&gt;and&lt;/em&gt; &amp;ldquo;next&amp;rdquo; batch&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Average &lt;code&gt;zil_commit&lt;/code&gt; latency equal to latency of 1.5 batches&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;3-ndash-solution&#34;&gt;3 &amp;ndash; Solution&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Remove concept of &amp;ldquo;batches&amp;rdquo;:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;New calls to &lt;code&gt;zil_commit&lt;/code&gt; can issue ZIL block writes immediately &amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Rather than waiting for &amp;ldquo;current&amp;rdquo; batch to complete&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Threads notified immediately when &lt;strong&gt;dependent&lt;/strong&gt; blocks complete &amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Rather than when &lt;strong&gt;all&lt;/strong&gt; writes complete (dependent or not)&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-batch-1&#34;&gt;Example &amp;ldquo;Batch&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Same example as before&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s1-2&#34;&gt;Example &amp;ldquo;itx S1&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Thread waiting for &amp;ldquo;itx S1&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s1-3&#34;&gt;Example &amp;ldquo;itx S1&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Must wait for &lt;em&gt;only&lt;/em&gt; &amp;ldquo;lwb 1&amp;rdquo; to complete&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s2-2&#34;&gt;Example &amp;ldquo;itx S2&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Thread waiting for &amp;ldquo;itx S2&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s2-3&#34;&gt;Example &amp;ldquo;itx S2&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Must wait for &lt;em&gt;only&lt;/em&gt; &amp;ldquo;lwb 1&amp;rdquo; and &amp;ldquo;lwb 2&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;4-ndash-changes-to-vdev-flush&#34;&gt;4 &amp;ndash; Changes to VDEV Flush&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;details&#34;&gt;Details&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;A ZIL block not considered &amp;ldquo;safe&amp;rdquo; on disk until VDEV is flushed&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Prior mechanics:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;All ZIL blocks written for entire batch&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Single VDEV flush issued to each VDEV written to&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;ul&gt;
+&lt;li&gt;1 flush to many lwb&amp;rsquo;s&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;New mechanics:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Single ZIL block written to single VDEV&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Single VDEV flush issued to that specific VDEV&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;ul&gt;
+&lt;li&gt;1 flush to 1 lwb&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;dmu_sync&lt;/code&gt; (indirect writes) complicates this slightly&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+sequenceDiagram
+  zil_commit -&gt;&gt;      VDEV 1: lwb 1 write
+  zil_commit -&gt;&gt;      VDEV 2: lwb 2 write
+  zil_commit -&gt;&gt;      VDEV 1: lwb 3 write
+  VDEV 1     --&gt;&gt; zil_commit: lwb 1 done
+  VDEV 2     --&gt;&gt; zil_commit: lwb 2 done
+  VDEV 1     --&gt;&gt; zil_commit: lwb 3 done
+  zil_commit -&gt;&gt;      VDEV 1: flush
+  zil_commit -&gt;&gt;      VDEV 2: flush
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+sequenceDiagram
+  zil_commit -&gt;&gt;      VDEV 1: lwb 1 write
+  zil_commit -&gt;&gt;      VDEV 2: lwb 2 write
+  zil_commit -&gt;&gt;      VDEV 1: lwb 3 write
+  VDEV 1     --&gt;&gt; zil_commit: lwb 1 done
+  zil_commit -&gt;&gt;      VDEV 1: flush
+  VDEV 2     --&gt;&gt; zil_commit: lwb 2 done
+  zil_commit -&gt;&gt;      VDEV 2: flush
+  VDEV 1     --&gt;&gt; zil_commit: lwb 3 done
+  zil_commit -&gt;&gt;      VDEV 1: flush
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;4-ndash-changes-to-zil-block-zio-tree&#34;&gt;4 &amp;ndash; Changes to ZIL Block ZIO Tree&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;details-1&#34;&gt;Details&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;ZIL Blocks issued to disk using ZIOs&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ZIOs represented as directed acyclic graph (DAG)&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Parent ZIOs cannot complete until all children complete&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Prior mechanics:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&amp;ldquo;root&amp;rdquo; ZIO created for each batch, lwb ZIOs are children&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Flush issued after root ZIO completes (seperate ZIO tree)&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;New mechanics:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&amp;ldquo;root&amp;rdquo; ZIO created for each lwb&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&amp;ldquo;write&amp;rdquo; and &amp;ldquo;flush&amp;rdquo; ZIOs are child of root ZIO&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&amp;ldquo;next&amp;rdquo; lwb root ZIO become parent of &amp;ldquo;current&amp;rdquo; lwb root ZIO&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-1&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-2&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) &amp;ndash;&amp;gt; LWB-1(lwb 1)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-3&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) &amp;ndash;&amp;gt; LWB-1(lwb 1)
+  ROOT             &amp;ndash;&amp;gt; LWB-2(lwb 2)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-4&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) &amp;ndash;&amp;gt; LWB-1(lwb 1)
+  ROOT             &amp;ndash;&amp;gt; LWB-2(lwb 2)
+  ROOT             &amp;ndash;&amp;gt; LWB-3(lwb 3)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-5&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) &amp;ndash;&amp;gt; LWB-1(lwb 1)
+  ROOT             &amp;ndash;&amp;gt; LWB-2(lwb 2)
+  ROOT             &amp;ndash;&amp;gt; LWB-3(lwb 3)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;p&gt;.pull-right[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(flush root)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-6&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) &amp;ndash;&amp;gt; LWB-1(lwb 1)
+  ROOT             &amp;ndash;&amp;gt; LWB-2(lwb 2)
+  ROOT             &amp;ndash;&amp;gt; LWB-3(lwb 3)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;p&gt;.pull-right[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(flush root) &amp;ndash;&amp;gt; VDEV-1(VDEV 1 flush)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-7&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) &amp;ndash;&amp;gt; LWB-1(lwb 1)
+  ROOT             &amp;ndash;&amp;gt; LWB-2(lwb 2)
+  ROOT             &amp;ndash;&amp;gt; LWB-3(lwb 3)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;p&gt;.pull-right[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(flush root) &amp;ndash;&amp;gt; VDEV-1(VDEV 1 flush)
+  ROOT             &amp;ndash;&amp;gt; VDEV-2(VDEV 2 flush)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-1&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-1-ROOT(lwb 1 root)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-2&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-3&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-4&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-5&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-6&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-7&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-8&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-9&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+  LWB-3-ROOT             --&gt; LWB-3-FLUSH(VDEV 1 flush)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-10&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-4-ROOT(lwb 4 root) --&gt; LWB-3-ROOT
+  LWB-4-ROOT             --&gt; LWB-4-WRITE(lwb 4 write)
+  LWB-4-ROOT             --&gt; LWB-4-FLUSH(VDEV flush)
+
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+  LWB-3-ROOT             --&gt; LWB-3-FLUSH(VDEV 1 flush)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-11&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-5-ROOT(lwb 5 root) --&gt; LWB-4-ROOT
+  LWB-5-ROOT             --&gt; LWB-5-WRITE(lwb 5 write)
+  LWB-5-ROOT             --&gt; LWB-5-FLUSH(VDEV flush)
+
+  LWB-4-ROOT(lwb 4 root) --&gt; LWB-3-ROOT
+  LWB-4-ROOT             --&gt; LWB-4-WRITE(lwb 4 write)
+  LWB-4-ROOT             --&gt; LWB-4-FLUSH(VDEV flush)
+
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+  LWB-3-ROOT             --&gt; LWB-3-FLUSH(VDEV 1 flush)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;4-ndash-changes-to-waiter-notification&#34;&gt;4 &amp;ndash; Changes to Waiter Notification&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;details-before&#34;&gt;Details: Before&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;2 condition variables (CV), for &amp;ldquo;current&amp;rdquo; and &amp;ldquo;next&amp;rdquo; batch&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Threads call &lt;code&gt;zil_commit&lt;/code&gt;:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Assigned to &amp;ldquo;next&amp;rdquo; batch, wait on &amp;ldquo;next&amp;rdquo; batch&amp;rsquo;s CV&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;When &amp;ldquo;current&amp;rdquo; batch completes&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;All threads waiting on &amp;ldquo;current&amp;rdquo; signalled, they return&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;One thread waiting on &amp;ldquo;next&amp;rdquo; signalled, becomes &amp;ldquo;writer&amp;rdquo;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&amp;ldquo;next&amp;rdquo; and &amp;ldquo;current&amp;rdquo; CV swapped (e.g. &amp;ldquo;next&amp;rdquo; &amp;rarr; &amp;ldquo;current&amp;rdquo;)&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Ultimately, these two CVs are the source of original problem&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-8&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+sequenceDiagram
+  participant processes
+  participant CV next
+  participant CV current
+  participant writer
+
+  processes  -&gt;&gt;     writer: process 1 becomes writer
+  processes  -&gt;&gt;    CV next: process 2 waits
+  processes  -&gt;&gt;    CV next: process 3 waits
+  writer     -&gt;&gt;  processes: process 1 done writing
+  writer     -&gt;&gt; CV current: signalled
+  writer     -&gt;&gt;    CV next: process 3 signalled
+  processes  -&gt;&gt;     writer: process 3 becomes writer
+  processes --&gt;&gt; CV current: process 2 still waiting
+  processes  -&gt;&gt;    CV next: process 4 waits
+  writer     -&gt;&gt;  processes: process 3 done writing
+  writer     -&gt;&gt; CV current: process 2 signalled
+  writer     -&gt;&gt;    CV next: process 4 signalled
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;details-after&#34;&gt;Details: After&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Each time a process calls &lt;code&gt;zil_commit&lt;/code&gt;:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;A new CV is allocated for this specific process to wait on&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;A new &lt;code&gt;TX_COMMIT&lt;/code&gt; itx is inserted into the ZIL itx tree&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;The &amp;ldquo;commit itx&amp;rdquo; has a pointer to the process&amp;rsquo;s CV&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;When a commit itx is copied to an lwb:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;No data copied into the lwb&amp;rsquo;s buffer&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Instead, itx&amp;rsquo;s CV added to lwb&amp;rsquo;s list of CVs&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;When lwb&amp;rsquo;s ZIO completes, list of CVs iterated and signalled&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;This is how we map which lwb a process is waiting for&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-12&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+sequenceDiagram
+  participant processes
+  participant CV
+  participant writer
+  participant ZIO done
+
+  processes -&gt;&gt;      writer: process 1 becomes writer
+  writer    -&gt;&gt;   processes: process 1 done writing
+  processes -&gt;&gt;          CV: process 1 waits
+  processes -&gt;&gt;      writer: process 2 becomes writer
+  ZIO done  -&gt;&gt;          CV: lwb done &amp;ndash; process 1 signalled
+  writer    -&gt;&gt;   processes: process 2 done writing
+  processes -&gt;&gt;          CV: process 2 waits
+  processes -&gt;&gt;      writer: process 3 becomes writer
+  writer    -&gt;&gt;   processes: process 3 done writing
+  processes -&gt;&gt;          CV: process 3 waits
+  ZIO done  -&gt;&gt;          CV: lwb done &amp;ndash; process 2 signalled
+  ZIO done  -&gt;&gt;          CV: lwb done &amp;ndash; process 3 signalled
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;5-ndash-performance-testing-and-results&#34;&gt;5 &amp;ndash; Performance testing and results.&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;details-2&#34;&gt;Details&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Two &lt;code&gt;fio&lt;/code&gt; workloads used to drive a sync write workload&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;fio&lt;/code&gt; was trying to perform sync writes as fast as it could&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;fio&lt;/code&gt; was trying to perform 64 sync writes per second&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;IOPs and latency measured with and without my changes&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Other metrics also observed (&lt;code&gt;iostat&lt;/code&gt;, flamegraphs, lwb info, etc.)&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;1, 2, 4, and 8 disk zpools; tested both SSD and HDD&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Full details can be found &lt;a href=&#34;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/&#34;&gt;here&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;5-ndash-max-rate-workload-ndash-hdds&#34;&gt;5 &amp;ndash; Max Rate Workload &amp;ndash; HDDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(max-rate-hdd-iops-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-iops-ndash-max-rate-ndash-hdds&#34;&gt;% Change IOPs &amp;ndash; Max Rate &amp;ndash; HDDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(max-rate-hdd-lat-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-latency-ndash-max-rate-ndash-hdds&#34;&gt;% Change Latency &amp;ndash; Max Rate &amp;ndash; HDDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;5-ndash-max-rate-workload-ndash-ssds&#34;&gt;5 &amp;ndash; Max Rate Workload &amp;ndash; SSDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(max-rate-ssd-iops-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-iops-ndash-max-rate-ndash-ssds&#34;&gt;% Change IOPs &amp;ndash; Max Rate &amp;ndash; SSDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(max-rate-ssd-lat-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-latency-ndash-max-rate-ndash-ssds&#34;&gt;% Change Latency &amp;ndash; Max Rate &amp;ndash; SSDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;5-ndash-fixed-rate-workload-ndash-hdds&#34;&gt;5 &amp;ndash; Fixed Rate Workload &amp;ndash; HDDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(fixed-rate-hdd-iops-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-iops-ndash-fixed-rate-ndash-hdds&#34;&gt;% Change IOPs &amp;ndash; Fixed Rate &amp;ndash; HDDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(fixed-rate-hdd-lat-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-latency-ndash-fixed-rate-ndash-hdds&#34;&gt;% Change Latency &amp;ndash; Fixed Rate &amp;ndash; HDDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;5-ndash-fixed-rate-workload-ndash-ssds&#34;&gt;5 &amp;ndash; Fixed Rate Workload &amp;ndash; SSDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(fixed-rate-ssd-iops-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-iops-ndash-fixed-rate-ndash-ssds&#34;&gt;% Change IOPs &amp;ndash; Fixed Rate &amp;ndash; SSDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(fixed-rate-ssd-lat-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-latency-ndash-fixed-rate-ndash-ssds&#34;&gt;% Change Latency &amp;ndash; Fixed Rate &amp;ndash; SSDs&lt;/h1&gt;
+</description>
+    </item>
     
     <item>
       <title>Generating Code Coverage Reports for ZFS on Linux</title>
@@ -674,7 +2595,7 @@ background-image: url(spreadsheet-iops.png)
 
     - No way to annotate data/visualizations with explanations.
 
-.footnote[&amp;lt;sub&amp;gt;&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;&amp;lt;sub&amp;gt;http://www.nytimes.com/2013/04/19/opinion/krugman-the-excel-depression.html&amp;lt;/sub&amp;gt;&amp;lt;/sub&amp;gt;]
+.footnote[&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;http://www.nytimes.com/2013/04/19/opinion/krugman-the-excel-depression.html]
 
 ---
 
@@ -725,7 +2646,7 @@ with your explanation and reasoning.&lt;/p&gt;
 &lt;p&gt;&amp;hellip;&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;
-.footnote[&amp;lt;sub&amp;gt;&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;&amp;lt;sub&amp;gt;https://www.oreilly.com/ideas/what-is-jupyter&amp;lt;/sub&amp;gt;&amp;lt;/sub&amp;gt;]
+.footnote[&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;https://www.oreilly.com/ideas/what-is-jupyter]
 
 ---
 
@@ -745,7 +2666,7 @@ with your explanation and reasoning.&lt;/p&gt;
 
 ---
 
-# Real example: My results for OpenZFS #447
+# Real example: Results for OpenZFS #447
 
  - Link to [Max Rate Submit on HDDs][max-rate-submit-hdds]
 
@@ -755,7 +2676,7 @@ with your explanation and reasoning.&lt;/p&gt;
 
  - Link to [Fixed Rate Submit on HDDs][fixed-rate-submit-hdds]
 
-.footnote[&amp;lt;sub&amp;gt;&amp;lt;sup&amp;gt;\*&amp;lt;/sup&amp;gt;&amp;lt;sub&amp;gt;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/&amp;lt;/sub&amp;gt;&amp;lt;/sub&amp;gt;]
+.footnote[&amp;lt;sup&amp;gt;\*&amp;lt;/sup&amp;gt;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/]
 
 ---
 
@@ -2731,343 +4652,6 @@ file, the pool is online an healthy.&lt;/p&gt;
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;and this is exactly the behavior seen.&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Creating a Custom Amazon EC2 AMI from ISO (using OI Hipster)</title>
-      <link>https://www.prakashsurya.com/post/2017-02-06-creating-a-custom-amazon-ec2-ami-from-iso/</link>
-      <pubDate>Mon, 06 Feb 2017 00:00:00 -0800</pubDate>
-      
-      <guid>https://www.prakashsurya.com/post/2017-02-06-creating-a-custom-amazon-ec2-ami-from-iso/</guid>
-      <description>
-
-&lt;h2 id=&#34;preface&#34;&gt;Preface&lt;/h2&gt;
-
-&lt;p&gt;In this post, I&amp;rsquo;ll pick up from where I left off
-&lt;a href=&#34;https://www.prakashsurya.com/post/2017-02-01-creating-custom-istallation-media-for-oi-hipster/&#34;&gt;last time&lt;/a&gt;, and demonstrate one potential way to convert
-the installation ISO media generated in that post, into an &lt;a href=&#34;https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html&#34;&gt;AMI&lt;/a&gt;
-that can be used to create new VMs in the &lt;a href=&#34;https://aws.amazon.com/documentation/ec2/&#34;&gt;Amazon EC2&lt;/a&gt; environment.
-It&amp;rsquo;s important to note a couple things before we start:&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;While I&amp;rsquo;ll be generating an AMI based on &lt;a href=&#34;https://wiki.openindiana.org/oi/Hipster&#34;&gt;OI Hipster&lt;/a&gt;,
- this process should be applicable to any Linux or FreeBSD based
- operating system as well (and quite possibly Windows too, but I
- don&amp;rsquo;t know much about that platform).&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;I make no gaurantees about whether the process that&amp;rsquo;ll be
- demonstrated is correct, efficient, or complete. I have little
- to no expertise in this area, and this is simply a write up of the
- notes that I took as I was teaching myself how to do this. Just
- because the process below worked for me, does not necessarily mean
- it will work for anybody else. Thus, if you&amp;rsquo;re using this as a
- guide to create your own custom AMI(s), be aware, YMMV.&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;With that out of the way, lets get started.&lt;/p&gt;
-
-&lt;h2 id=&#34;step-0-create-template-for-root-volume-of-ami&#34;&gt;Step 0: Create Template for Root Volume of AMI&lt;/h2&gt;
-
-&lt;p&gt;The first step that we need to perform, is to create a disk image
-that&amp;rsquo;ll be used as the template for the root volume of the AMI that
-we&amp;rsquo;ll be creating. If you already have a &lt;code&gt;raw&lt;/code&gt; VM disk image that you
-intend to use as the AMI root volume template, than this step can be
-skipped. For the sake of completeness, I&amp;rsquo;m including one possible way to
-generate this &lt;code&gt;raw&lt;/code&gt; disk image, that&amp;rsquo;ll then be used in later steps.&lt;/p&gt;
-
-&lt;p&gt;In order to generate this &lt;code&gt;raw&lt;/code&gt; disk image, we&amp;rsquo;ll create a VM that&amp;rsquo;ll be
-used to execute the ISO installer, which will install our operating
-system (OI Hipster, in my case) onto a &amp;ldquo;disk&amp;rdquo;, that we can then upload
-to Amazon and use as our AMI&amp;rsquo;s root volume template.&lt;/p&gt;
-
-&lt;p&gt;For this guide, I&amp;rsquo;ll be using a &lt;a href=&#34;https://www.debian.org/&#34;&gt;Debian&lt;/a&gt; server that&amp;rsquo;s
-configured as a &lt;a href=&#34;https://wiki.debian.org/Xen&#34;&gt;Xen host&lt;/a&gt; to create the VM and disk image.
-First, lets create a sparse file that&amp;rsquo;ll be attached as the VM&amp;rsquo;s only
-virtual disk; after the ISO installation completes, this file will be
-our &lt;code&gt;raw&lt;/code&gt; disk image that&amp;rsquo;ll be converted into the AMI&amp;rsquo;s root volume.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ truncate -s 64G ami-template.img
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Now, to create the VM, I need to specify the hardware configuration to
-use. I do this using the following Xen VM configuration:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ cat &amp;lt;&amp;lt;EOF &amp;gt; ami-template.cfg
-&amp;gt; builder=&#39;hvm&#39;
-&amp;gt; name=&#39;ami-template&#39;
-&amp;gt; vcpus=4
-&amp;gt; memory=4096
-&amp;gt; vif=[&#39;bridge=xenbr0, type=ioemu&#39;]
-&amp;gt; disk=[  &#39;file:/root/OpenIndiana_Text_X86.iso,hdb:cdrom,r&#39;,
-&amp;gt;         &#39;file:/root/ami-template.img,xvda,w&#39; ]
-&amp;gt; boot=&#39;d&#39;
-&amp;gt; vnc=1
-&amp;gt; vnclisten=&#39;0.0.0.0&#39;
-&amp;gt; vncconsole=1
-&amp;gt; on_crash=&#39;preserve&#39;
-&amp;gt; xen_platform_pci=1
-&amp;gt; serial=&#39;pty&#39;
-&amp;gt; on_reboot=&#39;destroy&#39;
-&amp;gt; EOF
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;For those unfamilar with Xen&amp;rsquo;s configuration files, this states that the
-VM will be given:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;4 CPUs&lt;/li&gt;
-&lt;li&gt;4G of RAM&lt;/li&gt;
-&lt;li&gt;The installation ISO will be attached as a CDROM&lt;/li&gt;
-&lt;li&gt;The sparse file generated above will be used as the VM&amp;rsquo;s only disk&lt;/li&gt;
-&lt;li&gt;The console will be displayed over &lt;a href=&#34;https://en.wikipedia.org/wiki/Virtual_Network_Computing&#34;&gt;VNC&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;etc&amp;hellip;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;With that configuration file generated, we can go ahead and create/start
-the VM with the following command:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ xm create ami-template.cfg
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;With the VM running and it&amp;rsquo;s console being displayed over VNC, I can
-then connect to the console and manually walk through the installer&amp;rsquo;s
-instructions. After the installer completes, we&amp;rsquo;ll have a disk image
-(the &lt;code&gt;ami-template.img&lt;/code&gt; file) that&amp;rsquo;ll be uploaded to Amazon and used to
-generate the AMI in later steps.&lt;/p&gt;
-
-&lt;h2 id=&#34;step-1-convert-raw-disk-image-into-stream-optimized-vmdk-format&#34;&gt;Step 1: Convert Raw Disk Image into Stream Optimized VMDK Format&lt;/h2&gt;
-
-&lt;p&gt;Now that we&amp;rsquo;ve run the OI Hipster installer to completion, we should
-have a &lt;code&gt;ami-template.img&lt;/code&gt; file that contains a complete installation of
-our operating system. While we &lt;em&gt;could&lt;/em&gt; upload directly to Amazon as-is,
-we won&amp;rsquo;t do this as it&amp;rsquo;d be an inefficient use of space (and time).&lt;/p&gt;
-
-&lt;p&gt;Remember that when we generated the file that we attached to the VM in
-the &lt;a href=&#34;#step-0-create-template-for-root-volume-of-ami&#34;&gt;previous step&lt;/a&gt;, we used a sparse file; we can use &lt;code&gt;ls&lt;/code&gt; to
-see how much space was saved by doing so (as opposed to a non-sparse
-file):&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ls -lsh ami-template.img
-3.6G -rw-r--r-- 1 root root 64G Feb  5 22:10 ami-template.img
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;From this output, we can see that while the file is 64G in size, it&amp;rsquo;s
-only taking up 3.6G of space. Thus, it&amp;rsquo;d be great if we could upload
-only 3.6G (or less) worth of data to Amazon, rather than the full 64G
-(most of which would be zeros).&lt;/p&gt;
-
-&lt;p&gt;That&amp;rsquo;s what this step is about; rather than uploading the
-&lt;code&gt;ami-template.img&lt;/code&gt; file as-is, which would result in 64G of data being
-transferred over the network, we&amp;rsquo;ll convert the file into a &amp;ldquo;stream
-optimized&amp;rdquo; VMDK and upload this converted file. As a result, we&amp;rsquo;ll only
-have to send a small fraction (of the original file&amp;rsquo;s size) of data over
-the network, when compared to if we hadn&amp;rsquo;t done this conversion; which
-is a huge benefit in terms of the latency required to perform the
-upload.&lt;/p&gt;
-
-&lt;p&gt;We&amp;rsquo;ll use the &lt;code&gt;VMDKStream.py&lt;/code&gt; utility to do the conversion, so first we
-need to download this tool:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ wget -O VMDK-stream-converter-0.2.tar.gz \
-    https://github.com/imcleod/VMDK-stream-converter/archive/0.2.tar.gz
-
-$ tar -xf VMDK-stream-converter-0.2.tar.gz
-
-$ ls VMDK-stream-converter-0.2
-COPYING  README  setup.py  VMDKstream.py
-root@kvmserver1:~/psurya# ls -l VMDK-stream-converter-0.2
-total 40
--rw-rw-r-- 1 root root 18092 Jun 29  2011 COPYING
--rw-rw-r-- 1 root root   576 Jun 29  2011 README
--rw-rw-r-- 1 root root   120 Jun 29  2011 setup.py
--rwxrwxr-x 1 root root 11454 Jun 29  2011 VMDKstream.py
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;And now we can use it to read the original &lt;code&gt;raw&lt;/code&gt; disk image, and convert
-it into the stream optimized &lt;code&gt;vmdk&lt;/code&gt; that we want:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ./VMDK-stream-converter-0.2/VMDKstream.py ami-template.img ami-template.vmdk
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;After this completes, we can use &lt;code&gt;ls&lt;/code&gt; again to see just how much less
-data will be needed to transfer the disk image using this new format:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ls -lsh ami-template.img ami-template.vmdk
- 3.6G -rw-r--r-- 1 root root   64G Feb  5 22:10 ami-template.img
-1022M -rw-r--r-- 1 root root 1022M Feb  5 22:35 ami-template.vmdk
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;As one can see, the converted file is &lt;strong&gt;much&lt;/strong&gt; smaller than even the
-sparse file that we started with; rather than sending 64G over the
-network, we&amp;rsquo;ll only have to send about 1G.&lt;/p&gt;
-
-&lt;p&gt;Now with our stream optimized VMDK file generated, we can move on to
-actually performing the upload of this file to Amazon.&lt;/p&gt;
-
-&lt;h2 id=&#34;step-2-download-ec2-tools-and-initialize-environment&#34;&gt;Step 2: Download EC2 Tools and Initialize Environment&lt;/h2&gt;
-
-&lt;p&gt;To perform the upload of the VMDK file that we had just generated, as
-well as the various other steps involved in creating the AMI, we&amp;rsquo;ll use
-the EC2 API Tools provided by Amazon. Thus, the first thing we need to
-do, is to download these tools (assuming they aren&amp;rsquo;t already installed).&lt;/p&gt;
-
-&lt;h3 id=&#34;step-2-1-download-ec2-api-tools&#34;&gt;Step 2.1: Download EC2 API Tools&lt;/h3&gt;
-
-&lt;p&gt;This is simple, using &lt;code&gt;wget&lt;/code&gt; and &lt;code&gt;unzip&lt;/code&gt;:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ wget http://s3.amazonaws.com/ec2-downloads/ec2-api-tools.zip
-$ unzip ec2-api-tools.zip
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;The tools will be extracted into a directory named &lt;code&gt;ec2-api-tools&lt;/code&gt;, and
-postfixed with the version of the tools downloaded. In this example,
-version &lt;code&gt;1.7.5.1&lt;/code&gt; was downloaded, so the directory containing the tools
-will be &lt;code&gt;ec2-api-tools-1.7.5.1&lt;/code&gt;, and we can verify this using &lt;code&gt;ls&lt;/code&gt;:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ls -l ec2-api-tools-1.7.5.1/
-total 100
-drwxr-xr-x 2 root root 36864 Sep  7  2015 bin
-drwxr-xr-x 2 root root  4096 Sep  7  2015 lib
--rw-r--r-- 1 root root  4852 Sep  7  2015 license.txt
--rw-r--r-- 1 root root   539 Sep  7  2015 notice.txt
--rw-r--r-- 1 root root 46468 Sep  7  2015 THIRDPARTYLICENSE.TXT
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-2-2-initialize-necessary-environment-variables&#34;&gt;Step 2.2: Initialize Necessary Environment Variables&lt;/h3&gt;
-
-&lt;p&gt;In conjunction with the EC2 API Tools, we&amp;rsquo;ll also make use of the
-following environment variables to configure the invocation of the
-tools. The following is a list of the environment variables that we&amp;rsquo;ll
-use in the following sections, as well as a brief description of each:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;AWS_ACCESS_KEY&lt;/code&gt;: This is required so the tools can authenticate as
-&amp;ldquo;you&amp;rdquo; when making API request to Amazon. This needs to be set based
-on each individual&amp;rsquo;s specific key. For more information, see
-&lt;a href=&#34;https://aws.amazon.com/developers/access-keys/&#34;&gt;here&lt;/a&gt;.&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;code&gt;AWS_SECRET_KEY&lt;/code&gt;: In addition to the &amp;ldquo;access key&amp;rdquo; described above,
-authenticating with the Amazon APIs also requires a &amp;ldquo;secret key&amp;rdquo;.
-Exactly like the &amp;ldquo;access key&amp;rdquo;, this must be set based on the
-individual&amp;rsquo;s specific key. See &lt;a href=&#34;https://aws.amazon.com/developers/access-keys/&#34;&gt;here&lt;/a&gt; for more
-information.&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;code&gt;AWS_ZONE&lt;/code&gt;: This will specify the AWS availability zone that will be
-used when generating the AMI. For more information about AWS
-availability zones, see &lt;a href=&#34;https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html&#34;&gt;here&lt;/a&gt;.&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;code&gt;AWS_S3_BUCKET&lt;/code&gt;: This will specify the AWS S3 bucket used when
-uploading the disk image. The disk image will be uploaded to this
-bucket, and then a snapshot of the generated volume will be taken,
-and this snapshot used to create the root volume of the AMI. For
-more information about Amazon S3, see &lt;a href=&#34;https://aws.amazon.com/documentation/s3/&#34;&gt;here&lt;/a&gt;.&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;code&gt;AWS_AMI_NAME&lt;/code&gt;: This will specify the name given to the AMI.&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;code&gt;AWS_AMI_DESC&lt;/code&gt;: This will specify the description given to the AMI.&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;The following is intended to serve as an example of the values that
-could be used for these various environment variables:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ export AWS_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
-$ export AWS_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-$ export AWS_ZONE=us-west-1a
-$ export AWS_S3_BUCKET=ivol-openindiana-hipster
-$ export AWS_AMI_NAME=&amp;quot;OpenIndiana Hipster Testing 2017.02.06 (HVM)&amp;quot;
-$ export AWS_AMI_DESC=&amp;quot;Hipster is a codename for rapidly moving \
-&amp;gt; development branch of OpenIndiana and the development branch from \
-&amp;gt; which major releases are made.&amp;quot;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h2 id=&#34;step-3-import-the-stream-optimized-vmdk-to-amazon-s3&#34;&gt;Step 3: Import the Stream Optimized VMDK to Amazon S3&lt;/h2&gt;
-
-&lt;p&gt;Now that we have the EC2 API Tools installed, and the necessary
-environment variables initialized, we can start the process of uploading
-our disk image to Amazon, and converting that into an AMI.&lt;/p&gt;
-
-&lt;p&gt;The first step of this proces is to upload our stream optimized VMDK
-(generated in &lt;a href=&#34;#step-1-convert-raw-disk-image-into-stream-optimized-vmdk-format&#34;&gt;step 1&lt;/a&gt;) to our Amazon S3 bucket; to do this,
-we&amp;rsquo;ll use the &lt;code&gt;ec2ivol&lt;/code&gt; utility:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ./ec2-api-tools-1.7.5.1/bin/ec2ivol -o $AWS_ACCESS_KEY \
-&amp;gt; -w $AWS_SECRET_KEY -b $AWS_S3_BUCKET -z $AWS_ZONE \
-&amp;gt; -d &amp;quot;$AWS_AMI_DESCRIPTION&amp;quot; -f vmdk ami-template.vmdk
-Requesting volume size: 64 GB
-TaskType        IMPORTVOLUME    TaskId  import-vol-fghpxu3l     ExpirationTime  2017-02-13T20:39:29Z    Status  active  StatusMessage   Pending
-DISKIMAGE       DiskImageFormat VMDK    DiskImageSize   1070948352      VolumeSize      64      AvailabilityZone        us-west-1a      ApproximateBytesConverted       0
-Creating new manifest at ivol-openindiana-hipster/0af50aa3-ee80-492d-96a5-bab6ab63bda4/ami-template.vmdkmanifest.xml
-Uploading the manifest file
-Uploading 1070948352 bytes across 103 parts
-----------------------------------------------------------------------------------------------------
-   Upload progress              Estimated time      Estimated speed
- / 100% [====================&amp;gt;]                     56.056 MBps
-********************* All 1070948352 Bytes uploaded in 19s  *********************
-Done uploading.
-Average speed was 56.053 MBps
-The disk image for import-vol-fghpxu3l has been uploaded to Amazon S3
-where it is being converted into an EBS volume.  You may monitor the
-progress of this task by running ec2-describe-conversion-tasks.  When
-the task is completed, you may use ec2-delete-disk-image to remove the
-image from S3.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;We can then use the &lt;code&gt;TaskId&lt;/code&gt; value provided by the output of &lt;code&gt;ec2ivol&lt;/code&gt;
-(i.e. &lt;code&gt;import-vol-fghpxu3l&lt;/code&gt; in this instance), and feed that into
-&lt;code&gt;ec2dct&lt;/code&gt; to retreive the status for the upload&amp;rsquo;s conversion.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ./ec2-api-tools-1.7.5.1/bin/ec2dct import-vol-fghpxu3l
-TaskType        IMPORTVOLUME    TaskId  import-vol-fghpxu3l     ExpirationTime  2017-02-13T20:39:29Z    Status  completed
-DISKIMAGE       DiskImageFormat VMDK    DiskImageSize   1070948352      VolumeId        vol-041fd3aa8c9435e7d   VolumeSize      64      AvailabilityZone        us-west-1a      ApproximateBytesConverted       1070945104
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;As can be seen from the &lt;code&gt;Status&lt;/code&gt; section, this conversion has &lt;code&gt;completed&lt;/code&gt;,
-so we can move on to the next step. If the conversion hadn&amp;rsquo;t &lt;code&gt;completed&lt;/code&gt;
-yet, e.g. it was still &lt;code&gt;active&lt;/code&gt;, then we would need to wait (and poll
-using &lt;code&gt;ec2dct&lt;/code&gt;) until it &lt;code&gt;completed&lt;/code&gt;.&lt;/p&gt;
-
-&lt;h2 id=&#34;step-4-create-a-snapshot-of-imported-volume&#34;&gt;Step 4: Create a Snapshot of Imported Volume&lt;/h2&gt;
-
-&lt;p&gt;The next step that we need to perform, is to create a snapshot from the
-volume that we just created. Looking at the prior output from &lt;code&gt;ec2dct&lt;/code&gt;,
-we can see from the &lt;code&gt;VolumeId&lt;/code&gt; field, that a volume was generated and
-it&amp;rsquo;s ID is &lt;code&gt;vol-041fd3aa8c9435e7d&lt;/code&gt;. We will use the &lt;code&gt;ec2addsnap&lt;/code&gt; utility
-to create a snapshot of that volume:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ./ec2-api-tools-1.7.5.1/bin/ec2addsnap vol-041fd3aa8c9435e7d
-SNAPSHOT        snap-01b80a642ef5f1f51  vol-041fd3aa8c9435e7d   pending 2017-02-06T20:49:11+0000                239688353806    64              Not Encrypted
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Just like when importing the volume, we can check the status of the
-snapshot generation process using &lt;code&gt;ec2dsnap&lt;/code&gt; (the parameter passed to it
-comes from the the output of &lt;code&gt;ec2addsnap&lt;/code&gt; above):&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ while true; do
-&amp;gt; ./ec2-api-tools-1.7.5.1/bin/ec2dsnap snap-01b80a642ef5f1f51
-&amp;gt; sleep 60
-&amp;gt; done
-SNAPSHOT        snap-01b80a642ef5f1f51  vol-041fd3aa8c9435e7d   pending 2017-02-06T20:49:11+0000        0%      239688353806    64              Not Encrypted
-SNAPSHOT        snap-01b80a642ef5f1f51  vol-041fd3aa8c9435e7d   pending 2017-02-06T20:49:11+0000        0%      239688353806    64              Not Encrypted
-SNAPSHOT        snap-01b80a642ef5f1f51  vol-041fd3aa8c9435e7d   completed       2017-02-06T20:49:11+0000        100%    239688353806    64              Not Encrypted
-^C
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h2 id=&#34;step-5-register-ami-using-previously-created-volume-snapshot&#34;&gt;Step 5: Register AMI Using Previously Created Volume Snapshot&lt;/h2&gt;
-
-&lt;p&gt;Finally, now that we have the volume snapshot generated, we can use this
-to register our new custom AMI using &lt;code&gt;ec2reg&lt;/code&gt;:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ./ec2-api-tools-1.7.5.1/bin/ec2reg -s snap-01b80a642ef5f1f51 \
-&amp;gt; -d &amp;quot;$AWS_AMI_DESC&amp;quot; -n &amp;quot;$AWS_AMI_NAME&amp;quot; -a x86_64 \
-&amp;gt; --root-device-name /dev/xvda --virtualization-type hvm
-IMAGE   ami-5b065a3b
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Success! The new custom built AMI is &lt;code&gt;ami-5b065a3b&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;It should now be possible to use this AMI to create new Amazon EC2
-instances.&lt;/p&gt;
 </description>
     </item>
     

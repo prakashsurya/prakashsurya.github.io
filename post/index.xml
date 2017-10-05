@@ -6,8 +6,1929 @@
     <description>Recent content in Posts on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 28 Sep 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Tue, 24 Oct 2017 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>ZIL Performance: How I Doubled Sync Write Speed</title>
+      <link>https://www.prakashsurya.com/post/2017-10-24-zil-performance-how-i-doubled-sync-write-speed/</link>
+      <pubDate>Tue, 24 Oct 2017 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2017-10-24-zil-performance-how-i-doubled-sync-write-speed/</guid>
+      <description>
+
+&lt;h1 id=&#34;agenda&#34;&gt;Agenda&lt;/h1&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;What is the ZIL? Why does it exist?&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;How is it used? How does it work?&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The problem to be fixed; the solution.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Details on the changes I made.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Performance testing and results.&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;1-ndash-what-is-the-zil&#34;&gt;1 &amp;ndash; What is the ZIL?&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;what-is-the-zil&#34;&gt;What is the ZIL?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;ZIL: Acronym for (Z)FS (I)ntent (L)og&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Log of all operations ZFS intends to write via &lt;code&gt;spa_sync()&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Both &amp;ldquo;async&amp;rdquo; and &amp;ldquo;sync&amp;rdquo; operations logged in-memory&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Only sync (or &amp;ldquo;promoted&amp;rdquo; async) operations logged on-disk&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;what-is-the-slog&#34;&gt;What is the SLOG?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;SLOG: Acronym for (S)eperate (LOG) Device&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;An SLOG is not necessary&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;ZIL writes to main pool by default&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;An SLOG can be used to improve latency of ZIL writes&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;When attached, ZIL writes to SLOG instead of main pool&lt;sup&gt;*&lt;/sup&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;SLOG can be used by the ZIL, but it is &lt;em&gt;not&lt;/em&gt; the ZIL&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;Details of when/how the SLOG is used is complicated and not covered]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;when-is-the-zil-used&#34;&gt;When is the ZIL used?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Always.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;in-memory ZIL always used; i.e. log entries always created&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;sync=always&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_commit()&lt;/code&gt; always called&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;for both sync and async ops&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;sync=disabled&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_commit()&lt;/code&gt; doesn&amp;rsquo;t do anything&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;but it&amp;rsquo;s still called for sync ops&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit()&lt;/code&gt; is the mechanism for writing log entries to disk&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ZIL used even without an SLOG&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;On-disk ZIL only read from during &amp;ldquo;replay&amp;rdquo; (i.e. after a crash)&lt;sup&gt;*&lt;/sup&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;Details w.r.t. replay not covered]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;why-does-the-zil-exist&#34;&gt;Why does the ZIL exist?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Performance optimization; not required for correctness&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Writes in ZFS are &amp;ldquo;write-back&amp;rdquo;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Data is first stored in-memory, in DMU layer&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Then &lt;strong&gt;all&lt;/strong&gt; &amp;ldquo;dirty&amp;rdquo; data written to disk via &lt;code&gt;spa_sync()&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;spa_sync()&lt;/code&gt; can tens of seconds (or more) to complete&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Without ZIL, sync operations inherit latency of &lt;code&gt;spa_sync()&lt;/code&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;All ops inherit latency; only sync ops &lt;em&gt;wait&lt;/em&gt; for completion&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ZIL allows sync operations to &amp;ldquo;bypass&amp;rdquo; latency of &lt;code&gt;spa_sync()&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;2-ndash-how-is-the-zil-used&#34;&gt;2 &amp;ndash; How is the ZIL used?&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-is-the-zil-used&#34;&gt;How is the ZIL used?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Consumers generally interact with the ZIL in two phases:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Log the operation(s)&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Tells ZIL operation occurred&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Commit the operation(s)&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Causes ZIL to write log of operation to disk&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zfs-write&#34;&gt;Example: &lt;code&gt;zfs_write&lt;/code&gt;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_write&lt;/code&gt; &amp;rarr; &lt;code&gt;zfs_log_write&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_log_write&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&amp;rarr; &lt;code&gt;zil_itx_create&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&amp;rarr; &lt;code&gt;zil_itx_assign&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_write&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_commit&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Most ZPL syscalls have a &lt;code&gt;zfs_log_*&lt;/code&gt; function&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;zfs_log_create&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;zfs_log_remove&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;zfs_log_link&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;zfs_log_symlink&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;zfs_log_truncate&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;zfs_log_setattr&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zfs-fsync&#34;&gt;Example: &lt;code&gt;zfs_fsync&lt;/code&gt;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_fsync&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_commit&lt;/code&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;There&amp;rsquo;s no &lt;em&gt;new&lt;/em&gt; operations to log.. thus, no &lt;code&gt;zfs_log_fysnc&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;contract-between-zil-and-consumers&#34;&gt;Contract between ZIL and consumers.&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; won&amp;rsquo;t return until all operations are safe&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;What does &amp;ldquo;all operations&amp;rdquo; mean?&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;All sync ops for object being committed; i.e. &lt;code&gt;itx_sync=B_TRUE&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;All async ops which sync ops depend on&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;In practice:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;All sync ops for all objects&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;All async ops for specific object being committed&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;what-does-safe-mean&#34;&gt;What does &amp;ldquo;safe&amp;rdquo; mean?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Operation(s) won&amp;rsquo;t be lost, forgotten, or modified&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;How is this accomplished:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Data written to disk &amp;rarr; disk flushed&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Remember: &lt;code&gt;spa_sync&lt;/code&gt; takes too long&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Special &amp;ldquo;log blocks&amp;rdquo; written not using &lt;code&gt;spa_sync&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Log blocks written faster than &lt;code&gt;spa_sync&lt;/code&gt; could handle ops&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Log blocks track operations not yet applied via &lt;code&gt;spa_sync&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Dataset not actually modified (on-disk) until later&lt;sup&gt;*&lt;/sup&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If a crash occurs before &lt;code&gt;spa_sync&lt;/code&gt; applies the modifications&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;log blocks are &amp;ldquo;replayed&amp;rdquo; prior to mounting the dataset&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If no crash, log blocks freed via &lt;code&gt;spa_sync&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;2-ndash-how-does-the-zil-work&#34;&gt;2 &amp;ndash; How does the ZIL work?&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-does-the-zil-work&#34;&gt;How does the ZIL work?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;In memory ZIL contains 4 (per-txg) &lt;code&gt;itxg_t&lt;/code&gt; structures&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Each &lt;code&gt;itxg_t&lt;/code&gt; contains a single &lt;code&gt;itxs_t&lt;/code&gt;, which contains:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;List of sync operations&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;AVL tree of lists of async operations&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Each node in tree contains per-object list of async ops&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Remember: &lt;code&gt;zil_itx_create&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_itx_assign&lt;/code&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_itx_create&lt;/code&gt; &amp;ndash; allocates a new &lt;code&gt;itx_t&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_itx_assign&lt;/code&gt; &amp;ndash; inserts the &lt;code&gt;itx_t&lt;/code&gt; into one of these lists&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Terminology: &amp;ldquo;itx&amp;rdquo; refers to a ZIL operation (intent log transaction)&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-lists&#34;&gt;Example: itx lists&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list) --&gt; SLIST-1((itx S1))
+  SLIST-1          --&gt; SLIST-2((itx S2))
+
+  ATREE(async tree) --&gt; OBJ-A(object A)
+  OBJ-A             --&gt; OBJ-B(object B)
+  OBJ-B             --&gt; OBJ-B-1((itx B1))
+  OBJ-B-1           --&gt; OBJ-B-2((itx B2))
+  OBJ-A             --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1           --&gt; OBJ-A-2((itx A2))
+  OBJ-A-2           --&gt; OBJ-A-3((itx A3))
+  OBJ-A             --&gt; OBJ-C(object C)
+  OBJ-C             --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1           --&gt; OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-1&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list) --&gt; SLIST-1((itx S1))
+  SLIST-1          --&gt; SLIST-2((itx S2))
+
+  ATREE(async tree) --&gt; OBJ-A(object A)
+  OBJ-A             --&gt; OBJ-B(object B)
+  OBJ-B             --&gt; OBJ-B-1((itx B1))
+  OBJ-B-1           --&gt; OBJ-B-2((itx B2))
+  OBJ-A             --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1           --&gt; OBJ-A-2((itx A2))
+  OBJ-A-2           --&gt; OBJ-A-3((itx A3))
+  OBJ-A             --&gt; OBJ-C(object C)
+  OBJ-C             --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1           --&gt; OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-1&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list) --&gt; SLIST-1((itx S1))
+  SLIST-1          --&gt; SLIST-2((itx S2))
+  SLIST-2          --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1          --&gt; OBJ-C-2((itx C2))
+
+  ATREE(async tree) --&gt; OBJ-A(object A)
+  OBJ-A             --&gt; OBJ-B(object B)
+  OBJ-B             --&gt; OBJ-B-1((itx B1))
+  OBJ-B-1           --&gt; OBJ-B-2((itx B2))
+  OBJ-A             --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1           --&gt; OBJ-A-2((itx A2))
+  OBJ-A-2           --&gt; OBJ-A-3((itx A3))
+  OBJ-A             --&gt; OBJ-C(object C)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-2&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Move sync list to &amp;ldquo;commit list&amp;rdquo;; sync list now empty&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-2&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list)   --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  CLIST(commit list)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-3&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list)
+
+  CLIST(commit list) --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-3&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Move sync list to &amp;ldquo;commit list&amp;rdquo;; sync list now empty&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For each itx in commit list:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Copy itx data into ZIL block&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If space in ZIL block lacking&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;allocate new (empty) block, write out old block&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-4&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-5&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-6&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-1((itx S1))
+  SLIST-1            --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Terminology: &amp;ldquo;lwb&amp;rdquo; refers to a ZIL block (log write block)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-7&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-8&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-9&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; SLIST-2((itx S2))
+  SLIST-2            --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-10&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-11&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-1((itx C1))
+  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-12&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-13&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff
+  style OBJ-C-2 fill:#ffa500,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-14&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list) --&gt; OBJ-C-2((itx C2))
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff
+  style OBJ-C-2 fill:#ffa500,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00
+  style LWB-2   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-15&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list)
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff
+  style OBJ-C-2 fill:#ffa500
+  style LWB-1   fill:#ffff00
+  style LWB-2   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-16&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  CLIST(commit list)
+
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+
+  style SLIST-1 fill:#ffff00
+  style SLIST-2 fill:#00ff00
+  style OBJ-C-1 fill:#00ffff
+  style OBJ-C-2 fill:#ffa500
+  style LWB-1   fill:#ffff00
+  style LWB-2   fill:#ffff00
+  style LWB-3   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-4&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Move sync list to &amp;ldquo;commit list&amp;rdquo;; sync list now empty&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For each itx in commit list:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Copy itx data into ZIL block&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If space in ZIL block lacking&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;allocate new (empty) block, write out old block&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Wait for all ZIL block writes to complete&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-17&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-1   fill:#ffff00
+  style LWB-2   fill:#ffff00
+  style LWB-3   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-18&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-1   fill:#00ff00
+  style LWB-2   fill:#ffff00
+  style LWB-3   fill:#ffff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-19&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-1   fill:#00ff00
+  style LWB-2   fill:#ffff00
+  style LWB-3   fill:#00ff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-zil-commit-object-c-20&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object C&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-1   fill:#00ff00
+  style LWB-2   fill:#00ff00
+  style LWB-3   fill:#00ff00
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-5&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Move sync list to &amp;ldquo;commit list&amp;rdquo;; sync list now empty&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For each itx in commit list:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Copy itx data into ZIL block&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If space in ZIL block lacking&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;allocate new (empty) block, write out old block&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Wait for all ZIL block writes to complete&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Flush all VDEVs written to&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-6&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Move sync list to &amp;ldquo;commit list&amp;rdquo;; sync list now empty&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For each itx in commit list:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Copy itx data into ZIL block&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If space in ZIL block lacking&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;allocate new (empty) block, write out old block&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Wait for all ZIL block writes to complete&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Flush all VDEVs written to&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Notify waiting threads&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;2-ndash-zil-blocks&#34;&gt;2 &amp;ndash; ZIL Blocks&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;constraints&#34;&gt;Constraints&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;On disk component of ZIL is a linked list of ZIL blocks (lwb&amp;rsquo;s)&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Doesn&amp;rsquo;t use indirection like &amp;ldquo;normal&amp;rdquo; blocks&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;no indirect blocks&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Each ZIL block contains pointer to next ZIL block on disk&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ZIL blocks, once written to disk, cannot be overwritten&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Due to data integrity concerns&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Thus, &amp;ldquo;next&amp;rdquo; ZIL block allocated when &amp;ldquo;current&amp;rdquo; block written&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Required for &amp;ldquo;current&amp;rdquo; block to contain pointer to &amp;ldquo;next&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Checksum for &amp;ldquo;next&amp;rdquo; block, stored in &amp;ldquo;previous&amp;rdquo; block&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;When traversing list, checksum failure means &amp;ldquo;list end&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;implications-w-r-t-performance&#34;&gt;Implications w.r.t. Performance&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;ZIL block size chosen at time of allocation&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ZIL block size can dramatically impact performance:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&amp;ldquo;too big&amp;rdquo; &amp;ndash; results in &amp;ldquo;wasted&amp;rdquo; space&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Unused portion of block cannot be &amp;ldquo;filled in&amp;rdquo; later&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Can result in small, but fast, SLOG filling to capacity&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&amp;ldquo;too small&amp;rdquo; &amp;ndash; results in &amp;ldquo;too many&amp;rdquo; IOPs issued to disk&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Can needlessly cause disk saturation and poor performance&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&amp;ldquo;just right&amp;rdquo; &amp;ndash; Large (enough) ZIL blocks filled with itx&amp;rsquo;s&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;ZIL blocks fully utilized with itx&amp;rsquo;s (no wasted SLOG space)&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Fewer IOPs for same number of itx&amp;rsquo;s&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;e.g. 15 8K writes using 1 128K lwb vs. 4 32K lwb&amp;rsquo;s&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;3-ndash-problem&#34;&gt;3 &amp;ndash; Problem&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;itx&amp;rsquo;s grouped and written in &amp;ldquo;batches&amp;rdquo;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;The commit list constitutes a batch&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Batch size proportional to sync workload on system&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Waiting threads only notified when &lt;em&gt;all&lt;/em&gt; ZIL blocks in batch complete&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Only a single batch processed at a time&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-batch&#34;&gt;Example Batch&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Example batch taken from prior slides&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s1&#34;&gt;Example &amp;ldquo;itx S1&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Thread waiting for &amp;ldquo;itx S1&amp;rdquo; (e.g. a single sync write)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s1-1&#34;&gt;Example &amp;ldquo;itx S1&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Must wait for &lt;strong&gt;all&lt;/strong&gt; lwb&amp;rsquo;s to be written and completed&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-3   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s2&#34;&gt;Example &amp;ldquo;itx S2&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Thread waiting for &amp;ldquo;itx S2&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s2-1&#34;&gt;Example &amp;ldquo;itx S2&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Again, must wait for &lt;strong&gt;all&lt;/strong&gt; lwb&amp;rsquo;s to be written and completed&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-3   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;implications&#34;&gt;Implications&lt;/h1&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Latency of &lt;code&gt;zil_commit&lt;/code&gt; proportional to system workload, not disk latency&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Fast SLOG may not compensate for large workload&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Disk &amp;ldquo;anomalies&amp;rdquo; cause larger batches, increased &lt;code&gt;zil_commit&lt;/code&gt; latency&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;E.g. Temporary network delays when using SAN storage&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;New calls to &lt;code&gt;zil_commit&lt;/code&gt; wait for &amp;ldquo;current&amp;rdquo; batch, &lt;em&gt;and&lt;/em&gt; &amp;ldquo;next&amp;rdquo; batch&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Average &lt;code&gt;zil_commit&lt;/code&gt; latency equal to latency of 1.5 batches&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;3-ndash-solution&#34;&gt;3 &amp;ndash; Solution&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Remove concept of &amp;ldquo;batches&amp;rdquo;:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;New calls to &lt;code&gt;zil_commit&lt;/code&gt; can issue ZIL block writes immediately &amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Rather than waiting for &amp;ldquo;current&amp;rdquo; batch to complete&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Threads notified immediately when &lt;strong&gt;dependent&lt;/strong&gt; blocks complete &amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Rather than when &lt;strong&gt;all&lt;/strong&gt; writes complete (dependent or not)&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-batch-1&#34;&gt;Example &amp;ldquo;Batch&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Same example as before&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s1-2&#34;&gt;Example &amp;ldquo;itx S1&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Thread waiting for &amp;ldquo;itx S1&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s1-3&#34;&gt;Example &amp;ldquo;itx S1&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Must wait for &lt;em&gt;only&lt;/em&gt; &amp;ldquo;lwb 1&amp;rdquo; to complete&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s2-2&#34;&gt;Example &amp;ldquo;itx S2&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Thread waiting for &amp;ldquo;itx S2&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-itx-s2-3&#34;&gt;Example &amp;ldquo;itx S2&amp;rdquo;&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Must wait for &lt;em&gt;only&lt;/em&gt; &amp;ldquo;lwb 1&amp;rdquo; and &amp;ldquo;lwb 2&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+  LWB-3              --- OBJ-C-2((itx C2))
+
+  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;4-ndash-changes-to-vdev-flush&#34;&gt;4 &amp;ndash; Changes to VDEV Flush&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;details&#34;&gt;Details&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;A ZIL block not considered &amp;ldquo;safe&amp;rdquo; on disk until VDEV is flushed&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Prior mechanics:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;All ZIL blocks written for entire batch&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Single VDEV flush issued to each VDEV written to&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;ul&gt;
+&lt;li&gt;1 flush to many lwb&amp;rsquo;s&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;New mechanics:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Single ZIL block written to single VDEV&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Single VDEV flush issued to that specific VDEV&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;ul&gt;
+&lt;li&gt;1 flush to 1 lwb&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;dmu_sync&lt;/code&gt; (indirect writes) complicates this slightly&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+sequenceDiagram
+  zil_commit -&gt;&gt;      VDEV 1: lwb 1 write
+  zil_commit -&gt;&gt;      VDEV 2: lwb 2 write
+  zil_commit -&gt;&gt;      VDEV 1: lwb 3 write
+  VDEV 1     --&gt;&gt; zil_commit: lwb 1 done
+  VDEV 2     --&gt;&gt; zil_commit: lwb 2 done
+  VDEV 1     --&gt;&gt; zil_commit: lwb 3 done
+  zil_commit -&gt;&gt;      VDEV 1: flush
+  zil_commit -&gt;&gt;      VDEV 2: flush
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+sequenceDiagram
+  zil_commit -&gt;&gt;      VDEV 1: lwb 1 write
+  zil_commit -&gt;&gt;      VDEV 2: lwb 2 write
+  zil_commit -&gt;&gt;      VDEV 1: lwb 3 write
+  VDEV 1     --&gt;&gt; zil_commit: lwb 1 done
+  zil_commit -&gt;&gt;      VDEV 1: flush
+  VDEV 2     --&gt;&gt; zil_commit: lwb 2 done
+  zil_commit -&gt;&gt;      VDEV 2: flush
+  VDEV 1     --&gt;&gt; zil_commit: lwb 3 done
+  zil_commit -&gt;&gt;      VDEV 1: flush
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;4-ndash-changes-to-zil-block-zio-tree&#34;&gt;4 &amp;ndash; Changes to ZIL Block ZIO Tree&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;details-1&#34;&gt;Details&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;ZIL Blocks issued to disk using ZIOs&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ZIOs represented as directed acyclic graph (DAG)&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Parent ZIOs cannot complete until all children complete&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Prior mechanics:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&amp;ldquo;root&amp;rdquo; ZIO created for each batch, lwb ZIOs are children&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Flush issued after root ZIO completes (seperate ZIO tree)&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;New mechanics:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&amp;ldquo;root&amp;rdquo; ZIO created for each lwb&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&amp;ldquo;write&amp;rdquo; and &amp;ldquo;flush&amp;rdquo; ZIOs are child of root ZIO&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&amp;ldquo;next&amp;rdquo; lwb root ZIO become parent of &amp;ldquo;current&amp;rdquo; lwb root ZIO&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-1&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-2&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) &amp;ndash;&amp;gt; LWB-1(lwb 1)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-3&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) &amp;ndash;&amp;gt; LWB-1(lwb 1)
+  ROOT             &amp;ndash;&amp;gt; LWB-2(lwb 2)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-4&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) &amp;ndash;&amp;gt; LWB-1(lwb 1)
+  ROOT             &amp;ndash;&amp;gt; LWB-2(lwb 2)
+  ROOT             &amp;ndash;&amp;gt; LWB-3(lwb 3)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-5&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) &amp;ndash;&amp;gt; LWB-1(lwb 1)
+  ROOT             &amp;ndash;&amp;gt; LWB-2(lwb 2)
+  ROOT             &amp;ndash;&amp;gt; LWB-3(lwb 3)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;p&gt;.pull-right[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(flush root)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-6&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) &amp;ndash;&amp;gt; LWB-1(lwb 1)
+  ROOT             &amp;ndash;&amp;gt; LWB-2(lwb 2)
+  ROOT             &amp;ndash;&amp;gt; LWB-3(lwb 3)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;p&gt;.pull-right[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(flush root) &amp;ndash;&amp;gt; VDEV-1(VDEV 1 flush)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-7&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;p&gt;.pull-left[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(batch root) &amp;ndash;&amp;gt; LWB-1(lwb 1)
+  ROOT             &amp;ndash;&amp;gt; LWB-2(lwb 2)
+  ROOT             &amp;ndash;&amp;gt; LWB-3(lwb 3)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;p&gt;.pull-right[&lt;div class=&#34;mermaid&#34;&gt;
+graph TD
+  ROOT(flush root) &amp;ndash;&amp;gt; VDEV-1(VDEV 1 flush)
+  ROOT             &amp;ndash;&amp;gt; VDEV-2(VDEV 2 flush)
+&lt;/div&gt;]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-1&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-1-ROOT(lwb 1 root)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-2&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-3&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-4&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-5&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-6&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-7&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-8&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-9&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+  LWB-3-ROOT             --&gt; LWB-3-FLUSH(VDEV 1 flush)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-10&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-4-ROOT(lwb 4 root) --&gt; LWB-3-ROOT
+  LWB-4-ROOT             --&gt; LWB-4-WRITE(lwb 4 write)
+  LWB-4-ROOT             --&gt; LWB-4-FLUSH(VDEV flush)
+
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+  LWB-3-ROOT             --&gt; LWB-3-FLUSH(VDEV 1 flush)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-11&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-5-ROOT(lwb 5 root) --&gt; LWB-4-ROOT
+  LWB-5-ROOT             --&gt; LWB-5-WRITE(lwb 5 write)
+  LWB-5-ROOT             --&gt; LWB-5-FLUSH(VDEV flush)
+
+  LWB-4-ROOT(lwb 4 root) --&gt; LWB-3-ROOT
+  LWB-4-ROOT             --&gt; LWB-4-WRITE(lwb 4 write)
+  LWB-4-ROOT             --&gt; LWB-4-FLUSH(VDEV flush)
+
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+  LWB-3-ROOT             --&gt; LWB-3-FLUSH(VDEV 1 flush)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;4-ndash-changes-to-waiter-notification&#34;&gt;4 &amp;ndash; Changes to Waiter Notification&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;details-before&#34;&gt;Details: Before&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;2 condition variables (CV), for &amp;ldquo;current&amp;rdquo; and &amp;ldquo;next&amp;rdquo; batch&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Threads call &lt;code&gt;zil_commit&lt;/code&gt;:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Assigned to &amp;ldquo;next&amp;rdquo; batch, wait on &amp;ldquo;next&amp;rdquo; batch&amp;rsquo;s CV&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;When &amp;ldquo;current&amp;rdquo; batch completes&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;All threads waiting on &amp;ldquo;current&amp;rdquo; signalled, they return&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;One thread waiting on &amp;ldquo;next&amp;rdquo; signalled, becomes &amp;ldquo;writer&amp;rdquo;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&amp;ldquo;next&amp;rdquo; and &amp;ldquo;current&amp;rdquo; CV swapped (e.g. &amp;ldquo;next&amp;rdquo; &amp;rarr; &amp;ldquo;current&amp;rdquo;)&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Ultimately, these two CVs are the source of original problem&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-before-8&#34;&gt;Example: Before&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+sequenceDiagram
+  participant processes
+  participant CV next
+  participant CV current
+  participant writer
+
+  processes  -&gt;&gt;     writer: process 1 becomes writer
+  processes  -&gt;&gt;    CV next: process 2 waits
+  processes  -&gt;&gt;    CV next: process 3 waits
+  writer     -&gt;&gt;  processes: process 1 done writing
+  writer     -&gt;&gt; CV current: signalled
+  writer     -&gt;&gt;    CV next: process 3 signalled
+  processes  -&gt;&gt;     writer: process 3 becomes writer
+  processes --&gt;&gt; CV current: process 2 still waiting
+  processes  -&gt;&gt;    CV next: process 4 waits
+  writer     -&gt;&gt;  processes: process 3 done writing
+  writer     -&gt;&gt; CV current: process 2 signalled
+  writer     -&gt;&gt;    CV next: process 4 signalled
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;details-after&#34;&gt;Details: After&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Each time a process calls &lt;code&gt;zil_commit&lt;/code&gt;:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;A new CV is allocated for this specific process to wait on&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;A new &lt;code&gt;TX_COMMIT&lt;/code&gt; itx is inserted into the ZIL itx tree&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;The &amp;ldquo;commit itx&amp;rdquo; has a pointer to the process&amp;rsquo;s CV&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;When a commit itx is copied to an lwb:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;No data copied into the lwb&amp;rsquo;s buffer&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Instead, itx&amp;rsquo;s CV added to lwb&amp;rsquo;s list of CVs&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;When lwb&amp;rsquo;s ZIO completes, list of CVs iterated and signalled&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;This is how we map which lwb a process is waiting for&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;example-after-12&#34;&gt;Example: After&lt;/h1&gt;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+sequenceDiagram
+  participant processes
+  participant CV
+  participant writer
+  participant ZIO done
+
+  processes -&gt;&gt;      writer: process 1 becomes writer
+  writer    -&gt;&gt;   processes: process 1 done writing
+  processes -&gt;&gt;          CV: process 1 waits
+  processes -&gt;&gt;      writer: process 2 becomes writer
+  ZIO done  -&gt;&gt;          CV: lwb done &amp;ndash; process 1 signalled
+  writer    -&gt;&gt;   processes: process 2 done writing
+  processes -&gt;&gt;          CV: process 2 waits
+  processes -&gt;&gt;      writer: process 3 becomes writer
+  writer    -&gt;&gt;   processes: process 3 done writing
+  processes -&gt;&gt;          CV: process 3 waits
+  ZIO done  -&gt;&gt;          CV: lwb done &amp;ndash; process 2 signalled
+  ZIO done  -&gt;&gt;          CV: lwb done &amp;ndash; process 3 signalled
+&lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;5-ndash-performance-testing-and-results&#34;&gt;5 &amp;ndash; Performance testing and results.&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;details-2&#34;&gt;Details&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Two &lt;code&gt;fio&lt;/code&gt; workloads used to drive a sync write workload&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;fio&lt;/code&gt; was trying to perform sync writes as fast as it could&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;fio&lt;/code&gt; was trying to perform 64 sync writes per second&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;IOPs and latency measured with and without my changes&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Other metrics also observed (&lt;code&gt;iostat&lt;/code&gt;, flamegraphs, lwb info, etc.)&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;1, 2, 4, and 8 disk zpools; tested both SSD and HDD&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Full details can be found &lt;a href=&#34;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/&#34;&gt;here&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;5-ndash-max-rate-workload-ndash-hdds&#34;&gt;5 &amp;ndash; Max Rate Workload &amp;ndash; HDDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(max-rate-hdd-iops-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-iops-ndash-max-rate-ndash-hdds&#34;&gt;% Change IOPs &amp;ndash; Max Rate &amp;ndash; HDDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(max-rate-hdd-lat-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-latency-ndash-max-rate-ndash-hdds&#34;&gt;% Change Latency &amp;ndash; Max Rate &amp;ndash; HDDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;5-ndash-max-rate-workload-ndash-ssds&#34;&gt;5 &amp;ndash; Max Rate Workload &amp;ndash; SSDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(max-rate-ssd-iops-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-iops-ndash-max-rate-ndash-ssds&#34;&gt;% Change IOPs &amp;ndash; Max Rate &amp;ndash; SSDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(max-rate-ssd-lat-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-latency-ndash-max-rate-ndash-ssds&#34;&gt;% Change Latency &amp;ndash; Max Rate &amp;ndash; SSDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;5-ndash-fixed-rate-workload-ndash-hdds&#34;&gt;5 &amp;ndash; Fixed Rate Workload &amp;ndash; HDDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(fixed-rate-hdd-iops-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-iops-ndash-fixed-rate-ndash-hdds&#34;&gt;% Change IOPs &amp;ndash; Fixed Rate &amp;ndash; HDDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(fixed-rate-hdd-lat-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-latency-ndash-fixed-rate-ndash-hdds&#34;&gt;% Change Latency &amp;ndash; Fixed Rate &amp;ndash; HDDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;5-ndash-fixed-rate-workload-ndash-ssds&#34;&gt;5 &amp;ndash; Fixed Rate Workload &amp;ndash; SSDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(fixed-rate-ssd-iops-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-iops-ndash-fixed-rate-ndash-ssds&#34;&gt;% Change IOPs &amp;ndash; Fixed Rate &amp;ndash; SSDs&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(fixed-rate-ssd-lat-pctchange.png)
+background-size: 100%&lt;/p&gt;
+
+&lt;h1 id=&#34;change-latency-ndash-fixed-rate-ndash-ssds&#34;&gt;% Change Latency &amp;ndash; Fixed Rate &amp;ndash; SSDs&lt;/h1&gt;
+</description>
+    </item>
     
     <item>
       <title>Generating Code Coverage Reports for ZFS on Linux</title>
@@ -674,7 +2595,7 @@ background-image: url(spreadsheet-iops.png)
 
     - No way to annotate data/visualizations with explanations.
 
-.footnote[&amp;lt;sub&amp;gt;&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;&amp;lt;sub&amp;gt;http://www.nytimes.com/2013/04/19/opinion/krugman-the-excel-depression.html&amp;lt;/sub&amp;gt;&amp;lt;/sub&amp;gt;]
+.footnote[&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;http://www.nytimes.com/2013/04/19/opinion/krugman-the-excel-depression.html]
 
 ---
 
@@ -725,7 +2646,7 @@ with your explanation and reasoning.&lt;/p&gt;
 &lt;p&gt;&amp;hellip;&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;
-.footnote[&amp;lt;sub&amp;gt;&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;&amp;lt;sub&amp;gt;https://www.oreilly.com/ideas/what-is-jupyter&amp;lt;/sub&amp;gt;&amp;lt;/sub&amp;gt;]
+.footnote[&amp;lt;sup&amp;gt;1&amp;lt;/sup&amp;gt;https://www.oreilly.com/ideas/what-is-jupyter]
 
 ---
 
@@ -745,7 +2666,7 @@ with your explanation and reasoning.&lt;/p&gt;
 
 ---
 
-# Real example: My results for OpenZFS #447
+# Real example: Results for OpenZFS #447
 
  - Link to [Max Rate Submit on HDDs][max-rate-submit-hdds]
 
@@ -755,7 +2676,7 @@ with your explanation and reasoning.&lt;/p&gt;
 
  - Link to [Fixed Rate Submit on HDDs][fixed-rate-submit-hdds]
 
-.footnote[&amp;lt;sub&amp;gt;&amp;lt;sup&amp;gt;\*&amp;lt;/sup&amp;gt;&amp;lt;sub&amp;gt;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/&amp;lt;/sub&amp;gt;&amp;lt;/sub&amp;gt;]
+.footnote[&amp;lt;sup&amp;gt;\*&amp;lt;/sup&amp;gt;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/]
 
 ---
 
@@ -2934,311 +4855,6 @@ IMAGE   ami-5b065a3b
 
 &lt;p&gt;It should now be possible to use this AMI to create new Amazon EC2
 instances.&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Creating Custom Installation Media for OI Hipster</title>
-      <link>https://www.prakashsurya.com/post/2017-02-01-creating-custom-istallation-media-for-oi-hipster/</link>
-      <pubDate>Wed, 01 Feb 2017 00:00:00 -0800</pubDate>
-      
-      <guid>https://www.prakashsurya.com/post/2017-02-01-creating-custom-istallation-media-for-oi-hipster/</guid>
-      <description>
-
-&lt;h2 id=&#34;preface&#34;&gt;Preface&lt;/h2&gt;
-
-&lt;p&gt;This post is a write up of my notes for creating custom installation
-media for &lt;a href=&#34;https://www.openindiana.org/overview/the-hipster-branch/&#34;&gt;OpenIndiana Hipster&lt;/a&gt;, using a custom/patched
-version of &lt;a href=&#34;https://illumos.org&#34;&gt;illumos&lt;/a&gt;. It assumes that OI Hipster has already
-been installed on a machine (e.g. installed on a VM using their
-&lt;a href=&#34;https://www.openindiana.org/download/&#34;&gt;provided&lt;/a&gt; installation media); and this server will be
-used to build our custom version of illumos, as well as the custom OI
-installation media. The goal of this exercise is to create a &amp;ldquo;Live DVD&amp;rdquo;
-that can be used to install our custom version of illumos.&lt;/p&gt;
-
-&lt;h2 id=&#34;shoutouts&#34;&gt;Shoutouts&lt;/h2&gt;
-
-&lt;p&gt;Before I get started, I want to thank &lt;code&gt;alp&lt;/code&gt; and &lt;code&gt;tsoome&lt;/code&gt; from the
-&lt;code&gt;#oi-dev&lt;/code&gt; IRC channel on freenode for answering my various questions as
-I was learning how to do this; their help definitely saved me hours of
-frustration. Thanks again :)&lt;/p&gt;
-
-&lt;h2 id=&#34;step-1-fetch-illumos&#34;&gt;Step 1: Fetch illumos&lt;/h2&gt;
-
-&lt;p&gt;The illumos repository &lt;a href=&#34;https://github.com/illumos/illumos-gate&#34;&gt;is on GitHub&lt;/a&gt;, so we&amp;rsquo;ll use this to
-obtain our copy. First, we must install &lt;code&gt;git&lt;/code&gt; on the server:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo pkg install git
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;and then we can use &lt;code&gt;git clone&lt;/code&gt; to fetch the code:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ git clone https://github.com/illumos/illumos-gate.git
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h2 id=&#34;step-2-prep-for-building-illumos&#34;&gt;Step 2: Prep for Building illumos&lt;/h2&gt;
-
-&lt;p&gt;Now we can move on to compiling the illumos codebase; we&amp;rsquo;ll use the
-&lt;a href=&#34;https://wiki.illumos.org/display/illumos/How+To+Build+illumos&#34;&gt;documented process&lt;/a&gt; as a guide. We need to
-download and install all the required build tools (e.g. compilers, etc),
-which can can be easily done using the &lt;code&gt;build-essentials&lt;/code&gt; meta-package:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo pkg install build-essential
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-2-1-download-and-unpack-closed-binaries&#34;&gt;Step 2.1: Download and Unpack Closed Binaries&lt;/h3&gt;
-
-&lt;p&gt;After that completes, we have to download and unpack the &amp;ldquo;closed
-binaries&amp;rdquo;; these are closed source components from Sun/Oracle that are
-required to build illumos (and have not yet been replaced):&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ cd illumos-gate/
-$ wget -c \
-    https://download.joyent.com/pub/build/illumos/on-closed-bins.i386.tar.bz2 \
-    https://download.joyent.com/pub/build/illumos/on-closed-bins-nd.i386.tar.bz2
-$ tar xjvpf on-closed-bins.i386.tar.bz2
-$ tar xjvpf on-closed-bins-nd.i386.tar.bz2
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-2-2-configure-environment-file-illumos-sh&#34;&gt;Step 2.2: Configure Environment File &amp;ndash; illumos.sh&lt;/h3&gt;
-
-&lt;p&gt;The illumos build system is configured using an &amp;ldquo;environment&amp;rdquo; file. This
-file contains various environment variables that the build uses to
-determine what actions it will take; for example:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Should it run lint checks?&lt;/li&gt;
-&lt;li&gt;Should it perform a &amp;ldquo;debug&amp;rdquo; or &amp;ldquo;non-debug&amp;rdquo; build? Or both?&lt;/li&gt;
-&lt;li&gt;etc&amp;hellip;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;For our purposes, we&amp;rsquo;ll leave all of the default values, and only make
-the minimal modifications necessary:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ cp usr/src/tools/env/illumos.sh .
-$ PKGVERS_BRANCH=$(pkg info  -r pkg://openindiana.org/SUNWcs | \
-&amp;gt;                  awk &#39;$1 == &amp;quot;Branch:&amp;quot; {print $2}&#39;)
-$ echo &amp;quot;export PKGVERS_BRANCH=&#39;$PKGVERS_BRANCH&#39;&amp;quot; &amp;gt;&amp;gt; illumos.sh
-$ echo &amp;quot;export ONNV_BUILDNUM=&#39;$PKGVERS_BRANCH&#39;&amp;quot; &amp;gt;&amp;gt; illumos.sh
-$ echo &amp;quot;export PERL_VERSION=&#39;5.22&#39;&amp;quot; &amp;gt;&amp;gt; illumos.sh
-$ echo &amp;quot;export PERL_PKGVERS=&#39;-522&#39;&amp;quot; &amp;gt;&amp;gt; illumos.sh
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h2 id=&#34;step-3-build-illumos&#34;&gt;Step 3: Build illumos&lt;/h2&gt;
-
-&lt;p&gt;Now we&amp;rsquo;re ready to start the build. This is expected to take a couple
-hours to complete, so I&amp;rsquo;d recommend using a program such as &lt;code&gt;screen&lt;/code&gt; or
-&lt;code&gt;tmux&lt;/code&gt;. That way, if the connection with the server performing the build
-were to fail, the build process will remain running. For this guide I&amp;rsquo;ll
-use &lt;code&gt;screen&lt;/code&gt;, since it&amp;rsquo;s already installed:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ screen -S illumos-build
-$ cp usr/src/tools/scripts/nightly.sh .
-$ chmod +x nightly.sh
-$ time ./nightly.sh illumos.sh
-
-real    123m31.031s
-user    178m14.443s
-sys     42m54.293s
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h2 id=&#34;step-4-prep-for-building-the-installation-media&#34;&gt;Step 4: Prep for Building the Installation Media&lt;/h2&gt;
-
-&lt;p&gt;In order to build the installation media, we need to use the
-&lt;code&gt;distro_const&lt;/code&gt; command, which is provided by the
-&lt;code&gt;distribution-constructor&lt;/code&gt; package:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo pkg install distribution-constructor
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;To use &lt;code&gt;distro_const&lt;/code&gt;, we must pass it a &amp;ldquo;manifest&amp;rdquo; file, which is
-nothing more than a specially formatted XML file. We&amp;rsquo;ll start with a
-manifest template provided by the package, and then tweak the template
-to suite our needs.&lt;/p&gt;
-
-&lt;h3 id=&#34;step-4-1-copy-distro-const-manifest-template&#34;&gt;Step 4.1: Copy distro_const Manifest Template&lt;/h3&gt;
-
-&lt;p&gt;First, we need to copy the template so we can make modifications to it:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ cd ~
-$ cp /usr/share/distro_const/text_install/text_mode_x86.xml .
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-4-1-replace-dev-ips-repository-with-hipster&#34;&gt;Step 4.1: Replace &amp;ldquo;dev&amp;rdquo; IPS Repository with &amp;ldquo;hipster&amp;rdquo;&lt;/h3&gt;
-
-&lt;p&gt;The first modification we need to make, is to point to the &amp;ldquo;hipster&amp;rdquo;
-&lt;a href=&#34;https://en.wikipedia.org/wiki/Image_Packaging_System&#34;&gt;IPS&lt;/a&gt; repository as opposed to the default &amp;ldquo;dev&amp;rdquo; repository. To do
-this, we need to locate the &lt;code&gt;pkg_repo_default_authority&lt;/code&gt; and
-&lt;code&gt;post_install_repo_default_authority&lt;/code&gt; sections, and replace
-&lt;code&gt;http://pkg.openindiana.org/dev&lt;/code&gt; with
-&lt;code&gt;http://pkg.openindiana.org/hipster&lt;/code&gt;. Here&amp;rsquo;s &lt;code&gt;diff&lt;/code&gt; of this change:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ diff -u text_mode_x86.xml text_mode_x86.xml.orig
---- text_mode_x86.xml.orig      Thu Feb  2 02:09:32 2017
-+++ text_mode_x86.xml           Thu Feb  2 02:10:33 2017
-@@ -192,7 +192,7 @@
-                --&amp;gt;
-                &amp;lt;pkg_repo_default_authority&amp;gt;
-                        &amp;lt;main
--                               url=&amp;quot;http://pkg.openindiana.org/dev&amp;quot;
-+                               url=&amp;quot;http://pkg.openindiana.org/hipster&amp;quot;
-                                authname=&amp;quot;openindiana.org&amp;quot;/&amp;gt;
-                        &amp;lt;!--
-                             If you want to use one or more  mirrors that are
-@@ -229,7 +229,7 @@
-                --&amp;gt;
-                &amp;lt;post_install_repo_default_authority&amp;gt;
-                        &amp;lt;main
--                               url=&amp;quot;http://pkg.openindiana.org/dev&amp;quot;
-+                               url=&amp;quot;http://pkg.openindiana.org/hipster&amp;quot;
-                                authname=&amp;quot;openindiana.org&amp;quot;/&amp;gt;
-                        &amp;lt;!--
-                             Uncomment before using.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-4-2-point-to-ips-repository-from-custom-illumos-build&#34;&gt;Step 4.2: Point to IPS Repository from Custom illumos Build&lt;/h3&gt;
-
-&lt;p&gt;As part of illumos build in &lt;a href=&#34;#step-3-build-illumos&#34;&gt;step 3&lt;/a&gt;, an IPS
-repository was generated under the &lt;code&gt;packages/i386/nightly/repo.redist&lt;/code&gt;
-directory. Since my illumos codebase is stored in the directory,
-&lt;code&gt;/export/home/ps/illumos-gate&lt;/code&gt;, the full path to this IPS repository is
-&lt;code&gt;/export/home/ps/illumos-gate/packages/i386/nightly/repo.redist&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;In order for the installation media to use my custom built version of
-illumos, the manifest needs to be modified to point to this IPS
-repository, &lt;strong&gt;in addition to&lt;/strong&gt; the default OI &amp;ldquo;hipster&amp;rdquo; repository. It&amp;rsquo;s
-important to note, that we&amp;rsquo;re not replacing the &amp;ldquo;hipster&amp;rdquo; repository
-with the custom illumos build&amp;rsquo;s repository; rather, we want to use the
-build&amp;rsquo;s repository as the &amp;ldquo;main&amp;rdquo; repository, and the &amp;ldquo;hipster&amp;rdquo;
-repository as an &amp;ldquo;additional&amp;rdquo; repository.&lt;/p&gt;
-
-&lt;p&gt;To do this, we&amp;rsquo;ll modify the &lt;code&gt;url&lt;/code&gt; specified in the
-&lt;code&gt;pkg_repo_default_authority&lt;/code&gt; section to point to the illumos build&amp;rsquo;s
-repository, using a &lt;code&gt;file://&lt;/code&gt; based URL, and we&amp;rsquo;ll modify the &lt;code&gt;url&lt;/code&gt; of
-the &lt;code&gt;pkg_repo_addl_authority&lt;/code&gt; section to point to the original &amp;ldquo;hipster&amp;rdquo;
-IPS repository. Here&amp;rsquo;s a diff of these changes:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ diff -u text_mode_x86.xml.orig text_mode_x86.xml
---- text_mode_x86.xml.orig      Thu Feb  2 02:18:19 2017
-+++ text_mode_x86.xml           Thu Feb  2 02:19:45 2017
-@@ -192,8 +192,8 @@
-                --&amp;gt;
-                &amp;lt;pkg_repo_default_authority&amp;gt;
-                        &amp;lt;main
--                               url=&amp;quot;http://pkg.openindiana.org/hipster&amp;quot;
--                               authname=&amp;quot;openindiana.org&amp;quot;/&amp;gt;
-+                               url=&amp;quot;file:///export/home/ps/illumos-gate/packages/i386/nightly/repo.redist&amp;quot;
-+                               authname=&amp;quot;on-nightly&amp;quot;/&amp;gt;
-                        &amp;lt;!--
-                             If you want to use one or more  mirrors that are
-                             setup for the authority, specify the urls here.
-@@ -210,15 +210,12 @@
-                     If you want to use one or more  mirrors that are
-                     setup for the authority, specify the urls here.
-                --&amp;gt;
--               &amp;lt;!--
--                    Uncomment before using.
-                &amp;lt;pkg_repo_addl_authority&amp;gt;
-                        &amp;lt;main
--                               url=&amp;quot;&amp;quot;
--                               authname=&amp;quot;&amp;quot;/&amp;gt;
-+                               url=&amp;quot;http://pkg.openindiana.org/hipster&amp;quot;
-+                               authname=&amp;quot;openindiana.org&amp;quot;/&amp;gt;
-                        &amp;lt;mirror url=&amp;quot;&amp;quot; /&amp;gt;
-                &amp;lt;/pkg_repo_addl_authority&amp;gt;
--               --&amp;gt;
-                &amp;lt;!--
-                     The default preferred authority to be used by the system
-                     after it has been installed.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-4-3-use-oi-repository-for-ssh-and-ftp-packages&#34;&gt;Step 4.3: Use OI Repository for &amp;ldquo;ssh&amp;rdquo; and &amp;ldquo;ftp&amp;rdquo; Packages&lt;/h3&gt;
-
-&lt;p&gt;I don&amp;rsquo;t fully understand why this step is necessary, but we need to
-modify the manifest to force the use of the OpenIndiana&amp;rsquo;s IPS repository
-when fetching the following packages:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;pkg:/network/ssh&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pkg:/service/network/ftp&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pkg:/service/network/ssh&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;This is done by adding the package URL for these packages to the
-&lt;code&gt;packages&lt;/code&gt; section of the manifest; the following &lt;code&gt;diff&lt;/code&gt; does this:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ diff -u text_mode_x86.xml.orig text_mode_x86.xml
---- text_mode_x86.xml.orig      Thu Feb  2 03:38:37 2017
-+++ text_mode_x86.xml           Thu Feb  2 03:56:46 2017
-@@ -266,6 +266,9 @@
-                        &amp;lt;pkg name=&amp;quot;pkg:/server_install&amp;quot;/&amp;gt;
-                        &amp;lt;pkg name=&amp;quot;pkg:/system/install/text-install&amp;quot;/&amp;gt;
-                        &amp;lt;pkg name=&amp;quot;pkg:/system/install/media/internal&amp;quot;/&amp;gt;
-+                       &amp;lt;pkg name=&amp;quot;pkg://openindiana.org/network/ssh&amp;quot;/&amp;gt;
-+                       &amp;lt;pkg name=&amp;quot;pkg://openindiana.org/service/network/ftp&amp;quot;/&amp;gt;
-+                       &amp;lt;pkg name=&amp;quot;pkg://openindiana.org/service/network/ssh&amp;quot;/&amp;gt;
-                &amp;lt;/packages&amp;gt;
- &amp;lt;!--
-      Items below this line are rarely configured
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;step-4-4-remove-certain-packages-from-illumos-build-repository&#34;&gt;Step 4.4: Remove Certain Packages from illumos Build Repository&lt;/h3&gt;
-
-&lt;p&gt;I understand even less about why this step is necessary, but we need to
-remove certain packages from the IPS repository generated by the
-previous illumos build (the build from &lt;a href=&#34;#step-3-build-illumos&#34;&gt;step 3&lt;/a&gt;),
-otherwise the &lt;a href=&#34;#step-5-building-the-installation-media&#34;&gt;next step&lt;/a&gt; will
-fail to build the installation media. The packages we need to remove
-are:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;pkg:/network/ssh&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pkg:/service/network/ssh&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pkg:/service/network/ftp&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pkg:/service/network/ssh-common&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pkg:/service/network/smtp/sendmail&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;We can use &lt;code&gt;pkgrepo&lt;/code&gt; to remove them like so:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ REPO=&amp;quot;/export/home/ps/illumos-gate/packages/i386/nightly/repo.redist&amp;quot;
-$ for pkg in &amp;quot;pkg:/network/ssh&amp;quot; \
-&amp;gt;            &amp;quot;pkg:/service/network/ssh&amp;quot; \
-&amp;gt;            &amp;quot;pkg:/service/network/ftp&amp;quot; \
-&amp;gt;            &amp;quot;pkg:/service/network/ssh-common&amp;quot; \
-&amp;gt;            &amp;quot;pkg:/service/network/smtp/sendmail&amp;quot;; do
-&amp;gt;     pkgrepo -s &amp;quot;$REPO&amp;quot; remove &amp;quot;$pkg&amp;quot;
-&amp;gt; done
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h2 id=&#34;step-5-building-the-installation-media&#34;&gt;Step 5: Building the Installation Media&lt;/h2&gt;
-
-&lt;p&gt;Now, with all of the above steps completed, we&amp;rsquo;re ready to use
-&lt;code&gt;distro_const&lt;/code&gt; to build the installation media files; this part is
-simple:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ sudo distro_const build text_mode_x86.xml
-... &amp;lt;snip&amp;gt; ...
-Build completed Thu Feb  2 05:26:06 2017
-Build is successful.
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;After that completes, the installation media should be found in
-&lt;code&gt;/rpool/dc/media&lt;/code&gt;:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;$ ls -lh /rpool/dc/media/
-total 2793956
--rw-r--r--   1 root     root        657M Feb  2 05:25 OpenIndiana_Text_X86.iso
--r--r--r--   1 root     root        793M Feb  2 05:25 OpenIndiana_Text_X86.usb
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Success!&lt;/p&gt;
-
-&lt;p&gt;Those files can now be used to install our custom OpenIndiana Hipster
-distribution onto any machine of our choosing (e.g. a VM, bare metal,
-etc), and the installed operating system will be our custom version of
-illumos, plus all additional packages packages that constitute OI
-Hipster.&lt;/p&gt;
 </description>
     </item>
     
