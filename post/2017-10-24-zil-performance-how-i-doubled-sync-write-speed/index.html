@@ -66,15 +66,17 @@ class: center, middle
 ---
 # Agenda
 
- 1. What is the ZIL? Why does it exist?
+### 1. What is the ZIL?
 
- 2. How is it used? How does it work?
+### 2. How is it used? How does it work?
 
- 3. The problem to be fixed; the solution.
+### 3. The problem to be fixed; the solution.
 
- 4. Details on the changes I made.
+### 4. Details on the changes I made.
 
- 5. Performance testing and results.
+### 5. Performance testing and results.
+
+.footnote[&lt;sup&gt;\*&lt;/sup&gt;Press &#34;p&#34; for notes, and &#34;c&#34; for split view.]
 
 ---
 
@@ -88,11 +90,79 @@ class: middle, center
 
  - ZIL: Acronym for (Z)FS (I)ntent (L)og
 
-    - Log of all operations ZFS intends to write via `spa_sync()`
+    - Logs synchronous operations to disk, before `spa_sync()`
 
-    - Both &#34;async&#34; and &#34;sync&#34; operations logged in-memory
+    - What constitutes a &#34;synchronous operation&#34;?
 
-    - Only sync (or &#34;promoted&#34; async) operations logged on-disk
+       - most _modifying_ ZPL operations:
+
+          - e.g. `zfs_create`, `zfs_unlink`, `zfs_write` (some), etc.
+
+       - doesn&#39;t include non-modifying ZPL operations:
+
+          - e.g. `zfs_read`, `zfs_seek`, etc.
+
+???
+
+# What is the ZIL?
+
+ - ZIL: Acronym for (Z)FS (I)ntent (L)og
+
+    - Logs synchronous operations to disk, before `spa_sync()`
+
+    - What constitutes a &#34;synchronous operation&#34;?
+
+       - most _modifying_ ZPL operations:
+
+          - e.g. `zfs_create`, `zfs_unlink`, `zfs_write` (sync), etc.
+
+       - doesn&#39;t include non-modifying ZPL operations:
+
+          - e.g. `zfs_read`, `zfs_seek`, etc.
+
+---
+
+# When is the ZIL used?
+
+ - Always&lt;sup&gt;\*&lt;/sup&gt;
+
+    - ZPL operations (`itx`&#39;s) logged via in-memory lists
+
+    - lists of in-memory `itx`&#39;s written to disk via `zil_commit()`
+
+    - `zil_commit()` called for:
+
+       - _any_ sync write
+
+       - other sync operations (e.g. create, unlink), **and** `sync=always`
+
+       - _some_ reads (`sync=always` or `FRSYNC` set)
+
+.footnote[&lt;sup&gt;\*&lt;/sup&gt;Except when dataset configured with: `sync=disabled`]
+
+???
+
+# When is the ZIL used?
+
+ - Always&lt;sup&gt;\*&lt;/sup&gt;
+
+    - ZPL operations (`itx`&#39;s) logged via in-memory lists
+
+    - lists of in-memory `itx`&#39;s written to disk via `zil_commit()`
+
+    - `zil_commit()` called for:
+
+       - _any_ sync write
+
+       - other sync operations (e.g. create, unlink), **and** `sync=always`
+
+       - _some_ reads (`sync=always` or `FRSYNC` set)
+
+ - Caveat: None of this applies if dataset configured with: `sync=disabled`
+
+    - in-memory `itx`&#39;s aren&#39;t created
+
+    - `zil_commit` doesn&#39;t do writes to disk
 
 ---
 
@@ -102,59 +172,142 @@ class: middle, center
 
     - An SLOG is not necessary
 
-       - ZIL writes to main pool by default
+    - An SLOG can be used to improve latency of ZIL writes
+
+ - Conceptually, SLOG is different than the ZIL
+
+ - ZIL is used, even if no SLOG attached
+
+???
+
+# What is the SLOG?
+
+ - SLOG: Acronym for (S)eperate (LOG) Device
+
+    - An SLOG is not necessary
+
+       - By default (no SLOG), ZIL will write to main pool VDEVs
 
     - An SLOG can be used to improve latency of ZIL writes
 
-       - When attached, ZIL writes to SLOG instead of main pool&lt;sup&gt;\*&lt;/sup&gt;
+       - When attached, ZIL writes to SLOG instead of main pool
 
- - SLOG can be used by the ZIL, but it is _not_ the ZIL
+ - Conceptually, SLOG is different than the ZIL
 
-.footnote[&lt;sup&gt;\*&lt;/sup&gt;Details of when/how the SLOG is used is complicated and not covered]
+    - Difference between SLOG and ZIL, similar difference of DMU and VDEV
 
----
+    - ZIL is mechanism for writing, SLOG is device written to
 
-# When is the ZIL used?
-
- - Always.
-
-    - in-memory ZIL always used; i.e. log entries always created
-
-    - `sync=always` &amp;rarr; `zil_commit()` always called
-
-       - for both sync and async ops
-
-    - `sync=disabled` &amp;rarr; `zil_commit()` doesn&#39;t do anything
-
-       - but it&#39;s still called for sync ops
-
-    - `zil_commit()` is the mechanism for writing log entries to disk
-
- - ZIL used even without an SLOG
-
- - On-disk ZIL only read from during &#34;replay&#34; (i.e. after a crash)&lt;sup&gt;\*&lt;/sup&gt;
-
-.footnote[&lt;sup&gt;\*&lt;/sup&gt;Details w.r.t. replay not covered]
+ - ZIL is used, even if no SLOG attached
 
 ---
 
 # Why does the ZIL exist?
 
- - Performance optimization; not required for correctness
+ - Writes in ZFS are &#34;write-back&#34;
+
+ - Without the ZIL, sync operations inherit latency of `spa_sync()`&lt;sup&gt;\*&lt;/sup&gt;
+
+    - `spa_sync()` can take tens of seconds (or more) to complete
+
+ - Further, with the ZIL, write amplification can be mitigated
+
+ - ZIL is essentially a performance optimization
+
+.footnote[&lt;sup&gt;\*&lt;/sup&gt;All operations inherit this latency, but only sync operations wait for completion]
+???
+
+# Why does the ZIL exist?
 
  - Writes in ZFS are &#34;write-back&#34;
 
-    - Data is first stored in-memory, in DMU layer...
+    - Data is first written and stored in-memory, in DMU layer...
 
-    - Then **all** &#34;dirty&#34; data written to disk via `spa_sync()`
+    - At some later point, data for whole pool written to disk via `spa_sync()`.
 
-    - `spa_sync()` can tens of seconds (or more) to complete
+ - Without ZIL, all sync operations inherit latency of `spa_sync()`
 
- - Without ZIL, sync operations inherit latency of `spa_sync()`
+    - `spa_sync()` can take tens of seconds (or more) to complete
 
-    - All ops inherit latency; only sync ops _wait_ for completion
+    - We don&#39;t want each sync operation to take this log
 
- - ZIL allows sync operations to &#34;bypass&#34; latency of `spa_sync()`
+ - Further, with the ZIL, write amplification can be mitigated
+
+    - A single ZPL operation, can cause many writes to occur
+
+       - e.g. 1 block write to a file causes additional writes to update
+         indirect blocks
+
+    - ZIL allows operation to &#34;complete&#34; with minimal data written
+
+ - ZIL is essentially a performance optimization
+
+    - Strictly speaking, correctness could be achieved without it...
+
+       - e.g. all sync ops could just wait for `spa_sync()` to complete
+
+    - But practically speaking, it&#39;s necessary...
+
+       - Performance would be unreasonably bad without it...
+
+       - due to reasons just described
+
+---
+
+# ZIL On-Disk Format
+
+ - Each dataset has it&#39;s own unique ZIL on-disk
+
+ - ZIL stored on-disk as a singly linked list of ZIL blocks (`lwb`&#39;s)
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  UBERBLOCK(Uberblock) --&gt; MOS(MOS)
+  MOS --&gt; DS-1(Dataset)
+  MOS --&gt; DS-2(Dataset)
+
+  DS-1    --&gt; DATA-1(Contents)
+  DS-1    --&gt; ZIL-1(ZIL header)
+  ZIL-1   --&gt; LWB-1-1(lwb)
+  LWB-1-1 --&gt; LWB-1-2(lwb)
+
+  DS-2    --&gt; DATA-2(Contents)
+  DS-2    --&gt; ZIL-2(ZIL header)
+  ZIL-2   --&gt; LWB-2-1(lwb)
+  LWB-2-1 --&gt; LWB-2-2(lwb)
+
+  style LWB-1-2 stroke:#000000, stroke-dasharray:5, 5
+  style LWB-2-2 stroke:#000000, stroke-dasharray:5, 5
+&lt;/div&gt;
+
+???
+
+# ZIL On-Disk Format
+
+ - Each dataset has it&#39;s own unique ZIL on-disk
+
+ - ZIL stored on-disk as a singly linked list of ZIL blocks (`lwb`&#39;s)
+
+    - each ZIL block contains a pointer to the &#34;next&#34; ZIL block
+
+    - no indirect blocks, so no write amplification
+
+    - checksums calculated (and verified) differently
+
+       - &#34;next&#34; checksum is &#34;current&#34; checksum, plus one
+```
+        error = zio_alloc_zil(...);
+        if (error == 0) {
+                ASSERT3U(bp-&gt;blk_birth, ==, txg);
+                bp-&gt;blk_cksum = lwb-&gt;lwb_blk.blk_cksum;
+                bp-&gt;blk_cksum.zc_word[ZIL_ZC_SEQ]&#43;&#43;;
+
+                /*
+                 * Allocate a new log write block (lwb).
+                 */
+                nlwb = zil_alloc_lwb(zilog, bp, slog, txg);
+        }
+```
 
 ---
 
@@ -166,15 +319,29 @@ class: middle, center
 
 # How is the ZIL used?
 
- - Consumers generally interact with the ZIL in two phases:
+ - ZPL will generally interact with the ZIL in two phases:
 
-    1. Log the operation(s)
+    1. Log the operation(s) &amp;mdash; `zil_itx_assign`
 
-     - Tells ZIL operation occurred
+    2. Commit the operation(s) &amp;mdash; `zil_commit`
+
+???
+
+# How is the ZIL used?
+
+ - ZPL will generally interact with the ZIL in two phases:
+
+    1. Log the operation(s) &amp;ndash; via `zil_itx_assign`
+
+        - Tells the ZIL the operation occurred
+
+        - Only called when _new_ ZPL operations occur
 
     2. Commit the operation(s)
 
-     - Causes ZIL to write log of operation to disk
+        - Causes the ZIL to write log record of operation to disk
+
+        - Only called if sync write, or `sync=always`
 
 ---
 
@@ -190,7 +357,7 @@ class: middle, center
 
  - `zfs_write` &amp;rarr; `zil_commit`
 
- - Most ZPL syscalls have a `zfs_log_*` function
+ - Most ZPL operations have a corresponding `zfs_log_*` function
 
     - `zfs_log_create`
     - `zfs_log_remove`
@@ -200,57 +367,107 @@ class: middle, center
     - `zfs_log_setattr`
     - ...
 
+???
+
+# Example: `zfs_write`
+
+ - `zfs_write` first calls `zfs_log_write`
+
+ - Within `zfs_log_write` we call:
+
+    - `zil_itx_create` ...
+
+    - and then, `zil_itx_assign`
+
+ - These `zil_itx_*` functions register the write operation with the ZIL
+
+ - Later, `zfs_write` will call `zil_commit` (if it&#39;s a sync write)
+
+    - This causes ZIL to write previously generated write `itx` to disk
+
+ - Most ZPL operations have a corresponding `zfs_log_*` function
+
+    - All `zfs_log_*` functions similarly call `zil_itx_{create,assign}`
+
 ---
 
 # Example: `zfs_fsync`
 
  - `zfs_fsync` &amp;rarr; `zil_commit`
 
-    - There&#39;s no _new_ operations to log.. thus, no `zfs_log_fysnc`
+    - no _new_ operations to log... no `zfs_log_fysnc` function
+
+???
+
+# Example: `zfs_fsync`
+
+ - As another example, `zfs_fsync` doesn&#39;t have a &#34;log&#34; function
+
+    - `fsync` doesn&#39;t create any new modifications...
+
+    - instead, it only ensures prior modifying operations complete.
+
+    - as a result, there isn&#39;t a `zfs_log_fsync` function
 
 ---
 
-# Contract between ZIL and consumers.
+# Contract between ZIL and ZPL.
 
- - `zil_commit` won&#39;t return until all operations are safe
+ - Parameters to `zil_commit`: ZIL pointer, object number
 
- - What does &#34;all operations&#34; mean?
+    - These uniquely identify an object whose data is to be committed
 
-    - All sync ops for object being committed; i.e. `itx_sync=B_TRUE`
+ - When `zil_commit` returns:
 
-    - All async ops which sync ops depend on
+    - Operations _relevant_ to the object specified, will be _persistent_
+      on disk
 
-    - In practice:
+    - relevant &amp;ndash; all operations that would modify that object
 
-       - All sync ops for all objects
+    - persistent &amp;ndash; Log block(s) written (completed) &amp;rarr; disk flushed
 
-       - All async ops for specific object being committed
+ - Interface of `zil_commit` doesn&#39;t specify _which_ operation(s) to commit
 
----
+???
 
-# What does &#34;safe&#34; mean?
+# Contract between ZIL and ZPL.
 
- - Operation(s) won&#39;t be lost, forgotten, or modified
+ - Parameters to `zil_commit`: ZIL pointer, object number
 
- - How is this accomplished:
+    - These uniquely identify an object whose data is to be committed
 
-    - Data written to disk &amp;rarr; disk flushed
+ - When `zil_commit` returns:
 
- - Remember: `spa_sync` takes too long
+    - Operations _relevant_ to the object specified, will be _persistent_
+      on disk
 
-    - Special &#34;log blocks&#34; written not using `spa_sync`
+    - relevant &amp;ndash; all operations that would modify that object
 
-    - Log blocks written faster than `spa_sync` could handle ops
+       - &#34;sync&#34; and &#34;async&#34;...
 
-    - Log blocks track operations not yet applied via `spa_sync`
+       - e.g. &#34;async&#34; writes written along with &#34;sync&#34; writes
 
-    - Dataset not actually modified (on-disk) until later&lt;sup&gt;\*&lt;/sup&gt;
+    - persistent &amp;ndash; Log block(s) written (completed) &amp;rarr; disk flushed
 
- - If a crash occurs before `spa_sync` applies the modifications...
+       - All &#34;prior/dependent&#34; log blocks written and completed
 
-    - log blocks are &#34;replayed&#34; prior to mounting the dataset
+       - We can&#39;t issue the flush before the write completes...
 
- - If no crash, log blocks freed via `spa_sync`
+          - or else, disk flush may not contain log block&#39;s contents.
+
+             - concurrent write &#43; flush can be reordered
+
+          - if flush doesn&#39;t contain log block(s), flush was meaningless
+
+ - Interface of `zil_commit` doesn&#39;t specify _which_ operation(s) to commit
+
+    - `zil_commit` doesn&#39;t know which operation(s) the caller cares about...
+
+       - thus, it must write all operations for the object
+
+       - e.g. multiple threads writing to same object, but different offsets...
+
+       - all offsets must be written before `zil_commit` returns
 
 ---
 
@@ -262,23 +479,30 @@ class: middle, center
 
 # How does the ZIL work?
 
- - In memory ZIL contains 4 (per-txg) `itxg_t` structures
+ - In memory ZIL contains per-txg `itxg_t` structures
 
- - Each `itxg_t` contains a single `itxs_t`, which contains:
+ - Each `itxg_t` contains:
 
-    - List of sync operations
+    - A single list of sync operations (for all objects)
 
-    - AVL tree of lists of async operations
+    - Object specific lists of async operations
 
-       - Each node in tree contains per-object list of async ops
 
- - Remember: `zil_itx_create` &amp;rarr; `zil_itx_assign`
+???
 
-    1. `zil_itx_create` &amp;ndash; allocates a new `itx_t`
+ - In memory ZIL contains per-txg `itxg_t` structures
 
-    2. `zil_itx_assign` &amp;ndash; inserts the `itx_t` into one of these lists
+    - An `itxg_t` exists for each DMU TXG not yet synced to disk
 
- - Terminology: &#34;itx&#34; refers to a ZIL operation (intent log transaction)
+    - Each `itx` is specific to a TXG...
+
+       - assigned to corresponding `itxg_t` for that TXG
+
+ - Each `itxg_t` contains:
+
+    - A single list of sync operations (for all objects)
+
+    - Object specific lists of async operations
 
 ---
 
@@ -291,16 +515,10 @@ graph LR
   SLIST(sync list) --&gt; SLIST-1((itx S1))
   SLIST-1          --&gt; SLIST-2((itx S2))
 
-  ATREE(async tree) --&gt; OBJ-A(object A)
-  OBJ-A             --&gt; OBJ-B(object B)
-  OBJ-B             --&gt; OBJ-B-1((itx B1))
-  OBJ-B-1           --&gt; OBJ-B-2((itx B2))
-  OBJ-A             --&gt; OBJ-A-1((itx A1))
-  OBJ-A-1           --&gt; OBJ-A-2((itx A2))
-  OBJ-A-2           --&gt; OBJ-A-3((itx A3))
-  OBJ-A             --&gt; OBJ-C(object C)
-  OBJ-C             --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1           --&gt; OBJ-C-2((itx C2))
+  OBJ-A(object A async list) --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1                    --&gt; OBJ-A-2((itx A2))
+
+  OBJ-B(object B async list) --&gt; OBJ-B-1((itx B1))
 &lt;/div&gt;
 
 ---
@@ -309,17 +527,31 @@ graph LR
 
  - `zil_commit` handles the process of writing `itx_t`&#39;s to disk:
 
+???
+
+# How are itx&#39;s written to disk?
+
+ - `zil_commit` handles the process of writing `itx_t`&#39;s to disk:
+
 ---
 
 # How are itx&#39;s written to disk?
 
  - `zil_commit` handles the process of writing `itx_t`&#39;s to disk:
 
-     1. Move async itx&#39;s for object being commited, to the sync list
+     1. find all relavant `itx`&#39;s, move them to the &#34;commit list&#34;
+
+???
+
+# How are itx&#39;s written to disk?
+
+ - ~~`zil_commit` handles the process of writing `itx_t`&#39;s to disk:~~
+
+     1. find all relavant `itx`&#39;s, move them to the &#34;commit list&#34;
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
@@ -328,21 +560,21 @@ graph LR
   SLIST(sync list) --&gt; SLIST-1((itx S1))
   SLIST-1          --&gt; SLIST-2((itx S2))
 
-  ATREE(async tree) --&gt; OBJ-A(object A)
-  OBJ-A             --&gt; OBJ-B(object B)
-  OBJ-B             --&gt; OBJ-B-1((itx B1))
-  OBJ-B-1           --&gt; OBJ-B-2((itx B2))
-  OBJ-A             --&gt; OBJ-A-1((itx A1))
-  OBJ-A-1           --&gt; OBJ-A-2((itx A2))
-  OBJ-A-2           --&gt; OBJ-A-3((itx A3))
-  OBJ-A             --&gt; OBJ-C(object C)
-  OBJ-C             --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1           --&gt; OBJ-C-2((itx C2))
+  OBJ-A(object A async list) --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1                    --&gt; OBJ-A-2((itx A2))
+
+  OBJ-B(object B async list) --&gt; OBJ-B-1((itx B1))
 &lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - Starting with example itx lists from before...
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
@@ -350,48 +582,115 @@ graph LR
 graph LR
   SLIST(sync list) --&gt; SLIST-1((itx S1))
   SLIST-1          --&gt; SLIST-2((itx S2))
-  SLIST-2          --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1          --&gt; OBJ-C-2((itx C2))
 
-  ATREE(async tree) --&gt; OBJ-A(object A)
-  OBJ-A             --&gt; OBJ-B(object B)
-  OBJ-B             --&gt; OBJ-B-1((itx B1))
-  OBJ-B-1           --&gt; OBJ-B-2((itx B2))
-  OBJ-A             --&gt; OBJ-A-1((itx A1))
-  OBJ-A-1           --&gt; OBJ-A-2((itx A2))
-  OBJ-A-2           --&gt; OBJ-A-3((itx A3))
-  OBJ-A             --&gt; OBJ-C(object C)
-&lt;/div&gt;
+  OBJ-A(object A async list) --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1                    --&gt; OBJ-A-2((itx A2))
 
----
-
-# How are itx&#39;s written to disk?
-
- - `zil_commit` handles the process of writing `itx_t`&#39;s to disk:
-
-     1. Move async itx&#39;s for object being commited, to the sync list
-
-     2. Move sync list to &#34;commit list&#34;; sync list now empty
-
----
-
-# Example: `zil_commit` Object C
-
-&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
-
-&lt;div class=&#34;mermaid&#34;&gt;
-graph LR
-  SLIST(sync list)   --&gt; SLIST-1((itx S1))
-  SLIST-1            --&gt; SLIST-2((itx S2))
-  SLIST-2            --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+  OBJ-B(object B async list) --&gt; OBJ-B-1((itx B1))
 
   CLIST(commit list)
 &lt;/div&gt;
 
+???
+
+# Example: `zil_commit` Object B
+
+ - First, we create an empty commit list...
+
+ - This will eventually contain a list of all `itx`s that need to be
+   written.
+
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list) --&gt; SLIST-1((itx S1))
+  SLIST-1          --&gt; SLIST-2((itx S2))
+
+  OBJ-A(object A async list) --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1                    --&gt; OBJ-A-2((itx A2))
+
+  OBJ-B(object B async list) --&gt; OBJ-B-1((itx B1))
+
+  CLIST(commit list)
+
+  style OBJ-B-1 fill:#00ff00
+&lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - Since, in this example, we&#39;re calling `zil_commit` for object &#34;B&#34;
+
+ - The first step is to move object B&#39;s async `itx`&#39;s to the sync list
+
+---
+
+# Example: `zil_commit` Object B
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list) --&gt; SLIST-1((itx S1))
+  SLIST-1          --&gt; SLIST-2((itx S2))
+  SLIST-2          --&gt; OBJ-B-1((itx B1))
+
+  OBJ-A(object A async list) --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1                    --&gt; OBJ-A-2((itx A2))
+
+  OBJ-B(object B async list)
+
+  CLIST(commit list)
+
+  style OBJ-B-1 fill:#00ff00
+&lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - As you can see, we&#39;ve moved object B&#39;s async `itx`&#39;s to the tail of
+   the sync list
+
+---
+
+# Example: `zil_commit` Object B
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  SLIST(sync list) --&gt; SLIST-1((itx S1))
+  SLIST-1          --&gt; SLIST-2((itx S2))
+  SLIST-2          --&gt; OBJ-B-1((itx B1))
+
+  OBJ-A(object A async list) --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1                    --&gt; OBJ-A-2((itx A2))
+
+  OBJ-B(object B async list)
+
+  CLIST(commit list)
+
+  style OBJ-B-1 fill:#00ff00
+  style SLIST-1 fill:#00ff00
+  style SLIST-2 fill:#00ff00
+&lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - Next, we move the entirety of the sync list, to the commit list
+
+---
+
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
@@ -399,11 +698,41 @@ graph LR
 graph LR
   SLIST(sync list)
 
+  OBJ-A(object A async list) --&gt; OBJ-A-1((itx A1))
+  OBJ-A-1                    --&gt; OBJ-A-2((itx A2))
+
+  OBJ-B(object B async list)
+
   CLIST(commit list) --&gt; SLIST-1((itx S1))
   SLIST-1            --&gt; SLIST-2((itx S2))
-  SLIST-2            --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+  SLIST-2            --&gt; OBJ-B-1((itx B1))
+
+
+  style OBJ-B-1 fill:#00ff00
+  style SLIST-1 fill:#00ff00
+  style SLIST-2 fill:#00ff00
 &lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - Now, we can see the `itx`&#39;s that were linked off the sync list, are
+   now linked off of the commit list
+
+ - Before I proceed, you may be asking yourself, why do we do this?
+
+    - We do this so the thread that writes these `itx`&#39;s out to disk...
+
+       - can work with a list that won&#39;t change due to concurrent activity
+
+    - If there&#39;s concurrent ZPL operations occurring...
+
+       - those operations may insert new `itx`&#39;s onto the sync list.
+
+    - We create a new &#34;commit list&#34; so the list of `itx`s to write out...
+
+       - is isolated from this concurrent ZPL activity
 
 ---
 
@@ -413,19 +742,39 @@ graph LR
 
      1. Move async itx&#39;s for object being commited, to the sync list
 
-     2. Move sync list to &#34;commit list&#34;; sync list now empty
+     2. Write all commit list `itx`&#39;s to disk
 
-     3. For each itx in commit list:
+???
 
-         1. Copy itx data into ZIL block
+# How are itx&#39;s written to disk?
 
-         2. If space in ZIL block lacking...
+ - ~~`zil_commit` handles the process of writing `itx_t`&#39;s to disk:~~
 
-           - allocate new (empty) block, write out old block
+     1. ~~Move async itx&#39;s for object being commited, to the sync list~~
+
+     2. Write all commit list `itx`&#39;s to disk
+
+        - We do this by iterating over the `itx`&#39;s in the commit list
+
+        - For each `itx`:
+
+           1. If insufficient space in the currently &#34;open&#34; ZIL block:
+
+              - Allocate a new (empty) ZIL block...
+
+              - issue write of old block
+
+           2. Copy the `itx` into the &#34;open&#34; ZIL block
+
+        - Finally, issue last &#34;open&#34; ZIL block to disk
+
+           - this also means, allocated another block...
+
+           - to be the next &#34;open&#34; ZIL block
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
@@ -433,13 +782,18 @@ graph LR
 graph LR
   CLIST(commit list) --&gt; SLIST-1((itx S1))
   SLIST-1            --&gt; SLIST-2((itx S2))
-  SLIST-2            --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+  SLIST-2            --&gt; OBJ-B-1((itx B1))
 &lt;/div&gt;
 
+???
+
+# Example: `zil_commit` Object B
+
+ - Starting with the commit list from before...
+
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
@@ -447,16 +801,20 @@ graph LR
 graph LR
   CLIST(commit list) --&gt; SLIST-1((itx S1))
   SLIST-1            --&gt; SLIST-2((itx S2))
-  SLIST-2            --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+  SLIST-2            --&gt; OBJ-B-1((itx B1))
 
-  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style SLIST-1 fill:#ffff00, stroke:#000000, stroke-width:3px
 &lt;/div&gt;
 
+???
+
+# Example: `zil_commit` Object B
+
+ - Select the first `itx` in the list...
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
@@ -464,64 +822,86 @@ graph LR
 graph LR
   CLIST(commit list) --&gt; SLIST-1((itx S1))
   SLIST-1            --&gt; SLIST-2((itx S2))
-  SLIST-2            --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+  SLIST-2            --&gt; OBJ-B-1((itx B1))
 
   HEADER(ZIL header) --&gt; LWB-1(lwb 1)
 
-  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+  style SLIST-1 fill:#ffff00, stroke:#000000, stroke-width:3px
+
+  style LWB-1 stroke:#000000, stroke-dasharray:5, 5
 &lt;/div&gt;
 
- - Terminology: &#34;lwb&#34; refers to a ZIL block (log write block)
+???
+
+# Example: `zil_commit` Object B
+
+ - allocate our first ZIL block...
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
 &lt;div class=&#34;mermaid&#34;&gt;
 graph LR
   CLIST(commit list) --&gt; SLIST-2((itx S2))
-  SLIST-2            --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+  SLIST-2            --&gt; OBJ-B-1((itx B1))
 
   HEADER(ZIL header) --&gt; LWB-1(lwb 1)
   LWB-1              --- SLIST-1((itx S1))
 
   style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+
+  style LWB-1 stroke:#000000, stroke-dasharray:5, 5
 &lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - and copy the `itx` into the `lwb`&#39;s buffer.
+
+ - The `lwb` still hasn&#39;t been issued to disk yet...
+
+    - it may be used for the next `itx`.
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
 &lt;div class=&#34;mermaid&#34;&gt;
 graph LR
   CLIST(commit list) --&gt; SLIST-2((itx S2))
-  SLIST-2            --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+  SLIST-2            --&gt; OBJ-B-1((itx B1))
 
   HEADER(ZIL header) --&gt; LWB-1(lwb 1)
   LWB-1              --- SLIST-1((itx S1))
 
   style SLIST-1 fill:#ffff00
   style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
+
+  style LWB-1 stroke:#000000, stroke-dasharray:5, 5
 &lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - Now we move on to the next `itx` in the list...
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
 &lt;div class=&#34;mermaid&#34;&gt;
 graph LR
   CLIST(commit list) --&gt; SLIST-2((itx S2))
-  SLIST-2            --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+  SLIST-2            --&gt; OBJ-B-1((itx B1))
 
   HEADER(ZIL header) --&gt; LWB-1(lwb 1)
   LWB-1              --- SLIST-1((itx S1))
@@ -530,19 +910,33 @@ graph LR
 
   style SLIST-1 fill:#ffff00
   style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
-  style LWB-1   fill:#ffff00
+
+  style LWB-2 stroke:#000000, stroke-dasharray:5, 5
 &lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - In this example:
+
+    - not enough space in the currently &#34;open&#34; `lwb` for this `itx`
+
+    - so we allocate a new `lwb`...
+
+    - and issue the &#34;open&#34; one to disk
+
+ - The newly allocated `lwb` becomes the new &#34;open&#34; lwb
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
 &lt;div class=&#34;mermaid&#34;&gt;
 graph LR
-  CLIST(commit list) --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+  CLIST(commit list) --&gt; OBJ-B-1((itx B1))
 
   HEADER(ZIL header) --&gt; LWB-1(lwb 1)
   LWB-1              --- SLIST-1((itx S1))
@@ -551,19 +945,25 @@ graph LR
 
   style SLIST-1 fill:#ffff00
   style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
-  style LWB-1   fill:#ffff00
+
+  style LWB-2 stroke:#000000, stroke-dasharray:5, 5
 &lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - Now we can copy the `itx` into the newly allocated, and &#34;open&#34;, `lwb`
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
 &lt;div class=&#34;mermaid&#34;&gt;
 graph LR
-  CLIST(commit list) --&gt; OBJ-C-1((itx C1))
-  OBJ-C-1            --&gt; OBJ-C-2((itx C2))
+  CLIST(commit list) --&gt; OBJ-B-1((itx B1))
 
   HEADER(ZIL header) --&gt; LWB-1(lwb 1)
   LWB-1              --- SLIST-1((itx S1))
@@ -572,84 +972,20 @@ graph LR
 
   style SLIST-1 fill:#ffff00
   style SLIST-2 fill:#00ff00
-  style OBJ-C-1 fill:#00ffff,stroke:#000000,stroke-width:3px
-  style LWB-1   fill:#ffff00
+  style OBJ-B-1 fill:#00ffff,stroke:#000000,stroke-width:3px
+
+  style LWB-2 stroke:#000000, stroke-dasharray:5, 5
 &lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - Now we select the last `itx` in the list...
 
 ---
 
-# Example: `zil_commit` Object C
-
-&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
-
-&lt;div class=&#34;mermaid&#34;&gt;
-graph LR
-  CLIST(commit list) --&gt; OBJ-C-2((itx C2))
-
-  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --&gt; LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-
-  style SLIST-1 fill:#ffff00
-  style SLIST-2 fill:#00ff00
-  style OBJ-C-1 fill:#00ffff,stroke:#000000,stroke-width:3px
-  style LWB-1   fill:#ffff00
-&lt;/div&gt;
-
----
-
-# Example: `zil_commit` Object C
-
-&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
-
-&lt;div class=&#34;mermaid&#34;&gt;
-graph LR
-  CLIST(commit list) --&gt; OBJ-C-2((itx C2))
-
-  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --&gt; LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-
-  style SLIST-1 fill:#ffff00
-  style SLIST-2 fill:#00ff00
-  style OBJ-C-1 fill:#00ffff
-  style OBJ-C-2 fill:#ffa500,stroke:#000000,stroke-width:3px
-  style LWB-1   fill:#ffff00
-&lt;/div&gt;
-
----
-
-# Example: `zil_commit` Object C
-
-&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
-
-&lt;div class=&#34;mermaid&#34;&gt;
-graph LR
-  CLIST(commit list) --&gt; OBJ-C-2((itx C2))
-
-  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --&gt; LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-  LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3
-
-  style SLIST-1 fill:#ffff00
-  style SLIST-2 fill:#00ff00
-  style OBJ-C-1 fill:#00ffff
-  style OBJ-C-2 fill:#ffa500,stroke:#000000,stroke-width:3px
-  style LWB-1   fill:#ffff00
-  style LWB-2   fill:#ffff00
-&lt;/div&gt;
-
----
-
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
@@ -661,22 +997,28 @@ graph LR
   LWB-1              --- SLIST-1((itx S1))
   LWB-1              --&gt; LWB-2(lwb 2)
   LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-  LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
-
+  SLIST-2            --- OBJ-B-1((itx B1))
 
   style SLIST-1 fill:#ffff00
   style SLIST-2 fill:#00ff00
-  style OBJ-C-1 fill:#00ffff
-  style OBJ-C-2 fill:#ffa500
-  style LWB-1   fill:#ffff00
-  style LWB-2   fill:#ffff00
+  style OBJ-B-1 fill:#00ffff,stroke:#000000,stroke-width:3px
+
+  style LWB-2 stroke:#000000, stroke-dasharray:5, 5
 &lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - This fits in the currently &#34;open&#34; `lwb`...
+
+    - so we don&#39;t have to allocate another `lwb`
+
+ - This `itx` can simply be copied into place
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
@@ -688,19 +1030,27 @@ graph LR
   LWB-1              --- SLIST-1((itx S1))
   LWB-1              --&gt; LWB-2(lwb 2)
   LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
+  SLIST-2            --- OBJ-B-1((itx B1))
   LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
-
 
   style SLIST-1 fill:#ffff00
   style SLIST-2 fill:#00ff00
-  style OBJ-C-1 fill:#00ffff
-  style OBJ-C-2 fill:#ffa500
-  style LWB-1   fill:#ffff00
-  style LWB-2   fill:#ffff00
-  style LWB-3   fill:#ffff00
+  style OBJ-B-1 fill:#00ffff
+
+  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
 &lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - And finally, we can issue the currently &#34;open&#34; lwb to disk
+
+    - To do this, we must also allocate a new `lwb`...
+
+       - to be the &#34;next open&#34; `lwb`
+
+    - This &#34;next open&#34; lwb will used for the next &#34;batch&#34; of `itx`&#39;s
 
 ---
 
@@ -710,101 +1060,102 @@ graph LR
 
      1. Move async itx&#39;s for object being commited, to the sync list
 
-     2. Move sync list to &#34;commit list&#34;; sync list now empty
+     2. Write all commit list `itx`&#39;s to disk
 
-     3. For each itx in commit list:
+     3. Wait for all ZIL block writes to complete
 
-         1. Copy itx data into ZIL block
+???
 
-         2. If space in ZIL block lacking...
+# How are itx&#39;s written to disk?
 
-           - allocate new (empty) block, write out old block
+ - ~~`zil_commit` handles the process of writing `itx_t`&#39;s to disk:~~
 
-     4. Wait for all ZIL block writes to complete
+     1. ~~Move async itx&#39;s for object being commited, to the sync list~~
+
+     2. ~~Write all commit list `itx`&#39;s to disk~~
+
+     3. Wait for all ZIL block writes to complete
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
 &lt;div class=&#34;mermaid&#34;&gt;
 graph LR
+  CLIST(commit list)
+
   HEADER(ZIL header) --&gt; LWB-1(lwb 1)
   LWB-1              --- SLIST-1((itx S1))
   LWB-1              --&gt; LWB-2(lwb 2)
   LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
+  SLIST-2            --- OBJ-B-1((itx B1))
   LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
 
-  style LWB-1   fill:#ffff00
-  style LWB-2   fill:#ffff00
-  style LWB-3   fill:#ffff00
+  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
 &lt;/div&gt;
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
 &lt;div class=&#34;mermaid&#34;&gt;
 graph LR
+  CLIST(commit list)
+
   HEADER(ZIL header) --&gt; LWB-1(lwb 1)
   LWB-1              --- SLIST-1((itx S1))
   LWB-1              --&gt; LWB-2(lwb 2)
   LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
+  SLIST-2            --- OBJ-B-1((itx B1))
   LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
 
-  style LWB-1   fill:#00ff00
-  style LWB-2   fill:#ffff00
-  style LWB-3   fill:#ffff00
+  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
+
+  style LWB-2 fill:#00ff00
 &lt;/div&gt;
+
+???
+
+# Example: `zil_commit` Object B
+
+ - The `lwb`&#39;s can complete in any order
+
+ - In this example, &#34;lwb 2&#34; completes first...
 
 ---
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
 &lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
 &lt;div class=&#34;mermaid&#34;&gt;
 graph LR
+  CLIST(commit list)
+
   HEADER(ZIL header) --&gt; LWB-1(lwb 1)
   LWB-1              --- SLIST-1((itx S1))
   LWB-1              --&gt; LWB-2(lwb 2)
   LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
+  SLIST-2            --- OBJ-B-1((itx B1))
   LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
 
-  style LWB-1   fill:#00ff00
-  style LWB-2   fill:#ffff00
-  style LWB-3   fill:#00ff00
+  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
+
+  style LWB-2 fill:#00ff00
+  style LWB-1 fill:#00ff00
 &lt;/div&gt;
 
----
+???
 
-# Example: `zil_commit` Object C
+# Example: `zil_commit` Object B
 
-&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+ - Then &#34;lwb 1&#34;...
 
-&lt;div class=&#34;mermaid&#34;&gt;
-graph LR
-  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --&gt; LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-  LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
-
-  style LWB-1   fill:#00ff00
-  style LWB-2   fill:#00ff00
-  style LWB-3   fill:#00ff00
-&lt;/div&gt;
+ - At this point, all `lwb`&#39;s have completed.
 
 ---
 
@@ -814,97 +1165,83 @@ graph LR
 
      1. Move async itx&#39;s for object being commited, to the sync list
 
-     2. Move sync list to &#34;commit list&#34;; sync list now empty
+     2. Write all commit list `itx`&#39;s to disk
 
-     3. For each itx in commit list:
+     3. Wait for all ZIL block writes to complete
 
-         1. Copy itx data into ZIL block
+     4. Flush VDEVs and notify waiting threads
 
-         2. If space in ZIL block lacking...
-
-           - allocate new (empty) block, write out old block
-
-     4. Wait for all ZIL block writes to complete
-
-     5. Flush all VDEVs written to
-
----
+???
 
 # How are itx&#39;s written to disk?
 
- - `zil_commit` handles the process of writing `itx_t`&#39;s to disk:
+ - ~~`zil_commit` handles the process of writing `itx_t`&#39;s to disk:~~
 
-     1. Move async itx&#39;s for object being commited, to the sync list
+     1. ~~Move async itx&#39;s for object being commited, to the sync list~~
 
-     2. Move sync list to &#34;commit list&#34;; sync list now empty
+     2. ~~Write all commit list `itx`&#39;s to disk~~
 
-     3. For each itx in commit list:
+     3. ~~Wait for all ZIL block writes to complete~~
 
-         1. Copy itx data into ZIL block
-
-         2. If space in ZIL block lacking...
-
-           - allocate new (empty) block, write out old block
-
-     4. Wait for all ZIL block writes to complete
-
-     5. Flush all VDEVs written to
-
-     6. Notify waiting threads
+     4. Flush VDEVs and notify waiting threads
 
 ---
 
 class: middle, center
 
-# 2 &amp;ndash; ZIL Blocks
+# 2 &amp;ndash; ZIL Block Sizing &#43; Performance
 
 ---
 
-# Constraints
+# ZIL Block Sizing &#43; Performance
 
- - On disk component of ZIL is a linked list of ZIL blocks (lwb&#39;s)
+ - ZIL blocks must be &#34;pre-allocated&#34;, due to on-disk format
 
-    - Doesn&#39;t use indirection like &#34;normal&#34; blocks
+    - Block size chosen at time of allocation
 
-       - no indirect blocks
+ - Allocated block size can dramatically impact performance:
 
-    - Each ZIL block contains pointer to next ZIL block on disk
+    - &#34;too big&#34; &amp;ndash; wasted space
 
- - ZIL blocks, once written to disk, cannot be overwritten
+    - &#34;too small&#34; &amp;ndash; too many (small) IOPs issued to disk
 
-    - Due to data integrity concerns
+    - &#34;just right&#34; &amp;ndash; large IOPs filled with `itx`&#39;s
 
- - Thus, &#34;next&#34; ZIL block allocated when &#34;current&#34; block written
+???
 
-    - Required for &#34;current&#34; block to contain pointer to &#34;next&#34;
+# ZIL Block Sizing &#43; Performance
 
- - Checksum for &#34;next&#34; block, stored in &#34;previous&#34; block
+ - ZIL blocks must be &#34;pre-allocated&#34;, due to on-disk format
 
-    - When traversing list, checksum failure means &#34;list end&#34;
+    - Each ZIL block contains pointer to next ZIL block on disk...
 
----
+       - Thus, &#34;next&#34; block allocated when the &#34;current&#34; is issued to disk
 
-# Implications w.r.t. Performance
+    - Block size chosen at time of allocation
 
- - ZIL block size chosen at time of allocation
+ - Allocated block size can dramatically impact performance:
 
- - ZIL block size can dramatically impact performance:
+    - Because blocks &#34;pre-allocated&#34;...
 
-    - &#34;too big&#34; &amp;ndash; results in &#34;wasted&#34; space
+       - the size of &#34;next&#34; block is decided before number of `itx`&#39;s is known
 
-       - Unused portion of block cannot be &#34;filled in&#34; later
+    - &#34;too big&#34; &amp;ndash; wasted space
+
+       - Block only partially filled with `itx`&#39;s
 
        - Can result in small, but fast, SLOG filling to capacity
 
-    - &#34;too small&#34; &amp;ndash; results in &#34;too many&#34; IOPs issued to disk
+          - full SLOG can cause poor performance
 
-       - Can needlessly cause disk saturation and poor performance
+    - &#34;too small&#34; &amp;ndash; too many (small) IOPs issued to disk
 
-    - &#34;just right&#34; &amp;ndash; Large (enough) ZIL blocks filled with itx&#39;s
+       - Can cause disk saturation and poor performance
 
-       - ZIL blocks fully utilized with itx&#39;s (no wasted SLOG space)
+    - &#34;just right&#34; &amp;ndash; large IOPs filled with `itx`&#39;s
 
-       - Fewer IOPs for same number of itx&#39;s
+       - ZIL blocks fully utilized with `itx`&#39;s (no wasted SLOG space)
+
+       - Fewer IOPs for same number of `itx`&#39;s
 
           - e.g. 15 8K writes using 1 128K lwb vs. 4 32K lwb&#39;s
 
@@ -918,7 +1255,7 @@ class: middle, center
 
 # Problem
 
- 1. itx&#39;s grouped and written in &#34;batches&#34;
+ 1. `itx`&#39;s grouped and written in &#34;batches&#34;
 
     - The commit list constitutes a batch
 
@@ -932,7 +1269,7 @@ class: middle, center
 
 # Example Batch
 
- - Example batch taken from prior slides
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
 &lt;div class=&#34;mermaid&#34;&gt;
 graph LR
@@ -940,17 +1277,23 @@ graph LR
   LWB-1              --- SLIST-1((itx S1))
   LWB-1              --&gt; LWB-2(lwb 2)
   LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
+  SLIST-2            --- OBJ-B-1((itx B1))
   LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
 &lt;/div&gt;
+
+???
+
+# Example Batch
+
+ - Example batch taken from prior slides
 
 ---
 
-
 # Example &#34;itx S1&#34;
 
- - Thread waiting for &#34;itx S1&#34; (e.g. a single sync write)
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
 &lt;div class=&#34;mermaid&#34;&gt;
 graph LR
@@ -960,83 +1303,68 @@ graph LR
   LWB-2              --- SLIST-2((itx S2))
   SLIST-2            --- OBJ-C-1((itx C1))
   LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
 
   style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
 &lt;/div&gt;
 
+???
+
+# Example &#34;itx S1&#34;
+
+ - Thread waiting for &#34;itx S1&#34;
+
+    - e.g. a single sync write
+
 ---
+
+# Example &#34;itx S1&#34;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-C-1((itx C1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+
+  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+???
 
 # Example &#34;itx S1&#34;
 
  - Must wait for **all** lwb&#39;s to be written and completed
 
-&lt;div class=&#34;mermaid&#34;&gt;
-graph LR
-  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --&gt; LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-  LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
-
-  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
-  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
-  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
-  style LWB-3   fill:#ffff00,stroke:#000000,stroke-width:3px
-&lt;/div&gt;
-
----
-
-# Example &#34;itx S2&#34;
-
- - Thread waiting for &#34;itx S2&#34;
-
-&lt;div class=&#34;mermaid&#34;&gt;
-graph LR
-  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --&gt; LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-  LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
-
-  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
-&lt;/div&gt;
-
----
-
-# Example &#34;itx S2&#34;
-
- - Again, must wait for **all** lwb&#39;s to be written and completed
-
-&lt;div class=&#34;mermaid&#34;&gt;
-graph LR
-  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --&gt; LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-  LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
-
-  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
-  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
-  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
-  style LWB-3   fill:#ffff00,stroke:#000000,stroke-width:3px
-&lt;/div&gt;
-
 ---
 
 # Implications
 
- 1. Latency of `zil_commit` proportional to system workload, not disk latency
+ 1. `zil_commit` latency proportional to system workload, _not_ disk latency
+
+ 2. Disk &#34;anomalies&#34; &amp;rarr; larger batches &amp;rarr; increased `zil_commit` latency
+
+ 3. New calls to `zil_commit` wait for &#34;current&#34; batch, _and_ &#34;next&#34; batch
+
+???
+
+# Implications
+
+ 1. `zil_commit` latency proportional to system workload, _not_ disk latency
 
     - Fast SLOG may not compensate for large workload
 
- 2. Disk &#34;anomalies&#34; cause larger batches, increased `zil_commit` latency
+ 2. Disk &#34;anomalies&#34; &amp;rarr; larger batches &amp;rarr; increased `zil_commit` latency
 
     - E.g. Temporary network delays when using SAN storage
 
@@ -1052,16 +1380,25 @@ class: middle, center
 
 ---
 
+# Solution
+
+ - Remove concept of &#34;batches&#34;:
+
+    1. Allow `zil_commit` to issue new ZIL block writes immediately
+
+    2. Notify threads immediately when _dependent_ `itx`&#39;s on disk
+
+???
 
 # Solution
 
  - Remove concept of &#34;batches&#34;:
 
-    1. New calls to `zil_commit` can issue ZIL block writes immediately ...
+    1. Allow `zil_commit` to issue new ZIL block writes immediately
 
        - Rather than waiting for &#34;current&#34; batch to complete
 
-    2. Threads notified immediately when **dependent** blocks complete ...
+    2. Notify threads immediately when _dependent_ `itx`&#39;s on disk
 
        - Rather than when **all** writes complete (dependent or not)
 
@@ -1069,7 +1406,7 @@ class: middle, center
 
 # Example &#34;Batch&#34;
 
- - Same example as before
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
 &lt;div class=&#34;mermaid&#34;&gt;
 graph LR
@@ -1077,16 +1414,23 @@ graph LR
   LWB-1              --- SLIST-1((itx S1))
   LWB-1              --&gt; LWB-2(lwb 2)
   LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
+  SLIST-2            --- OBJ-B-1((itx B1))
   LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
 &lt;/div&gt;
+
+???
+
+# Example &#34;Batch&#34;
+
+ - Same example as before
 
 ---
 
 # Example &#34;itx S1&#34;
 
- - Thread waiting for &#34;itx S1&#34;
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
 
 &lt;div class=&#34;mermaid&#34;&gt;
 graph LR
@@ -1094,72 +1438,53 @@ graph LR
   LWB-1              --- SLIST-1((itx S1))
   LWB-1              --&gt; LWB-2(lwb 2)
   LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
+  SLIST-2            --- OBJ-B-1((itx B1))
   LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
+
+  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
 
   style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
 &lt;/div&gt;
 
+???
+
+# Example &#34;itx S1&#34;
+
+ - Thread waiting for &#34;itx S1&#34; (just like before)
+
 ---
+
+# Example &#34;itx S1&#34;
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
+  LWB-1              --- SLIST-1((itx S1))
+  LWB-1              --&gt; LWB-2(lwb 2)
+  LWB-2              --- SLIST-2((itx S2))
+  SLIST-2            --- OBJ-B-1((itx B1))
+  LWB-2              --&gt; LWB-3(lwb 3)
+
+  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
+
+  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
+
+  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
+&lt;/div&gt;
+
+???
 
 # Example &#34;itx S1&#34;
 
  - Must wait for _only_ &#34;lwb 1&#34; to complete
 
-&lt;div class=&#34;mermaid&#34;&gt;
-graph LR
-  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --&gt; LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-  LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
+ - Previously, would have also waited for &#34;lwb 2&#34;
 
-  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
-  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
-&lt;/div&gt;
+    - Might not seem significant for a small example with 2 `lwb`&#39;s...
 
----
-
-# Example &#34;itx S2&#34;
-
- - Thread waiting for &#34;itx S2&#34;
-
-&lt;div class=&#34;mermaid&#34;&gt;
-graph LR
-  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --&gt; LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-  LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
-
-  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
-&lt;/div&gt;
-
----
-
-# Example &#34;itx S2&#34;
-
- - Must wait for _only_ &#34;lwb 1&#34; and &#34;lwb 2&#34;
-
-&lt;div class=&#34;mermaid&#34;&gt;
-graph LR
-  HEADER(ZIL header) --&gt; LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --&gt; LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-  LWB-2              --&gt; LWB-3(lwb 3)
-  LWB-3              --- OBJ-C-2((itx C2))
-
-  style SLIST-2 fill:#ffff00,stroke:#000000,stroke-width:3px
-  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
-  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
-&lt;/div&gt;
+    - But it can be significant with 100&#39;s of `lwb`&#39;s on a real system
 
 ---
 
@@ -1171,25 +1496,37 @@ class: middle, center
 
 # Details
 
- - A ZIL block not considered &#34;safe&#34; on disk until VDEV is flushed
+ - A ZIL block is not &#34;persistent&#34; until the VDEV is flushed
 
  - Prior mechanics:
 
-    1. All ZIL blocks written for entire batch
+    - Single VDEV flush for each VDEV, after batch completes
 
-    2. Single VDEV flush issued to each VDEV written to
-
-    - 1 flush to many lwb&#39;s
+    - 1 flush per many lwb&#39;s
 
  - New mechanics:
 
-    1. Single ZIL block written to single VDEV
+    - VDEV flush issued after each ZIL block written
 
-    2. Single VDEV flush issued to that specific VDEV
+    - 1 flush per 1 lwb
 
-    - 1 flush to 1 lwb
+???
 
- - `dmu_sync` (indirect writes) complicates this slightly
+# Details
+
+ - A ZIL block is not &#34;persistent&#34; until the VDEV is flushed
+
+ - Prior mechanics:
+
+    - Single VDEV flush for each VDEV, after batch completes
+
+    - 1 flush per many lwb&#39;s
+
+ - New mechanics:
+
+    - VDEV flush issued after each ZIL block written
+
+    - 1 flush per 1 lwb
 
 ---
 
@@ -1208,6 +1545,16 @@ sequenceDiagram
   zil_commit -&gt;&gt;      VDEV 1: flush
   zil_commit -&gt;&gt;      VDEV 2: flush
 &lt;/div&gt;
+
+???
+
+# Example: Before
+
+ - 2 `lwb`&#39;s are written to VDEV 1...
+
+    - but only a single flush is issued to it.
+
+ - Additionally, all flushes are issued at the very end.
 
 ---
 
@@ -1228,6 +1575,16 @@ sequenceDiagram
   zil_commit -&gt;&gt;      VDEV 1: flush
 &lt;/div&gt;
 
+???
+
+# Example: After
+
+ - The same 2 `lwb`&#39;s are written to VDEV 1...
+
+    - but 2 flushes are issued to it.
+
+ - Additionally, the flushes are intertwined with other activity.
+
 ---
 
 class: middle, center
@@ -1238,23 +1595,47 @@ class: middle, center
 
 # Details
 
- - ZIL Blocks issued to disk using ZIOs
-
- - ZIOs represented as directed acyclic graph (DAG)
-
-    - Parent ZIOs cannot complete until all children complete
+ - ZIL blocks issued to disk using ZIOs
 
  - Prior mechanics:
 
-    - &#34;root&#34; ZIO created for each batch, lwb ZIOs are children
+    - &#34;root&#34; ZIO created for each batch
 
-    - Flush issued after root ZIO completes (seperate ZIO tree)
+       - &#34;write&#34; ZIOs, for all `lwb`&#39;s in batch, are children of root ZIO
+
+    - &#34;flush&#34; ZIOs issued separately after root ZIO completes
 
  - New mechanics:
 
     - &#34;root&#34; ZIO created for each lwb
 
-    - &#34;write&#34; and &#34;flush&#34; ZIOs are child of root ZIO
+       - &#34;write&#34; and &#34;flush&#34; ZIOs are child of root ZIO
+
+    - &#34;next&#34; lwb root ZIO become parent of &#34;current&#34; lwb root ZIO
+
+???
+
+# Details
+
+ - ZIL blocks issued to disk using ZIOs
+
+    - ZIOs represented as directed acyclic graph (DAG)
+
+    - Parent ZIOs cannot complete until all children complete
+
+ - Prior mechanics:
+
+    - &#34;root&#34; ZIO created for each batch
+
+       - &#34;write&#34; ZIOs, for all `lwb`&#39;s in batch, are children of root ZIO
+
+    - &#34;flush&#34; ZIOs issued separately after root ZIO completes
+
+ - New mechanics:
+
+    - &#34;root&#34; ZIO created for each lwb
+
+       - &#34;write&#34; and &#34;flush&#34; ZIOs are child of root ZIO
 
     - &#34;next&#34; lwb root ZIO become parent of &#34;current&#34; lwb root ZIO
 
@@ -1269,6 +1650,12 @@ graph TD
   ROOT(batch root)
 &lt;/div&gt;]
 
+???
+
+# Example: Before
+
+ - First, create the batch root ZIO
+
 ---
 
 # Example: Before
@@ -1279,6 +1666,12 @@ graph TD
 graph TD
   ROOT(batch root) --&gt; LWB-1(lwb 1)
 &lt;/div&gt;]
+
+???
+
+# Example: Before
+
+ - Then the lwb &#34;write&#34; ZIOs are created as children
 
 ---
 
@@ -1291,6 +1684,12 @@ graph TD
   ROOT(batch root) --&gt; LWB-1(lwb 1)
   ROOT             --&gt; LWB-2(lwb 2)
 &lt;/div&gt;]
+
+???
+
+# Example: Before
+
+ - Nothing to say...
 
 ---
 
@@ -1304,6 +1703,12 @@ graph TD
   ROOT             --&gt; LWB-2(lwb 2)
   ROOT             --&gt; LWB-3(lwb 3)
 &lt;/div&gt;]
+
+???
+
+# Example: Before
+
+ - Nothing to say...
 
 ---
 
@@ -1323,6 +1728,14 @@ graph TD
   ROOT(flush root)
 &lt;/div&gt;]
 
+???
+
+# Example: Before
+
+ - After all lwb &#34;write&#34; ZIOs complete...
+
+ - we create the root ZIO for the VDEV flush commands
+
 ---
 
 # Example: Before
@@ -1340,6 +1753,12 @@ graph TD
 graph TD
   ROOT(flush root) --&gt; VDEV-1(VDEV 1 flush)
 &lt;/div&gt;]
+
+???
+
+# Example: Before
+
+ - And issue the flush to the first VDEV
 
 ---
 
@@ -1360,6 +1779,16 @@ graph TD
   ROOT             --&gt; VDEV-2(VDEV 2 flush)
 &lt;/div&gt;]
 
+???
+
+# Example: Before
+
+ - And now the second VDEV
+
+ - Once both of these flushes complete, we&#39;re done...
+
+ - and notify the waiting threads
+
 ---
 
 # Example: After
@@ -1370,6 +1799,16 @@ graph TD
 graph LR
   LWB-1-ROOT(lwb 1 root)
 &lt;/div&gt;
+
+???
+
+# Example: After
+
+ - Now, the ZIO tree is drastically different, as we&#39;ll soon see
+
+ - In the new code, first we create a root ZIO...
+
+ - that is specific to the lwb being written
 
 ---
 
@@ -1382,6 +1821,16 @@ graph LR
   LWB-1-ROOT(lwb 1 root)
   LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
 &lt;/div&gt;
+
+???
+
+# Example: After
+
+ - Then we create a &#34;write&#34; ZIO for the same lwb...
+
+ - It&#39;s this ZIO that contains the actual data that will be written..
+
+ - Containing the `itx`&#39;s that need to be persisted
 
 ---
 
@@ -1395,6 +1844,16 @@ graph LR
   LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
   LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
 &lt;/div&gt;
+
+???
+
+# Example: After
+
+ - Then, after the &#34;write&#34; ZIO completes...
+
+ - we&#39;ll issue the flush ZIO
+
+ - This flush must not be issued until the &#34;write&#34; completes
 
 ---
 
@@ -1410,6 +1869,12 @@ graph LR
   LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
   LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
 &lt;/div&gt;
+
+???
+
+# Example: After
+
+ - The next lwb &#34;root&#34; ZIO will become a parent of the prior lwb &#34;root&#34;
 
 ---
 
@@ -1427,22 +1892,11 @@ graph LR
   LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
 &lt;/div&gt;
 
----
+???
 
 # Example: After
 
-&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
-
-&lt;div class=&#34;mermaid&#34;&gt;
-graph LR
-  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
-  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
-  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
-
-  LWB-1-ROOT(lwb 1 root)
-  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
-  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
-&lt;/div&gt;
+ - And like before, it&#39;ll have a &#34;write&#34; ZIO as a child
 
 ---
 
@@ -1456,12 +1910,25 @@ graph LR
 
   LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
   LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
-  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
 
   LWB-1-ROOT(lwb 1 root)
   LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
   LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
 &lt;/div&gt;
+
+???
+
+# Example: After
+
+ - But, for the sake of example...
+
+    - let&#39;s say the next `lwb` is issued before this &#34;write&#34; completes.
+
+ - In this case, the &#34;write&#34; will still be outstanding...
+
+    - but a new `lwb` can be created and issued.
+
+ - This new `lwb` will, again, be a parent of the prior `lwb`
 
 ---
 
@@ -1476,12 +1943,55 @@ graph LR
 
   LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
   LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
-  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
 
   LWB-1-ROOT(lwb 1 root)
   LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
   LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
 &lt;/div&gt;
+
+???
+
+# Example: After
+
+ - And this `lwb` will also have a child &#34;write&#34; ZIO
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+  LWB-3-ROOT             --&gt; LWB-3-FLUSH(VDEV 1 flush)
+
+  LWB-2-ROOT(lwb 2 root) --&gt; LWB-1-ROOT
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+
+  LWB-1-ROOT(lwb 1 root)
+  LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
+  LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+???
+
+# Example: After
+
+ - It&#39;s possible, that the &#34;write&#34; for &#34;lwb 3&#34; will complete before &#34;lwb 2&#34;
+
+ - In which case, &#34;lwb 3&#34; will issue the flush...
+
+    - even though &#34;lwb 2&#34; is still outstanding
+
+ - It&#39;s important to note...
+
+    - &#34;lwb 3&#34; can&#39;t &#34;complete&#34; until &#34;lwb 2&#34; is complete
+
+    - this is enforced by the ZIO layer
+
+       - a &#34;parent&#34; ZIO can&#39;t complete until all children complete
 
 ---
 
@@ -1503,6 +2013,18 @@ graph LR
   LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
   LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
 &lt;/div&gt;
+
+???
+
+# Example: After
+
+ - Then, later, when the &#34;write&#34; for &#34;lwb 2&#34; completes...
+
+    - The flush will be issued
+
+ - Since &#34;lwb 3&#34; may have already completed it&#39;s IO...
+
+    - it&#39;s possible for &#34;lwb 2&#34; and &#34;lwb 3&#34; to complete &#34;simultaneously&#34;
 
 ---
 
@@ -1528,6 +2050,14 @@ graph LR
   LWB-1-ROOT             --&gt; LWB-1-WRITE(lwb 1 write)
   LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
 &lt;/div&gt;
+
+???
+
+# Example: After
+
+ - This pattern will continue...
+
+    - as long as there&#39;s `lwb`&#39;s to issue to disk
 
 ---
 
@@ -1558,6 +2088,74 @@ graph LR
   LWB-1-ROOT             --&gt; LWB-1-FLUSH(VDEV 1 flush)
 &lt;/div&gt;
 
+???
+
+# Example: After
+
+ - As lwb ZIOs complete...
+
+    - they&#39;ll simply &#34;drop off&#34; from the bottom of the tree
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-5-ROOT(lwb 5 root) --&gt; LWB-4-ROOT
+  LWB-5-ROOT             --&gt; LWB-5-WRITE(lwb 5 write)
+  LWB-5-ROOT             --&gt; LWB-5-FLUSH(VDEV flush)
+
+  LWB-4-ROOT(lwb 4 root) --&gt; LWB-3-ROOT
+  LWB-4-ROOT             --&gt; LWB-4-WRITE(lwb 4 write)
+  LWB-4-ROOT             --&gt; LWB-4-FLUSH(VDEV flush)
+
+  LWB-3-ROOT(lwb 3 root) --&gt; LWB-2-ROOT
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+  LWB-3-ROOT             --&gt; LWB-3-FLUSH(VDEV 1 flush)
+
+  LWB-2-ROOT(lwb 2 root)
+  LWB-2-ROOT             --&gt; LWB-2-WRITE(lwb 2 write)
+  LWB-2-ROOT             --&gt; LWB-2-FLUSH(VDEV 2 flush)
+&lt;/div&gt;
+
+???
+
+# Example: After
+
+ - Nothing to say...
+
+---
+
+# Example: After
+
+&lt;hr style=&#34;visibility:hidden;&#34; /&gt;
+
+&lt;div class=&#34;mermaid&#34;&gt;
+graph LR
+  LWB-5-ROOT(lwb 5 root) --&gt; LWB-4-ROOT
+  LWB-5-ROOT             --&gt; LWB-5-WRITE(lwb 5 write)
+  LWB-5-ROOT             --&gt; LWB-5-FLUSH(VDEV flush)
+
+  LWB-4-ROOT(lwb 4 root) --&gt; LWB-3-ROOT
+  LWB-4-ROOT             --&gt; LWB-4-WRITE(lwb 4 write)
+  LWB-4-ROOT             --&gt; LWB-4-FLUSH(VDEV flush)
+
+  LWB-3-ROOT(lwb 3 root)
+  LWB-3-ROOT             --&gt; LWB-3-WRITE(lwb 3 write)
+  LWB-3-ROOT             --&gt; LWB-3-FLUSH(VDEV 1 flush)
+&lt;/div&gt;
+
+???
+
+# Example: After
+
+ - Here, both &#34;lwb 1&#34; and &#34;lwb 2&#34; have completed
+
+    - so they&#39;ve been removed from the tree
+
 ---
 
 class: middle, center
@@ -1570,17 +2168,17 @@ class: middle, center
 
  - 2 condition variables (CV), for &#34;current&#34; and &#34;next&#34; batch
 
- - Threads call `zil_commit`:
+ - Threads that called `zil_commit`:
 
-    - Assigned to &#34;next&#34; batch, wait on &#34;next&#34; batch&#39;s CV
+    - Assigned to &#34;next batch&#34;, wait on next batch&#39;s CV
 
  - When &#34;current&#34; batch completes
 
-    - All threads waiting on &#34;current&#34; signalled, they return
+    1. All threads waiting on &#34;current&#34; signalled, they&#39;d return
 
-    - One thread waiting on &#34;next&#34; signalled, becomes &#34;writer&#34;
+    2. One thread waiting on &#34;next&#34; signalled, becomes &#34;writer&#34;
 
-    - &#34;next&#34; and &#34;current&#34; CV swapped (e.g. &#34;next&#34; &amp;rarr; &#34;current&#34;)
+    3. &#34;next&#34; and &#34;current&#34; CV swapped
 
  - Ultimately, these two CVs are the source of original problem
 
@@ -1655,8 +2253,8 @@ sequenceDiagram
   processes -&gt;&gt;          CV: process 2 waits
   processes -&gt;&gt;      writer: process 3 becomes writer
   writer    -&gt;&gt;   processes: process 3 done writing
-  processes -&gt;&gt;          CV: process 3 waits
   ZIO done  -&gt;&gt;          CV: lwb done &amp;ndash; process 2 signalled
+  processes -&gt;&gt;          CV: process 3 waits
   ZIO done  -&gt;&gt;          CV: lwb done &amp;ndash; process 3 signalled
 &lt;/div&gt;
 
@@ -1693,14 +2291,14 @@ class: middle, center
 ---
 
 background-image: url(max-rate-hdd-iops-pctchange.png)
-background-size: 100%
+background-size: 95%
 
 # % Change IOPs &amp;ndash; Max Rate &amp;ndash; HDDs
 
 ---
 
 background-image: url(max-rate-hdd-lat-pctchange.png)
-background-size: 100%
+background-size: 95%
 
 # % Change Latency &amp;ndash; Max Rate &amp;ndash; HDDs
 
@@ -1713,14 +2311,14 @@ class: middle, center
 ---
 
 background-image: url(max-rate-ssd-iops-pctchange.png)
-background-size: 100%
+background-size: 95%
 
 # % Change IOPs &amp;ndash; Max Rate &amp;ndash; SSDs
 
 ---
 
 background-image: url(max-rate-ssd-lat-pctchange.png)
-background-size: 100%
+background-size: 95%
 
 # % Change Latency &amp;ndash; Max Rate &amp;ndash; SSDs
 
@@ -1733,14 +2331,14 @@ class: middle, center
 ---
 
 background-image: url(fixed-rate-hdd-iops-pctchange.png)
-background-size: 100%
+background-size: 95%
 
 # % Change IOPs &amp;ndash; Fixed Rate &amp;ndash; HDDs
 
 ---
 
 background-image: url(fixed-rate-hdd-lat-pctchange.png)
-background-size: 100%
+background-size: 95%
 
 # % Change Latency &amp;ndash; Fixed Rate &amp;ndash; HDDs
 
@@ -1753,14 +2351,14 @@ class: middle, center
 ---
 
 background-image: url(fixed-rate-ssd-iops-pctchange.png)
-background-size: 100%
+background-size: 95%
 
 # % Change IOPs &amp;ndash; Fixed Rate &amp;ndash; SSDs
 
 ---
 
 background-image: url(fixed-rate-ssd-lat-pctchange.png)
-background-size: 100%
+background-size: 95%
 
 # % Change Latency &amp;ndash; Fixed Rate &amp;ndash; SSDs
 
