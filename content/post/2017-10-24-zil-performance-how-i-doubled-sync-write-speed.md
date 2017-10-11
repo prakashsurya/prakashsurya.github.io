@@ -202,25 +202,9 @@ class: middle, center
 
  - ZIL stored on-disk as a singly linked list of ZIL blocks (`lwb`'s)
 
-<div class="mermaid">
-graph LR
-  UBERBLOCK(Uberblock) --> MOS(MOS)
-  MOS --> DS-1(Dataset)
-  MOS --> DS-2(Dataset)
+<hr style="visibility:hidden;" />
 
-  DS-1    --> DATA-1(Contents)
-  DS-1    --> ZIL-1(ZIL header)
-  ZIL-1   --> LWB-1-1(lwb)
-  LWB-1-1 --> LWB-1-2(lwb)
-
-  DS-2    --> DATA-2(Contents)
-  DS-2    --> ZIL-2(ZIL header)
-  ZIL-2   --> LWB-2-1(lwb)
-  LWB-2-1 --> LWB-2-2(lwb)
-
-  style LWB-1-2 stroke:#000000, stroke-dasharray:5, 5
-  style LWB-2-2 stroke:#000000, stroke-dasharray:5, 5
-</div>
+.center[![](zil-on-disk-format.svg)]
 
 ???
 
@@ -450,18 +434,9 @@ class: middle, center
 
 # Example: itx lists
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  SLIST(sync list) --> SLIST-1((itx S1))
-  SLIST-1          --> SLIST-2((itx S2))
-
-  OBJ-A(object A async list) --> OBJ-A-1((itx A1))
-  OBJ-A-1                    --> OBJ-A-2((itx A2))
-
-  OBJ-B(object B async list) --> OBJ-B-1((itx B1))
-</div>
+![](itx-lists.svg)
 
 ---
 
@@ -495,174 +470,82 @@ graph LR
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  SLIST(sync list) --> SLIST-1((itx S1))
-  SLIST-1          --> SLIST-2((itx S2))
-
-  OBJ-A(object A async list) --> OBJ-A-1((itx A1))
-  OBJ-A-1                    --> OBJ-A-2((itx A2))
-
-  OBJ-B(object B async list) --> OBJ-B-1((itx B1))
-</div>
+![](zil-commit-1-01.svg)
 
 ???
 
 # Example: `zil_commit` Object B
 
- - Starting with example itx lists from before...
+ - We'll start with the same itx lists from before...
+
+ - Except now, we also have any empty commit list
 
 ---
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  SLIST(sync list) --> SLIST-1((itx S1))
-  SLIST-1          --> SLIST-2((itx S2))
-
-  OBJ-A(object A async list) --> OBJ-A-1((itx A1))
-  OBJ-A-1                    --> OBJ-A-2((itx A2))
-
-  OBJ-B(object B async list) --> OBJ-B-1((itx B1))
-
-  CLIST(commit list)
-</div>
+![](zil-commit-1-02.svg)
 
 ???
 
 # Example: `zil_commit` Object B
 
- - First, we create an empty commit list...
+ - We're calling `zil_commit` for object "B"...
 
- - This will eventually contain a list of all `itx`s that need to be
-   written.
+ - So the first step is to move object B's async `itx`'s to the sync list
 
 ---
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  SLIST(sync list) --> SLIST-1((itx S1))
-  SLIST-1          --> SLIST-2((itx S2))
+![](zil-commit-1-03.svg)
 
-  OBJ-A(object A async list) --> OBJ-A-1((itx A1))
-  OBJ-A-1                    --> OBJ-A-2((itx A2))
-
-  OBJ-B(object B async list) --> OBJ-B-1((itx B1))
-
-  CLIST(commit list)
-
-  style OBJ-B-1 fill:#00ff00
-</div>
 
 ???
 
 # Example: `zil_commit` Object B
 
- - Since, in this example, we're calling `zil_commit` for object "B"
-
- - The first step is to move object B's async `itx`'s to the sync list
+ - Nothing to say...
 
 ---
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  SLIST(sync list) --> SLIST-1((itx S1))
-  SLIST-1          --> SLIST-2((itx S2))
-  SLIST-2          --> OBJ-B-1((itx B1))
-
-  OBJ-A(object A async list) --> OBJ-A-1((itx A1))
-  OBJ-A-1                    --> OBJ-A-2((itx A2))
-
-  OBJ-B(object B async list)
-
-  CLIST(commit list)
-
-  style OBJ-B-1 fill:#00ff00
-</div>
+![](zil-commit-1-04.svg)
 
 ???
 
 # Example: `zil_commit` Object B
 
- - As you can see, we've moved object B's async `itx`'s to the tail of
-   the sync list
+ - Now we move the entire sync list to the commit list
 
 ---
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  SLIST(sync list) --> SLIST-1((itx S1))
-  SLIST-1          --> SLIST-2((itx S2))
-  SLIST-2          --> OBJ-B-1((itx B1))
-
-  OBJ-A(object A async list) --> OBJ-A-1((itx A1))
-  OBJ-A-1                    --> OBJ-A-2((itx A2))
-
-  OBJ-B(object B async list)
-
-  CLIST(commit list)
-
-  style OBJ-B-1 fill:#00ff00
-  style SLIST-1 fill:#00ff00
-  style SLIST-2 fill:#00ff00
-</div>
+![](zil-commit-1-05.svg)
 
 ???
 
 # Example: `zil_commit` Object B
 
- - Next, we move the entirety of the sync list, to the commit list
+ - Finally, all of the `itx`'s that were linked off the sync list, are
+   not linked off the commit list
 
----
+ - So why do we do this?
 
-# Example: `zil_commit` Object B
-
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  SLIST(sync list)
-
-  OBJ-A(object A async list) --> OBJ-A-1((itx A1))
-  OBJ-A-1                    --> OBJ-A-2((itx A2))
-
-  OBJ-B(object B async list)
-
-  CLIST(commit list) --> SLIST-1((itx S1))
-  SLIST-1            --> SLIST-2((itx S2))
-  SLIST-2            --> OBJ-B-1((itx B1))
-
-
-  style OBJ-B-1 fill:#00ff00
-  style SLIST-1 fill:#00ff00
-  style SLIST-2 fill:#00ff00
-</div>
-
-???
-
-# Example: `zil_commit` Object B
-
- - Now, we can see the `itx`'s that were linked off the sync list, are
-   now linked off of the commit list
-
- - Before I proceed, you may be asking yourself, why do we do this?
+    - Why do we move the `itx`'s to a new list, vs. simply using the
+      sync list?
 
     - We do this so the thread that writes these `itx`'s out to disk...
 
@@ -718,14 +601,9 @@ graph LR
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list) --> SLIST-1((itx S1))
-  SLIST-1            --> SLIST-2((itx S2))
-  SLIST-2            --> OBJ-B-1((itx B1))
-</div>
+![](zil-commit-2-01.svg)
 
 ???
 
@@ -737,16 +615,9 @@ graph LR
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list) --> SLIST-1((itx S1))
-  SLIST-1            --> SLIST-2((itx S2))
-  SLIST-2            --> OBJ-B-1((itx B1))
-
-  style SLIST-1 fill:#ffff00, stroke:#000000, stroke-width:3px
-</div>
+![](zil-commit-2-02.svg)
 
 ???
 
@@ -758,20 +629,9 @@ graph LR
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list) --> SLIST-1((itx S1))
-  SLIST-1            --> SLIST-2((itx S2))
-  SLIST-2            --> OBJ-B-1((itx B1))
-
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-
-  style SLIST-1 fill:#ffff00, stroke:#000000, stroke-width:3px
-
-  style LWB-1 stroke:#000000, stroke-dasharray:5, 5
-</div>
+![](zil-commit-2-03.svg)
 
 ???
 
@@ -783,20 +643,9 @@ graph LR
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list) --> SLIST-2((itx S2))
-  SLIST-2            --> OBJ-B-1((itx B1))
-
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-
-  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
-
-  style LWB-1 stroke:#000000, stroke-dasharray:5, 5
-</div>
+![](zil-commit-2-04.svg)
 
 ???
 
@@ -812,21 +661,9 @@ graph LR
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list) --> SLIST-2((itx S2))
-  SLIST-2            --> OBJ-B-1((itx B1))
-
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-
-  style SLIST-1 fill:#ffff00
-  style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
-
-  style LWB-1 stroke:#000000, stroke-dasharray:5, 5
-</div>
+![](zil-commit-2-05.svg)
 
 ???
 
@@ -838,33 +675,29 @@ graph LR
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list) --> SLIST-2((itx S2))
-  SLIST-2            --> OBJ-B-1((itx B1))
-
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2
-
-  style SLIST-1 fill:#ffff00
-  style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
-
-  style LWB-2 stroke:#000000, stroke-dasharray:5, 5
-</div>
+![](zil-commit-2-06.svg)
 
 ???
 
 # Example: `zil_commit` Object B
 
- - In this example:
+ - This `itx` doesn't fit in the currently "open" lwb
 
-    - not enough space in the currently "open" `lwb` for this `itx`
+---
 
-    - so we allocate a new `lwb`...
+# Example: `zil_commit` Object B
+
+<br />
+
+![](zil-commit-2-07.svg)
+
+???
+
+# Example: `zil_commit` Object B
+
+ - so we must allocate a new `lwb`...
 
     - and issue the "open" one to disk
 
@@ -874,22 +707,9 @@ graph LR
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list) --> OBJ-B-1((itx B1))
-
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-
-  style SLIST-1 fill:#ffff00
-  style SLIST-2 fill:#00ff00,stroke:#000000,stroke-width:3px
-
-  style LWB-2 stroke:#000000, stroke-dasharray:5, 5
-</div>
+![](zil-commit-2-08.svg)
 
 ???
 
@@ -901,52 +721,23 @@ graph LR
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list) --> OBJ-B-1((itx B1))
-
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-
-  style SLIST-1 fill:#ffff00
-  style SLIST-2 fill:#00ff00
-  style OBJ-B-1 fill:#00ffff,stroke:#000000,stroke-width:3px
-
-  style LWB-2 stroke:#000000, stroke-dasharray:5, 5
-</div>
+![](zil-commit-2-09.svg)
 
 ???
 
 # Example: `zil_commit` Object B
 
- - Now we select the last `itx` in the list...
+ - And move on to the last `itx` in the list
 
 ---
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list)
-
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-B-1((itx B1))
-
-  style SLIST-1 fill:#ffff00
-  style SLIST-2 fill:#00ff00
-  style OBJ-B-1 fill:#00ffff,stroke:#000000,stroke-width:3px
-
-  style LWB-2 stroke:#000000, stroke-dasharray:5, 5
-</div>
+![](zil-commit-2-10.svg)
 
 ???
 
@@ -954,33 +745,15 @@ graph LR
 
  - This fits in the currently "open" `lwb`...
 
-    - so we don't have to allocate another `lwb`
-
- - This `itx` can simply be copied into place
+ - so it can simply be copied into place
 
 ---
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list)
-
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-B-1((itx B1))
-  LWB-2              --> LWB-3(lwb 3)
-
-  style SLIST-1 fill:#ffff00
-  style SLIST-2 fill:#00ff00
-  style OBJ-B-1 fill:#00ffff
-
-  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
-</div>
+![](zil-commit-2-11.svg)
 
 ???
 
@@ -1022,43 +795,17 @@ graph LR
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list)
-
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-B-1((itx B1))
-  LWB-2              --> LWB-3(lwb 3)
-
-  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
-</div>
+![](zil-commit-3-01.svg)
 
 ---
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list)
-
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-B-1((itx B1))
-  LWB-2              --> LWB-3(lwb 3)
-
-  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
-
-  style LWB-2 fill:#00ff00
-</div>
+![](zil-commit-3-02.svg)
 
 ???
 
@@ -1072,24 +819,9 @@ graph LR
 
 # Example: `zil_commit` Object B
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  CLIST(commit list)
-
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-B-1((itx B1))
-  LWB-2              --> LWB-3(lwb 3)
-
-  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
-
-  style LWB-2 fill:#00ff00
-  style LWB-1 fill:#00ff00
-</div>
+![](zil-commit-3-03.svg)
 
 ???
 
@@ -1211,19 +943,9 @@ class: middle, center
 
 # Example Batch
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-B-1((itx B1))
-  LWB-2              --> LWB-3(lwb 3)
-
-  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
-</div>
+![](problem-01.svg)
 
 ???
 
@@ -1235,21 +957,9 @@ graph LR
 
 # Example "itx S1"
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-  LWB-2              --> LWB-3(lwb 3)
-
-  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
-
-  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
-</div>
+![](problem-02.svg)
 
 ???
 
@@ -1263,24 +973,9 @@ graph LR
 
 # Example "itx S1"
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-C-1((itx C1))
-  LWB-2              --> LWB-3(lwb 3)
-
-  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
-
-  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
-
-  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
-  style LWB-2   fill:#ffff00,stroke:#000000,stroke-width:3px
-</div>
+![](problem-03.svg)
 
 ???
 
@@ -1348,19 +1043,9 @@ class: middle, center
 
 # Example "Batch"
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-B-1((itx B1))
-  LWB-2              --> LWB-3(lwb 3)
-
-  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
-</div>
+![](solution-01.svg)
 
 ???
 
@@ -1372,21 +1057,9 @@ graph LR
 
 # Example "itx S1"
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-B-1((itx B1))
-  LWB-2              --> LWB-3(lwb 3)
-
-  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
-
-  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
-</div>
+![](solution-02.svg)
 
 ???
 
@@ -1398,23 +1071,9 @@ graph LR
 
 # Example "itx S1"
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-graph LR
-  HEADER(ZIL header) --> LWB-1(lwb 1)
-  LWB-1              --- SLIST-1((itx S1))
-  LWB-1              --> LWB-2(lwb 2)
-  LWB-2              --- SLIST-2((itx S2))
-  SLIST-2            --- OBJ-B-1((itx B1))
-  LWB-2              --> LWB-3(lwb 3)
-
-  style LWB-3 stroke:#000000, stroke-dasharray:5, 5
-
-  style SLIST-1 fill:#ffff00,stroke:#000000,stroke-width:3px
-
-  style LWB-1   fill:#ffff00,stroke:#000000,stroke-width:3px
-</div>
+![](solution-03.svg)
 
 ???
 
