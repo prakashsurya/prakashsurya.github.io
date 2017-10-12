@@ -1133,19 +1133,9 @@ class: middle, center
 
 # Example: Before
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-sequenceDiagram
-  zil_commit ->>      VDEV 1: lwb 1 write
-  zil_commit ->>      VDEV 2: lwb 2 write
-  zil_commit ->>      VDEV 1: lwb 3 write
-  VDEV 1     -->> zil_commit: lwb 1 done
-  VDEV 2     -->> zil_commit: lwb 2 done
-  VDEV 1     -->> zil_commit: lwb 3 done
-  zil_commit ->>      VDEV 1: flush
-  zil_commit ->>      VDEV 2: flush
-</div>
+.center[![](flush-sequence-before.svg)]
 
 ???
 
@@ -1161,20 +1151,9 @@ sequenceDiagram
 
 # Example: After
 
-<hr style="visibility:hidden;" />
+<br />
 
-<div class="mermaid">
-sequenceDiagram
-  zil_commit ->>      VDEV 1: lwb 1 write
-  zil_commit ->>      VDEV 2: lwb 2 write
-  zil_commit ->>      VDEV 1: lwb 3 write
-  VDEV 1     -->> zil_commit: lwb 1 done
-  zil_commit ->>      VDEV 1: flush
-  VDEV 2     -->> zil_commit: lwb 2 done
-  zil_commit ->>      VDEV 2: flush
-  VDEV 1     -->> zil_commit: lwb 3 done
-  zil_commit ->>      VDEV 1: flush
-</div>
+.center[![](flush-sequence-after.svg)]
 
 ???
 
@@ -1787,28 +1766,13 @@ class: middle, center
 
 # Example: Before
 
-<hr style="visibility:hidden;" />
+.center[![](waiter-sequence-before-01.svg)]
 
-<div class="mermaid">
-sequenceDiagram
-  participant processes
-  participant CV next
-  participant CV current
-  participant writer
+---
 
-  processes  ->>     writer: process 1 becomes writer
-  processes  ->>    CV next: process 2 waits
-  processes  ->>    CV next: process 3 waits
-  writer     ->>  processes: process 1 done writing
-  writer     ->> CV current: signalled
-  writer     ->>    CV next: process 3 signalled
-  processes  ->>     writer: process 3 becomes writer
-  processes -->> CV current: process 2 still waiting
-  processes  ->>    CV next: process 4 waits
-  writer     ->>  processes: process 3 done writing
-  writer     ->> CV current: process 2 signalled
-  writer     ->>    CV next: process 4 signalled
-</div>
+# Example: Before
+
+.center[![](waiter-sequence-before-02.svg)]
 
 ---
 
@@ -1836,28 +1800,13 @@ sequenceDiagram
 
 # Example: After
 
-<hr style="visibility:hidden;" />
+.center[![](waiter-sequence-after-01.svg)]
 
-<div class="mermaid">
-sequenceDiagram
-  participant processes
-  participant CV
-  participant writer
-  participant ZIO done
+---
 
-  processes ->>      writer: process 1 becomes writer
-  writer    ->>   processes: process 1 done writing
-  processes ->>          CV: process 1 waits
-  processes ->>      writer: process 2 becomes writer
-  ZIO done  ->>          CV: lwb done &ndash; process 1 signalled
-  writer    ->>   processes: process 2 done writing
-  processes ->>          CV: process 2 waits
-  processes ->>      writer: process 3 becomes writer
-  writer    ->>   processes: process 3 done writing
-  ZIO done  ->>          CV: lwb done &ndash; process 2 signalled
-  processes ->>          CV: process 3 waits
-  ZIO done  ->>          CV: lwb done &ndash; process 3 signalled
-</div>
+# Example: After
+
+.center[![](waiter-sequence-after-02.svg)]
 
 ---
 
