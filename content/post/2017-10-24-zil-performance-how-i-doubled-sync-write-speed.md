@@ -1223,12 +1223,9 @@ class: middle, center
 
 # Example: Before
 
-<hr style="visibility:hidden;" />
+<br />
 
-.pull-left[<div class="mermaid">
-graph TD
-  ROOT(batch root)
-</div>]
+.center[![](zio-tree-before-01.svg)]
 
 ???
 
@@ -1240,12 +1237,9 @@ graph TD
 
 # Example: Before
 
-<hr style="visibility:hidden;" />
+<br />
 
-.pull-left[<div class="mermaid">
-graph TD
-  ROOT(batch root) --> LWB-1(lwb 1)
-</div>]
+.center[![](zio-tree-before-02.svg)]
 
 ???
 
@@ -1257,13 +1251,9 @@ graph TD
 
 # Example: Before
 
-<hr style="visibility:hidden;" />
+<br />
 
-.pull-left[<div class="mermaid">
-graph TD
-  ROOT(batch root) --> LWB-1(lwb 1)
-  ROOT             --> LWB-2(lwb 2)
-</div>]
+.center[![](zio-tree-before-03.svg)]
 
 ???
 
@@ -1275,14 +1265,9 @@ graph TD
 
 # Example: Before
 
-<hr style="visibility:hidden;" />
+<br />
 
-.pull-left[<div class="mermaid">
-graph TD
-  ROOT(batch root) --> LWB-1(lwb 1)
-  ROOT             --> LWB-2(lwb 2)
-  ROOT             --> LWB-3(lwb 3)
-</div>]
+.center[![](zio-tree-before-04.svg)]
 
 ???
 
@@ -1294,19 +1279,9 @@ graph TD
 
 # Example: Before
 
-<hr style="visibility:hidden;" />
+<br />
 
-.pull-left[<div class="mermaid">
-graph TD
-  ROOT(batch root) --> LWB-1(lwb 1)
-  ROOT             --> LWB-2(lwb 2)
-  ROOT             --> LWB-3(lwb 3)
-</div>]
-
-.pull-right[<div class="mermaid">
-graph TD
-  ROOT(flush root)
-</div>]
+.center[![](zio-tree-before-05.svg)]
 
 ???
 
@@ -1320,19 +1295,9 @@ graph TD
 
 # Example: Before
 
-<hr style="visibility:hidden;" />
+<br />
 
-.pull-left[<div class="mermaid">
-graph TD
-  ROOT(batch root) --> LWB-1(lwb 1)
-  ROOT             --> LWB-2(lwb 2)
-  ROOT             --> LWB-3(lwb 3)
-</div>]
-
-.pull-right[<div class="mermaid">
-graph TD
-  ROOT(flush root) --> VDEV-1(VDEV 1 flush)
-</div>]
+.center[![](zio-tree-before-06.svg)]
 
 ???
 
@@ -1344,20 +1309,9 @@ graph TD
 
 # Example: Before
 
-<hr style="visibility:hidden;" />
+<br />
 
-.pull-left[<div class="mermaid">
-graph TD
-  ROOT(batch root) --> LWB-1(lwb 1)
-  ROOT             --> LWB-2(lwb 2)
-  ROOT             --> LWB-3(lwb 3)
-</div>]
-
-.pull-right[<div class="mermaid">
-graph TD
-  ROOT(flush root) --> VDEV-1(VDEV 1 flush)
-  ROOT             --> VDEV-2(VDEV 2 flush)
-</div>]
+.center[![](zio-tree-before-07.svg)]
 
 ???
 
@@ -1373,12 +1327,7 @@ graph TD
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-1-ROOT(lwb 1 root)
-</div>
+![](zio-tree-after-01.svg)
 
 ???
 
@@ -1394,13 +1343,7 @@ graph LR
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-1-ROOT(lwb 1 root)
-  LWB-1-ROOT             --> LWB-1-WRITE(lwb 1 write)
-</div>
+![](zio-tree-after-02.svg)
 
 ???
 
@@ -1416,14 +1359,7 @@ graph LR
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-1-ROOT(lwb 1 root)
-  LWB-1-ROOT             --> LWB-1-WRITE(lwb 1 write)
-  LWB-1-ROOT             --> LWB-1-FLUSH(VDEV 1 flush)
-</div>
+![](zio-tree-after-03.svg)
 
 ???
 
@@ -1439,16 +1375,7 @@ graph LR
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-2-ROOT(lwb 2 root) --> LWB-1-ROOT
-
-  LWB-1-ROOT(lwb 1 root)
-  LWB-1-ROOT             --> LWB-1-WRITE(lwb 1 write)
-  LWB-1-ROOT             --> LWB-1-FLUSH(VDEV 1 flush)
-</div>
+![](zio-tree-after-04.svg)
 
 ???
 
@@ -1460,17 +1387,7 @@ graph LR
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-2-ROOT(lwb 2 root) --> LWB-1-ROOT
-  LWB-2-ROOT             --> LWB-2-WRITE(lwb 2 write)
-
-  LWB-1-ROOT(lwb 1 root)
-  LWB-1-ROOT             --> LWB-1-WRITE(lwb 1 write)
-  LWB-1-ROOT             --> LWB-1-FLUSH(VDEV 1 flush)
-</div>
+![](zio-tree-after-05.svg)
 
 ???
 
@@ -1482,19 +1399,7 @@ graph LR
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-3-ROOT(lwb 3 root) --> LWB-2-ROOT
-
-  LWB-2-ROOT(lwb 2 root) --> LWB-1-ROOT
-  LWB-2-ROOT             --> LWB-2-WRITE(lwb 2 write)
-
-  LWB-1-ROOT(lwb 1 root)
-  LWB-1-ROOT             --> LWB-1-WRITE(lwb 1 write)
-  LWB-1-ROOT             --> LWB-1-FLUSH(VDEV 1 flush)
-</div>
+![](zio-tree-after-06.svg)
 
 ???
 
@@ -1514,20 +1419,7 @@ graph LR
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-3-ROOT(lwb 3 root) --> LWB-2-ROOT
-  LWB-3-ROOT             --> LWB-3-WRITE(lwb 3 write)
-
-  LWB-2-ROOT(lwb 2 root) --> LWB-1-ROOT
-  LWB-2-ROOT             --> LWB-2-WRITE(lwb 2 write)
-
-  LWB-1-ROOT(lwb 1 root)
-  LWB-1-ROOT             --> LWB-1-WRITE(lwb 1 write)
-  LWB-1-ROOT             --> LWB-1-FLUSH(VDEV 1 flush)
-</div>
+![](zio-tree-after-07.svg)
 
 ???
 
@@ -1539,21 +1431,7 @@ graph LR
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-3-ROOT(lwb 3 root) --> LWB-2-ROOT
-  LWB-3-ROOT             --> LWB-3-WRITE(lwb 3 write)
-  LWB-3-ROOT             --> LWB-3-FLUSH(VDEV 1 flush)
-
-  LWB-2-ROOT(lwb 2 root) --> LWB-1-ROOT
-  LWB-2-ROOT             --> LWB-2-WRITE(lwb 2 write)
-
-  LWB-1-ROOT(lwb 1 root)
-  LWB-1-ROOT             --> LWB-1-WRITE(lwb 1 write)
-  LWB-1-ROOT             --> LWB-1-FLUSH(VDEV 1 flush)
-</div>
+![](zio-tree-after-08.svg)
 
 ???
 
@@ -1577,22 +1455,7 @@ graph LR
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-3-ROOT(lwb 3 root) --> LWB-2-ROOT
-  LWB-3-ROOT             --> LWB-3-WRITE(lwb 3 write)
-  LWB-3-ROOT             --> LWB-3-FLUSH(VDEV 1 flush)
-
-  LWB-2-ROOT(lwb 2 root) --> LWB-1-ROOT
-  LWB-2-ROOT             --> LWB-2-WRITE(lwb 2 write)
-  LWB-2-ROOT             --> LWB-2-FLUSH(VDEV 2 flush)
-
-  LWB-1-ROOT(lwb 1 root)
-  LWB-1-ROOT             --> LWB-1-WRITE(lwb 1 write)
-  LWB-1-ROOT             --> LWB-1-FLUSH(VDEV 1 flush)
-</div>
+![](zio-tree-after-09.svg)
 
 ???
 
@@ -1610,26 +1473,7 @@ graph LR
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-4-ROOT(lwb 4 root) --> LWB-3-ROOT
-  LWB-4-ROOT             --> LWB-4-WRITE(lwb 4 write)
-  LWB-4-ROOT             --> LWB-4-FLUSH(VDEV flush)
-
-  LWB-3-ROOT(lwb 3 root) --> LWB-2-ROOT
-  LWB-3-ROOT             --> LWB-3-WRITE(lwb 3 write)
-  LWB-3-ROOT             --> LWB-3-FLUSH(VDEV 1 flush)
-
-  LWB-2-ROOT(lwb 2 root) --> LWB-1-ROOT
-  LWB-2-ROOT             --> LWB-2-WRITE(lwb 2 write)
-  LWB-2-ROOT             --> LWB-2-FLUSH(VDEV 2 flush)
-
-  LWB-1-ROOT(lwb 1 root)
-  LWB-1-ROOT             --> LWB-1-WRITE(lwb 1 write)
-  LWB-1-ROOT             --> LWB-1-FLUSH(VDEV 1 flush)
-</div>
+![:scale 100%](zio-tree-after-10.svg)
 
 ???
 
@@ -1643,30 +1487,7 @@ graph LR
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-5-ROOT(lwb 5 root) --> LWB-4-ROOT
-  LWB-5-ROOT             --> LWB-5-WRITE(lwb 5 write)
-  LWB-5-ROOT             --> LWB-5-FLUSH(VDEV flush)
-
-  LWB-4-ROOT(lwb 4 root) --> LWB-3-ROOT
-  LWB-4-ROOT             --> LWB-4-WRITE(lwb 4 write)
-  LWB-4-ROOT             --> LWB-4-FLUSH(VDEV flush)
-
-  LWB-3-ROOT(lwb 3 root) --> LWB-2-ROOT
-  LWB-3-ROOT             --> LWB-3-WRITE(lwb 3 write)
-  LWB-3-ROOT             --> LWB-3-FLUSH(VDEV 1 flush)
-
-  LWB-2-ROOT(lwb 2 root) --> LWB-1-ROOT
-  LWB-2-ROOT             --> LWB-2-WRITE(lwb 2 write)
-  LWB-2-ROOT             --> LWB-2-FLUSH(VDEV 2 flush)
-
-  LWB-1-ROOT(lwb 1 root)
-  LWB-1-ROOT             --> LWB-1-WRITE(lwb 1 write)
-  LWB-1-ROOT             --> LWB-1-FLUSH(VDEV 1 flush)
-</div>
+![:scale 100%](zio-tree-after-11.svg)
 
 ???
 
@@ -1680,26 +1501,7 @@ graph LR
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-5-ROOT(lwb 5 root) --> LWB-4-ROOT
-  LWB-5-ROOT             --> LWB-5-WRITE(lwb 5 write)
-  LWB-5-ROOT             --> LWB-5-FLUSH(VDEV flush)
-
-  LWB-4-ROOT(lwb 4 root) --> LWB-3-ROOT
-  LWB-4-ROOT             --> LWB-4-WRITE(lwb 4 write)
-  LWB-4-ROOT             --> LWB-4-FLUSH(VDEV flush)
-
-  LWB-3-ROOT(lwb 3 root) --> LWB-2-ROOT
-  LWB-3-ROOT             --> LWB-3-WRITE(lwb 3 write)
-  LWB-3-ROOT             --> LWB-3-FLUSH(VDEV 1 flush)
-
-  LWB-2-ROOT(lwb 2 root)
-  LWB-2-ROOT             --> LWB-2-WRITE(lwb 2 write)
-  LWB-2-ROOT             --> LWB-2-FLUSH(VDEV 2 flush)
-</div>
+![:scale 100%](zio-tree-after-12.svg)
 
 ???
 
@@ -1711,22 +1513,7 @@ graph LR
 
 # Example: After
 
-<hr style="visibility:hidden;" />
-
-<div class="mermaid">
-graph LR
-  LWB-5-ROOT(lwb 5 root) --> LWB-4-ROOT
-  LWB-5-ROOT             --> LWB-5-WRITE(lwb 5 write)
-  LWB-5-ROOT             --> LWB-5-FLUSH(VDEV flush)
-
-  LWB-4-ROOT(lwb 4 root) --> LWB-3-ROOT
-  LWB-4-ROOT             --> LWB-4-WRITE(lwb 4 write)
-  LWB-4-ROOT             --> LWB-4-FLUSH(VDEV flush)
-
-  LWB-3-ROOT(lwb 3 root)
-  LWB-3-ROOT             --> LWB-3-WRITE(lwb 3 write)
-  LWB-3-ROOT             --> LWB-3-FLUSH(VDEV 1 flush)
-</div>
+![](zio-tree-after-13.svg)
 
 ???
 
@@ -1735,6 +1522,12 @@ graph LR
  - Here, both "lwb 1" and "lwb 2" have completed
 
     - so they've been removed from the tree
+
+---
+
+# Example: After
+
+![](zio-tree-after-14.svg)
 
 ---
 
