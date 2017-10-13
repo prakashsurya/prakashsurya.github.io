@@ -1303,7 +1303,7 @@ class: middle, center
 
  - This allows processes to be signalled while `lwb`'s are being written
 
-.footnote[<sup>\*</sup>How we determine which `lwb` does this isn't covered.]
+.footnote[<sup>\*</sup>How we determine which `lwb` does this, isn't covered.]
 
 ---
 
@@ -1359,13 +1359,15 @@ class: middle, center
 
     2. `fio` was trying to perform 64 sync writes per second
 
- - IOPs and latency measured with and without my changes
+ - IOPs and latency measured with and without my changes<sup>\*</sup>
 
-    - Other metrics also observed (`iostat`, flamegraphs, lwb info, etc.)
+ - 1, 2, 4, and 8 disk zpools; both SSD and HDD
 
- - 1, 2, 4, and 8 disk zpools; tested both SSD and HDD
+ - fio threads ranging from 1 to 1024; increasing in powers of 2
 
  - Full details can be found [here][perf-results]
+
+.footnote[<sup>\*</sup>Other metrics also observed, but not covered here.]
 
 ---
 
@@ -1375,15 +1377,15 @@ class: middle, center
 
 ---
 
-background-image: url(max-rate-hdd-iops-pctchange.png)
-background-size: 95%
+background-image: url(max-rate-hdd-iops-pctchange.svg)
+background-size: 100%
 
 # % Change IOPs &ndash; Max Rate &ndash; HDDs
 
 ---
 
-background-image: url(max-rate-hdd-lat-pctchange.png)
-background-size: 95%
+background-image: url(max-rate-hdd-lat-pctchange.svg)
+background-size: 100%
 
 # % Change Latency &ndash; Max Rate &ndash; HDDs
 
@@ -1395,15 +1397,15 @@ class: middle, center
 
 ---
 
-background-image: url(max-rate-ssd-iops-pctchange.png)
-background-size: 95%
+background-image: url(max-rate-ssd-iops-pctchange.svg)
+background-size: 100%
 
 # % Change IOPs &ndash; Max Rate &ndash; SSDs
 
 ---
 
-background-image: url(max-rate-ssd-lat-pctchange.png)
-background-size: 95%
+background-image: url(max-rate-ssd-lat-pctchange.svg)
+background-size: 100%
 
 # % Change Latency &ndash; Max Rate &ndash; SSDs
 
@@ -1415,15 +1417,15 @@ class: middle, center
 
 ---
 
-background-image: url(fixed-rate-hdd-iops-pctchange.png)
-background-size: 95%
+background-image: url(fixed-rate-hdd-iops-pctchange.svg)
+background-size: 100%
 
 # % Change IOPs &ndash; Fixed Rate &ndash; HDDs
 
 ---
 
-background-image: url(fixed-rate-hdd-lat-pctchange.png)
-background-size: 95%
+background-image: url(fixed-rate-hdd-lat-pctchange.svg)
+background-size: 100%
 
 # % Change Latency &ndash; Fixed Rate &ndash; HDDs
 
@@ -1435,15 +1437,15 @@ class: middle, center
 
 ---
 
-background-image: url(fixed-rate-ssd-iops-pctchange.png)
-background-size: 95%
+background-image: url(fixed-rate-ssd-iops-pctchange.svg)
+background-size: 100%
 
 # % Change IOPs &ndash; Fixed Rate &ndash; SSDs
 
 ---
 
-background-image: url(fixed-rate-ssd-lat-pctchange.png)
-background-size: 95%
+background-image: url(fixed-rate-ssd-lat-pctchange.svg)
+background-size: 100%
 
 # % Change Latency &ndash; Fixed Rate &ndash; SSDs
 
