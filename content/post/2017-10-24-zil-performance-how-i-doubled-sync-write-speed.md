@@ -34,15 +34,21 @@ class: middle, center
 
     - Logs synchronous operations to disk, before `spa_sync()`
 
-    - What constitutes a "synchronous operation"?
+    - What operations get logged?
 
-       - most _modifying_ ZPL operations:
+       - `zfs_create`, `zfs_remove`, `zfs_write`, etc.
 
-          - e.g. `zfs_create`, `zfs_unlink`, `zfs_write` (some), etc.
+       - Doesn't include non-modifying ZPL operations:
 
-       - doesn't include non-modifying ZPL operations:
+          - `zfs_read`, `zfs_seek`, etc.
 
-          - e.g. `zfs_read`, `zfs_seek`, etc.
+    - What gets logged?
+
+       - The fact that a logical operation is occuring is logged
+
+          - `zfs_remove` &rarr; directory object ID + name only
+
+       - Not logging which blocks will change due to logical operation
 
 ---
 
@@ -56,21 +62,10 @@ class: middle, center
 
     - `zil_commit()` called for:
 
-       - _any_ sync write
+       - _any_ sync write<sup>\**</sup>
 
-       - other sync operations (e.g. create, unlink), **and** `sync=always`
-
-       - _some_ reads (`sync=always` or `FRSYNC` set)
-
-.footnote[<sup>\*</sup>Except when dataset configured with: `sync=disabled`]
-
-???
-
-- Caveat: None of this applies if dataset configured with: `sync=disabled`
-
-  - in-memory `itx`'s aren't created
-
-  - `zil_commit` doesn't do writes to disk
+.footnote[<sup>\*</sup>Except when dataset configured with: `sync=disabled`.
+          <sup>\**</sup>Except when dataset configured with: `sync=always`.]
 
 ---
 
@@ -80,27 +75,19 @@ class: middle, center
 
     - An SLOG is not necessary
 
+       - By default (no SLOG), ZIL will write to main pool VDEVs
+
     - An SLOG can be used to improve latency of ZIL writes
+
+       - When attached, ZIL writes to SLOG instead of main pool<sup>\*</sup>
 
  - Conceptually, SLOG is different than the ZIL
 
+   - ZIL is mechanism for writing, SLOG is device written to
+
  - ZIL is used, even if no SLOG attached
 
-???
-
-- _An SLOG is not necessary_
-
-   - By default (no SLOG), ZIL will write to main pool VDEVs
-
-- _An SLOG can be used to improve latency of ZIL writes_
-
-   - When attached, ZIL writes to SLOG instead of main pool
-
-- _Conceptually, SLOG is different than the ZIL_
-
-   - Difference between SLOG and ZIL, similar difference of DMU and VDEV
-
-   - ZIL is mechanism for writing, SLOG is device written to
+.footnote[<sup>\*</sup>For some operations; see code for details.]
 
 ---
 
@@ -108,45 +95,23 @@ class: middle, center
 
  - Writes in ZFS are "write-back"
 
- - Without the ZIL, sync operations inherit latency of `spa_sync()`<sup>\*</sup>
+    - Data is first written and stored in-memory, in DMU layer
+
+    - Later, data for whole pool written to disk via `spa_sync()`
+
+ - Without the ZIL, sync operations could wait for `spa_sync()`
 
     - `spa_sync()` can take tens of seconds (or more) to complete
 
  - Further, with the ZIL, write amplification can be mitigated
 
- - ZIL is essentially a performance optimization
+    - A single ZPL operation can cause many writes to occur
 
-.footnote[<sup>\*</sup>All operations inherit this latency, but only sync operations wait for completion]
-???
+    - ZIL allows operation to "complete" with minimal data written
 
-- _Writes in ZFS are "write-back"_
+ - ZIL needed to provide "fast" synchronous semantics to applications
 
-   - Data is first written and stored in-memory, in DMU layer...
-
-   - At some later point, data for whole pool written to disk via `spa_sync()`.
-
-- _Without ZIL, all sync operations inherit latency of `spa_sync()`_
-
-   - We don't want each sync operation to take this log
-
-- _Further, with the ZIL, write amplification can be mitigated_
-
-   - A single ZPL operation, can cause many writes to occur
-
-     - e.g. 1 block write to a file causes additional writes to update
-       indirect blocks
-
-   - ZIL allows operation to "complete" with minimal data written
-
-- _ZIL is essentially a performance optimization_
-
-  - Strictly speaking, correctness could be achieved without it...
-
-       - e.g. all sync ops could just wait for `spa_sync()` to complete
-
-    - But practically speaking, it's necessary...
-
-       - Performance would be unreasonably bad without it
+    - Correctness could be acheived without it, but would be "too slow"
 
 ---
 
@@ -159,12 +124,6 @@ class: middle, center
 <hr style="visibility:hidden;" />
 
 .center[![](zil-on-disk-format.svg)]
-
-???
-
-- _ZIL stored on-disk as a singly linked list of ZIL blocks (`lwb`'s)_
-
-   - each ZIL block contains a pointer to the "next" ZIL block
 
 ---
 
@@ -180,21 +139,11 @@ class: middle, center
 
     1. Log the operation(s) &mdash; `zil_itx_assign`
 
+        - Tells the ZIL an operation is occuring
+
     2. Commit the operation(s) &mdash; `zil_commit`
 
-???
-
-1. _Log the operation(s)_
-
-   - Tells the ZIL the operation occurred
-
-   - Only called when _new_ ZPL operations occur
-
-2. _Commit the operation(s)_
-
-   - Causes the ZIL to write log record of operation to disk
-
-   - Only called if sync write, or `sync=always`
+        - Causes the ZIL to write log record of operation to disk
 
 ---
 
@@ -236,17 +185,11 @@ class: middle, center
 
  - `zfs_fsync` &rarr; `zil_commit`
 
-    - no _new_ operations to log... no `zfs_log_fysnc` function
+   - `fsync` doesn't create any new modifications
 
-???
+   - only writes previous `itx`'s to disk
 
-- `zfs_fsync` doesn't have a "log" function
-
-   - `fsync` doesn't create any new modifications...
-
-   - instead, it only ensures prior modifying operations complete.
-
-   - as a result, there isn't a `zfs_log_fsync` function
+      - thus, no `zfs_log_fsync` function
 
 ---
 
@@ -349,7 +292,7 @@ class: middle, center
 
  - `zil_commit` handles the process of writing `itx_t`'s to disk:
 
-     1. find all relavant `itx`'s, move them to the "commit list"
+     1. find all relevant `itx`'s, move them to the "commit list"
 
 ---
 
@@ -407,19 +350,9 @@ class: middle, center
 
 ???
 
-- So, why do we move sync list `itx`'s to the commit list?
+- We create the "commit list" so the list of `itx`s to write out...
 
-   - So the thread that writes these `itx`'s out to disk...
-
-      - can work with a list that won't change due to concurrent activity
-
-   - If there's concurrent ZPL operations occurring...
-
-      - those operations may insert new `itx`'s onto the sync list.
-
-   - We create the "commit list" so the list of `itx`s to write out...
-
-      - is isolated from this concurrent ZPL activity
+   - is isolated from this concurrent ZPL activity
 
 ---
 
@@ -455,35 +388,13 @@ class: middle, center
 
 <br />
 
-![](zil-commit-2-01.svg)
-
-???
-
-- Starting with the commit list from before...
-
----
-
-# Example: `zil_commit` Object B
-
-<br />
-
-![](zil-commit-2-02.svg)
-
-???
-
-- Select the first `itx` in the list...
-
----
-
-# Example: `zil_commit` Object B
-
-<br />
-
 ![](zil-commit-2-03.svg)
 
 ???
 
-- allocate our first ZIL block...
+- Starting with a ZIL header and `lwb` block already allocated...
+
+- Select the first `itx` in the list...
 
 ---
 
@@ -655,65 +566,23 @@ class: middle, center
 
      3. ~~Wait for all ZIL block writes to complete~~
 
-     4. Flush VDEVs and notify waiting threads
+     4. Flush VDEVs
 
 ---
 
-class: middle, center
+# How are itx's written to disk?
 
-# 2 &ndash; ZIL Block Sizing + Performance
+ - `zil_commit` handles the process of writing `itx_t`'s to disk:
 
----
+     1. ~~Move async itx's for object being commited, to the sync list~~
 
-# ZIL Block Sizing + Performance
+     2. ~~Write all commit list `itx`'s to disk~~
 
- - ZIL blocks must be "pre-allocated", due to on-disk format
+     3. ~~Wait for all ZIL block writes to complete~~
 
-    - Block size chosen at time of allocation
+     4. ~~Flush VDEVs~~
 
- - Allocated block size can dramatically impact performance:
-
-    - "too big" &ndash; wasted space
-
-    - "too small" &ndash; too many (small) IOPs issued to disk
-
-    - "just right" &ndash; large IOPs filled with `itx`'s
-
-???
-
-# ZIL Block Sizing + Performance
-
-- _ZIL blocks must be "pre-allocated", due to on-disk format_
-
-   - Each ZIL block contains pointer to next ZIL block on disk...
-
-      - Thus, "next" block allocated when the "current" is issued to disk
-
-- _Allocated block size can dramatically impact performance:_
-
-   - Because blocks "pre-allocated"...
-
-      - the size of "next" block is decided before number of `itx`'s is known
-
-- _"too big"_
-
-   - Block only partially filled with `itx`'s
-
-   - Can result in small, but fast, SLOG filling to capacity
-
-      - full SLOG can cause poor performance
-
-- _"too small"_
-
-   - Can cause disk saturation and poor performance
-
-- _"just right"_
-
-   - ZIL blocks fully utilized with `itx`'s (no wasted SLOG space)
-
-   - Fewer IOPs for same number of `itx`'s
-
-      - e.g. 15 8K writes using 1 128K lwb vs. 4 32K lwb's
+     5. Notify waiting threads
 
 ---
 
@@ -723,7 +592,7 @@ class: middle, center
 
 ---
 
-# Problem(s)
+# Problem
 
  1. `itx`'s grouped and written in "batches"
 
@@ -737,39 +606,13 @@ class: middle, center
 
 ---
 
-# Example Batch
+# Problem
 
-<br />
+![](problem.svg)
 
-![](problem-01.svg)
+ - Time spent servicing `lwb`'s for each disk
 
-???
-
-- Same batch from prior slides...
-
----
-
-# Example "itx S1"
-
-<br />
-
-![](problem-02.svg)
-
-???
-
-- If a thread is waiting for "itx S1" to be persisted...
-
----
-
-# Example "itx S1"
-
-<br />
-
-![](problem-03.svg)
-
-???
-
-- it must actually wait for **all** `lwb`'s to be persisted.
+ - Color indicates order waiting threads notified
 
 ---
 
@@ -777,21 +620,13 @@ class: middle, center
 
  1. `zil_commit` latency proportional to system workload, _not_ disk latency
 
- 2. Disk "anomalies" &rarr; larger batches &rarr; increased `zil_commit` latency
-
- 3. New calls to `zil_commit` wait for "current" batch, _and_ "next" batch
-
-???
-
-1. _`zil_commit` latency_
-
    - Fast SLOG may not compensate for large workload
 
-2. _Disk "anomalies"_
+ 2. Disk "anomalies" &rarr; larger batches &rarr; increased `zil_commit` latency
 
-   - e.g. Temporary network delays when using SAN storage
+   - e.g. temporary network delays when using network storage
 
-3. _New calls to `zil_commit`_
+ 3. New calls to `zil_commit` wait for "current" batch, _and_ "next" batch
 
    - Average `zil_commit` latency equal to latency of 1.5 batches
 
@@ -809,13 +644,16 @@ class: middle, center
 
     1. Allow `zil_commit` to issue new ZIL block writes immediately
 
-    2. Notify threads immediately when _dependent_ `itx`'s on disk
+       - In contrast to waiting for the current batch to complete
+
+    2. Notify threads immediately when _dependent_ `lwb`'s on disk
+
+       - In contrast to waiting for _all_ `lwb`'s on disk
 
 ???
 
 1. _Allow `zil_commit` to issue new ZIL block writes immediately_
 
-   - In contrast to waiting for "current" batch to complete
 
 2. _Notify threads immediately when dependent `itx`'s on disk_
 
@@ -823,630 +661,365 @@ class: middle, center
 
 ---
 
-# Example "Batch"
+# Problem
 
-<br />
+![](problem.svg)
 
-![](solution-01.svg)
+ - Time spent servicing `lwb`'s for each disk
 
-???
-
-- Same example as before
+ - Color indicates order waiting threads notified
 
 ---
 
-# Example "itx S1"
+# Solution
 
-<br />
+![](solution.svg)
 
-![](solution-02.svg)
+ - Time spent servicing `lwb`'s for each disk
 
-???
-
-- Same thread waiting for "itx S1" to be persisted...
-
----
-
-# Example "itx S1"
-
-<br />
-
-![](solution-03.svg)
-
-???
-
-- But, now it must wait for _only_ "lwb 1" to complete
-
-   - Previously, would have also waited for "lwb 2"
-
-- Might not seem significant for a small example with 2 `lwb`'s...
-
-   - But it can be significant with 100's of `lwb`'s on a real system
+ - Color indicates order waiting threads notified
 
 ---
 
 class: middle, center
 
-# 4 &ndash; Changes to VDEV Flush
+# 4 &ndash; Details on the Changes I Made
 
 ---
 
-# Details
+background-image: url(changes-before-01.svg)
+background-size: 65%
 
- - A ZIL block is not "persistent" until the VDEV is flushed
-
- - Prior mechanics:
-
-    - Single VDEV flush for each VDEV, after batch completes
-
-    - 1 flush per many lwb's
-
- - New mechanics:
-
-    - VDEV flush issued after each ZIL block written
-
-    - 1 flush per 1 lwb
-
----
-
-# Example: Before
-
-<br />
-
-.center[![](flush-sequence-before.svg)]
+## Before
 
 ???
 
-- 2 `lwb`'s are written to VDEV 1...
+- Bulk of changes I made revolves around the following 3 things:
 
-   - but only a single flush is issued to it.
+   1. how `lwb`'s are issued to disk
 
-- Additionally, all flushes are issued at the very end.
+   2. how flush commands are sent to the disks
+
+   3. how waiting threads are notified
+
+- Previously, this was a mostly a sequential 3 step process...
 
 ---
 
-# Example: After
+background-image: url(changes-before-02.svg)
+background-size: 65%
 
-<br />
-
-.center[![](flush-sequence-after.svg)]
+## Before
 
 ???
 
-- The same 2 `lwb`'s are written to VDEV 1...
+- Step 1 would consist of creating the `lwb`'s...
 
-   - but 2 flushes are issued to it.
+   - issuing these to disk...
 
-- Additionally, the flushes are issued immediately after corresponding
-  "lwb done".
-
----
-
-class: middle, center
-
-# 4 &ndash; Changes to ZIL Block ZIO Tree
+   - and then waiting for the IO for all the `lwb`'s to complete.
 
 ---
 
-# Details
+background-image: url(changes-before-03.svg)
+background-size: 65%
 
- - ZIL blocks issued to disk using ZIOs
-
- - Prior mechanics:
-
-    - "root" ZIO created for each batch
-
-       - "write" ZIOs, for all `lwb`'s in batch, are children of root ZIO
-
-    - "flush" ZIOs issued separately after root ZIO completes
-
- - New mechanics:
-
-    - "root" ZIO created for each lwb
-
-       - "write" and "flush" ZIOs are child of root ZIO
-
-    - "next" lwb root ZIO become parent of "current" lwb root ZIO
+## Before
 
 ???
 
-- _ZIL blocks issued to disk using ZIOs_
+- Once that Step 1 completes...
 
-   - ZIOs represented as directed acyclic graph (DAG)
+   - Step 2 would consist of issuing the flush commands to each VDEV...
 
-   - Parent ZIOs cannot complete until all children complete
+   - and then waiting for all of them to complete.
 
 ---
 
-# Example: Before
+background-image: url(changes-before-04.svg)
+background-size: 65%
 
-<br />
-
-.center[![](zio-tree-before-01.svg)]
+## Before
 
 ???
 
-- First, the root ZIO for the batch is generated
+- And then, _finally_, after all flushes have completed...
+
+   - the ZIL's CV is signalled to notify any waiting threads...
+
+   - letting them know their data is safe on disk.
+
+- All 3 of these steps would consist of a single batch.
 
 ---
 
-# Example: Before
+background-image: url(changes-before-05.svg)
+background-size: 65%
 
-<br />
-
-.center[![](zio-tree-before-02.svg)]
+## Before
 
 ???
 
-- Then the `lwb` ZIOs are created as children
+- And, after one batch completes...
+
+   - another would start up again.
 
 ---
 
-# Example: Before
+background-image: url(changes-before-06.svg)
+background-size: 65%
 
-<br />
-
-.center[![](zio-tree-before-03.svg)]
-
----
-
-# Example: Before
-
-<br />
-
-.center[![](zio-tree-before-04.svg)]
-
----
-
-# Example: Before
-
-<br />
-
-.center[![](zio-tree-before-05.svg)]
+## Before
 
 ???
 
-- After all `lwb` ZIOs complete...
+- And another.
 
-- the root ZIO for the VDEV flush commands is generated
+- This would repeat as long as...
 
----
-
-# Example: Before
-
-<br />
-
-.center[![](zio-tree-before-06.svg)]
-
-???
-
-- And we'd issue a flush to each VDEV written to
+   - there was a continuous stream of incoming sync operations to process.
 
 ---
 
-# Example: Before
+background-image: url(changes-after-01.svg)
+background-size: 85%
 
-<br />
-
-.center[![](zio-tree-before-07.svg)]
+## After
 
 ???
 
-- Once all VDEV flushes complete...
+- Now the process is entirely different...
 
-- we're done, and any waiting threads would be notified
+   - and heavily leaverages the ZIO infrastructure
+
+- Each `lwb` will have a root ZIO, which will eventually have 2 children:
+
+   1. A "write" ZIO containing the `itx` data to be written
+
+   2. A "flush" ZIO that will be issued after the "write" ZIO completes
+
+- Since these are children, the `lwb`'s "root" ZIO...
+
+   - cannot complete until both the "write" and the "flush" complete
+
+   - This is enforced by the ZIO parent-child dependency semantics
+
+- Further, the "root" ZIO of each "previous" `lwb`...
+
+   - will be a "child" of the "root" ZIO for the "next" `lwb`
+
+   - This ensures the `lwb`'s completes in correct order...
+
+      - again, leveraging ZIO dependencies to acheive this ordering
+
+- Additionally, each `lwb` maintains a list of CVs...
+
+   - Each CV on this list maps to a waiting thread
+
+   - When the "root" ZIO for the `lwb` completes...
+
+      - each CV in this list is signalled...
+
+      - which notifies the waiting thread that it's data is safe on disk
+
+- Let's walk through an example of what this looks like...
 
 ---
 
-# Example: After
+background-image: url(changes-after-02.svg)
+background-size: 85%
 
-![](zio-tree-after-01.svg)
+## After
 
 ???
 
-- The ZIO tree is dramatically different after my changes...
-
-- Now, we create a root ZIO similar to before...
-
-- But this root ZIO is specific to an `lwb`, as will become clear
+- First, the "root" ZIO for the `lwb` is created...
 
 ---
 
-# Example: After
+background-image: url(changes-after-03.svg)
+background-size: 85%
 
-![](zio-tree-after-02.svg)
+## After
 
 ???
 
-- Next, we create another ZIO for the "write" of the `lwb`
-
-- This ZIO contains the actual data and `itx`'s to be persisted
-
-- Also, it's a child of the `lwb`'s root ZIO
+- And then the "write" ZIO is issued...
 
 ---
 
-# Example: After
+background-image: url(changes-after-04.svg)
+background-size: 85%
 
-![](zio-tree-after-03.svg)
+## After
 
 ???
 
-- After that "write" ZIO **completes**, the flush ZIO is issued
-
-- The flush ZIO is also a child of the `lwb` root ZIO
+- When that "write" ZIO completes, the flush will immediately be issued
 
 ---
 
-# Example: After
+background-image: url(changes-after-05.svg)
+background-size: 85%
 
-![](zio-tree-after-04.svg)
+## After
 
 ???
 
-# Example: After
+- Then, when the "flush" ZIO completes...
 
-- If another `lwb` is to be written...
+- that'll allow the "root" ZIO for this specific `lwb` to complete...
 
-- it'll also have a root ZIO of its own
-
-- Further, it'll have the prior `lwb`'s root ZIO as a child
-
-   - we do this so that the root ZIO for "lwb 2" can't complete...
-
-   - until "lwb 1" completes.
-
-   - The importance of the order of these ZIO completions...
-
-   - will hopefully become more clear later.
+- at which point, each CV in the `lwb`'s list of CVs will be signalled
 
 ---
 
-# Example: After
+background-image: url(changes-after-06.svg)
+background-size: 85%
 
-![](zio-tree-after-05.svg)
+## After
 
 ???
 
-- Next, we create the `lwb` write ZIO just like before
+- The same process would occur of the next `lwb`...
 
 ---
 
-# Example: After
+background-image: url(changes-after-07.svg)
+background-size: 85%
 
-![](zio-tree-after-06.svg)
-
-???
-
-- To make things more interesting...
-
-   - let's say the next `lwb` is issued before this `lwb`'s "write" completes.
-
-- In this case, the "write" for "lwb 2" will still be outstanding...
-
-   - so the flush for that lwb will not have been issued...
-
-   - but a new `lwb` can still be created and issued.
-
----
-
-# Example: After
-
-![](zio-tree-after-07.svg)
+## After
 
 ???
 
- - And this `lwb` will also have a child "write" ZIO
-
----
-
-# Example: After
-
-![](zio-tree-after-08.svg)
-
-???
-
-- It's even possible for the "write" of "lwb 3" to complete before...
-
-   - the "write" of "lwb 2"
-
-- If that occurs, the flush for "lwb 3" will get issued before...
-
-   - the flush for "lwb 2"
+- And the next.
 
 - It's important to note...
 
-   - even if the flush of "lwb 3" were to complete...
+   - the sequence of events doesn't have to occur in this order
 
-   - the root ZIO "lwb 3" can't complete...
+- For example, it's possible for "lwb 2" to have issued it's...
 
-   - becuase the root for "lwb 2" is still in progress.
+   - "write" ZIO before the "write" of "lwb 1" completes.
 
-   - This is enforced by the ZIO layer...
+- It can even complete before the "write" of "lwb 1"...
 
-      - a "parent" ZIO can't complete until all children complete
+   - Same goes for the "flush" for "lwb 2"
+
+- **But**, due to the ZIO dependency tree, the "root" ZIO for "lwb 2"...
+
+   - cannot complete until the "root" for "lwb 1" completes.
+
+- Thus, the CVs for "lwb 2" will never be signalled...
+
+   - prior to "lwb 1" completing
+
+- **So**, while this example might imply...
+
+   - this process is still very sequential, just like before...
+
+   - it doesn't have to be...
+
+- Now, it's all driven by the incoming workload...
+
+   - and disk completion events.
+
+   - `lwb`'s are created and issued whenever there's data to write...
+
+   - and waiting threads are notified whenever those writes complete.
 
 ---
 
-# Example: After
+# New Tunable: `lwb` Timeout
 
-![](zio-tree-after-09.svg)
+.center[![:scale 90%](lwb-timeout.svg)]
+
+.footnote[<sup>\*</sup>New tunable named: `zfs_commit_timeout_pct`]
 
 ???
 
-- Now, lets say the "write" for "lwb 2" completes...
+- Prior to issuing an `lwb` to disk, it remains "open"...
 
-   - so the flush for "lwb 2" is issued.
+   - such that we can continue to use this `lwb`...
 
-- Since "lwb 3" may have already completed it's write and flush...
+   - for any future `itx`'s that occur, and would fit in the `lwb`
 
-   - it's possible for "lwb 2" and "lwb 3" to complete "simultaneously"
+- This is done to help fill `lwb` blocks with useful `itx`'s
 
----
+   - in an attempt to use as few `lwb`'s as possible...
 
-# Example: After
+   - for as many `itx`'s as possible.
 
-![:scale 100%](zio-tree-after-10.svg)
+- This is critical to maintain good performance...
 
-???
+   - with a continuous stream of incoming sync operations.
 
- - This pattern will continue as long as there's `lwb`'s to issue to disk
+- But, if incoming sync operations stop...
 
----
+   - we need to bound the amount of time this "open" lwb waits...
 
-# Example: After
+   - before it is issued to disk, partially filled.
 
-![:scale 100%](zio-tree-after-11.svg)
+- We determine the amount of time to wait...
 
----
+   - by waiting a percentage of the last `lwb` write's latency.
 
-# Example: After
+- By default, wait 5% of the last `lwb` write's latency...
 
-![:scale 100%](zio-tree-after-12.svg)
+- If the "open" `lwb` isn't filled in that amount of time...
 
-???
-
-- As `lwb` root ZIOs complete...
-
-   - they'll simply be removed from the "tail" of the tree
-
-- Here, "lwb 1" has been removed
-
----
-
-# Example: After
-
-![](zio-tree-after-13.svg)
-
-???
-
-- Now "lwb 2"
-
----
-
-# Example: After
-
-![](zio-tree-after-14.svg)
-
-???
-
-- And "lwb 3"... etc.
+   - it will "timeout", and be issued to disk partially filled.
 
 ---
 
 class: middle, center
 
-# 4 &ndash; Changes to Waiter Notification
-
----
-
-# Details: Before
-
- - 2 condition variables (CV), for "current" and "next" batch
-
- - Threads that called `zil_commit`:
-
-    - Assigned to "next batch", wait on next batch's CV
-
- - When "current" batch completes
-
-    1. All threads waiting on "current" signalled, they'd return
-
-    2. One thread waiting on "next" signalled, becomes "writer"
-
-    3. "next" and "current" CV swapped
-
- - Ultimately, these two CVs are the source of original problem
-
----
-
-# Example: Before
-
-.center[![](waiter-sequence-before-01.svg)]
-
-???
-
-- Here's a possible sequence of events...
-
-- But don't try and understand it all right now
-
----
-
-# Example: Before
-
-.center[![](waiter-sequence-before-02.svg)]
-
-???
-
-- Instead, I want to hightlight how/when processes become "done"
-
-- Specifically, writer threads must stop writing...
-
-   - in order to notifiy and wake up any waiting threads
-
-- Further, this notification only occurs after an entire batch completes
-
----
-
-# Details: After
-
- - Each `lwb` has a list of CVs
-
- - Each time a process calls `zil_commit`:
-
-    - A new CV is allocated for this specific process to wait on
-
-    - This CV is attached to the `lwb` that will persist the process's
-      data<sup>\*</sup>
-
- - When an `lwb`'s ZIO completes, each CV in the `lwb`'s list is signalled
-
- - This allows processes to be signalled while `lwb`'s are being written
-
-.footnote[<sup>\*</sup>How we determine which `lwb` does this, isn't covered.]
-
----
-
-# Example: After
-
-.center[![](waiter-sequence-after-01.svg)]
-
-???
-
-- Here's another sequence of events...
-
-- Like before, there's a lot to take in...
-
-- so don't try and understand it all
-
----
-
-# Example: After
-
-.center[![](waiter-sequence-after-02.svg)]
-
-???
-
-- Instead, I want to highlight how/when processes become "done"
-
-- In this "new world", processes are signalled as done from the "ZIO
-  done" callback
-
-- Further, we can see that they're signalled while `lwb`'s are being
-  written
-
-- Thus, there's no "start"/"stop" sort of behavior like previously...
-
-   - Where we'd have to stop writing, in order to signal waiters
-
-- Now the waiter's are notified "async" from the context of the writer...
-
-   - immediately from the ZIO done callback for that process's `lwb`
-
----
-
-class: middle, center
-
-# 5 &ndash; Performance testing and results.
-
----
-
-# Details
-
- - Two `fio` workloads used to drive a sync write workload
-
-    1. `fio` was trying to perform sync writes as fast as it could
-
-    2. `fio` was trying to perform 64 sync writes per second
-
- - IOPs and latency measured with and without my changes<sup>\*</sup>
-
- - 1, 2, 4, and 8 disk zpools; both SSD and HDD
-
- - fio threads ranging from 1 to 1024; increasing in powers of 2
-
- - Full details can be found [here][perf-results]
-
-.footnote[<sup>\*</sup>Other metrics also observed, but not covered here.]
-
----
-
-class: middle, center
-
-# 5 &ndash; Max Rate Workload &ndash; HDDs
+# 5 &ndash; Performance testing and results
 
 ---
 
 background-image: url(max-rate-hdd-iops-pctchange.svg)
-background-size: 100%
+background-size: 115%
 
-# % Change IOPs &ndash; Max Rate &ndash; HDDs
-
----
-
-background-image: url(max-rate-hdd-lat-pctchange.svg)
-background-size: 100%
-
-# % Change Latency &ndash; Max Rate &ndash; HDDs
-
----
-
-class: middle, center
-
-# 5 &ndash; Max Rate Workload &ndash; SSDs
+## ~83% Increase in IOPs on Average &ndash; Max Rate &ndash; 8 HDDs
 
 ---
 
 background-image: url(max-rate-ssd-iops-pctchange.svg)
-background-size: 100%
+background-size: 115%
 
-# % Change IOPs &ndash; Max Rate &ndash; SSDs
-
----
-
-background-image: url(max-rate-ssd-lat-pctchange.svg)
-background-size: 100%
-
-# % Change Latency &ndash; Max Rate &ndash; SSDs
-
----
-
-class: middle, center
-
-# 5 &ndash; Fixed Rate Workload &ndash; HDDs
-
----
-
-background-image: url(fixed-rate-hdd-iops-pctchange.svg)
-background-size: 100%
-
-# % Change IOPs &ndash; Fixed Rate &ndash; HDDs
+## ~48% Increase in IOPs on Average &ndash; Max Rate &ndash; 8 SSDs
 
 ---
 
 background-image: url(fixed-rate-hdd-lat-pctchange.svg)
-background-size: 100%
+background-size: 115%
 
-# % Change Latency &ndash; Fixed Rate &ndash; HDDs
+## ~27% Decrease in Latency on Average &ndash; Fixed Rate &ndash; 8 HDDs
 
----
-
-class: middle, center
-
-# 5 &ndash; Fixed Rate Workload &ndash; SSDs
-
----
-
-background-image: url(fixed-rate-ssd-iops-pctchange.svg)
-background-size: 100%
-
-# % Change IOPs &ndash; Fixed Rate &ndash; SSDs
+.footnote[<sup>\*</sup>IOPs increased with new code, and >64 threads; those data points omitted.]
 
 ---
 
 background-image: url(fixed-rate-ssd-lat-pctchange.svg)
-background-size: 100%
+background-size: 115%
 
-# % Change Latency &ndash; Fixed Rate &ndash; SSDs
+## ~16% Decrease in Latency on Average &ndash; Fixed Rate &ndash; 8 SSDs
+
+---
+
+# More Details
+
+ - Two `fio` workloads were used:
+
+    1. each thread submitting sync writes as fast as it could
+
+    2. each thread submitting 64 sync writes per second
+
+ - 1, 2, 4, and 8 disk zpools; both SSD and HDD
+
+ - `fio` threads ranging from 1 to 1024; increasing in powers of 2
+
+ - Full details can be found [here][perf-results]
 
 [perf-results]: https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/
