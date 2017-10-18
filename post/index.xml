@@ -47,20 +47,28 @@
 &lt;ul&gt;
 &lt;li&gt;&lt;p&gt;Logs synchronous operations to disk, before &lt;code&gt;spa_sync()&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;What constitutes a &amp;ldquo;synchronous operation&amp;rdquo;?&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;What operations get logged?&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;most &lt;em&gt;modifying&lt;/em&gt; ZPL operations:&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_create&lt;/code&gt;, &lt;code&gt;zfs_remove&lt;/code&gt;, &lt;code&gt;zfs_write&lt;/code&gt;, etc.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Doesn&amp;rsquo;t include non-modifying ZPL operations:&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;e.g. &lt;code&gt;zfs_create&lt;/code&gt;, &lt;code&gt;zfs_unlink&lt;/code&gt;, &lt;code&gt;zfs_write&lt;/code&gt; (some), etc.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;zfs_read&lt;/code&gt;, &lt;code&gt;zfs_seek&lt;/code&gt;, etc.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;doesn&amp;rsquo;t include non-modifying ZPL operations:&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;What gets logged?&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;e.g. &lt;code&gt;zfs_read&lt;/code&gt;, &lt;code&gt;zfs_seek&lt;/code&gt;, etc.&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;The fact that a logical operation is occuring is logged&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;zfs_remove&lt;/code&gt; &amp;rarr; directory object ID + name only&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Not logging which blocks will change due to logical operation&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
@@ -80,28 +88,13 @@
 &lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit()&lt;/code&gt; called for:&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;em&gt;any&lt;/em&gt; sync write&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;other sync operations (e.g. create, unlink), &lt;strong&gt;and&lt;/strong&gt; &lt;code&gt;sync=always&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;em&gt;some&lt;/em&gt; reads (&lt;code&gt;sync=always&lt;/code&gt; or &lt;code&gt;FRSYNC&lt;/code&gt; set)&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;any&lt;/em&gt; sync write&lt;sup&gt;**&lt;/sup&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;Except when dataset configured with: &lt;code&gt;sync=disabled&lt;/code&gt;]&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Caveat: None of this applies if dataset configured with: &lt;code&gt;sync=disabled&lt;/code&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;in-memory &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s aren&amp;rsquo;t created&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; doesn&amp;rsquo;t do writes to disk&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;
+&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;Except when dataset configured with: &lt;code&gt;sync=disabled&lt;/code&gt;.
+          &lt;sup&gt;**&lt;/sup&gt;Except when dataset configured with: &lt;code&gt;sync=always&lt;/code&gt;.]&lt;/p&gt;
 
 &lt;hr /&gt;
 
@@ -111,103 +104,61 @@
 &lt;li&gt;&lt;p&gt;SLOG: Acronym for (S)eperate (LOG) Device&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;An SLOG is not necessary&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;An SLOG can be used to improve latency of ZIL writes&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Conceptually, SLOG is different than the ZIL&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;ZIL is used, even if no SLOG attached&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;em&gt;An SLOG is not necessary&lt;/em&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;An SLOG is not necessary&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;By default (no SLOG), ZIL will write to main pool VDEVs&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&lt;em&gt;An SLOG can be used to improve latency of ZIL writes&lt;/em&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;An SLOG can be used to improve latency of ZIL writes&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;When attached, ZIL writes to SLOG instead of main pool&lt;/li&gt;
+&lt;li&gt;When attached, ZIL writes to SLOG instead of main pool&lt;sup&gt;*&lt;/sup&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&lt;em&gt;Conceptually, SLOG is different than the ZIL&lt;/em&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Conceptually, SLOG is different than the ZIL&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Difference between SLOG and ZIL, similar difference of DMU and VDEV&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;ZIL is mechanism for writing, SLOG is device written to&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;ZIL is mechanism for writing, SLOG is device written to&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ZIL is used, even if no SLOG attached&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
+
+&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;For some operations; see code for details.]&lt;/p&gt;
 
 &lt;hr /&gt;
 
 &lt;h1 id=&#34;why-does-the-zil-exist&#34;&gt;Why does the ZIL exist?&lt;/h1&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Writes in ZFS are &amp;ldquo;write-back&amp;rdquo;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Writes in ZFS are &amp;ldquo;write-back&amp;rdquo;&lt;/p&gt;
 
-&lt;li&gt;&lt;p&gt;Without the ZIL, sync operations inherit latency of &lt;code&gt;spa_sync()&lt;/code&gt;&lt;sup&gt;*&lt;/sup&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Data is first written and stored in-memory, in DMU layer&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Later, data for whole pool written to disk via &lt;code&gt;spa_sync()&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Without the ZIL, sync operations could wait for &lt;code&gt;spa_sync()&lt;/code&gt;&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;&lt;code&gt;spa_sync()&lt;/code&gt; can take tens of seconds (or more) to complete&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Further, with the ZIL, write amplification can be mitigated&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;ZIL is essentially a performance optimization&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;All operations inherit this latency, but only sync operations wait for completion]
-???&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Further, with the ZIL, write amplification can be mitigated&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;em&gt;Writes in ZFS are &amp;ldquo;write-back&amp;rdquo;&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Data is first written and stored in-memory, in DMU layer&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;At some later point, data for whole pool written to disk via &lt;code&gt;spa_sync()&lt;/code&gt;.&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;em&gt;Without ZIL, all sync operations inherit latency of &lt;code&gt;spa_sync()&lt;/code&gt;&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;We don&amp;rsquo;t want each sync operation to take this log&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;em&gt;Further, with the ZIL, write amplification can be mitigated&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;A single ZPL operation, can cause many writes to occur&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;e.g. 1 block write to a file causes additional writes to update
-indirect blocks&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;A single ZPL operation can cause many writes to occur&lt;/p&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;ZIL allows operation to &amp;ldquo;complete&amp;rdquo; with minimal data written&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&lt;em&gt;ZIL is essentially a performance optimization&lt;/em&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;ZIL needed to provide &amp;ldquo;fast&amp;rdquo; synchronous semantics to applications&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Strictly speaking, correctness could be achieved without it&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;e.g. all sync ops could just wait for &lt;code&gt;spa_sync()&lt;/code&gt; to complete&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;But practically speaking, it&amp;rsquo;s necessary&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Performance would be unreasonably bad without it&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;Correctness could be acheived without it, but would be &amp;ldquo;too slow&amp;rdquo;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -225,16 +176,6 @@ indirect blocks&lt;/li&gt;
 
 &lt;p&gt;.center[&lt;img src=&#34;zil-on-disk-format.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
 
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;em&gt;ZIL stored on-disk as a singly linked list of ZIL blocks (&lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s)&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;each ZIL block contains a pointer to the &amp;ldquo;next&amp;rdquo; ZIL block&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
 &lt;hr /&gt;
 
 &lt;p&gt;class: middle, center&lt;/p&gt;
@@ -249,31 +190,19 @@ indirect blocks&lt;/li&gt;
 &lt;li&gt;&lt;p&gt;ZPL will generally interact with the ZIL in two phases:&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;p&gt;Log the operation(s) &amp;mdash; &lt;code&gt;zil_itx_assign&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Log the operation(s) &amp;mdash; &lt;code&gt;zil_itx_assign&lt;/code&gt;&lt;/p&gt;
 
-&lt;li&gt;&lt;p&gt;Commit the operation(s) &amp;mdash; &lt;code&gt;zil_commit&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;ul&gt;
+&lt;li&gt;Tells the ZIL an operation is occuring&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Commit the operation(s) &amp;mdash; &lt;code&gt;zil_commit&lt;/code&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Causes the ZIL to write log record of operation to disk&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 &lt;/ul&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;em&gt;Log the operation(s)&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Tells the ZIL the operation occurred&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Only called when &lt;em&gt;new&lt;/em&gt; ZPL operations occur&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;em&gt;Commit the operation(s)&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Causes the ZIL to write log record of operation to disk&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Only called if sync write, or &lt;code&gt;sync=always&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ol&gt;
 
 &lt;hr /&gt;
 
@@ -325,21 +254,13 @@ indirect blocks&lt;/li&gt;
 &lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_fsync&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_commit&lt;/code&gt;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;no &lt;em&gt;new&lt;/em&gt; operations to log&amp;hellip; no &lt;code&gt;zfs_log_fysnc&lt;/code&gt; function&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;fsync&lt;/code&gt; doesn&amp;rsquo;t create any new modifications&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;only writes previous &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s to disk&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;thus, no &lt;code&gt;zfs_log_fsync&lt;/code&gt; function&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_fsync&lt;/code&gt; doesn&amp;rsquo;t have a &amp;ldquo;log&amp;rdquo; function&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;fsync&lt;/code&gt; doesn&amp;rsquo;t create any new modifications&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;instead, it only ensures prior modifying operations complete.&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;as a result, there isn&amp;rsquo;t a &lt;code&gt;zfs_log_fsync&lt;/code&gt; function&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -478,7 +399,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;find all relavant &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s, move them to the &amp;ldquo;commit list&amp;rdquo;&lt;/li&gt;
+&lt;li&gt;find all relevant &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s, move them to the &amp;ldquo;commit list&amp;rdquo;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -545,26 +466,10 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;So, why do we move sync list &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s to the commit list?&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;So the thread that writes these &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s out to disk&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;can work with a list that won&amp;rsquo;t change due to concurrent activity&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;If there&amp;rsquo;s concurrent ZPL operations occurring&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;those operations may insert new &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s onto the sync list.&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
 &lt;li&gt;&lt;p&gt;We create the &amp;ldquo;commit list&amp;rdquo; so the list of &lt;code&gt;itx&lt;/code&gt;s to write out&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;is isolated from this concurrent ZPL activity&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -614,45 +519,19 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&#34;zil-commit-2-01.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Starting with the commit list from before&amp;hellip;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-zil-commit-object-b-6&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
-
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;zil-commit-2-02.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Select the first &lt;code&gt;itx&lt;/code&gt; in the list&amp;hellip;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-zil-commit-object-b-7&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
-
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
 &lt;p&gt;&lt;img src=&#34;zil-commit-2-03.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;allocate our first ZIL block&amp;hellip;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Starting with a ZIL header and &lt;code&gt;lwb&lt;/code&gt; block already allocated&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Select the first &lt;code&gt;itx&lt;/code&gt; in the list&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-zil-commit-object-b-8&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
+&lt;h1 id=&#34;example-zil-commit-object-b-6&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
 
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
@@ -672,7 +551,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-zil-commit-object-b-9&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
+&lt;h1 id=&#34;example-zil-commit-object-b-7&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
 
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
@@ -686,7 +565,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-zil-commit-object-b-10&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
+&lt;h1 id=&#34;example-zil-commit-object-b-8&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
 
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
@@ -700,7 +579,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-zil-commit-object-b-11&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
+&lt;h1 id=&#34;example-zil-commit-object-b-9&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
 
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
@@ -716,7 +595,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-zil-commit-object-b-12&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
+&lt;h1 id=&#34;example-zil-commit-object-b-10&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
 
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
@@ -730,7 +609,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-zil-commit-object-b-13&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
+&lt;h1 id=&#34;example-zil-commit-object-b-11&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
 
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
@@ -744,7 +623,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-zil-commit-object-b-14&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
+&lt;h1 id=&#34;example-zil-commit-object-b-12&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
 
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
@@ -764,7 +643,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-zil-commit-object-b-15&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
+&lt;h1 id=&#34;example-zil-commit-object-b-13&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
 
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
@@ -796,7 +675,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-zil-commit-object-b-16&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
+&lt;h1 id=&#34;example-zil-commit-object-b-14&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
 
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
@@ -810,7 +689,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-zil-commit-object-b-17&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
+&lt;h1 id=&#34;example-zil-commit-object-b-15&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
 
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
@@ -824,7 +703,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-zil-commit-object-b-18&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
+&lt;h1 id=&#34;example-zil-commit-object-b-16&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
 
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
@@ -852,92 +731,28 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;&lt;del&gt;Wait for all ZIL block writes to complete&lt;/del&gt;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Flush VDEVs and notify waiting threads&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Flush VDEVs&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
 
-&lt;p&gt;class: middle, center&lt;/p&gt;
-
-&lt;h1 id=&#34;2-ndash-zil-block-sizing-performance&#34;&gt;2 &amp;ndash; ZIL Block Sizing + Performance&lt;/h1&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;zil-block-sizing-performance&#34;&gt;ZIL Block Sizing + Performance&lt;/h1&gt;
+&lt;h1 id=&#34;how-are-itx-s-written-to-disk-5&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;ZIL blocks must be &amp;ldquo;pre-allocated&amp;rdquo;, due to on-disk format&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; handles the process of writing &lt;code&gt;itx_t&lt;/code&gt;&amp;rsquo;s to disk:&lt;/p&gt;
 
-&lt;ul&gt;
-&lt;li&gt;Block size chosen at time of allocation&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;&lt;del&gt;Move async itx&amp;rsquo;s for object being commited, to the sync list&lt;/del&gt;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Allocated block size can dramatically impact performance:&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;&lt;del&gt;Write all commit list &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s to disk&lt;/del&gt;&lt;/p&gt;&lt;/li&gt;
 
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&amp;ldquo;too big&amp;rdquo; &amp;ndash; wasted space&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;del&gt;Wait for all ZIL block writes to complete&lt;/del&gt;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&amp;ldquo;too small&amp;rdquo; &amp;ndash; too many (small) IOPs issued to disk&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;del&gt;Flush VDEVs&lt;/del&gt;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&amp;ldquo;just right&amp;rdquo; &amp;ndash; large IOPs filled with &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;h1 id=&#34;zil-block-sizing-performance-1&#34;&gt;ZIL Block Sizing + Performance&lt;/h1&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;em&gt;ZIL blocks must be &amp;ldquo;pre-allocated&amp;rdquo;, due to on-disk format&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Each ZIL block contains pointer to next ZIL block on disk&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Thus, &amp;ldquo;next&amp;rdquo; block allocated when the &amp;ldquo;current&amp;rdquo; is issued to disk&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;em&gt;Allocated block size can dramatically impact performance:&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Because blocks &amp;ldquo;pre-allocated&amp;rdquo;&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;the size of &amp;ldquo;next&amp;rdquo; block is decided before number of &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s is known&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;em&gt;&amp;ldquo;too big&amp;rdquo;&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Block only partially filled with &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Can result in small, but fast, SLOG filling to capacity&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;full SLOG can cause poor performance&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;em&gt;&amp;ldquo;too small&amp;rdquo;&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Can cause disk saturation and poor performance&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;em&gt;&amp;ldquo;just right&amp;rdquo;&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;ZIL blocks fully utilized with &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s (no wasted SLOG space)&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Fewer IOPs for same number of &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;e.g. 15 8K writes using 1 128K lwb vs. 4 32K lwb&amp;rsquo;s&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Notify waiting threads&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -948,7 +763,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;problem-s&#34;&gt;Problem(s)&lt;/h1&gt;
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
 
 &lt;ol&gt;
 &lt;li&gt;&lt;p&gt;&lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s grouped and written in &amp;ldquo;batches&amp;rdquo;&lt;/p&gt;
@@ -966,44 +781,14 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-batch&#34;&gt;Example Batch&lt;/h1&gt;
+&lt;h1 id=&#34;problem-1&#34;&gt;Problem&lt;/h1&gt;
 
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;problem-01.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;problem.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Same batch from prior slides&amp;hellip;&lt;/li&gt;
-&lt;/ul&gt;
+&lt;li&gt;&lt;p&gt;Time spent servicing &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s for each disk&lt;/p&gt;&lt;/li&gt;
 
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-itx-s1&#34;&gt;Example &amp;ldquo;itx S1&amp;rdquo;&lt;/h1&gt;
-
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;problem-02.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;If a thread is waiting for &amp;ldquo;itx S1&amp;rdquo; to be persisted&amp;hellip;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-itx-s1-1&#34;&gt;Example &amp;ldquo;itx S1&amp;rdquo;&lt;/h1&gt;
-
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;problem-03.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;it must actually wait for &lt;strong&gt;all&lt;/strong&gt; &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s to be persisted.&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Color indicates order waiting threads notified&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -1011,29 +796,19 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;h1 id=&#34;implications&#34;&gt;Implications&lt;/h1&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; latency proportional to system workload, &lt;em&gt;not&lt;/em&gt; disk latency&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Disk &amp;ldquo;anomalies&amp;rdquo; &amp;rarr; larger batches &amp;rarr; increased &lt;code&gt;zil_commit&lt;/code&gt; latency&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;New calls to &lt;code&gt;zil_commit&lt;/code&gt; wait for &amp;ldquo;current&amp;rdquo; batch, &lt;em&gt;and&lt;/em&gt; &amp;ldquo;next&amp;rdquo; batch&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;em&gt;&lt;code&gt;zil_commit&lt;/code&gt; latency&lt;/em&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; latency proportional to system workload, &lt;em&gt;not&lt;/em&gt; disk latency&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;Fast SLOG may not compensate for large workload&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&lt;em&gt;Disk &amp;ldquo;anomalies&amp;rdquo;&lt;/em&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Disk &amp;ldquo;anomalies&amp;rdquo; &amp;rarr; larger batches &amp;rarr; increased &lt;code&gt;zil_commit&lt;/code&gt; latency&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;e.g. Temporary network delays when using SAN storage&lt;/li&gt;
+&lt;li&gt;e.g. temporary network delays when using network storage&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&lt;em&gt;New calls to &lt;code&gt;zil_commit&lt;/code&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;New calls to &lt;code&gt;zil_commit&lt;/code&gt; wait for &amp;ldquo;current&amp;rdquo; batch, &lt;em&gt;and&lt;/em&gt; &amp;ldquo;next&amp;rdquo; batch&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;Average &lt;code&gt;zil_commit&lt;/code&gt; latency equal to latency of 1.5 batches&lt;/li&gt;
@@ -1054,20 +829,24 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;li&gt;&lt;p&gt;Remove concept of &amp;ldquo;batches&amp;rdquo;:&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;p&gt;Allow &lt;code&gt;zil_commit&lt;/code&gt; to issue new ZIL block writes immediately&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Allow &lt;code&gt;zil_commit&lt;/code&gt; to issue new ZIL block writes immediately&lt;/p&gt;
 
-&lt;li&gt;&lt;p&gt;Notify threads immediately when &lt;em&gt;dependent&lt;/em&gt; &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s on disk&lt;/p&gt;&lt;/li&gt;
+&lt;ul&gt;
+&lt;li&gt;In contrast to waiting for the current batch to complete&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Notify threads immediately when &lt;em&gt;dependent&lt;/em&gt; &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s on disk&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;In contrast to waiting for &lt;em&gt;all&lt;/em&gt; &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s on disk&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;em&gt;Allow &lt;code&gt;zil_commit&lt;/code&gt; to issue new ZIL block writes immediately&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;In contrast to waiting for &amp;ldquo;current&amp;rdquo; batch to complete&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;em&gt;Allow &lt;code&gt;zil_commit&lt;/code&gt; to issue new ZIL block writes immediately&lt;/em&gt;&lt;/p&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;&lt;em&gt;Notify threads immediately when dependent &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s on disk&lt;/em&gt;&lt;/p&gt;
 
@@ -1078,641 +857,396 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-batch-1&#34;&gt;Example &amp;ldquo;Batch&amp;rdquo;&lt;/h1&gt;
+&lt;h1 id=&#34;problem-2&#34;&gt;Problem&lt;/h1&gt;
 
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;solution-01.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;problem.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Same example as before&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Time spent servicing &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s for each disk&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Color indicates order waiting threads notified&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-itx-s1-2&#34;&gt;Example &amp;ldquo;itx S1&amp;rdquo;&lt;/h1&gt;
+&lt;h1 id=&#34;solution-1&#34;&gt;Solution&lt;/h1&gt;
 
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;solution-02.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;solution.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Same thread waiting for &amp;ldquo;itx S1&amp;rdquo; to be persisted&amp;hellip;&lt;/li&gt;
-&lt;/ul&gt;
+&lt;li&gt;&lt;p&gt;Time spent servicing &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s for each disk&lt;/p&gt;&lt;/li&gt;
 
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-itx-s1-3&#34;&gt;Example &amp;ldquo;itx S1&amp;rdquo;&lt;/h1&gt;
-
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;solution-03.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;But, now it must wait for &lt;em&gt;only&lt;/em&gt; &amp;ldquo;lwb 1&amp;rdquo; to complete&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Previously, would have also waited for &amp;ldquo;lwb 2&amp;rdquo;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Might not seem significant for a small example with 2 &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;But it can be significant with 100&amp;rsquo;s of &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s on a real system&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Color indicates order waiting threads notified&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
 
 &lt;p&gt;class: middle, center&lt;/p&gt;
 
-&lt;h1 id=&#34;4-ndash-changes-to-vdev-flush&#34;&gt;4 &amp;ndash; Changes to VDEV Flush&lt;/h1&gt;
+&lt;h1 id=&#34;4-ndash-details-on-the-changes-i-made&#34;&gt;4 &amp;ndash; Details on the Changes I Made&lt;/h1&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;details&#34;&gt;Details&lt;/h1&gt;
+&lt;p&gt;background-image: url(changes-before-01.svg)
+background-size: 65%&lt;/p&gt;
 
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;A ZIL block is not &amp;ldquo;persistent&amp;rdquo; until the VDEV is flushed&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Prior mechanics:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Single VDEV flush for each VDEV, after batch completes&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;1 flush per many lwb&amp;rsquo;s&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;New mechanics:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;VDEV flush issued after each ZIL block written&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;1 flush per 1 lwb&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-before&#34;&gt;Example: Before&lt;/h1&gt;
-
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;flush-sequence-before.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
+&lt;h2 id=&#34;before&#34;&gt;Before&lt;/h2&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;2 &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s are written to VDEV 1&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Bulk of changes I made revolves around the following 3 things:&lt;/p&gt;
 
-&lt;ul&gt;
-&lt;li&gt;but only a single flush is issued to it.&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;how &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s are issued to disk&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Additionally, all flushes are issued at the very end.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;how flush commands are sent to the disks&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;how waiting threads are notified&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Previously, this was a mostly a sequential 3 step process&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-after&#34;&gt;Example: After&lt;/h1&gt;
+&lt;p&gt;background-image: url(changes-before-02.svg)
+background-size: 65%&lt;/p&gt;
 
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;flush-sequence-after.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
+&lt;h2 id=&#34;before-1&#34;&gt;Before&lt;/h2&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;The same 2 &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s are written to VDEV 1&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Step 1 would consist of creating the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;but 2 flushes are issued to it.&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;issuing these to disk&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Additionally, the flushes are issued immediately after corresponding
-&amp;ldquo;lwb done&amp;rdquo;.&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;class: middle, center&lt;/p&gt;
-
-&lt;h1 id=&#34;4-ndash-changes-to-zil-block-zio-tree&#34;&gt;4 &amp;ndash; Changes to ZIL Block ZIO Tree&lt;/h1&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;details-1&#34;&gt;Details&lt;/h1&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;ZIL blocks issued to disk using ZIOs&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Prior mechanics:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&amp;ldquo;root&amp;rdquo; ZIO created for each batch&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&amp;ldquo;write&amp;rdquo; ZIOs, for all &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s in batch, are children of root ZIO&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&amp;ldquo;flush&amp;rdquo; ZIOs issued separately after root ZIO completes&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;New mechanics:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&amp;ldquo;root&amp;rdquo; ZIO created for each lwb&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&amp;ldquo;write&amp;rdquo; and &amp;ldquo;flush&amp;rdquo; ZIOs are child of root ZIO&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&amp;ldquo;next&amp;rdquo; lwb root ZIO become parent of &amp;ldquo;current&amp;rdquo; lwb root ZIO&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;em&gt;ZIL blocks issued to disk using ZIOs&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;ZIOs represented as directed acyclic graph (DAG)&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Parent ZIOs cannot complete until all children complete&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;and then waiting for the IO for all the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s to complete.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-before-1&#34;&gt;Example: Before&lt;/h1&gt;
+&lt;p&gt;background-image: url(changes-before-03.svg)
+background-size: 65%&lt;/p&gt;
 
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;zio-tree-before-01.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;First, the root ZIO for the batch is generated&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-before-2&#34;&gt;Example: Before&lt;/h1&gt;
-
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;zio-tree-before-02.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
+&lt;h2 id=&#34;before-2&#34;&gt;Before&lt;/h2&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Then the &lt;code&gt;lwb&lt;/code&gt; ZIOs are created as children&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-before-3&#34;&gt;Example: Before&lt;/h1&gt;
-
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;zio-tree-before-03.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-before-4&#34;&gt;Example: Before&lt;/h1&gt;
-
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;zio-tree-before-04.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-before-5&#34;&gt;Example: Before&lt;/h1&gt;
-
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;zio-tree-before-05.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Once that Step 1 completes&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;After all &lt;code&gt;lwb&lt;/code&gt; ZIOs complete&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Step 2 would consist of issuing the flush commands to each VDEV&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;the root ZIO for the VDEV flush commands is generated&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-before-6&#34;&gt;Example: Before&lt;/h1&gt;
-
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;zio-tree-before-06.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;And we&amp;rsquo;d issue a flush to each VDEV written to&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-before-7&#34;&gt;Example: Before&lt;/h1&gt;
-
-&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;zio-tree-before-07.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Once all VDEV flushes complete&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;we&amp;rsquo;re done, and any waiting threads would be notified&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-after-1&#34;&gt;Example: After&lt;/h1&gt;
-
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-01.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;The ZIO tree is dramatically different after my changes&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Now, we create a root ZIO similar to before&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;But this root ZIO is specific to an &lt;code&gt;lwb&lt;/code&gt;, as will become clear&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-after-2&#34;&gt;Example: After&lt;/h1&gt;
-
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-02.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Next, we create another ZIO for the &amp;ldquo;write&amp;rdquo; of the &lt;code&gt;lwb&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;This ZIO contains the actual data and &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s to be persisted&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Also, it&amp;rsquo;s a child of the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s root ZIO&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-after-3&#34;&gt;Example: After&lt;/h1&gt;
-
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-03.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;After that &amp;ldquo;write&amp;rdquo; ZIO &lt;strong&gt;completes&lt;/strong&gt;, the flush ZIO is issued&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;The flush ZIO is also a child of the &lt;code&gt;lwb&lt;/code&gt; root ZIO&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-after-4&#34;&gt;Example: After&lt;/h1&gt;
-
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-04.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;h1 id=&#34;example-after-5&#34;&gt;Example: After&lt;/h1&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;If another &lt;code&gt;lwb&lt;/code&gt; is to be written&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;it&amp;rsquo;ll also have a root ZIO of its own&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Further, it&amp;rsquo;ll have the prior &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s root ZIO as a child&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;we do this so that the root ZIO for &amp;ldquo;lwb 2&amp;rdquo; can&amp;rsquo;t complete&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;until &amp;ldquo;lwb 1&amp;rdquo; completes.&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;The importance of the order of these ZIO completions&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;will hopefully become more clear later.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;and then waiting for all of them to complete.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-after-6&#34;&gt;Example: After&lt;/h1&gt;
+&lt;p&gt;background-image: url(changes-before-04.svg)
+background-size: 65%&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-05.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+&lt;h2 id=&#34;before-3&#34;&gt;Before&lt;/h2&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Next, we create the &lt;code&gt;lwb&lt;/code&gt; write ZIO just like before&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;And then, &lt;em&gt;finally&lt;/em&gt;, after all flushes have completed&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;the ZIL&amp;rsquo;s CV is signalled to notify any waiting threads&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;letting them know their data is safe on disk.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;All 3 of these steps would consist of a single batch.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-after-7&#34;&gt;Example: After&lt;/h1&gt;
+&lt;p&gt;background-image: url(changes-before-05.svg)
+background-size: 65%&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-06.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+&lt;h2 id=&#34;before-4&#34;&gt;Before&lt;/h2&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;To make things more interesting&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;And, after one batch completes&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;let&amp;rsquo;s say the next &lt;code&gt;lwb&lt;/code&gt; is issued before this &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s &amp;ldquo;write&amp;rdquo; completes.&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;In this case, the &amp;ldquo;write&amp;rdquo; for &amp;ldquo;lwb 2&amp;rdquo; will still be outstanding&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;so the flush for that lwb will not have been issued&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;but a new &lt;code&gt;lwb&lt;/code&gt; can still be created and issued.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;another would start up again.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-after-8&#34;&gt;Example: After&lt;/h1&gt;
+&lt;p&gt;background-image: url(changes-before-06.svg)
+background-size: 65%&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-07.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+&lt;h2 id=&#34;before-5&#34;&gt;Before&lt;/h2&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;And this &lt;code&gt;lwb&lt;/code&gt; will also have a child &amp;ldquo;write&amp;rdquo; ZIO&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;And another.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;This would repeat as long as&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;there was a continuous stream of incoming sync operations to process.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-after-9&#34;&gt;Example: After&lt;/h1&gt;
+&lt;p&gt;background-image: url(changes-after-01.svg)
+background-size: 85%&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-08.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+&lt;h2 id=&#34;after&#34;&gt;After&lt;/h2&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;It&amp;rsquo;s even possible for the &amp;ldquo;write&amp;rdquo; of &amp;ldquo;lwb 3&amp;rdquo; to complete before&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Now the process is entirely different&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;the &amp;ldquo;write&amp;rdquo; of &amp;ldquo;lwb 2&amp;rdquo;&lt;/li&gt;
+&lt;li&gt;and heavily leaverages the ZIO infrastructure&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;If that occurs, the flush for &amp;ldquo;lwb 3&amp;rdquo; will get issued before&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Each &lt;code&gt;lwb&lt;/code&gt; will have a root ZIO, which will eventually have 2 children:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;A &amp;ldquo;write&amp;rdquo; ZIO containing the &lt;code&gt;itx&lt;/code&gt; data to be written&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;A &amp;ldquo;flush&amp;rdquo; ZIO that will be issued after the &amp;ldquo;write&amp;rdquo; ZIO completes&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Since these are children, the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s &amp;ldquo;root&amp;rdquo; ZIO&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;the flush for &amp;ldquo;lwb 2&amp;rdquo;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;cannot complete until both the &amp;ldquo;write&amp;rdquo; and the &amp;ldquo;flush&amp;rdquo; complete&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;This is enforced by the ZIO parent-child dependency semantics&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Further, the &amp;ldquo;root&amp;rdquo; ZIO of each &amp;ldquo;previous&amp;rdquo; &lt;code&gt;lwb&lt;/code&gt;&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;will be a &amp;ldquo;child&amp;rdquo; of the &amp;ldquo;root&amp;rdquo; ZIO for the &amp;ldquo;next&amp;rdquo; &lt;code&gt;lwb&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;This ensures the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s completes in correct order&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;again, leveraging ZIO dependencies to acheive this ordering&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Additionally, each &lt;code&gt;lwb&lt;/code&gt; maintains a list of CVs&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Each CV on this list maps to a waiting thread&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;When the &amp;ldquo;root&amp;rdquo; ZIO for the &lt;code&gt;lwb&lt;/code&gt; completes&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;each CV in this list is signalled&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;which notifies the waiting thread that it&amp;rsquo;s data is safe on disk&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Let&amp;rsquo;s walk through an example of what this looks like&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(changes-after-02.svg)
+background-size: 85%&lt;/p&gt;
+
+&lt;h2 id=&#34;after-1&#34;&gt;After&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;First, the &amp;ldquo;root&amp;rdquo; ZIO for the &lt;code&gt;lwb&lt;/code&gt; is created&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(changes-after-03.svg)
+background-size: 85%&lt;/p&gt;
+
+&lt;h2 id=&#34;after-2&#34;&gt;After&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;And then the &amp;ldquo;write&amp;rdquo; ZIO is issued&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(changes-after-04.svg)
+background-size: 85%&lt;/p&gt;
+
+&lt;h2 id=&#34;after-3&#34;&gt;After&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;When that &amp;ldquo;write&amp;rdquo; ZIO completes, the flush will immediately be issued&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(changes-after-05.svg)
+background-size: 85%&lt;/p&gt;
+
+&lt;h2 id=&#34;after-4&#34;&gt;After&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Then, when the &amp;ldquo;flush&amp;rdquo; ZIO completes&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;that&amp;rsquo;ll allow the &amp;ldquo;root&amp;rdquo; ZIO for this specific &lt;code&gt;lwb&lt;/code&gt; to complete&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;at which point, each CV in the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s list of CVs will be signalled&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(changes-after-06.svg)
+background-size: 85%&lt;/p&gt;
+
+&lt;h2 id=&#34;after-5&#34;&gt;After&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;The same process would occur of the next &lt;code&gt;lwb&lt;/code&gt;&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(changes-after-07.svg)
+background-size: 85%&lt;/p&gt;
+
+&lt;h2 id=&#34;after-6&#34;&gt;After&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;And the next.&lt;/p&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;It&amp;rsquo;s important to note&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;even if the flush of &amp;ldquo;lwb 3&amp;rdquo; were to complete&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;the sequence of events doesn&amp;rsquo;t have to occur in this order&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;the root ZIO &amp;ldquo;lwb 3&amp;rdquo; can&amp;rsquo;t complete&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;becuase the root for &amp;ldquo;lwb 2&amp;rdquo; is still in progress.&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;This is enforced by the ZIO layer&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;For example, it&amp;rsquo;s possible for &amp;ldquo;lwb 2&amp;rdquo; to have issued it&amp;rsquo;s&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;a &amp;ldquo;parent&amp;rdquo; ZIO can&amp;rsquo;t complete until all children complete&lt;/li&gt;
+&lt;li&gt;&amp;ldquo;write&amp;rdquo; ZIO before the &amp;ldquo;write&amp;rdquo; of &amp;ldquo;lwb 1&amp;rdquo; completes.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;It can even complete before the &amp;ldquo;write&amp;rdquo; of &amp;ldquo;lwb 1&amp;rdquo;&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Same goes for the &amp;ldquo;flush&amp;rdquo; for &amp;ldquo;lwb 2&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;But&lt;/strong&gt;, due to the ZIO dependency tree, the &amp;ldquo;root&amp;rdquo; ZIO for &amp;ldquo;lwb 2&amp;rdquo;&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;cannot complete until the &amp;ldquo;root&amp;rdquo; for &amp;ldquo;lwb 1&amp;rdquo; completes.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Thus, the CVs for &amp;ldquo;lwb 2&amp;rdquo; will never be signalled&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;prior to &amp;ldquo;lwb 1&amp;rdquo; completing&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;So&lt;/strong&gt;, while this example might imply&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;this process is still very sequential, just like before&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;it doesn&amp;rsquo;t have to be&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Now, it&amp;rsquo;s all driven by the incoming workload&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;and disk completion events.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s are created and issued whenever there&amp;rsquo;s data to write&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;and waiting threads are notified whenever those writes complete.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
 
-&lt;h1 id=&#34;example-after-10&#34;&gt;Example: After&lt;/h1&gt;
+&lt;h1 id=&#34;new-tunable-lwb-timeout&#34;&gt;New Tunable: &lt;code&gt;lwb&lt;/code&gt; Timeout&lt;/h1&gt;
 
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-09.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;.center[&lt;img src=&#34;lwb-timeout.svg&#34; alt=&#34;:scale 90%&#34; /&gt;]&lt;/p&gt;
+
+&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;New tunable named: &lt;code&gt;zfs_commit_timeout_pct&lt;/code&gt;]&lt;/p&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Now, lets say the &amp;ldquo;write&amp;rdquo; for &amp;ldquo;lwb 2&amp;rdquo; completes&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Prior to issuing an &lt;code&gt;lwb&lt;/code&gt; to disk, it remains &amp;ldquo;open&amp;rdquo;&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;so the flush for &amp;ldquo;lwb 2&amp;rdquo; is issued.&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;such that we can continue to use this &lt;code&gt;lwb&lt;/code&gt;&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;for any future &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s that occur, and would fit in the &lt;code&gt;lwb&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Since &amp;ldquo;lwb 3&amp;rdquo; may have already completed it&amp;rsquo;s write and flush&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;This is done to help fill &lt;code&gt;lwb&lt;/code&gt; blocks with useful &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;it&amp;rsquo;s possible for &amp;ldquo;lwb 2&amp;rdquo; and &amp;ldquo;lwb 3&amp;rdquo; to complete &amp;ldquo;simultaneously&amp;rdquo;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;
+&lt;li&gt;&lt;p&gt;in an attempt to use as few &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s as possible&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-after-11&#34;&gt;Example: After&lt;/h1&gt;
-
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-10.svg&#34; alt=&#34;:scale 100%&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;This pattern will continue as long as there&amp;rsquo;s &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s to issue to disk&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-after-12&#34;&gt;Example: After&lt;/h1&gt;
-
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-11.svg&#34; alt=&#34;:scale 100%&#34; /&gt;&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-after-13&#34;&gt;Example: After&lt;/h1&gt;
-
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-12.svg&#34; alt=&#34;:scale 100%&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;As &lt;code&gt;lwb&lt;/code&gt; root ZIOs complete&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;they&amp;rsquo;ll simply be removed from the &amp;ldquo;tail&amp;rdquo; of the tree&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;for as many &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s as possible.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Here, &amp;ldquo;lwb 1&amp;rdquo; has been removed&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-after-14&#34;&gt;Example: After&lt;/h1&gt;
-
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-13.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;This is critical to maintain good performance&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Now &amp;ldquo;lwb 2&amp;rdquo;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-after-15&#34;&gt;Example: After&lt;/h1&gt;
-
-&lt;p&gt;&lt;img src=&#34;zio-tree-after-14.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;And &amp;ldquo;lwb 3&amp;rdquo;&amp;hellip; etc.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;class: middle, center&lt;/p&gt;
-
-&lt;h1 id=&#34;4-ndash-changes-to-waiter-notification&#34;&gt;4 &amp;ndash; Changes to Waiter Notification&lt;/h1&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;details-before&#34;&gt;Details: Before&lt;/h1&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;2 condition variables (CV), for &amp;ldquo;current&amp;rdquo; and &amp;ldquo;next&amp;rdquo; batch&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Threads that called &lt;code&gt;zil_commit&lt;/code&gt;:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Assigned to &amp;ldquo;next batch&amp;rdquo;, wait on next batch&amp;rsquo;s CV&lt;/li&gt;
+&lt;li&gt;with a continuous stream of incoming sync operations.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;When &amp;ldquo;current&amp;rdquo; batch completes&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;All threads waiting on &amp;ldquo;current&amp;rdquo; signalled, they&amp;rsquo;d return&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;One thread waiting on &amp;ldquo;next&amp;rdquo; signalled, becomes &amp;ldquo;writer&amp;rdquo;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&amp;ldquo;next&amp;rdquo; and &amp;ldquo;current&amp;rdquo; CV swapped&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Ultimately, these two CVs are the source of original problem&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-before-8&#34;&gt;Example: Before&lt;/h1&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;waiter-sequence-before-01.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;But, if incoming sync operations stop&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Here&amp;rsquo;s a possible sequence of events&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;we need to bound the amount of time this &amp;ldquo;open&amp;rdquo; lwb waits&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;But don&amp;rsquo;t try and understand it all right now&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-before-9&#34;&gt;Example: Before&lt;/h1&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;waiter-sequence-before-02.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Instead, I want to hightlight how/when processes become &amp;ldquo;done&amp;rdquo;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Specifically, writer threads must stop writing&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;in order to notifiy and wake up any waiting threads&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;before it is issued to disk, partially filled.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Further, this notification only occurs after an entire batch completes&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;details-after&#34;&gt;Details: After&lt;/h1&gt;
+&lt;li&gt;&lt;p&gt;We determine the amount of time to wait&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Each &lt;code&gt;lwb&lt;/code&gt; has a list of CVs&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Each time a process calls &lt;code&gt;zil_commit&lt;/code&gt;:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;A new CV is allocated for this specific process to wait on&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;This CV is attached to the &lt;code&gt;lwb&lt;/code&gt; that will persist the process&amp;rsquo;s
-data&lt;sup&gt;*&lt;/sup&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;by waiting a percentage of the last &lt;code&gt;lwb&lt;/code&gt; write&amp;rsquo;s latency.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;When an &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s ZIO completes, each CV in the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s list is signalled&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;By default, wait 5% of the last &lt;code&gt;lwb&lt;/code&gt; write&amp;rsquo;s latency&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;This allows processes to be signalled while &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s are being written&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;How we determine which &lt;code&gt;lwb&lt;/code&gt; does this, isn&amp;rsquo;t covered.]&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-after-16&#34;&gt;Example: After&lt;/h1&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;waiter-sequence-after-01.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;If the &amp;ldquo;open&amp;rdquo; &lt;code&gt;lwb&lt;/code&gt; isn&amp;rsquo;t filled in that amount of time&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Here&amp;rsquo;s another sequence of events&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Like before, there&amp;rsquo;s a lot to take in&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;so don&amp;rsquo;t try and understand it all&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;example-after-17&#34;&gt;Example: After&lt;/h1&gt;
-
-&lt;p&gt;.center[&lt;img src=&#34;waiter-sequence-after-02.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
-
-&lt;p&gt;???&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Instead, I want to highlight how/when processes become &amp;ldquo;done&amp;rdquo;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;In this &amp;ldquo;new world&amp;rdquo;, processes are signalled as done from the &amp;ldquo;ZIO
-done&amp;rdquo; callback&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Further, we can see that they&amp;rsquo;re signalled while &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s are being
-written&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Thus, there&amp;rsquo;s no &amp;ldquo;start&amp;rdquo;/&amp;ldquo;stop&amp;rdquo; sort of behavior like previously&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Where we&amp;rsquo;d have to stop writing, in order to signal waiters&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Now the waiter&amp;rsquo;s are notified &amp;ldquo;async&amp;rdquo; from the context of the writer&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;immediately from the ZIO done callback for that process&amp;rsquo;s &lt;code&gt;lwb&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;it will &amp;ldquo;timeout&amp;rdquo;, and be issued to disk partially filled.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -1720,111 +1254,57 @@ written&lt;/p&gt;&lt;/li&gt;
 
 &lt;p&gt;class: middle, center&lt;/p&gt;
 
-&lt;h1 id=&#34;5-ndash-performance-testing-and-results&#34;&gt;5 &amp;ndash; Performance testing and results.&lt;/h1&gt;
-
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;details-2&#34;&gt;Details&lt;/h1&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Two &lt;code&gt;fio&lt;/code&gt; workloads used to drive a sync write workload&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;fio&lt;/code&gt; was trying to perform sync writes as fast as it could&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;&lt;code&gt;fio&lt;/code&gt; was trying to perform 64 sync writes per second&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;IOPs and latency measured with and without my changes&lt;sup&gt;*&lt;/sup&gt;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;1, 2, 4, and 8 disk zpools; both SSD and HDD&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;fio threads ranging from 1 to 1024; increasing in powers of 2&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Full details can be found &lt;a href=&#34;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/&#34;&gt;here&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;Other metrics also observed, but not covered here.]&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;class: middle, center&lt;/p&gt;
-
-&lt;h1 id=&#34;5-ndash-max-rate-workload-ndash-hdds&#34;&gt;5 &amp;ndash; Max Rate Workload &amp;ndash; HDDs&lt;/h1&gt;
+&lt;h1 id=&#34;5-ndash-performance-testing-and-results&#34;&gt;5 &amp;ndash; Performance testing and results&lt;/h1&gt;
 
 &lt;hr /&gt;
 
 &lt;p&gt;background-image: url(max-rate-hdd-iops-pctchange.svg)
-background-size: 100%&lt;/p&gt;
+background-size: 115%&lt;/p&gt;
 
-&lt;h1 id=&#34;change-iops-ndash-max-rate-ndash-hdds&#34;&gt;% Change IOPs &amp;ndash; Max Rate &amp;ndash; HDDs&lt;/h1&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;background-image: url(max-rate-hdd-lat-pctchange.svg)
-background-size: 100%&lt;/p&gt;
-
-&lt;h1 id=&#34;change-latency-ndash-max-rate-ndash-hdds&#34;&gt;% Change Latency &amp;ndash; Max Rate &amp;ndash; HDDs&lt;/h1&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;class: middle, center&lt;/p&gt;
-
-&lt;h1 id=&#34;5-ndash-max-rate-workload-ndash-ssds&#34;&gt;5 &amp;ndash; Max Rate Workload &amp;ndash; SSDs&lt;/h1&gt;
+&lt;h2 id=&#34;83-increase-in-iops-on-average-ndash-max-rate-ndash-8-hdds&#34;&gt;~83% Increase in IOPs on Average &amp;ndash; Max Rate &amp;ndash; 8 HDDs&lt;/h2&gt;
 
 &lt;hr /&gt;
 
 &lt;p&gt;background-image: url(max-rate-ssd-iops-pctchange.svg)
-background-size: 100%&lt;/p&gt;
+background-size: 115%&lt;/p&gt;
 
-&lt;h1 id=&#34;change-iops-ndash-max-rate-ndash-ssds&#34;&gt;% Change IOPs &amp;ndash; Max Rate &amp;ndash; SSDs&lt;/h1&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;background-image: url(max-rate-ssd-lat-pctchange.svg)
-background-size: 100%&lt;/p&gt;
-
-&lt;h1 id=&#34;change-latency-ndash-max-rate-ndash-ssds&#34;&gt;% Change Latency &amp;ndash; Max Rate &amp;ndash; SSDs&lt;/h1&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;class: middle, center&lt;/p&gt;
-
-&lt;h1 id=&#34;5-ndash-fixed-rate-workload-ndash-hdds&#34;&gt;5 &amp;ndash; Fixed Rate Workload &amp;ndash; HDDs&lt;/h1&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;background-image: url(fixed-rate-hdd-iops-pctchange.svg)
-background-size: 100%&lt;/p&gt;
-
-&lt;h1 id=&#34;change-iops-ndash-fixed-rate-ndash-hdds&#34;&gt;% Change IOPs &amp;ndash; Fixed Rate &amp;ndash; HDDs&lt;/h1&gt;
+&lt;h2 id=&#34;48-increase-in-iops-on-average-ndash-max-rate-ndash-8-ssds&#34;&gt;~48% Increase in IOPs on Average &amp;ndash; Max Rate &amp;ndash; 8 SSDs&lt;/h2&gt;
 
 &lt;hr /&gt;
 
 &lt;p&gt;background-image: url(fixed-rate-hdd-lat-pctchange.svg)
-background-size: 100%&lt;/p&gt;
+background-size: 115%&lt;/p&gt;
 
-&lt;h1 id=&#34;change-latency-ndash-fixed-rate-ndash-hdds&#34;&gt;% Change Latency &amp;ndash; Fixed Rate &amp;ndash; HDDs&lt;/h1&gt;
+&lt;h2 id=&#34;27-decrease-in-latency-on-average-ndash-fixed-rate-ndash-8-hdds&#34;&gt;~27% Decrease in Latency on Average &amp;ndash; Fixed Rate &amp;ndash; 8 HDDs&lt;/h2&gt;
 
-&lt;hr /&gt;
-
-&lt;p&gt;class: middle, center&lt;/p&gt;
-
-&lt;h1 id=&#34;5-ndash-fixed-rate-workload-ndash-ssds&#34;&gt;5 &amp;ndash; Fixed Rate Workload &amp;ndash; SSDs&lt;/h1&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;background-image: url(fixed-rate-ssd-iops-pctchange.svg)
-background-size: 100%&lt;/p&gt;
-
-&lt;h1 id=&#34;change-iops-ndash-fixed-rate-ndash-ssds&#34;&gt;% Change IOPs &amp;ndash; Fixed Rate &amp;ndash; SSDs&lt;/h1&gt;
+&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;IOPs increased with new code, and &amp;gt;64 threads; those data points omitted.]&lt;/p&gt;
 
 &lt;hr /&gt;
 
 &lt;p&gt;background-image: url(fixed-rate-ssd-lat-pctchange.svg)
-background-size: 100%&lt;/p&gt;
+background-size: 115%&lt;/p&gt;
 
-&lt;h1 id=&#34;change-latency-ndash-fixed-rate-ndash-ssds&#34;&gt;% Change Latency &amp;ndash; Fixed Rate &amp;ndash; SSDs&lt;/h1&gt;
+&lt;h2 id=&#34;16-decrease-in-latency-on-average-ndash-fixed-rate-ndash-8-ssds&#34;&gt;~16% Decrease in Latency on Average &amp;ndash; Fixed Rate &amp;ndash; 8 SSDs&lt;/h2&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;more-details&#34;&gt;More Details&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Two &lt;code&gt;fio&lt;/code&gt; workloads were used:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;each thread submitting sync writes as fast as it could&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;each thread submitting 64 sync writes per second&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;1, 2, 4, and 8 disk zpools; both SSD and HDD&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;fio&lt;/code&gt; threads ranging from 1 to 1024; increasing in powers of 2&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Full details can be found &lt;a href=&#34;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/&#34;&gt;here&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
 </description>
     </item>
     
