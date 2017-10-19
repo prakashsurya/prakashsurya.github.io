@@ -31,11 +31,55 @@
 
 &lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;Press &amp;ldquo;p&amp;rdquo; for notes, and &amp;ldquo;c&amp;rdquo; for split view.]&lt;/p&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Here&amp;rsquo;s a brief overview of what I plan to discuss.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;It&amp;rsquo;s broken up into roughly 3 parts:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;First I&amp;rsquo;ll give some background, and discuss:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;What the ZIL is&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;how it&amp;rsquo;s used&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;and how it works.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Then I&amp;rsquo;ll get into:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;The problem I set out to fix&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;how I fixed it&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;and provide some details on how I did that.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;And then, lastly, I&amp;rsquo;ll show off some graphs&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;and the results of my work.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;So, with that out of the way, let&amp;rsquo;s get started.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;p&gt;class: middle, center&lt;/p&gt;
 
 &lt;h1 id=&#34;1-ndash-what-is-the-zil&#34;&gt;1 &amp;ndash; What is the ZIL?&lt;/h1&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;First off&amp;hellip; what is the ZIL?&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;hr /&gt;
 
@@ -62,7 +106,7 @@
 &lt;li&gt;&lt;p&gt;What gets logged?&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;The fact that a logical operation is occuring is logged&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;The fact that a logical operation is occurring is logged&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;&lt;code&gt;zfs_remove&lt;/code&gt; &amp;rarr; directory object ID + name only&lt;/li&gt;
@@ -71,6 +115,41 @@
 &lt;li&gt;&lt;p&gt;Not logging which blocks will change due to logical operation&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;ZIL stands for ZFS Intent Log.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;It&amp;rsquo;s the mechanism that&amp;rsquo;s responsible for logging synchronous
+operations to disk.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The operations that get logged are &amp;ldquo;logical&amp;rdquo; operations, such as:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;zfs_create&lt;/code&gt;, &lt;code&gt;zfs_remove&lt;/code&gt;, etc.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;This does not include non-modifying operations, such as:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;zfs_read&lt;/code&gt;, &lt;code&gt;zfs_seek&lt;/code&gt;, etc.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The data that get&amp;rsquo;s logged, is simply the fact that the logical
+operation occured.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For example, for &lt;code&gt;zfs_remove&lt;/code&gt;, it&amp;rsquo;s only&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;the name of the object to remove&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;and the object ID of the directory from which that name will be
+removed.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;It&amp;rsquo;s &lt;em&gt;not&lt;/em&gt; which blocks on-disk would change due to that removal.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -96,14 +175,53 @@
 &lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;Except when dataset configured with: &lt;code&gt;sync=disabled&lt;/code&gt;.
           &lt;sup&gt;**&lt;/sup&gt;Except when dataset configured with: &lt;code&gt;sync=always&lt;/code&gt;.]&lt;/p&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;The ZIL is almost always used.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Whenever any of these logged operations occur&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;they&amp;rsquo;re inserted into the ZIL&amp;rsquo;s in-memory list of operations.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;These operations are often called as &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s, or &amp;ldquo;intent log
+transactions&amp;rdquo;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;When &lt;code&gt;zil_commit&lt;/code&gt; is called&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;the &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s tracked by the in-memory ZIL are then written to disk.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The caveat to all of this, being&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;none of this occurs if the dataset is configured with
+&lt;code&gt;sync=disabled&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If &lt;code&gt;sync=disabled&lt;/code&gt;, &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s aren&amp;rsquo;t tracked in-memory&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;nor are they written to disk.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;h1 id=&#34;what-is-the-slog&#34;&gt;What is the SLOG?&lt;/h1&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;SLOG: Acronym for (S)eperate (LOG) Device&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;SLOG: Acronym for (S)eperate (LOG) Device&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Conceptually, SLOG is different than the ZIL&lt;/p&gt;
 
 &lt;ul&gt;
+&lt;li&gt;ZIL is mechanism for writing, SLOG is device written to&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
 &lt;li&gt;&lt;p&gt;An SLOG is not necessary&lt;/p&gt;
 
 &lt;ul&gt;
@@ -115,18 +233,40 @@
 &lt;ul&gt;
 &lt;li&gt;When attached, ZIL writes to SLOG instead of main pool&lt;sup&gt;*&lt;/sup&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Conceptually, SLOG is different than the ZIL&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;ZIL is mechanism for writing, SLOG is device written to&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;ZIL is used, even if no SLOG attached&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;For some operations; see code for details.]&lt;/p&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Since I often see the ZIL and SLOG terms used incorrectly&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;I wanted to briefly address this.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;SLOG stands for Seperate Log Device.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The ZIL and SLOG are different, in that:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;the ZIL is the mechanism for issuing writes to disk&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;and the SLOG &lt;em&gt;may&lt;/em&gt; be the disk that the writes are issued to.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;With that said, an SLOG is &lt;strong&gt;not&lt;/strong&gt; necessary.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;By default, ZIL writes will go to the main pool&amp;rsquo;s disks.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;em&gt;But&lt;/em&gt;, an SLOG can be used to try and improve the latency of ZIL
+writes&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;if the main pool&amp;rsquo;s VDEVs are deemed &amp;ldquo;too slow&amp;rdquo;.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;hr /&gt;
 
@@ -162,6 +302,58 @@
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;So, why exactly does the ZIL exist in the first place?&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Well, writes in ZFS are &amp;ldquo;write back&amp;rdquo;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Data is first modified and stored in-memory, in the DMU layer&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;and then at some later point, this data is written to disk via
+&lt;code&gt;spa_sync()&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The problem is, &lt;code&gt;spa_sync()&lt;/code&gt; can take tens of seconds or more&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;to write out this data.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;It&amp;rsquo;s unacceptable for all sync writes to take tens of seconds to
+complete.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Further, writes in ZFS often cause more writes to occur.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For example. a singe file write&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;modifying a single block of &amp;ldquo;user data&amp;rdquo;&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;will then cause indirect blocks to also be modified and written.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The ZIL allows this &amp;ldquo;write amplification&amp;rdquo; effect to be mitigated.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Essentially, the ZIL exists as a performance optimization.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;To provide synchronous sematics to applications&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;faster than what could be achieved with &lt;code&gt;spa_sync()&lt;/code&gt; alone.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;While correctness &lt;em&gt;could&lt;/em&gt; be acheived without the ZIL&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;performance would be unreasonably bad&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;which makes it a necessity.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;h1 id=&#34;zil-on-disk-format&#34;&gt;ZIL On-Disk Format&lt;/h1&gt;
@@ -176,11 +368,53 @@
 
 &lt;p&gt;.center[&lt;img src=&#34;zil-on-disk-format.svg&#34; alt=&#34;&#34; /&gt;]&lt;/p&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Before I jump into the next section&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;I wanted to quickly go over the on-disk format of the ZIL.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Each ZFS dataset maintains it own unique ZIL on disk.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Each of these ZIL&amp;rsquo;s is a singly liked list of ZIL blocks&amp;hellip;.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;or, as they&amp;rsquo;re also called, &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;which stands for &amp;ldquo;log write block&amp;rdquo;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;As one can see here:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;the uberblock has a pointer to the MOS&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;which then has pointers to each dataset in the pool&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;and each of these datasets has a pointer it&amp;rsquo;s own ZIL header.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Each ZIL header then points to an &lt;code&gt;lwb&lt;/code&gt;&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;and that block then points to the &amp;ldquo;next&amp;rdquo; block in the list.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;p&gt;class: middle, center&lt;/p&gt;
 
 &lt;h1 id=&#34;2-ndash-how-is-the-zil-used&#34;&gt;2 &amp;ndash; How is the ZIL used?&lt;/h1&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Now let&amp;rsquo;s get into how the ZIL is used&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;hr /&gt;
 
@@ -193,13 +427,36 @@
 &lt;li&gt;&lt;p&gt;Log the operation(s) &amp;mdash; &lt;code&gt;zil_itx_assign&lt;/code&gt;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Tells the ZIL an operation is occuring&lt;/li&gt;
+&lt;li&gt;Tells the ZIL an operation is occurring&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;Commit the operation(s) &amp;mdash; &lt;code&gt;zil_commit&lt;/code&gt;&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;Causes the ZIL to write log record of operation to disk&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;The ZIL is used by the ZFS Posix Layer, or ZPL for short.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The ZPL generally interacts with the ZIL in two phases:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;First it uses &lt;code&gt;zil_itx_assign&lt;/code&gt;.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;This cause the ZIL to log the fact that an operation
+is occurring.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Then it uses &lt;code&gt;zil_commit&lt;/code&gt;.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;This tells the ZIL to write out these log records to disk.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 &lt;/ul&gt;
@@ -218,32 +475,37 @@
 &lt;p&gt;&amp;rarr; &lt;code&gt;zil_itx_assign&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_write&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_commit&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Most ZPL operations have a corresponding &lt;code&gt;zfs_log_*&lt;/code&gt; function&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;zfs_log_create&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;zfs_log_remove&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;zfs_log_link&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;zfs_log_symlink&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;zfs_log_truncate&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;zfs_log_setattr&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&amp;hellip;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;These &lt;code&gt;zil_itx_*&lt;/code&gt; functions register the write operation with the ZIL&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Let&amp;rsquo;s look at &lt;code&gt;zfs_write&lt;/code&gt; as an example of this.&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Later, &lt;code&gt;zfs_write&lt;/code&gt; will call &lt;code&gt;zil_commit&lt;/code&gt; (if it&amp;rsquo;s a sync write)&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_write&lt;/code&gt; will call &lt;code&gt;zfs_log_write&lt;/code&gt;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_log_write&lt;/code&gt; will then call:&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;This causes ZIL to write previously generated write &lt;code&gt;itx&lt;/code&gt; to disk&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_itx_create&lt;/code&gt;&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;which will create the &lt;code&gt;itx&lt;/code&gt; structure in RAM&amp;hellip;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;All &lt;code&gt;zfs_log_*&lt;/code&gt; functions similarly call &lt;code&gt;zil_itx_{create,assign}&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;and then it&amp;rsquo;ll call &lt;code&gt;zil_itx_assign&lt;/code&gt;&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;which will insert that &lt;code&gt;itx&lt;/code&gt; into the ZIL&amp;rsquo;s in-memory state.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Finally, if this is a sync write, &lt;code&gt;zfs_write&lt;/code&gt; will then call
+&lt;code&gt;zil_commit&lt;/code&gt;&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;which will cause the &lt;code&gt;itx&lt;/code&gt; to get written out to disk.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -251,7 +513,7 @@
 &lt;h1 id=&#34;example-zfs-fsync&#34;&gt;Example: &lt;code&gt;zfs_fsync&lt;/code&gt;&lt;/h1&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;zfs_fsync&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_commit&lt;/code&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;&lt;code&gt;fsync&lt;/code&gt; &amp;rarr; &lt;code&gt;zil_commit&lt;/code&gt;&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;&lt;p&gt;&lt;code&gt;fsync&lt;/code&gt; doesn&amp;rsquo;t create any new modifications&lt;/p&gt;&lt;/li&gt;
@@ -262,6 +524,28 @@
 &lt;li&gt;thus, no &lt;code&gt;zfs_log_fsync&lt;/code&gt; function&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Now let&amp;rsquo;s look at &lt;code&gt;zfs_fsync&lt;/code&gt; as another example.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;code&gt;fsync&lt;/code&gt; doesn&amp;rsquo;t create any new modifications.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Instead, it simply ensures any previous operations are written to disk
+before it returns.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Thus, &lt;code&gt;zfs_fsync&lt;/code&gt; doesn&amp;rsquo;t call &lt;code&gt;zil_itx_create&lt;/code&gt;&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;nor does it call &lt;code&gt;zil_itx_assign&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Instead it &lt;em&gt;only&lt;/em&gt; calls &lt;code&gt;zil_commit&lt;/code&gt;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Calling &lt;code&gt;zil_commit&lt;/code&gt; will ensure all previous operations are written
+to disk, before &lt;code&gt;fsync&lt;/code&gt; returns.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -291,47 +575,54 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
-&lt;h1 id=&#34;contract-between-zil-and-zpl-1&#34;&gt;Contract between ZIL and ZPL.&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;The parameters of &lt;code&gt;zil_commit&lt;/code&gt; are such that&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;em&gt;relevant &amp;ndash; all operations that would modify that object&lt;/em&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&amp;ldquo;sync&amp;rdquo; and &amp;ldquo;async&amp;rdquo;&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;e.g. &amp;ldquo;async&amp;rdquo; writes written along with &amp;ldquo;sync&amp;rdquo; writes&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;the caller will pass in enough information to uniquely identify an
+object whose data is to be committed.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&lt;em&gt;persistent &amp;ndash; Log block(s) written (completed) &amp;rarr; disk flushed&lt;/em&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;The contract the ZIL maintains with this caller is&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;All &amp;ldquo;prior/dependent&amp;rdquo; log blocks written and completed&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;All operations &lt;em&gt;relevant&lt;/em&gt; to the object specified&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;We can&amp;rsquo;t issue the flush before the write completes&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;or else, disk flush may not contain log block&amp;rsquo;s contents.&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;concurrent write + flush can be reordered&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;will be &lt;em&gt;persistent&lt;/em&gt; on disk by the time &lt;code&gt;zil_commit&lt;/code&gt; returns.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;if flush doesn&amp;rsquo;t contain log block(s), flush was meaningless&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;_Interface of &lt;code&gt;zil_commit&lt;/code&gt; doesn&amp;rsquo;t specify &lt;em&gt;which&lt;/em&gt; operation(s) to commit_&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;By &lt;em&gt;relevant&lt;/em&gt;, it means&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; doesn&amp;rsquo;t know which operation(s) the caller cares about&amp;hellip;&lt;/p&gt;
+&lt;li&gt;all operations that would modify that object.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;And by &lt;em&gt;persistent&lt;/em&gt;, it means&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;thus, it must write all operations for the object&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;the operations are written to disk&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;e.g. multiple threads writing to same object, but different offsets&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;all offsets must be written before &lt;code&gt;zil_commit&lt;/code&gt; returns&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;and the disks used for those writes are flushed.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Further, we must issue the disk flush &lt;em&gt;after&lt;/em&gt; the writes complete.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Lastly, the interface for &lt;code&gt;zil_commit&lt;/code&gt; doesn&amp;rsquo;t allow the caller to
+specify &lt;em&gt;which&lt;/em&gt; operations they care about.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Thus, &lt;code&gt;zil_commit&lt;/code&gt; must write &lt;em&gt;all&lt;/em&gt; operations for a given object&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;even if the caller only cares about a subset of those operations.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For example, if there&amp;rsquo;s multiple threads writing to the same file,
+but at different offsets&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;all offsets must be written to disk before &lt;code&gt;zil_commit&lt;/code&gt; returns&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;em&gt;even&lt;/em&gt; if the calling thread only cares about one of those offsets.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -341,12 +632,18 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;h1 id=&#34;2-ndash-how-does-the-zil-work&#34;&gt;2 &amp;ndash; How does the ZIL work?&lt;/h1&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;So, how does the ZIL accomplish this?&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;h1 id=&#34;how-does-the-zil-work&#34;&gt;How does the ZIL work?&lt;/h1&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;In memory ZIL contains per-txg &lt;code&gt;itxg_t&lt;/code&gt; structures&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;In memory ZIL contains an &lt;code&gt;itxg_t&lt;/code&gt; structure&lt;sup&gt;*&lt;/sup&gt;&lt;/p&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;Each &lt;code&gt;itxg_t&lt;/code&gt; contains:&lt;/p&gt;
 
@@ -357,19 +654,31 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
+&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;Actually multiple &lt;code&gt;itxg_t&lt;/code&gt; structures, one per-txg.]&lt;/p&gt;
+
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;&lt;em&gt;In memory ZIL contains per-txg &lt;code&gt;itxg_t&lt;/code&gt; structures&lt;/em&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Well, as I alluded to previously, the ZIL maintains an in-memory list
+of &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s that have occurred&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;An &lt;code&gt;itxg_t&lt;/code&gt; exists for each DMU TXG not yet synced to disk&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Each &lt;code&gt;itx&lt;/code&gt; is specific to a TXG&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;assigned to corresponding &lt;code&gt;itxg_t&lt;/code&gt; for that TXG&lt;/li&gt;
+&lt;li&gt;but haven&amp;rsquo;t yet been written to disk.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;This list is maintained via the &lt;code&gt;itxg&lt;/code&gt; structure in each ZIL.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Each &lt;code&gt;itxg&lt;/code&gt; structure contains the following:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;a single list of all sync operations that have occurred&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;for all objects in the dataset.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;plus, per-object lists of async operations for each object
+modified.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -381,6 +690,22 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;p&gt;&lt;img src=&#34;itx-lists.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Here&amp;rsquo;s what this might look like&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;In this example, the &lt;code&gt;itxg&lt;/code&gt;&amp;rsquo;s sync list has two &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s in it&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;each of which could map to an operation for any object in the dataset.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;And then a list of async operations that occurred for &amp;ldquo;object A&amp;rdquo;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;And &lt;em&gt;another&lt;/em&gt; list of async operations that occurred for &amp;ldquo;object B&amp;rdquo;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;h1 id=&#34;how-are-itx-s-written-to-disk&#34;&gt;How are itx&amp;rsquo;s written to disk?&lt;/h1&gt;
@@ -390,6 +715,14 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;When &lt;code&gt;zil_commit&lt;/code&gt; is called&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;How do these &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s get written out to disk?&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;hr /&gt;
 
@@ -403,6 +736,20 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Well&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;First we must determine which of these &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s are &lt;em&gt;relevant&lt;/em&gt;&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;And then we move these &lt;em&gt;relevant&lt;/em&gt; &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s to a new list&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;called the &amp;ldquo;commit list&amp;rdquo;.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;h1 id=&#34;example-zil-commit-object-b&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
@@ -414,7 +761,11 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Same itx lists as before&amp;hellip; plus the commit list&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Here, we have the same &lt;code&gt;itx&lt;/code&gt; lists as before&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Except now, we also show an empty &amp;ldquo;commit list&amp;rdquo; at the bottom.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Also, let&amp;rsquo;s presume &lt;code&gt;zil_commit&lt;/code&gt; is being called for &amp;ldquo;object B&amp;rdquo;.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -428,9 +779,10 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Calling &lt;code&gt;zil_commit&lt;/code&gt; for object &amp;ldquo;B&amp;rdquo;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;The first step is to move all of object B&amp;rsquo;s async &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s to the sync
+list.&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;First step is to move object B&amp;rsquo;s async &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s to the sync list&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;So, we select the &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -440,6 +792,12 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;zil-commit-1-03.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;And move them.&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;hr /&gt;
 
@@ -452,7 +810,11 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Now we move the entire sync list to the commit list&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Next, we move the entire contents of the sync list&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;to the commit list.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -466,10 +828,21 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;We create the &amp;ldquo;commit list&amp;rdquo; so the list of &lt;code&gt;itx&lt;/code&gt;s to write out&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Additionally, it&amp;rsquo;s worth pointing out&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The point of the &amp;ldquo;commit list&amp;rdquo; is so we have a list of &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s to
+write out&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;is isolated from this concurrent ZPL activity&lt;/li&gt;
+&lt;li&gt;that will &lt;em&gt;not&lt;/em&gt; be modified by any concurrent ZPL activity.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;As new ZPL operations occur, the sync list may change&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;for example, operations may be added to it&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;but the commit list will remain the same.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -490,27 +863,32 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;We do this by iterating over the &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s in the commit list&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Now that we have a list of &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s to be written out, it&amp;rsquo;s time to
+actually issue them to disk.&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;For each &lt;code&gt;itx&lt;/code&gt;:&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;We do this by iterating over all the &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s in the commit list.&lt;/p&gt;&lt;/li&gt;
 
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;If insufficient space in the currently &amp;ldquo;open&amp;rdquo; ZIL block:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Allocate a new (empty) ZIL block, issue write of old block&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Copy the &lt;code&gt;itx&lt;/code&gt; into the &amp;ldquo;open&amp;rdquo; ZIL block&lt;/p&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;Last, we issue last &amp;ldquo;open&amp;rdquo; ZIL block to disk&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Then, for each &lt;code&gt;itx&lt;/code&gt;:&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;this also means, allocated another block&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;We attempt to copy it into the currently &amp;ldquo;open&amp;rdquo; ZIL block.&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;to be the next &amp;ldquo;open&amp;rdquo; ZIL block&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;If there&amp;rsquo;s insufficient space in the block&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;then we allocate a new block, and issue old one to disk.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Lastly, after all &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s are copied into &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;we issue the last &amp;ldquo;open&amp;rdquo; block to disk&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;allocating the &lt;em&gt;next&lt;/em&gt; &amp;ldquo;open&amp;rdquo; block in the process.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Here&amp;rsquo;s what I mean&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -524,9 +902,13 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Starting with a ZIL header and &lt;code&gt;lwb&lt;/code&gt; block already allocated&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Given the commit list from before&amp;hellip;&lt;/p&gt;
 
-&lt;li&gt;&lt;p&gt;Select the first &lt;code&gt;itx&lt;/code&gt; in the list&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;ul&gt;
+&lt;li&gt;and &amp;ldquo;lwb 1&amp;rdquo; as the currently &amp;ldquo;open&amp;rdquo; ZIL block&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;We select the first &lt;code&gt;itx&lt;/code&gt; in the list&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -540,12 +922,14 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;and copy the &lt;code&gt;itx&lt;/code&gt; into the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s buffer.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;and copy this into the block&amp;rsquo;s buffer.&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;The &lt;code&gt;lwb&lt;/code&gt; still hasn&amp;rsquo;t been issued to disk yet&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;This block will remain &amp;ldquo;open&amp;rdquo;&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;it may be used for the next &lt;code&gt;itx&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;as denoted by the dotted line&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;since it may also be used for the next &lt;code&gt;itx&lt;/code&gt; in the list.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -560,7 +944,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Now we move on to the next &lt;code&gt;itx&lt;/code&gt; in the list&amp;hellip;&lt;/li&gt;
+&lt;li&gt;So, now we move on to the next &lt;code&gt;itx&lt;/code&gt;&amp;hellip;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -574,7 +958,9 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;This &lt;code&gt;itx&lt;/code&gt; doesn&amp;rsquo;t fit in the currently &amp;ldquo;open&amp;rdquo; lwb&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;This one doesn&amp;rsquo;t quite fit in the currently &amp;ldquo;open&amp;rdquo; block&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;So&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -588,9 +974,17 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;so we must allocate a new &lt;code&gt;lwb&lt;/code&gt;, and issue the &amp;ldquo;open&amp;rdquo; one to disk&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;We must allocate a new block, and issue the current one to disk.&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;The newly allocated &lt;code&gt;lwb&lt;/code&gt; becomes the new &amp;ldquo;open&amp;rdquo; lwb&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Here, &amp;ldquo;lwb 1&amp;rdquo; now has a solid line, to indicate it&amp;rsquo;s been issued
+to disk.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;And &amp;ldquo;lwb 2&amp;rdquo; has a dashed line, to indicate it&amp;rsquo;s the new &amp;ldquo;open&amp;rdquo;
+ZIL block.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Further, &amp;ldquo;lwb 1&amp;rdquo; maintains a pointer to &amp;ldquo;lwb 2&amp;rdquo; on disk.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Now we can go back to processing the commit list&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -604,7 +998,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Now we can copy the &lt;code&gt;itx&lt;/code&gt; into the new &lt;code&gt;lwb&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;and we copy the &lt;code&gt;itx&lt;/code&gt; into the new &lt;code&gt;lwb&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -618,7 +1012,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Next, we move on to the last &lt;code&gt;itx&lt;/code&gt; in the list&lt;/li&gt;
+&lt;li&gt;Finally, we reach the last &lt;code&gt;itx&lt;/code&gt; in the list&amp;hellip;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -632,13 +1026,13 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;This fits in the currently &amp;ldquo;open&amp;rdquo; &lt;code&gt;lwb&lt;/code&gt;, so it&amp;rsquo;s copied into place&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;At this point, the commit list is empty&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Since this fits into &amp;ldquo;lwb 2&amp;rdquo;&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;so we must issue the current &lt;code&gt;lwb&lt;/code&gt; to disk.&lt;/li&gt;
+&lt;li&gt;it&amp;rsquo;s copied directly into place.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;At this point, the commit list is empty&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -652,9 +1046,25 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;To do that, we must allocate a new &lt;code&gt;lwb&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;so we issue &amp;ldquo;lwb 2&amp;rdquo; to disk&amp;hellip;&lt;/p&gt;
 
-&lt;li&gt;&lt;p&gt;This new &lt;code&gt;lwb&lt;/code&gt; will then be used for the next &amp;ldquo;batch&amp;rdquo; of &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s&lt;/p&gt;&lt;/li&gt;
+&lt;ul&gt;
+&lt;li&gt;allocating the next &amp;ldquo;open&amp;rdquo; block in the process.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;As one can see, &amp;ldquo;lwb 1 and 2&amp;rdquo; have a solid line&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;to indicate they&amp;rsquo;ve both been issued to disk.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;While, &amp;ldquo;lwb 3&amp;rdquo; has a dashed line, to indicate it&amp;rsquo;s now the new
+&amp;ldquo;open&amp;rdquo; block&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;and it will be used when writing out the next &amp;ldquo;batch&amp;rdquo; of
+&lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -673,6 +1083,16 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Now&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;After we&amp;rsquo;ve issued all ZIL blocks to disk&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;We must wait for them to complete.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;h1 id=&#34;example-zil-commit-object-b-14&#34;&gt;Example: &lt;code&gt;zil_commit&lt;/code&gt; Object B&lt;/h1&gt;
@@ -684,7 +1104,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;The &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s can complete in any order&amp;hellip;&lt;/li&gt;
+&lt;li&gt;The blocks can complete in any order&amp;hellip;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -698,7 +1118,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;here, &amp;ldquo;lwb 2&amp;rdquo; completes first&amp;hellip;&lt;/li&gt;
+&lt;li&gt;Here, &amp;ldquo;lwb 2&amp;rdquo; completes first&amp;hellip;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -714,7 +1134,7 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;p&gt;and then &amp;ldquo;lwb 1&amp;rdquo;.&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;At this point, all &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s have been written and writes have completed.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;At this point, all blocks have completed&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -733,6 +1153,12 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;Flush VDEVs&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;So it&amp;rsquo;s time to issue a disk flush to all VDEVs involved&amp;hellip;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -755,11 +1181,27 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Once those flushes complete&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;we can notify any waiting threads&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;letting them know their data is safe on disk.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;p&gt;class: middle, center&lt;/p&gt;
 
 &lt;h1 id=&#34;3-ndash-problem&#34;&gt;3 &amp;ndash; Problem&lt;/h1&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Now, let&amp;rsquo;s dive into the problem with all of this&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;hr /&gt;
 
@@ -779,6 +1221,35 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;li&gt;&lt;p&gt;Only a single batch processed at a time&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;The main issues can be summarized into the following 3 points:&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;First, &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s are grouped and written &amp;ldquo;batches&amp;rdquo;.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Where the commit list constitues a batch&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;and the batch size is proportional to the sync workload on the
+system.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Next, threads waiting for &lt;code&gt;zil_commit&lt;/code&gt; to complete, are only notified
+when &lt;em&gt;all&lt;/em&gt; ZIL blocks in a given batch complete.&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;So, if a given batch is large, that means &lt;code&gt;zil_commit&lt;/code&gt; must wait
+for all of those blocks to complete&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;&lt;em&gt;even&lt;/em&gt; if the caller only cares about a small percentage of the
+data in that batch.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;And lastly, only a single batch can be processed and written out at
+any given time.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;h1 id=&#34;problem-1&#34;&gt;Problem&lt;/h1&gt;
@@ -791,35 +1262,83 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;li&gt;&lt;p&gt;Color indicates order waiting threads notified&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;hr /&gt;
-
-&lt;h1 id=&#34;implications&#34;&gt;Implications&lt;/h1&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;code&gt;zil_commit&lt;/code&gt; latency proportional to system workload, &lt;em&gt;not&lt;/em&gt; disk latency&lt;/p&gt;
+&lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Fast SLOG may not compensate for large workload&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Here&amp;rsquo;s an example of what this ends up looking like&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Disk &amp;ldquo;anomalies&amp;rdquo; &amp;rarr; larger batches &amp;rarr; increased &lt;code&gt;zil_commit&lt;/code&gt; latency&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;This is a timeline of the disk activity of an example system.&lt;/p&gt;&lt;/li&gt;
 
-&lt;ul&gt;
-&lt;li&gt;e.g. temporary network delays when using network storage&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;New calls to &lt;code&gt;zil_commit&lt;/code&gt; wait for &amp;ldquo;current&amp;rdquo; batch, &lt;em&gt;and&lt;/em&gt; &amp;ldquo;next&amp;rdquo; batch&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;What can be seen here, is&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Average &lt;code&gt;zil_commit&lt;/code&gt; latency equal to latency of 1.5 batches&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;block A through E are all written in the first batch&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;but the disk activity is slightly uneven&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;while disk 2, 3, and 4 only receive a single ZIL block to write&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;disk 1 receives two blocks.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
-&lt;/ol&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Thus, disks 2, 3, and 4 complete their writes and then remain idle&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;while disk 1 finishes its work.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;This idle time is due to the fact that only a single batch can be
+processed at a time&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;which leads to inefficient usage of the storage.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For example&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;blocks F, G, and H &lt;em&gt;could&lt;/em&gt; have been issued to disks 2, 3, and 4&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;filling this idle time&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;but the batching mechanism prevents this.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Another issue&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;is the fact that waiting threads will only be notified once &lt;em&gt;all&lt;/em&gt;
+blocks in a batch complete.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For example&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;if a thread was waiting on data to be written by &amp;ldquo;block A&amp;rdquo;&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;it would have to wait for &amp;ldquo;block E&amp;rdquo; to be written as well.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;This unnecessarily increases the latency of &lt;code&gt;zil_commit&lt;/code&gt;&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;and, in this case, potentially doubling it.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;hr /&gt;
 
 &lt;p&gt;class: middle, center&lt;/p&gt;
 
 &lt;h1 id=&#34;3-ndash-solution&#34;&gt;3 &amp;ndash; Solution&lt;/h1&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;The solution is somewhat obvious&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;hr /&gt;
 
@@ -845,15 +1364,25 @@ on disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
-&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;&lt;em&gt;Allow &lt;code&gt;zil_commit&lt;/code&gt; to issue new ZIL block writes immediately&lt;/em&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Let&amp;rsquo;s just remove the concept of &amp;ldquo;batches&amp;rdquo;.&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&lt;em&gt;Notify threads immediately when dependent &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s on disk&lt;/em&gt;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Rather than waiting for the current batch to complete&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;In contrast to waiting for &lt;strong&gt;all&lt;/strong&gt; &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s on disk (dependent or not)&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;we should issue new ZIL blocks to disk immediately&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;as soon as they can be written out.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
-&lt;/ol&gt;
+
+&lt;li&gt;&lt;p&gt;Further, rather than waiting for a batch to complete before notifying
+threads&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;these threads should be notified immediately when their data is
+safe on disk.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;hr /&gt;
 
@@ -865,6 +1394,14 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;li&gt;&lt;p&gt;Time spent servicing &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s for each disk&lt;/p&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;Color indicates order waiting threads notified&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;If we did that&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Then we could go from this diagram, which I showed earlier&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -879,11 +1416,46 @@ on disk&lt;/p&gt;&lt;/li&gt;
 &lt;li&gt;&lt;p&gt;Color indicates order waiting threads notified&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;To this one.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Where all disks in the pool are saturated&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;em&gt;and&lt;/em&gt; threads are notified as soon as each individual block
+completes.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;As this diagram illustrates&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;we&amp;rsquo;d be able to service the same number of ZIL blocks&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;in nearly half the time&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;potentially doubling our IOPs.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;And, this is without changing a single thing about the workload&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;nor the underlying storage characteristics.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;p&gt;class: middle, center&lt;/p&gt;
 
 &lt;h1 id=&#34;4-ndash-details-on-the-changes-i-made&#34;&gt;4 &amp;ndash; Details on the Changes I Made&lt;/h1&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;So how was this accomplished?&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;hr /&gt;
 
@@ -895,17 +1467,17 @@ background-size: 65%&lt;/p&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Bulk of changes I made revolves around the following 3 things:&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;The bulk of changes revolve around 3 things:&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;p&gt;how &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s are issued to disk&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;changing how ZIL blocks are issued to disk&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;how flush commands are sent to the disks&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;changing when the flush commands are sent&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;how waiting threads are notified&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;and changing how we notify waiting threads.&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Previously, this was a mostly a sequential 3 step process&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Previously, this was a sequential 3 step process&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -918,12 +1490,12 @@ background-size: 65%&lt;/p&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Step 1 would consist of creating the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Step 1 would consist of creating the ZIL blocks&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;&lt;p&gt;issuing these to disk&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;and then waiting for the IO for all the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s to complete.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;and then waiting for the IO for &lt;em&gt;all&lt;/em&gt; the blocks to complete.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -937,12 +1509,12 @@ background-size: 65%&lt;/p&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Once that Step 1 completes&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Next, after the blocks completed&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Step 2 would consist of issuing the flush to each VDEV&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Step 2 would consist of issuing the flush commands to each VDEV&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;and then waiting for all of them to complete.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;and then waiting for those flushes to complete.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -956,12 +1528,17 @@ background-size: 65%&lt;/p&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;And then, &lt;em&gt;finally&lt;/em&gt;, after all flushes have completed&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Finally, after all flushes completed&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;the ZIL&amp;rsquo;s CV is signalled to notify any waiting threads&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;the ZIL&amp;rsquo;s CV would be signalled to notify any waiting threads.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;letting them know their data is safe on disk.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;All threads that called &lt;code&gt;zil_commit&lt;/code&gt; would be waiting on this CV&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;so this was the mechanism for letting them know their data was
+safe on disk.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;All 3 of these steps would consist of a single batch.&lt;/p&gt;&lt;/li&gt;
@@ -977,7 +1554,7 @@ background-size: 65%&lt;/p&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;And, after one batch completes&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;After one batch completes&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;another would start up again.&lt;/li&gt;
@@ -996,11 +1573,7 @@ background-size: 65%&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;p&gt;And another.&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;This would repeat as long as&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;there was a continuous stream of incoming sync operations to process.&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;This 3 step process would repeat as long as the workload would allow.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -1016,49 +1589,57 @@ background-size: 85%&lt;/p&gt;
 &lt;li&gt;&lt;p&gt;Now the process is entirely different&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;and heavily leaverages the ZIO infrastructure&lt;/li&gt;
+&lt;li&gt;and heavily leaverages the ZIO infrastructure.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Each &lt;code&gt;lwb&lt;/code&gt; will have a root ZIO, which will eventually have 2 children:&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Instead of a single root ZIO for an entire batch of blocks&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;each block now has it&amp;rsquo;s own, unique, root ZIO.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Each root will eventually have two children:&lt;/p&gt;
 
 &lt;ol&gt;
-&lt;li&gt;&lt;p&gt;A &amp;ldquo;write&amp;rdquo; ZIO containing the &lt;code&gt;itx&lt;/code&gt; data to be written&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;A &amp;ldquo;write&amp;rdquo; ZIO, containing the &lt;code&gt;itx&lt;/code&gt; data to be written&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;A &amp;ldquo;flush&amp;rdquo; ZIO that will be issued after the &amp;ldquo;write&amp;rdquo; ZIO completes&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;And a &amp;ldquo;flush&amp;rdquo; ZIO, that is issued after the &amp;ldquo;write&amp;rdquo; completes.&lt;/p&gt;&lt;/li&gt;
 &lt;/ol&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Since these are children, the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s &amp;ldquo;root&amp;rdquo; ZIO&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Since these are each child ZIOs, the &amp;ldquo;root&amp;rdquo; cannot complete until
+both the &amp;ldquo;write&amp;rdquo; and the &amp;ldquo;flush&amp;rdquo; complete.&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;cannot complete until both the &amp;ldquo;write&amp;rdquo; and the &amp;ldquo;flush&amp;rdquo; complete&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;This is enforced by the ZIO parent-child dependency semantics&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;This is enforced by the pre-existing ZIO parent-child semantics.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Further, the &amp;ldquo;root&amp;rdquo; ZIO of each &amp;ldquo;previous&amp;rdquo; &lt;code&gt;lwb&lt;/code&gt;&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Further, the &amp;ldquo;root&amp;rdquo; ZIO of the &amp;ldquo;previous&amp;rdquo; block&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;will be a &amp;ldquo;child&amp;rdquo; of the &amp;ldquo;root&amp;rdquo; ZIO for the &amp;ldquo;next&amp;rdquo; &lt;code&gt;lwb&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;will also be a child of the &amp;ldquo;next&amp;rdquo; block.&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;This ensures the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s completes in correct order&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;again, leveraging ZIO dependencies to acheive this ordering&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;for example, here, &amp;ldquo;lwb 1&amp;rdquo; is a child of &amp;ldquo;lwb 2&amp;rdquo;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Additionally, each &lt;code&gt;lwb&lt;/code&gt; maintains a list of CVs&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;This ensures &lt;code&gt;lwb&lt;/code&gt; root ZIOs completes in the correct order&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Each CV on this list maps to a waiting thread&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;When the &amp;ldquo;root&amp;rdquo; ZIO for the &lt;code&gt;lwb&lt;/code&gt; completes&amp;hellip;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;each CV in this list is signalled&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;which notifies the waiting thread that it&amp;rsquo;s data is safe on disk&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;again, leveraging ZIO dependencies to acheive this.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Finally, each &lt;code&gt;lwb&lt;/code&gt; maintains a list of CVs&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;where each CV on this list maps to a single thread that called
+&lt;code&gt;zil_commit&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Then, when the &amp;ldquo;root&amp;rdquo; ZIO for any ZIL block completes&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;each CV in the block&amp;rsquo;s list is signalled&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;notifying the waiting threads that their data is safe on disk.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;Let&amp;rsquo;s walk through an example of what this looks like&amp;hellip;&lt;/p&gt;&lt;/li&gt;
@@ -1074,7 +1655,15 @@ background-size: 85%&lt;/p&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;First, the &amp;ldquo;root&amp;rdquo; ZIO for the &lt;code&gt;lwb&lt;/code&gt; is created&amp;hellip;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;First, the &lt;code&gt;lwb&lt;/code&gt; structure and &amp;ldquo;root&amp;rdquo; ZIO is created.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Initially, the list of CVs will be empty&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;but as &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s are copied into this block&amp;rsquo;s buffer&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;it will begin to accumulate a list of threads waiting on it.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -1087,7 +1676,8 @@ background-size: 85%&lt;/p&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;And then the &amp;ldquo;write&amp;rdquo; ZIO is issued&amp;hellip;&lt;/li&gt;
+&lt;li&gt;Next, when the block&amp;rsquo;s buffer is full, its write will be issued
+to disk&amp;hellip;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -1100,7 +1690,7 @@ background-size: 85%&lt;/p&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;When that &amp;ldquo;write&amp;rdquo; ZIO completes, the flush will immediately be issued&lt;/li&gt;
+&lt;li&gt;Then, when that write completes, the flush will be issued&amp;hellip;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -1113,11 +1703,15 @@ background-size: 85%&lt;/p&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Then, when the &amp;ldquo;flush&amp;rdquo; ZIO completes&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;When the &amp;ldquo;flush&amp;rdquo; completes&amp;hellip;&lt;/p&gt;
 
-&lt;li&gt;&lt;p&gt;that&amp;rsquo;ll allow the &amp;ldquo;root&amp;rdquo; ZIO for this specific &lt;code&gt;lwb&lt;/code&gt; to complete&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;em&gt;and&lt;/em&gt; since this ZIL block doesn&amp;rsquo;t point to any previous block&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;at which point, each CV in the &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s list of CVs will be signalled&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;this will allow the &amp;ldquo;root&amp;rdquo; IO for this specific block to complete&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;at which point, each CV in the block&amp;rsquo;s list will be signalled.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -1130,7 +1724,7 @@ background-size: 85%&lt;/p&gt;
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;The same process would occur of the next &lt;code&gt;lwb&lt;/code&gt;&amp;hellip;&lt;/li&gt;
+&lt;li&gt;The same process will occur for the next block&amp;hellip;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;hr /&gt;
@@ -1145,52 +1739,144 @@ background-size: 85%&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;p&gt;And the next.&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;It&amp;rsquo;s important to note&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;At this point, though, it&amp;rsquo;s important to note&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;the sequence of events doesn&amp;rsquo;t have to occur in this order&lt;/li&gt;
+&lt;li&gt;the sequence of events doesn&amp;rsquo;t have to occur in this specific order&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(changes-after-08.svg)
+background-size: 85%&lt;/p&gt;
+
+&lt;h2 id=&#34;after-7&#34;&gt;After&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;For example, it&amp;rsquo;s possible for &amp;ldquo;block 2&amp;rdquo; to issue it&amp;rsquo;s write&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;before the write for &amp;ldquo;block 1&amp;rdquo; completes.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;For example, it&amp;rsquo;s possible for &amp;ldquo;lwb 2&amp;rdquo; to have issued it&amp;rsquo;s&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;In this case&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&amp;ldquo;write&amp;rdquo; ZIO before the &amp;ldquo;write&amp;rdquo; of &amp;ldquo;lwb 1&amp;rdquo; completes.&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;the write for &amp;ldquo;block 1&amp;rdquo; would have been issued&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;then the write for &amp;ldquo;block 2&amp;rdquo;&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;even though block 1&amp;rsquo;s write was still being serviced by the disk.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;It can even complete before the &amp;ldquo;write&amp;rdquo; of &amp;ldquo;lwb 1&amp;rdquo;&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Previously this would have been prevented due to the &amp;ldquo;batching&amp;rdquo;
+mechanism&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;Same goes for the &amp;ldquo;flush&amp;rdquo; for &amp;ldquo;lwb 2&amp;rdquo;&lt;/li&gt;
+&lt;li&gt;the write for &amp;ldquo;block 2&amp;rdquo; could &lt;strong&gt;not&lt;/strong&gt; have been issued, until the
+write for &amp;ldquo;block 1&amp;rdquo; was complete.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(changes-after-09.svg)
+background-size: 85%&lt;/p&gt;
+
+&lt;h2 id=&#34;after-8&#34;&gt;After&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;The same goes for the write for &amp;ldquo;block 3&amp;rdquo;&amp;hellip;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(changes-after-10.svg)
+background-size: 85%&lt;/p&gt;
+
+&lt;h2 id=&#34;after-9&#34;&gt;After&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;It&amp;rsquo;s even possible for the writes of blocks 2 and 3&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;to complete before the write of block 1.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&lt;strong&gt;But&lt;/strong&gt;, due to the ZIO dependency tree, the &amp;ldquo;root&amp;rdquo; ZIO for &amp;ldquo;lwb 2&amp;rdquo;&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;If this happens, though&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;cannot complete until the &amp;ldquo;root&amp;rdquo; for &amp;ldquo;lwb 1&amp;rdquo; completes.&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;The root of block 2 and 3 will still be blocked&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;waiting for block 1 to complete.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Thus, the CVs for &amp;ldquo;lwb 2&amp;rdquo; will never be signalled&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Thus, even if the flushes were issued and completed for
+blocks 2 and 3&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;prior to &amp;ldquo;lwb 1&amp;rdquo; completing&lt;/li&gt;
+&lt;li&gt;their CVs would &lt;strong&gt;not&lt;/strong&gt; get signalled yet.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(changes-after-11.svg)
+background-size: 85%&lt;/p&gt;
+
+&lt;h2 id=&#34;after-10&#34;&gt;After&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;As soon as the write for block 1 completes&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The flush would be issued&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;And once block 1&amp;rsquo;s flush completes&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;background-image: url(changes-after-12.svg)
+background-size: 85%&lt;/p&gt;
+
+&lt;h2 id=&#34;after-11&#34;&gt;After&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Then, all 3 blocks would &amp;ldquo;complete&amp;rdquo; simultaneously&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;and the CVs for all of these blocks would be notified.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&lt;strong&gt;So&lt;/strong&gt;, while this example might imply&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;So&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;this process is still very sequential, just like before&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;while before&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;it doesn&amp;rsquo;t have to be&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;this process was very sequential.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;Now, it&amp;rsquo;s all driven by the incoming workload&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Now, it&amp;rsquo;s completely driven by the incoming sync workload&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;and disk completion events.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;and disk completion events.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;&lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s are created and issued whenever there&amp;rsquo;s data to write&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;ZIL blocks are created and issued whenever there&amp;rsquo;s data to write&amp;hellip;&lt;/p&gt;
 
-&lt;li&gt;&lt;p&gt;and waiting threads are notified whenever those writes complete.&lt;/p&gt;&lt;/li&gt;
+&lt;ul&gt;
+&lt;li&gt;and waiting threads are notified whenever those writes complete.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -1198,55 +1884,108 @@ background-size: 85%&lt;/p&gt;
 
 &lt;h1 id=&#34;new-tunable-lwb-timeout&#34;&gt;New Tunable: &lt;code&gt;lwb&lt;/code&gt; Timeout&lt;/h1&gt;
 
-&lt;p&gt;.center[&lt;img src=&#34;lwb-timeout.svg&#34; alt=&#34;:scale 90%&#34; /&gt;]&lt;/p&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
 
-&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;New tunable named: &lt;code&gt;zfs_commit_timeout_pct&lt;/code&gt;]&lt;/p&gt;
+&lt;p&gt;.pull-left[&lt;img src=&#34;zil-commit-2-10.svg&#34; alt=&#34;:scale 100%&#34; /&gt;]
+.pull-right[&lt;img src=&#34;zil-commit-2-11.svg&#34; alt=&#34;:scale 100%&#34; /&gt;]&lt;/p&gt;
 
 &lt;p&gt;???&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;Prior to issuing an &lt;code&gt;lwb&lt;/code&gt; to disk, it remains &amp;ldquo;open&amp;rdquo;&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Before jumping into the performance results&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;such that we can continue to use this &lt;code&gt;lwb&lt;/code&gt;&amp;hellip;&lt;/p&gt;&lt;/li&gt;
-
-&lt;li&gt;&lt;p&gt;for any future &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s that occur, and would fit in the &lt;code&gt;lwb&lt;/code&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;I wanted to quickly talk about how we determine when to issue
+a ZIL block to disk.&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;This is done to help fill &lt;code&gt;lwb&lt;/code&gt; blocks with useful &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;If you remember from earlier in the talk&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;in an attempt to use as few &lt;code&gt;lwb&lt;/code&gt;&amp;rsquo;s as possible&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;we build up the these blocks by iterating over the commit list&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;for as many &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s as possible.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;and copying each &lt;code&gt;itx&lt;/code&gt; into one of the &lt;code&gt;lwb&lt;/code&gt; buffers.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;This is critical to maintain good performance&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Previously, once we reached end of the commit list&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;with a continuous stream of incoming sync operations.&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;In essence, the end of a &amp;ldquo;batch&amp;rdquo;&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;we would issue the last &lt;code&gt;lwb&lt;/code&gt; to disk.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;But, if incoming sync operations stop&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;Now that we&amp;rsquo;re &amp;ldquo;batch-less&amp;rdquo; we don&amp;rsquo;t necessarily want to do that.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If we reach the end of the commit list&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;p&gt;we need to bound the amount of time this &amp;ldquo;open&amp;rdquo; lwb waits&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;but there&amp;rsquo;s still buffer space available in the current block&amp;hellip;&lt;/p&gt;
 
-&lt;li&gt;&lt;p&gt;before it is issued to disk, partially filled.&lt;/p&gt;&lt;/li&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;for example, we could have a 128K ZIL block&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;with only a single 8K write in it&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;We determine the amount of time to wait&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;then we &lt;em&gt;actually&lt;/em&gt; want to delay issuing that block&amp;hellip;&lt;/p&gt;&lt;/li&gt;
 
-&lt;ul&gt;
-&lt;li&gt;by waiting a percentage of the last &lt;code&gt;lwb&lt;/code&gt; write&amp;rsquo;s latency.&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;in case new &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s are generated that would fit into that block.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;By default, wait 5% of the last &lt;code&gt;lwb&lt;/code&gt; write&amp;rsquo;s latency&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;This way, we can write out more &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s using fewer IOPs.&lt;/p&gt;&lt;/li&gt;
 
-&lt;li&gt;&lt;p&gt;If the &amp;ldquo;open&amp;rdquo; &lt;code&gt;lwb&lt;/code&gt; isn&amp;rsquo;t filled in that amount of time&amp;hellip;&lt;/p&gt;
+&lt;li&gt;&lt;p&gt;The problem is, we have no way to predict the future&amp;hellip;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;it will &amp;ldquo;timeout&amp;rdquo;, and be issued to disk partially filled.&lt;/li&gt;
+&lt;li&gt;We don&amp;rsquo;t know, &lt;em&gt;for sure&lt;/em&gt;, if more &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s will be generated.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Thus, if we wait for future &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s but none are generated&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;then we&amp;rsquo;re adding additional latency to the current &lt;code&gt;lwb&lt;/code&gt;
+for no benefit.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;But&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;if we don&amp;rsquo;t wait at all, and additional &lt;code&gt;itx&lt;/code&gt;&amp;rsquo;s &lt;em&gt;are&lt;/em&gt; generated&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;we could end up using more IOPs than we need to&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;and potentially degrade performance by saturating the disk.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The solution we implemented is&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;a ZIL block may be delayed up to 5% of the latency of the last
+completed ZIL block.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For example, if the last block took 5ms to be serviced by the storage&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;than the next block will wait a maximum of 250us.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If it&amp;rsquo;s filled within that 250us, it&amp;rsquo;ll be issued to disk immediately.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;If it&amp;rsquo;s not filled, it&amp;rsquo;ll timeout after 250us&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;and be issued to disk partially filled.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For those wondering, 5% is the default&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;and not that I recommend doing this&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;it &lt;em&gt;can&lt;/em&gt; that can be changed using the new tunable
+(&lt;code&gt;zfs_commit_timeout_pct&lt;/code&gt;)&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -1256,6 +1995,13 @@ background-size: 85%&lt;/p&gt;
 
 &lt;h1 id=&#34;5-ndash-performance-testing-and-results&#34;&gt;5 &amp;ndash; Performance testing and results&lt;/h1&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Finally, let&amp;rsquo;s go over the results of the performance tests that were
+used to verify these changes.&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;p&gt;background-image: url(max-rate-hdd-iops-pctchange.svg)
@@ -1263,12 +2009,76 @@ background-size: 115%&lt;/p&gt;
 
 &lt;h2 id=&#34;83-increase-in-iops-on-average-ndash-max-rate-ndash-8-hdds&#34;&gt;~83% Increase in IOPs on Average &amp;ndash; Max Rate &amp;ndash; 8 HDDs&lt;/h2&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;I used two different &lt;code&gt;fio&lt;/code&gt; workloads to verify.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;For this workload&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;each &lt;code&gt;fio&lt;/code&gt; thread was submitting sync writes as fast as could&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;and I measured the total number of IOPs that were achieved&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;while varying the number of &lt;code&gt;fio&lt;/code&gt; threads, from 2 to 1024.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;This graphs shows the percentage difference in IOPs&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;between illumos &lt;em&gt;with&lt;/em&gt; my changes, and illumos &lt;em&gt;without&lt;/em&gt; my changes.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The dashed line at the bottom is a visual aid&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;to highlight where in the graph a 0% difference is.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Anything above that line is improvement.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;On average, I measured an 83% increase in IOPs with my changes.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The dotted line is another visual aid&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;showing where exactly 83% improvment is&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;in relation to the actual measurements taken.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Additionally, the zpool used for this graph consisted of 8 traditional
+spinning drives.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;p&gt;background-image: url(max-rate-ssd-iops-pctchange.svg)
 background-size: 115%&lt;/p&gt;
 
 &lt;h2 id=&#34;48-increase-in-iops-on-average-ndash-max-rate-ndash-8-ssds&#34;&gt;~48% Increase in IOPs on Average &amp;ndash; Max Rate &amp;ndash; 8 SSDs&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;I also ran that same workload on a zpool consisting of 8 SSDs.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;When running on SSDs, the improvment isn&amp;rsquo;t as dramatic&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;but I was &lt;em&gt;still&lt;/em&gt; able to measure about a 48% improvement,
+on average.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The same visual aids are here&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;anything above the dashed line at the bottom is improvement&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;and the dotted line corresponds to the average.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;hr /&gt;
 
@@ -1279,12 +2089,71 @@ background-size: 115%&lt;/p&gt;
 
 &lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;IOPs increased with new code, and &amp;gt;64 threads; those data points omitted.]&lt;/p&gt;
 
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;The second workload tested, was again using &lt;code&gt;fio&lt;/code&gt;&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;but this time&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;each &lt;code&gt;fio&lt;/code&gt; thread would attempt to issue a &lt;em&gt;maximum&lt;/em&gt; of 64 sync
+writes per-second.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Thus, the number of IOPs was constant with and without my changes&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;but&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;the latency of each sync write was still improved.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Since we&amp;rsquo;re now measuring latency, rather than IOPs&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;any value &lt;em&gt;below&lt;/em&gt; the dashed line is improvement.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;When running this test on my 8 HDD pool&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;I measured the latency of each sync write to decrease by an average
+of 27%&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Also worth noting&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;the IOPs began to diverage at thread counts &amp;gt;64&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;where the new code started doing more IOPs than the old code&amp;hellip;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;so, I removed those data points to keep the comparison &amp;ldquo;fair&amp;rdquo;.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
 &lt;hr /&gt;
 
 &lt;p&gt;background-image: url(fixed-rate-ssd-lat-pctchange.svg)
 background-size: 115%&lt;/p&gt;
 
 &lt;h2 id=&#34;16-decrease-in-latency-on-average-ndash-fixed-rate-ndash-8-ssds&#34;&gt;~16% Decrease in Latency on Average &amp;ndash; Fixed Rate &amp;ndash; 8 SSDs&lt;/h2&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;And lastly, I also ran this workload on my 8 SSD system.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;The IOPs were the same for all thread counts on this pool&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;so I didn&amp;rsquo;t have to remove any data points.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Here, I measured the latency to decrease by an average of 16% on this
+system.&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;hr /&gt;
 
@@ -1304,6 +2173,19 @@ background-size: 115%&lt;/p&gt;
 &lt;li&gt;&lt;p&gt;&lt;code&gt;fio&lt;/code&gt; threads ranging from 1 to 1024; increasing in powers of 2&lt;/p&gt;&lt;/li&gt;
 
 &lt;li&gt;&lt;p&gt;Full details can be found &lt;a href=&#34;https://www.prakashsurya.com/post/2017-09-08-performance-testing-results-for-openzfs-447/&#34;&gt;here&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;???&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Here&amp;rsquo;s some more details on the performance tests that I ran&amp;hellip;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;I just wanted to include this in the slides for posterity&amp;rsquo;s sake.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Additionally, there&amp;rsquo;s a link to even more information about the
+testing I did, and my results.&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 </description>
     </item>
