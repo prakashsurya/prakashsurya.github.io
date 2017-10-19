@@ -2,6 +2,7 @@
 date = "2017-10-24T00:00:00-08:00"
 lastmod = "2017-10-24T00:00:00-08:00"
 title = "ZIL Performance: How I Doubled Sync Write Speed"
+presenter = "Prakash Surya"
 type = "slides"
 draft = false
 +++
