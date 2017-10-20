@@ -7,6 +7,8 @@ draft = false
 
 ## OpenZFS Related
 
+  - 17 Oct 2017 &raquo; Bryan Cantrill &raquo;
+    [ARC after dark](https://www.youtube.com/watch?v=F8sZRBdmqc0)
   - 21 Apr 2017 &raquo; Serapheim Dimitropoulos &raquo;
     [ZFS Storage Pool Checkpoint](https://sdimitro.github.io/post/zpool-checkpoint/)
   - 12 Apr 2015 &raquo; Ryan Zezeski &raquo;
