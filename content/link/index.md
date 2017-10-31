@@ -17,6 +17,8 @@ draft = false
     [ZFS RAIDZ stripe width](http://blog.delphix.com/matt/2014/06/06/zfs-stripe-width/)
   - 13 Dec 2012 &raquo; Adam Leventhal &raquo;
     [ZFS fundamentals: transaction groups](http://dtrace.org/blogs/ahl/2012/12/13/zfs-fundamentals-transaction-groups/)
+  - 06 Oct 2008 &raquo; George Wilson &raquo;
+    [Jack Adams Interviews George Wilson on ZFS](https://www.youtube.com/watch?v=qfdH3RRHdn0)
   - 15 Dec 2008 &raquo; Matt Ahrens &raquo;
     [New Scrub Code](https://blogs.oracle.com/ahrens/entry/new_scrub_code)
   - ?? Sep 2008 &raquo; Jeff Bonwick and Bill Moore &raquo;
