@@ -42,6 +42,8 @@ draft = false
     [Why Github can't host the Linux Kernel Community](http://blog.ffwll.ch/2017/08/github-why-cant-host-the-kernel.html)
   - 06 Jul 2017 &raquo; Benjamin Pollack &raquo;
     [Why I Hate Slack and You Should Too](https://bitquabit.com/post/i-hate-slack-and-you-should-too/)
+  - 13 Jun 2017 &raquo; Jonathan Mueller &raquo;
+    [Project Plan Template for Google Sheets](https://www.youtube.com/watch?v=3n93GXXGNoQ)
   - 19 Apr 2017 &raquo; Keegan Lowenstein &raquo;
     [Tmux and Vim - even better together](https://blog.bugsnag.com/tmux-and-vim/)
   - 21 Dec 2016 &raquo; Brendan Gregg &raquo;
