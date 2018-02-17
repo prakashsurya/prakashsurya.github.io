@@ -1,6 +1,6 @@
 +++
 date = "2017-02-06T00:00:00-08:00"
-lastmod = "2017-02-06T00:00:00-08:00"
+lastmod = "2018-02-16T00:00:00-08:00"
 title = "Creating a Custom Amazon EC2 AMI from ISO (using OI Hipster)"
 draft = false
 +++
@@ -221,7 +221,11 @@ could be used for these various environment variables:
 
     $ export AWS_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
     $ export AWS_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-    $ export AWS_ZONE=us-west-1a
+
+    $ export EC2_URL=https://ec2.us-east-1.amazonaws.com
+    $ export AWS_REGION=us-east-1
+    $ export AWS_ZONE=us-east-1a
+
     $ export AWS_S3_BUCKET=ivol-openindiana-hipster
     $ export AWS_AMI_NAME="OpenIndiana Hipster Testing 2017.02.06 (HVM)"
     $ export AWS_AMI_DESC="Hipster is a codename for rapidly moving \
