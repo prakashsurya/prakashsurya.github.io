@@ -6,8 +6,210 @@
     <description>Recent content on www.prakashsurya.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 01 Dec 2017 00:00:00 -0800</lastBuildDate>
+    <lastBuildDate>Mon, 23 Apr 2018 00:00:00 -0800</lastBuildDate>
     <atom:link href="https://www.prakashsurya.com/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Ubuntu-Based Appliance Build Architecture</title>
+      <link>https://www.prakashsurya.com/post/2018-04-23-ubuntu-based-appliance-build-architecture/</link>
+      <pubDate>Mon, 23 Apr 2018 00:00:00 -0800</pubDate>
+      
+      <guid>https://www.prakashsurya.com/post/2018-04-23-ubuntu-based-appliance-build-architecture/</guid>
+      <description>
+
+&lt;h1 id=&#34;agenda&#34;&gt;Agenda&lt;/h1&gt;
+
+&lt;h3 id=&#34;1-overview-of-current-illumos-based-build-architecture&#34;&gt;1. Overview of current illumos-based build architecture.&lt;/h3&gt;
+
+&lt;h3 id=&#34;2-problems-with-current-build-architecture&#34;&gt;2. Problems with current build architecture.&lt;/h3&gt;
+
+&lt;h3 id=&#34;3-goals-of-new-ubuntu-based-build-architecture&#34;&gt;3. Goals of new Ubuntu-based build architecture.&lt;/h3&gt;
+
+&lt;h3 id=&#34;4-overview-of-new-build-architecture&#34;&gt;4. Overview of new build architecture.&lt;/h3&gt;
+
+&lt;h3 id=&#34;5-details-of-new-build-architecture&#34;&gt;5. Details of new build architecture.&lt;/h3&gt;
+
+&lt;p&gt;.footnote[&lt;sup&gt;*&lt;/sup&gt;Press &amp;ldquo;p&amp;rdquo; for notes, and &amp;ldquo;c&amp;rdquo; for split view.]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;1-ndash-overview-of-current-build-architecture&#34;&gt;1 &amp;ndash; Overview of current build architecture&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;overview-of-current-build-architecture&#34;&gt;Overview of current build architecture&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Converts source code, into virtual machine artifacts&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;OVA, VHD, qcow2, etc.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Steps involved:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Clone repositories&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Build repositories&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Generate &amp;ldquo;OS&amp;rdquo; cpio archive&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Generate &amp;ldquo;DX&amp;rdquo; cpio archive&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Generate upgrade image&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Generate ISO&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Install from ISO (for each hypervisor)&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Generate VM artifacts&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;overview-of-current-architecture.svg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;2-ndash-problems-with-current-build-architecture&#34;&gt;2 &amp;ndash; Problems with current build architecture&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;problem-latency&#34;&gt;Problem: Latency&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Time to checkout all of our repositories (5 mins)&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Time to build all of our repositories (70 mins)&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Time to generate upgrade image (25 mins)&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Time to build ISO (25 mins)&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Time to copy artifacts (ISO + upgrade image) to NAS (5 mins)&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Time to install from ISO on all supported hypervisors&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;VMware &amp;rarr; OVA (20 mins) + DCenter Snapshots (25 mins)&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Xen &amp;rarr; VMDK (20 mins) + AWS Snapshots (70 mins)&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;HyperV &amp;rarr; VHD (90 mins) + Azure Snapshots (40 mins)&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&#34;total-latency-4-hours-30-mins&#34;&gt;Total Latency: 4 hours, 30 mins&lt;/h2&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;problem-reliability&#34;&gt;Problem: Reliability&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;If any one step fails, the whole build fails&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Checkout step can fail due to broken infrastructure&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Build step can fail due to broken code checked in&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Upgrade image generation can fail due to broken IPS repo&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;No change control over IPS repo&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;ISO install can fail due to broken hypervisors&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;h2 id=&#34;snapshots-can-fail-due-to-broken-ansible-roles&#34;&gt;Snapshots can fail due to broken Ansible roles&lt;/h2&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&#34;problem-product-variants&#34;&gt;Problem: Product Variants&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;We actually need to build multiple variantions of the appliance:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Standard, Demo, SAP, AWS Marketplace, AWS GovCloud, etc.&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Each variation &amp;times; each hypervisor, requires a unique ISO install:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;VMware &amp;rarr; Standard OVA&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;VMware &amp;rarr; Demo OVA&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;VMware &amp;rarr; SAP OVA&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;KVM &amp;rarr; Standard QCOW2&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;HyperV &amp;rarr; Standard VHD&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Xen &amp;rarr; AWS Standard AMI&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Xen &amp;rarr; AWS Marketplace AMI&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Xen &amp;rarr; AWS GovCloud AMI&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;3-ndash-goals-of-new-build-architecture&#34;&gt;3 &amp;ndash; Goals of new build architecture&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&#34;goals-of-new-build-architecture&#34;&gt;Goals of new build architecture&lt;/h1&gt;
+
+&lt;h2 id=&#34;1-eliminate-build-of-each-repository&#34;&gt;1. Eliminate build of each repository&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Consume packages, not source code&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Each repository built externally &amp;mdash; produces &lt;code&gt;.deb&lt;/code&gt; package&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&#34;2-eliminate-hypervisor-specific-iso-installs&#34;&gt;2. Eliminate hypervisor specific ISO installs&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Generate bootable virtual machine (VM) artifacts; OVA, VHD, etc.&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Don&amp;rsquo;t need &amp;ldquo;on-prem&amp;rdquo; hypervisors to produce VM artifacts&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&#34;3-support-different-product-development-and-qa-variations&#34;&gt;3. Support different product, development, and QA variations&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Generate different VM artifacts for our different product types&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Generate different VM artifacts for QA and development purposes&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;4-ndash-overview-of-new-build-architecture&#34;&gt;4 &amp;ndash; Overview of new build architecture&lt;/h1&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;class: middle, center&lt;/p&gt;
+
+&lt;h1 id=&#34;5-ndash-details-of-new-build-architecture&#34;&gt;5 &amp;ndash; Details of new build architecture&lt;/h1&gt;
+</description>
+    </item>
     
     <item>
       <title>Principles of OS Debugging</title>
@@ -4298,97 +4500,6 @@ validate the correctness of my code changes.&lt;/p&gt;
 &lt;a href=&#34;http://documents.holley.com/techlibrary_carb_numerical_listing.pdf&#34;&gt;Holley Carburetor Numerical Listing&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;?? ??? ???? &amp;raquo; jegs.com &amp;raquo;
 &lt;a href=&#34;http://www.jegs.com/tech-articles/sbc-engine-specs.html&#34;&gt;Small Block Shevy V8 - Engine Specifications&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Running `sshd` on Windows using Cygwin</title>
-      <link>https://www.prakashsurya.com/post/2017-03-16-running-sshd-on-windows-using-cygwin/</link>
-      <pubDate>Thu, 16 Mar 2017 00:00:00 -0800</pubDate>
-      
-      <guid>https://www.prakashsurya.com/post/2017-03-16-running-sshd-on-windows-using-cygwin/</guid>
-      <description>
-
-&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
-
-&lt;p&gt;As part of our effort to support &lt;a href=&#34;https://www.delphix.com/&#34;&gt;Delphix&lt;/a&gt; in the &lt;a href=&#34;https://en.wikipedia.org/wiki/Microsoft_Azure&#34;&gt;Azure&lt;/a&gt; cloud
-environment, we&amp;rsquo;re writing some automation to convert our &lt;code&gt;.iso&lt;/code&gt; install
-media into a &lt;a href=&#34;https://en.wikipedia.org/wiki/VHD_(file_format)&#34;&gt;VHD&lt;/a&gt; image, leveraging &lt;a href=&#34;https://en.wikipedia.org/wiki/Jenkins_(software)&#34;&gt;Jenkins&lt;/a&gt; and &lt;a href=&#34;https://en.wikipedia.org/wiki/Packer_(software)&#34;&gt;Packer&lt;/a&gt; in
-the process.&lt;/p&gt;
-
-&lt;p&gt;Essentially, we want to use a &lt;a href=&#34;https://en.wikipedia.org/wiki/Microsoft_Windows&#34;&gt;Windows&lt;/a&gt; server as a Jenkins &amp;ldquo;slave&amp;rdquo;,
-and run Packer from within a Jenkins job that will run on that Windows
-system.&lt;/p&gt;
-
-&lt;p&gt;In order to do that, the Jenkins &amp;ldquo;master&amp;rdquo; needs to connect with the
-Windows system, such that it can configure the system to act as a
-Jenkins slave. Additionally, due to some of our existing Jenkins
-infrastructure, this requires the Jenkins &amp;ldquo;master&amp;rdquo; using &lt;code&gt;ssh&lt;/code&gt; to
-connect to the Windows box. Thus, &lt;code&gt;sshd&lt;/code&gt; is needed on the Windows
-system.&lt;/p&gt;
-
-&lt;h2 id=&#34;running-sshd-on-windows-using-cygwin&#34;&gt;Running &lt;code&gt;sshd&lt;/code&gt; on Windows using Cygwin&lt;/h2&gt;
-
-&lt;p&gt;The following is a quick run-down of the steps I needed to perform, to
-install and configure &lt;code&gt;sshd&lt;/code&gt; on our Windows server, enabling &lt;code&gt;ssh&lt;/code&gt;
-clients (and our Jenkins master) to connect to it:&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;Install Cygwin on the Windows server:
-
-&lt;ul&gt;
-&lt;li&gt;I used RDP to connect to the server as the &lt;code&gt;Administrator&lt;/code&gt; user&lt;/li&gt;
-&lt;li&gt;Used a web browser to access the &lt;a href=&#34;https://cygwin.com/install.html&#34;&gt;installation instructions&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;Downloaded the &lt;code&gt;setup-x86_64.exe&lt;/code&gt; file&lt;/li&gt;
-&lt;li&gt;Executed &lt;code&gt;setup-x86_64.exe&lt;/code&gt;, and followed the setup instructions&lt;/li&gt;
-&lt;li&gt;When reaching the package selection screen of the setup wizard, I
-explicitly selected the following packages:
-
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;cygrunsrv&lt;/code&gt; from the &lt;code&gt;Admin&lt;/code&gt; group&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;openssh&lt;/code&gt; from the &lt;code&gt;Net&lt;/code&gt; group&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;After the Cygwin setup finished, I used the instructions found
- &lt;a href=&#34;http://www.noah.org/ssh/cygwin-sshd.html&#34;&gt;here&lt;/a&gt; to configure and start the &lt;code&gt;sshd&lt;/code&gt; service. This involved
- running the following commands in a Cygwin shell:
-
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;ssh-host-config -y&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;cygrunsrv -S sshd&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;At this point, the &lt;code&gt;sshd&lt;/code&gt; service was running, but the Windows
- server&amp;rsquo;s firewall was blocking incoming connections to port 22. So,
- I had to edit the server&amp;rsquo;s firewall rules to allow incomming
- connections on port 22 (the port &lt;code&gt;sshd&lt;/code&gt; was running on). For this,
- I followed the instructions that I found &lt;a href=&#34;https://techtorials.me/cygwin/configure-windows-firewall/&#34;&gt;here&lt;/a&gt;.&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;h2 id=&#34;installing-additional-software&#34;&gt;Installing Additional Software&lt;/h2&gt;
-
-&lt;p&gt;In addition to installing Cygwin and running &lt;code&gt;sshd&lt;/code&gt;, we also needed to
-perform a little more configuration to the Windows system, as our
-Jenkins job had these additional dependencies:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;To allow ssh access to other systems in our environment from the
-Jenkins job, the necessary &lt;code&gt;ssh&lt;/code&gt; keys had to be installed in the
-&lt;code&gt;Administrator&lt;/code&gt; user&amp;rsquo;s home directory.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;git&lt;/code&gt; was installed using the Cygwin installer.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;packer&lt;/code&gt; was downloaded from the project&amp;rsquo;s &lt;a href=&#34;https://www.packer.io/downloads.html&#34;&gt;download page&lt;/a&gt; and
-installed simply by placing the binary at the correct location.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pv&lt;/code&gt; was manually compiled and installed following the directions on
-the &lt;a href=&#34;https://sourceforge.net/projects/pvforcygwin/&#34;&gt;project&amp;rsquo;s website&lt;/a&gt;; i.e. using these commands:
-
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;wget http://www.ivarch.com/programs/sources/pv-1.3.4.tar.bz2&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;tar -xf pv-1.3.4.tar.bz2&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;cd pv-1.3.4&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;./configure --prefix=&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;make&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;make install&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 </description>
     </item>

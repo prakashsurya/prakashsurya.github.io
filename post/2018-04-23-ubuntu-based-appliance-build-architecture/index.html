@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.18.1" />
+<meta charset="utf-8">
+<link rel="canonical" href="https://www.prakashsurya.com/post/2018-04-23-ubuntu-based-appliance-build-architecture/">
+<script src="/js/remark.min.js"></script>
+<style type="text/css">
+  @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+  @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+  @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+  body { font-family: 'Droid Serif'; }
+  h1, h2, h3 {
+    font-family: 'Yanone Kaffeesatz';
+    font-weight: 400;
+    margin-bottom: 0;
+  }
+
+  .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+  .remark-slide-content h1 { font-size: 3em; }
+  .remark-slide-content h2 { font-size: 2em; }
+  .remark-slide-content h3 { font-size: 1.6em; }
+  .remark-slide-content a, a > code { text-decoration: none; }
+  .footnote { position: absolute; bottom: 3em; font-size: .6em; }
+  .pull-left { float: left; width: 47%; }
+  .pull-right { float: right; width: 47%; }
+  .pull-right ~ p { clear: both; }
+
+   
+
+  @page {
+     
+    size: 908px 681px;
+    margin: 0;
+  }
+
+  @media print {
+    .remark-slide-scaler {
+      width: 100% !important;
+      height: 100% !important;
+      transform: scale(1) !important;
+      top: 0 !important;
+      left: 0 !important;
+    }
+  }
+</style>
+
+    <title>Ubuntu-Based Appliance Build Architecture &raquo www.prakashsurya.com</title>
+  </head>
+  <body>
+    <main>
+  <textarea id="source">
+class: middle
+# Ubuntu-Based Appliance Build Architecture
+
+### Prakash Surya &vert; April 23 2018
+
+---
+# Agenda
+
+### 1. Overview of current illumos-based build architecture.
+
+### 2. Problems with current build architecture.
+
+### 3. Goals of new Ubuntu-based build architecture.
+
+### 4. Overview of new build architecture.
+
+### 5. Details of new build architecture.
+
+.footnote[&lt;sup&gt;\*&lt;/sup&gt;Press &#34;p&#34; for notes, and &#34;c&#34; for split view.]
+
+---
+
+class: middle, center
+
+# 1 &amp;ndash; Overview of current build architecture
+
+---
+
+# Overview of current build architecture
+
+ - Converts source code, into virtual machine artifacts
+
+    - OVA, VHD, qcow2, etc.
+
+ - Steps involved:
+
+    1. Clone repositories
+
+    2. Build repositories
+
+    3. Generate &#34;OS&#34; cpio archive
+
+    4. Generate &#34;DX&#34; cpio archive
+
+    5. Generate upgrade image
+
+    6. Generate ISO
+
+    7. Install from ISO (for each hypervisor)
+
+    8. Generate VM artifacts
+
+---
+
+class: middle, center
+
+![](overview-of-current-architecture.svg)
+
+---
+
+class: middle, center
+
+# 2 &amp;ndash; Problems with current build architecture
+
+---
+
+# Problem: Latency
+
+ - Time to checkout all of our repositories (5 mins)
+
+ - Time to build all of our repositories (70 mins)
+
+ - Time to generate upgrade image (25 mins)
+
+ - Time to build ISO (25 mins)
+
+ - Time to copy artifacts (ISO &#43; upgrade image) to NAS (5 mins)
+
+ - Time to install from ISO on all supported hypervisors
+
+    - VMware &amp;rarr; OVA (20 mins) &#43; DCenter Snapshots (25 mins)
+
+    - Xen &amp;rarr; VMDK (20 mins) &#43; AWS Snapshots (70 mins)
+
+    - HyperV &amp;rarr; VHD (90 mins) &#43; Azure Snapshots (40 mins)
+
+## Total Latency: 4 hours, 30 mins
+
+---
+
+# Problem: Reliability
+
+ - If any one step fails, the whole build fails
+
+    - Checkout step can fail due to broken infrastructure
+
+    - Build step can fail due to broken code checked in
+
+    - Upgrade image generation can fail due to broken IPS repo
+
+       - No change control over IPS repo
+
+    - ISO install can fail due to broken hypervisors
+
+    - Snapshots can fail due to broken Ansible roles
+---
+
+# Problem: Product Variants
+
+ - We actually need to build multiple variantions of the appliance:
+
+    - Standard, Demo, SAP, AWS Marketplace, AWS GovCloud, etc.
+
+ - Each variation &amp;times; each hypervisor, requires a unique ISO install:
+
+    - VMware &amp;rarr; Standard OVA
+
+    - VMware &amp;rarr; Demo OVA
+
+    - VMware &amp;rarr; SAP OVA
+
+    - KVM &amp;rarr; Standard QCOW2
+
+    - HyperV &amp;rarr; Standard VHD
+
+    - Xen &amp;rarr; AWS Standard AMI
+
+    - Xen &amp;rarr; AWS Marketplace AMI
+
+    - Xen &amp;rarr; AWS GovCloud AMI
+
+---
+
+class: middle, center
+
+# 3 &amp;ndash; Goals of new build architecture
+
+---
+
+# Goals of new build architecture
+
+## 1. Eliminate build of each repository
+
+  - Consume packages, not source code
+
+  - Each repository built externally &amp;mdash; produces `.deb` package
+
+## 2. Eliminate hypervisor specific ISO installs
+
+ - Generate bootable virtual machine (VM) artifacts; OVA, VHD, etc.
+
+ - Don&#39;t need &#34;on-prem&#34; hypervisors to produce VM artifacts
+
+## 3. Support different product, development, and QA variations
+
+ - Generate different VM artifacts for our different product types
+
+ - Generate different VM artifacts for QA and development purposes
+
+---
+
+class: middle, center
+
+# 4 &amp;ndash; Overview of new build architecture
+
+---
+
+class: middle, center
+
+# 5 &amp;ndash; Details of new build architecture
+
+---
+class: center, middle
+# End
+  </textarea>
+  <script>
+    
+
+    remark.macros.scale = function (percentage) {
+      var url = this;
+      return '<img src="' + url + '" style="width: ' + percentage + '" />';
+    };
+
+    var slideshow = remark.create({ ratio: '4:3' });
+  </script>
+</main>
+  </body>
+</html>
