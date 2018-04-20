@@ -31,7 +31,7 @@ class: middle, center
 
 # Overview of current build architecture
 
- - Converts source code, into virtual machine artifacts
+ - Converts source code, into virtual machine (VM) artifacts
 
     - OVA, VHD, qcow2, etc.
 
@@ -57,7 +57,7 @@ class: middle, center
 
 class: middle, center
 
-![](overview-of-current-architecture.svg)
+![:scale 100%](overview-of-current-architecture.svg)
 
 ---
 
@@ -67,7 +67,7 @@ class: middle, center
 
 ---
 
-# Problem: Latency
+# Latency
 
  - Time to checkout all of our repositories (5 mins)
 
@@ -91,7 +91,7 @@ class: middle, center
 
 ---
 
-# Problem: Reliability
+# Reliability
 
  - If any one step fails, the whole build fails
 
@@ -108,7 +108,7 @@ class: middle, center
     - Snapshots can fail due to broken Ansible roles
 ---
 
-# Problem: Product Variants
+# Product Variants
 
  - We actually need to build multiple variantions of the appliance:
 
@@ -150,7 +150,7 @@ class: middle, center
 
 ## 2. Eliminate hypervisor specific ISO installs
 
- - Generate bootable virtual machine (VM) artifacts; OVA, VHD, etc.
+ - Generate bootable VM artifacts; OVA, VHD, etc.
 
  - Don't need "on-prem" hypervisors to produce VM artifacts
 
@@ -165,6 +165,30 @@ class: middle, center
 class: middle, center
 
 # 4 &ndash; Overview of new build architecture
+
+---
+
+# Overview of new build architecture
+
+ - Converts *packages* into VM artifacts
+
+    - OVA, VHD, qcow2, etc.
+
+ - Steps involved:
+
+    1. Install "base" packages into a "chroot" directory
+
+    2. Copy "base" directory into variant-specific directories
+
+    3. Apply unique customizations to variant-specific directories
+
+    4. Convert variant "chroot" directories into VM artifacts
+
+---
+
+class: middle, center
+
+![:scale 100%](overview-of-new-architecture.svg)
 
 ---
 
