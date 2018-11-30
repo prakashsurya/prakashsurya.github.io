@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="Hugo 0.40.1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://www.prakashsurya.com/post/2018-11-30-robust-upgrade-on-ubuntu/">
+<link rel="stylesheet" type="text/css" href="/css/hack.css">
+<link rel="stylesheet" type="text/css" href="/css/custom.css">
+
+    <title>
+  Robust Upgrade on Ubuntu, using ZFS and Containers &raquo; www.prakashsurya.com
+</title>
+  </head>
+  <body class="hack container">
+    <header>
+      <nav>
+  
+    <a class="active" href="/post/">Posts</a>
+  
+    <a class="active" href="/link/">Links</a>
+  
+    <a class="active" href="/">Home</a>
+  
+</nav>
+
+    </header>
+    <main>
+  <h1>Robust Upgrade on Ubuntu, using ZFS and Containers</h1>
+  <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#step-1-create-an-ubuntu-system-using-zfs-as-the-root-filesystem">Step 1: Create an Ubuntu system using ZFS as the root filesystem</a></li>
+<li><a href="#step-2-create-container-from-clone-of-root-filesytem">Step 2: Create container from clone of root filesytem</a></li>
+<li><a href="#step-3-upgrade-the-container">Step 3: Upgrade the container</a></li>
+<li><a href="#step-4-use-the-container-s-upgraded-root-filesystem-to-boot-the-host">Step 4: Use the container&rsquo;s (upgraded) root filesystem to boot the host</a></li>
+</ul></li>
+</ul>
+</nav>
+  
+
+<h2 id="introduction">Introduction</h2>
+
+<p>Recently I stumbled across a twitter post, highlighting the benefits of
+ZFS Boot Environments; see <a href="https://twitter.com/rvstaveren/status/1063057191513587712">here</a>. Next in that thread, it states:</p>
+
+<blockquote>
+<p>Unfortunately, #linux has little to offer with the same functionality
+as #ZFS, especially with Red Hat abandoning #BTRFS</p>
+</blockquote>
+
+<p>See <a href="https://twitter.com/rvstaveren/status/1063059487920218112">here</a>. I took this as an implication that it&rsquo;s not possible to
+implement a solution similar to ZFS Boot Environments on Linux, which I
+don&rsquo;t completely agree with.</p>
+
+<p>The following provides some details about how ZFS Boot Environments
+could be implemented on Ubuntu, if somebody wanted to do it (we&rsquo;re doing
+a variation of this at Delphix).</p>
+
+<h2 id="step-1-create-an-ubuntu-system-using-zfs-as-the-root-filesystem">Step 1: Create an Ubuntu system using ZFS as the root filesystem</h2>
+
+<p>Before we can begin, we first need to build an Ubuntu system such that
+it uses ZFS for the root filesystem; this means using <a href="https://github.com/zfsonlinux/zfs">OpenZFS on
+Linux</a>, which is readily available and supported on the most recent
+Ubuntu releases.</p>
+
+<p>There&rsquo;s many different ways to go about doing this, and there&rsquo;s also
+excellent tutorials such as <a href="https://github.com/zfsonlinux/zfs/wiki/Ubuntu-18.04-Root-on-ZFS">this one</a>, so I&rsquo;ll leave this as an
+exercise for the reader (we currently use <a href="https://github.com/delphix/appliance-build/blob/a3f5aa1/live-build/misc/live-build-hooks/90-raw-disk-image.binary">this script</a> at Delphix).</p>
+
+<p>As an example, I have the following Ubuntu 18.04 system, with its root
+filesystem configured on ZFS:</p>
+
+<pre><code>$ lsb_release -a
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description:    Ubuntu 18.04.1 LTS
+Release:        18.04
+Codename:       bionic
+
+$ mount | awk '$3 == &quot;/&quot; {print $0}'
+rpool/ROOT/delphix.9aTvgfL on / type zfs (rw,relatime,xattr,posixacl)
+
+$ zfs list
+NAME                         USED  AVAIL  REFER  MOUNTPOINT
+rpool                       21.2G  46.1G    64K  none
+rpool/ROOT                  14.7G  46.1G    65K  none
+rpool/ROOT/delphix.9aTvgfL  14.7G  46.1G  14.7G  /
+rpool/crashdump             65.5K  17.4G  65.5K  /var/crash
+rpool/home                  6.50G  46.1G  6.50G  /export/home
+rpool/update                  68K  15.0G    68K  /var/dlpx-update
+</code></pre>
+
+<h2 id="step-2-create-container-from-clone-of-root-filesytem">Step 2: Create container from clone of root filesytem</h2>
+
+<p>Once this is in place, it&rsquo;s relatively straight forward to create a
+container from a root filesystem clone, using <a href="https://www.freedesktop.org/software/systemd/man/systemd-nspawn.html">systemd-nspawn</a>.</p>
+
+<ol>
+<li><p>Create the clone, mounted in <code>/var/lib/machines</code>:</p>
+
+<pre><code># mktemp -d -p /var/lib/machines -t delphix.XXXXXXX
+/var/lib/machines/delphix.DEepQDm
+
+# zfs snapshot rpool/ROOT/delphix.9aTvgfL@delphix.DEepQDm
+
+# zfs clone -o mountpoint=/var/lib/machines/delphix.DEepQDm \
+&gt; rpool/ROOT/delphix.9aTvgfL@delphix.DEepQDm rpool/ROOT/delphix.DEepQDm
+
+# zfs list -o mountpoint,mounted,origin rpool/ROOT/delphix.DEepQDm
+MOUNTPOINT                         MOUNTED  ORIGIN
+/var/lib/machines/delphix.DEepQDm      yes  rpool/ROOT/delphix.9aTvgfL@delphix.DEepQDm
+</code></pre></li>
+
+<li><p>Install the <code>systemd-container</code> package, which contains <code>systemd-nspawn</code>:</p>
+
+<pre><code># apt-get install -y systemd-container
+</code></pre></li>
+
+<li><p>Override default container configuration:</p>
+
+<pre><code># mkdir -p /etc/systemd/nspawn
+# cat &gt;/etc/systemd/nspawn/delphix.DEepQDm.nspawn &lt;&lt;EOF
+&gt; [Exec]
+&gt; PrivateUsers=no
+&gt; [Files]
+&gt; PrivateUsersChown=no
+&gt; EOF
+</code></pre></li>
+
+<li><p>Start the container:</p>
+
+<pre><code># systemd-nspawn --capability=all --boot --machine delphix.DEepQDm
+</code></pre></li>
+</ol>
+
+<p>At this point, a container should be running on the system, using the
+cloned root filesystem as it&rsquo;s root filesystem. Let&rsquo;s verify this:</p>
+
+<pre><code># machinectl list
+MACHINE         CLASS     SERVICE        OS     VERSION ADDRESSES
+delphix.DEepQDm container systemd-nspawn ubuntu 18.04   -
+
+# machinectl status delphix.DEepQDm | head -n10
+delphix.DEepQDm(5c5c6f1ae47a4ff29024aa845091ae8c)
+           Since: Thu 2018-11-29 23:48:37 UTC; 38s ago
+          Leader: 6597 (systemd)
+         Service: systemd-nspawn; class container
+            Root: /var/lib/machines/delphix.DEepQDm
+              OS: Ubuntu 18.04.1 LTS
+            Unit: machine-delphix.DEepQDm.scope
+                  ├─init.scope
+                  │ └─6597 /lib/systemd/systemd
+                  └─system.slice
+</code></pre>
+
+<p>We can even run commands in the container like so:</p>
+
+<pre><code># systemd-run --quiet --machine delphix.DEepQDm --pipe /usr/bin/env systemd-detect-virt
+systemd-nspawn
+
+# systemd-run --quiet --machine delphix.DEepQDm --pty /bin/bash
+(container)# exit
+exit
+</code></pre>
+
+<h2 id="step-3-upgrade-the-container">Step 3: Upgrade the container</h2>
+
+<p>Now that we have a container running based on a clone of the host&rsquo;s root
+filesystem, we can test out upgrade, without ever modifying the host&rsquo;s
+root filesystem.</p>
+
+<p>In this example, the host is running Ubuntu&rsquo;s &ldquo;bionic&rdquo; release, so the
+container is also running that release. Next, we&rsquo;re going to upgrade
+the container to Ubuntu&rsquo;s latest release, which is &ldquo;cosmic&rdquo;.</p>
+
+<ol>
+<li><p>Check the container&rsquo;s Ubuntu version before the upgrade:</p>
+
+<pre><code># systemd-run --quiet --machine delphix.DEepQDm --pipe /usr/bin/lsb_release -a
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description:    Ubuntu 18.04.1 LTS
+Release:        18.04
+Codename:       bionic
+</code></pre></li>
+
+<li><p>Perform the upgrade of the container:</p>
+
+<pre><code># systemd-run --quiet --machine delphix.DEepQDm --pty /bin/bash
+(container)# sed -i 's/bionic/cosmic/g' /etc/apt/sources.list
+(container)# apt-get update
+(container)# apt-get dist-upgrade -y
+(container)# exit
+</code></pre></li>
+
+<li><p>Check the container&rsquo;s Ubuntu version after the upgrade:</p>
+
+<pre><code># systemd-run --quiet --machine delphix.DEepQDm --pipe /usr/bin/lsb_release -a
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description:    Ubuntu 18.10
+Release:        18.10
+Codename:       cosmic
+</code></pre></li>
+
+<li><p>Verify the host&rsquo;s Ubuntu version remains the same:</p>
+
+<pre><code># lsb_release -a
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description:    Ubuntu 18.04.1 LTS
+Release:        18.04
+Codename:       bionic
+</code></pre></li>
+</ol>
+
+<h2 id="step-4-use-the-container-s-upgraded-root-filesystem-to-boot-the-host">Step 4: Use the container&rsquo;s (upgraded) root filesystem to boot the host</h2>
+
+<p>So far, we&rsquo;ve created a container using a clone of the original root
+filesystem, and have upgrade that container (and the associated cloned
+filesystem) to the new Ubuntu version. The last step is to update the
+host&rsquo;s bootloader configuration, such that it&rsquo;ll use this upgraded root
+filesystem as it&rsquo;s root filesystem, the next time the host boots.</p>
+
+<ol>
+<li><p>Stop the container (if it&rsquo;s still running):</p>
+
+<pre><code># machinectl poweroff delphix.DEepQDm
+</code></pre></li>
+
+<li><p>Bind mount directories required to update bootloader:</p>
+
+<pre><code># for dir in /proc /sys /dev; do
+&gt; mount --rbind &quot;$dir&quot; &quot;/var/lib/machines/delphix.DEepQDm$dir&quot;
+&gt; mount --make-rslave &quot;/var/lib/machines/delphix.DEepQDm$dir&quot;
+done
+</code></pre></li>
+
+<li><p>Update bootloader:</p>
+
+<pre><code># chroot /var/lib/machines/delphix.DEepQDm update-grub
+# chroot /var/lib/machines/delphix.DEepQDm grub-install /dev/sda
+</code></pre></li>
+
+<li><p>Remove mounts created in (2):</p>
+
+<pre><code># for dir in /proc /sys /dev; do
+&gt; umount -R &quot;/var/lib/machines/delphix.DEepQDm$dir&quot;
+done
+</code></pre></li>
+
+<li><p>Unmount new root dataset, configure it, reboot:</p>
+
+<pre><code># zfs umount rpool/ROOT/delphix.DEepQDm
+# zfs set canmount=noauto rpool/ROOT/delphix.DEepQDm
+# zfs set mountpoint=/ rpool/ROOT/delphix.DEepQDm
+# reboot
+</code></pre></li>
+</ol>
+
+<p>After the system reboots, it&rsquo;ll be running the root filesystem that was
+previously upgraded by the container; i.e. the host will be running the
+Ubuntu &ldquo;cosmic&rdquo; release.</p>
+
+</main>
+    <footer>
+  <hr />
+
+<div class="footer">
+  <div id="footer-left">
+    <a href="mailto:me@prakashsurya.com">me@prakashsurya.com</a>
+  </div>
+
+  <div id="footer-center">
+    Published: 29 Nov 2018
+  </div>
+
+  <div id="footer-right">
+    Last Modified: 29 Nov 2018
+  </div>
+</div>
+
+</footer>
+  </body>
+</html>
